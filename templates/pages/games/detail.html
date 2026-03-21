@@ -47,6 +47,44 @@
                 <span class="info-value">{{.Item.ReferralBonusPct}}%</span>
             </div>
             {{end}}
+            <div class="info-item">
+                <span class="info-label">Game Visibility</span>
+                <span class="info-value">{{if .Item.IsPublic}}Public{{else}}Private{{end}}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Player Portfolios</span>
+                <span class="info-value">{{if eq .Item.PortfolioVisibility "user_selectable"}}User Selectable{{else}}{{.Item.PortfolioVisibility | title}}{{end}}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Credit Interest</span>
+                <span class="info-value">{{bps .Item.CreditInterestRate}}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Leverage Interest</span>
+                <span class="info-value">{{bps .Item.LeverageInterestRate}}</span>
+            </div>
+            {{if .Item.MinStockPrice.Valid}}
+            <div class="info-item">
+                <span class="info-label">Min Stock Price</span>
+                <span class="info-value">{{cents .Item.MinStockPrice.Int64}}</span>
+            </div>
+            {{end}}
+            {{if .Item.MaxStockPrice.Valid}}
+            <div class="info-item">
+                <span class="info-label">Max Stock Price</span>
+                <span class="info-value">{{cents .Item.MaxStockPrice.Int64}}</span>
+            </div>
+            {{end}}
+            <div class="info-item">
+                <span class="info-label">Features</span>
+                <span class="info-value">
+                    {{if .Item.MarginTrading}}Margin{{end}}
+                    {{if .Item.LimitOrders}}Limits{{end}}
+                    {{if .Item.StopLoss}}Stop-Loss{{end}}
+                    {{if .Item.FractionalShares}}Fractional{{end}}
+                    {{if not (or .Item.MarginTrading .Item.LimitOrders .Item.StopLoss .Item.FractionalShares)}}None{{end}}
+                </span>
+            </div>
         </div>
 
         {{if .Extra.CanJoin}}

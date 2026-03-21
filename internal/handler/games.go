@@ -115,20 +115,88 @@ func (h *Handler) GameCreate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	isPublic := int64(1)
+	if r.FormValue("is_public") == "0" {
+		isPublic = 0
+	}
+
+	portfolioVisibility := "public"
+	if v := r.FormValue("portfolio_visibility"); v == "private" || v == "user_selectable" {
+		portfolioVisibility = v
+	}
+
+	creditInterestRate := int64(100) // 1.00% default
+	if v := r.FormValue("credit_interest_rate"); v != "" {
+		if f, err := strconv.ParseFloat(v, 64); err == nil && f >= 0 && f <= 100 {
+			creditInterestRate = int64(f * 100)
+		}
+	}
+
+	leverageInterestRate := int64(500) // 5.00% default
+	if v := r.FormValue("leverage_interest_rate"); v != "" {
+		if f, err := strconv.ParseFloat(v, 64); err == nil && f >= 0 && f <= 100 {
+			leverageInterestRate = int64(f * 100)
+		}
+	}
+
+	var minStockPrice sql.NullInt64
+	if v := r.FormValue("min_stock_price"); v != "" {
+		if dollars, err := strconv.ParseFloat(v, 64); err == nil && dollars > 0 {
+			minStockPrice = sql.NullInt64{Int64: int64(dollars * 100), Valid: true}
+		}
+	}
+
+	var maxStockPrice sql.NullInt64
+	if v := r.FormValue("max_stock_price"); v != "" {
+		if dollars, err := strconv.ParseFloat(v, 64); err == nil && dollars > 0 {
+			maxStockPrice = sql.NullInt64{Int64: int64(dollars * 100), Valid: true}
+		}
+	}
+
+	marginTrading := int64(0)
+	if r.FormValue("margin_trading") == "1" {
+		marginTrading = 1
+	}
+
+	limitOrders := int64(0)
+	if r.FormValue("limit_orders") == "1" {
+		limitOrders = 1
+	}
+
+	stopLoss := int64(0)
+	if r.FormValue("stop_loss") == "1" {
+		stopLoss = 1
+	}
+
+	fractionalShares := int64(0)
+	if r.FormValue("fractional_shares") == "1" {
+		fractionalShares = 1
+	}
+
 	game, err := h.q.CreateGame(r.Context(), db.CreateGameParams{
-		CreatedBy:          user.ID,
-		Name:               name,
-		Description:        description,
-		Markets:            markets,
-		StartingBalance:    startingBalance,
-		BaseCurrency:       baseCurrency,
-		MaxParticipants:    maxParticipants,
-		StartDate:          startDate,
-		EndDate:            endDate,
-		AllowShort:         allowShort,
-		TradeFee:           tradeFee,
-		RecurringInterval:  recurringInterval,
-		ReferralBonusPct:   referralBonusPct,
+		CreatedBy:            user.ID,
+		Name:                 name,
+		Description:          description,
+		Markets:              markets,
+		StartingBalance:      startingBalance,
+		BaseCurrency:         baseCurrency,
+		MaxParticipants:      maxParticipants,
+		StartDate:            startDate,
+		EndDate:              endDate,
+		AllowShort:           allowShort,
+		TradeFee:             tradeFee,
+		RecurringInterval:    recurringInterval,
+		ReferralBonusPct:     referralBonusPct,
+		IsPublic:             isPublic,
+		PortfolioVisibility:  portfolioVisibility,
+		CreditInterestRate:   creditInterestRate,
+		LeverageInterestRate: leverageInterestRate,
+		MinStockPrice:        minStockPrice,
+		MaxStockPrice:        maxStockPrice,
+		MarginTrading:        marginTrading,
+		LimitOrders:          limitOrders,
+		StopLoss:             stopLoss,
+		FractionalShares:     fractionalShares,
 	})
 	if err != nil {
 		h.render(w, r, "games/create", "", PageData{

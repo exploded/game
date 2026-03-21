@@ -54,25 +54,35 @@ type ExchangeRate struct {
 }
 
 type Game struct {
-	ID                int64
-	CreatedBy         int64
-	Name              string
-	Description       string
-	Status            string
-	Markets           string
-	StartingBalance   int64
-	BaseCurrency      string
-	MaxParticipants   sql.NullInt64
-	StartDate         string
-	EndDate           string
-	AllowShort        int64
-	TradeFee          int64
-	ReferralBonusPct  int64
-	RecurringInterval sql.NullString
-	ParentGameID      sql.NullInt64
-	TemplateID        sql.NullInt64
-	CreatedAt         string
-	UpdatedAt         string
+	ID                   int64
+	CreatedBy            int64
+	Name                 string
+	Description          string
+	Status               string
+	Markets              string
+	StartingBalance      int64
+	BaseCurrency         string
+	MaxParticipants      sql.NullInt64
+	StartDate            string
+	EndDate              string
+	AllowShort           int64
+	TradeFee             int64
+	ReferralBonusPct     int64
+	RecurringInterval    sql.NullString
+	ParentGameID         sql.NullInt64
+	TemplateID           sql.NullInt64
+	IsPublic             int64
+	PortfolioVisibility  string
+	CreditInterestRate   int64
+	LeverageInterestRate int64
+	MinStockPrice        sql.NullInt64
+	MaxStockPrice        sql.NullInt64
+	MarginTrading        int64
+	LimitOrders          int64
+	StopLoss             int64
+	FractionalShares     int64
+	CreatedAt            string
+	UpdatedAt            string
 }
 
 type GameInvite struct {

@@ -28,7 +28,7 @@
                 <span class="nav-user">{{.User.Name}}</span>
             </a>
             <a href="/settings" class="nav-settings" title="Account Settings">Settings</a>
-            <a href="/logout" class="nav-logout">Logout</a>
+            <form method="POST" action="/logout" style="display:inline"><button type="submit" class="nav-logout">Logout</button></form>
         </div>
         {{end}}
     </div>

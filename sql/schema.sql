@@ -65,6 +65,16 @@ CREATE TABLE IF NOT EXISTS games (
     recurring_interval   TEXT,                                   -- 'weekly' | 'monthly' | NULL
     parent_game_id       INTEGER REFERENCES games(id),
     template_id          INTEGER REFERENCES game_templates(id),
+    is_public            INTEGER NOT NULL DEFAULT 1,            -- 1 = public, 0 = private (invite only)
+    portfolio_visibility TEXT    NOT NULL DEFAULT 'public',      -- 'public' | 'private' | 'user_selectable'
+    credit_interest_rate INTEGER NOT NULL DEFAULT 100,           -- basis points (100 = 1.00%)
+    leverage_interest_rate INTEGER NOT NULL DEFAULT 500,         -- basis points (500 = 5.00%)
+    min_stock_price      INTEGER,                                -- minimum stock price in cents, NULL = no limit
+    max_stock_price      INTEGER,                                -- maximum stock price in cents, NULL = no limit
+    margin_trading       INTEGER NOT NULL DEFAULT 0,             -- 1 = enabled
+    limit_orders         INTEGER NOT NULL DEFAULT 0,             -- 1 = enabled
+    stop_loss            INTEGER NOT NULL DEFAULT 0,             -- 1 = enabled
+    fractional_shares    INTEGER NOT NULL DEFAULT 0,             -- 1 = enabled
     created_at           TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at           TEXT    NOT NULL DEFAULT (datetime('now'))
 );

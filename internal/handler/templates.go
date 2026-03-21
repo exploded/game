@@ -62,6 +62,9 @@ func LoadTemplates(dir string) (PageTemplates, error) {
 			return fmt.Sprintf("%+.2f", pct)
 		},
 		"upper": strings.ToUpper,
+		"bps": func(bp int64) string {
+			return fmt.Sprintf("%.2f%%", float64(bp)/100)
+		},
 		"rawDollars": func(c int64) string {
 			return fmt.Sprintf("%.2f", float64(c)/100)
 		},

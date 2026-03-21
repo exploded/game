@@ -85,6 +85,76 @@
         </div>
     </div>
 
+    <h3 style="margin-top:1.5rem">Game Settings</h3>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label for="is_public">Game Visibility</label>
+            <select id="is_public" name="is_public">
+                <option value="1">Public</option>
+                <option value="0">Private (invite only)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="portfolio_visibility">Player Portfolios</label>
+            <select id="portfolio_visibility" name="portfolio_visibility">
+                <option value="public">Public</option>
+                <option value="private">Private</option>
+                <option value="user_selectable">User selectable</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label for="credit_interest_rate">Credit Interest Rate (%)</label>
+            <input type="number" id="credit_interest_rate" name="credit_interest_rate" value="1" min="0" max="100" step="0.01">
+            <span class="text-muted" style="font-size:0.75rem">Annual interest earned on cash balance</span>
+        </div>
+        <div class="form-group">
+            <label for="leverage_interest_rate">Leverage Interest Rate (%)</label>
+            <input type="number" id="leverage_interest_rate" name="leverage_interest_rate" value="5" min="0" max="100" step="0.01">
+            <span class="text-muted" style="font-size:0.75rem">Annual interest charged on margin borrowing</span>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label for="min_stock_price">Minimum Stock Price ($ , optional)</label>
+            <input type="number" id="min_stock_price" name="min_stock_price" min="0" step="0.01" placeholder="No minimum">
+        </div>
+        <div class="form-group">
+            <label for="max_stock_price">Maximum Stock Price ($ , optional)</label>
+            <input type="number" id="max_stock_price" name="max_stock_price" min="0" step="0.01" placeholder="No maximum">
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="margin_trading" value="1"> Margin trading
+            </label>
+        </div>
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="limit_orders" value="1"> Limit orders
+            </label>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="stop_loss" value="1"> Stop loss trades
+            </label>
+        </div>
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="fractional_shares" value="1"> Fractional share trading
+            </label>
+        </div>
+    </div>
+
     <button type="submit" class="btn btn-primary">Create Game</button>
 </form>
 {{end}}
