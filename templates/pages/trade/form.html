@@ -33,6 +33,10 @@
                 <span class="info-label">Currently Holding</span>
                 <span class="info-value">{{.Extra.Holding.Quantity}} shares</span>
             </div>
+            <div class="info-item">
+                <span class="info-label">Holding Value</span>
+                <span class="info-value">{{cents .Extra.HoldingValue}} {{.Extra.Game.BaseCurrency}}</span>
+            </div>
             {{end}}
             {{if .Extra.Game.TradeFee}}
             <div class="info-item">

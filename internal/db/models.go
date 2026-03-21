@@ -26,6 +26,26 @@ type ActivityFeed struct {
 	CreatedAt string
 }
 
+type Avatar struct {
+	ID             int64
+	Key            string
+	Name           string
+	ImagePath      string
+	Category       string
+	AchievementKey sql.NullString
+	SortOrder      int64
+}
+
+type ContactMessage struct {
+	ID        int64
+	UserID    sql.NullInt64
+	Name      string
+	Email     string
+	Message   string
+	IsRead    int64
+	CreatedAt string
+}
+
 type ExchangeRate struct {
 	ID         int64
 	Date       string
@@ -47,6 +67,7 @@ type Game struct {
 	EndDate           string
 	AllowShort        int64
 	TradeFee          int64
+	ReferralBonusPct  int64
 	RecurringInterval sql.NullString
 	ParentGameID      sql.NullInt64
 	TemplateID        sql.NullInt64
@@ -118,6 +139,13 @@ type LimitOrder struct {
 	FilledAt      sql.NullString
 }
 
+type LobbyMessage struct {
+	ID        int64
+	UserID    int64
+	Message   string
+	CreatedAt string
+}
+
 type Notification struct {
 	ID        int64
 	UserID    int64
@@ -156,6 +184,16 @@ type PriceFetchLog struct {
 	ErrorMsg      sql.NullString
 	DurationMs    sql.NullInt64
 	CreatedAt     string
+}
+
+type ReferralBonuse struct {
+	ID          int64
+	InviteID    int64
+	ReferrerID  int64
+	ReferredID  int64
+	GameID      int64
+	BonusAmount int64
+	CreatedAt   string
 }
 
 type Session struct {
@@ -209,8 +247,10 @@ type User struct {
 	Name       string
 	PictureUrl sql.NullString
 	IsAdmin    int64
+	AvatarID   sql.NullInt64
 	CreatedAt  string
 	LastLogin  string
+	DeletedAt  sql.NullString
 }
 
 type UserAchievement struct {

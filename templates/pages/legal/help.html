@@ -1,0 +1,90 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Help &amp; FAQ</h1>
+</div>
+
+<div class="legal-content">
+    <div class="faq-section">
+        <h2>Getting Started</h2>
+
+        <details class="faq-item">
+            <summary>How do I create a game?</summary>
+            <p>Go to <strong>Games &rarr; New Game</strong>. Choose a name, set the duration, starting balance, and which markets (ASX, S&amp;P 500, or both) to include. Then share the invite link with friends.</p>
+        </details>
+
+        <details class="faq-item">
+            <summary>How do I join a game?</summary>
+            <p>You can join from the Games list, or use an invite link shared by a friend. Click &ldquo;Join&rdquo; and you&rsquo;ll receive the starting cash balance.</p>
+        </details>
+
+        <details class="faq-item">
+            <summary>Is real money involved?</summary>
+            <p><strong>No.</strong> StockGame uses entirely virtual currency. You cannot deposit, withdraw, or convert game money into real money.</p>
+        </details>
+    </div>
+
+    <div class="faq-section">
+        <h2>Trading</h2>
+
+        <details class="faq-item">
+            <summary>How do I buy or sell stocks?</summary>
+            <p>Navigate to a stock from the Stocks page, then click &ldquo;Trade&rdquo;. Enter the number of shares and confirm. The trade executes at the latest available price.</p>
+        </details>
+
+        <details class="faq-item">
+            <summary>What are limit orders?</summary>
+            <p>A limit order lets you set a target price. If the stock reaches your price, the order fills automatically. Go to a stock&rsquo;s trade page and select &ldquo;Limit Order&rdquo; instead of a market order.</p>
+        </details>
+
+        <details class="faq-item">
+            <summary>What about trade fees?</summary>
+            <p>Game creators can set a per-trade fee when creating a game. This simulates real brokerage fees. The fee is deducted from your cash on each trade.</p>
+        </details>
+
+        <details class="faq-item">
+            <summary>How does multi-currency work?</summary>
+            <p>ASX stocks trade in AUD and S&amp;P 500 stocks trade in USD. If the game&rsquo;s base currency differs from a stock&rsquo;s currency, an exchange rate is applied automatically at the time of the trade.</p>
+        </details>
+
+        <details class="faq-item">
+            <summary>Can I short sell?</summary>
+            <p>Only if the game creator enabled short selling. When allowed, you can sell stocks you don&rsquo;t own to bet on prices falling.</p>
+        </details>
+    </div>
+
+    <div class="faq-section">
+        <h2>Scoring &amp; Leaderboard</h2>
+
+        <details class="faq-item">
+            <summary>How is the winner decided?</summary>
+            <p>The player with the highest total portfolio value (cash + holdings) at the game&rsquo;s end date wins.</p>
+        </details>
+
+        <details class="faq-item">
+            <summary>How often are prices updated?</summary>
+            <p>Stock prices are fetched regularly from market data providers. In-game portfolio values update as new prices arrive.</p>
+        </details>
+    </div>
+
+    <div class="faq-section">
+        <h2>Account</h2>
+
+        <details class="faq-item">
+            <summary>How do I delete my account?</summary>
+            <p>Go to <a href="/settings">Account Settings</a> and click &ldquo;Delete Account&rdquo;. Your personal information will be anonymised and you will be logged out. This action cannot be undone.</p>
+        </details>
+
+        <details class="faq-item">
+            <summary>Can I export my data?</summary>
+            <p>Yes. Visit <a href="/settings">Account Settings</a> and click &ldquo;Export My Data&rdquo; to download a JSON file containing all your personal data.</p>
+        </details>
+    </div>
+
+    <div class="faq-section">
+        <h2>Still Have Questions?</h2>
+        <p>Reach out via our <a href="/contact">Contact page</a> and we&rsquo;ll get back to you.</p>
+    </div>
+</div>
+{{end}}

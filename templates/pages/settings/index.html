@@ -1,0 +1,37 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Account Settings</h1>
+    <a href="/dashboard" class="btn btn-sm">&larr; Dashboard</a>
+</div>
+
+<div class="settings-card">
+    <h2>Your Profile</h2>
+    <div class="profile-info">
+        {{if .Item.PictureUrl.Valid}}
+        <img src="{{.Item.PictureUrl.String}}" alt="Profile picture" class="profile-avatar">
+        {{end}}
+        <div class="profile-details">
+            <p><strong>Name:</strong> {{.Item.Name}}</p>
+            <p><strong>Email:</strong> {{.Item.Email}}</p>
+            <p class="text-muted">Member since {{slice .Item.CreatedAt 0 10}}</p>
+        </div>
+    </div>
+</div>
+
+<div class="settings-card">
+    <h2>Export Your Data</h2>
+    <p>Download a copy of all your personal data including your profile, trade history, achievements, and chat messages.</p>
+    <a href="/settings/export" class="btn btn-sm">Export My Data</a>
+</div>
+
+<div class="settings-card danger-zone">
+    <h2>Delete Account</h2>
+    <p>Permanently delete your account. Your name, email, and profile picture will be removed and replaced with &ldquo;Deleted User&rdquo;. Your game history will be kept in anonymised form for leaderboard integrity.</p>
+    <p><strong>This action cannot be undone.</strong></p>
+    <form method="POST" action="/settings/delete" onsubmit="return confirm('Are you sure you want to delete your account? This cannot be undone.')">
+        <button type="submit" class="btn btn-danger">Delete My Account</button>
+    </form>
+</div>
+{{end}}

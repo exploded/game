@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"database/sql"
 	"fmt"
 	"html/template"
 	"os"
@@ -10,6 +11,14 @@ import (
 
 // PageTemplates maps page keys (e.g. "games/list") to cloned template sets.
 type PageTemplates map[string]*template.Template
+
+// avatarPathMap maps avatar IDs to their image paths. Populated at startup.
+var avatarPathMap = make(map[int64]string)
+
+// RegisterAvatarPath records an avatar ID -> image path mapping for templates.
+func RegisterAvatarPath(id int64, path string) {
+	avatarPathMap[id] = path
+}
 
 func LoadTemplates(dir string) (PageTemplates, error) {
 	funcMap := template.FuncMap{
@@ -66,6 +75,20 @@ func LoadTemplates(dir string) (PageTemplates, error) {
 			return s[start:end]
 		},
 		"subtract": func(a, b int64) int64 { return a - b },
+		"avatarURL": func(pictureURL sql.NullString, avatarID sql.NullInt64) string {
+			// Avatar lookup is done via a simple static path convention.
+			// The actual avatar_id -> image_path mapping is handled by the
+			// avatarPathMap which is populated at template load time.
+			if avatarID.Valid && avatarID.Int64 > 0 {
+				if path, ok := avatarPathMap[avatarID.Int64]; ok {
+					return path
+				}
+			}
+			if pictureURL.Valid && pictureURL.String != "" {
+				return pictureURL.String
+			}
+			return "/static/avatars/default.svg"
+		},
 		"int": func(v any) int {
 			switch val := v.(type) {
 			case int:

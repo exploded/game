@@ -67,12 +67,43 @@ func (q *Queries) CancelLimitOrder(ctx context.Context, id int64) error {
 	return err
 }
 
+const clearUserAvatar = `-- name: ClearUserAvatar :exec
+UPDATE users SET avatar_id = NULL WHERE id = ?
+`
+
+func (q *Queries) ClearUserAvatar(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, clearUserAvatar, id)
+	return err
+}
+
+const countContactMessages = `-- name: CountContactMessages :one
+SELECT COUNT(*) FROM contact_messages
+`
+
+func (q *Queries) CountContactMessages(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countContactMessages)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countFinishedGames = `-- name: CountFinishedGames :one
 SELECT COUNT(*) FROM games WHERE status IN ('finished', 'cancelled')
 `
 
 func (q *Queries) CountFinishedGames(ctx context.Context) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countFinishedGames)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countLobbyMessages = `-- name: CountLobbyMessages :one
+SELECT COUNT(*) FROM lobby_messages
+`
+
+func (q *Queries) CountLobbyMessages(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countLobbyMessages)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -106,6 +137,22 @@ SELECT COUNT(*) FROM participants WHERE game_id = ?
 
 func (q *Queries) CountParticipants(ctx context.Context, gameID int64) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countParticipants, gameID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countReferralBonuses = `-- name: CountReferralBonuses :one
+SELECT COUNT(*) FROM referral_bonuses WHERE referrer_id = ? AND game_id = ?
+`
+
+type CountReferralBonusesParams struct {
+	ReferrerID int64
+	GameID     int64
+}
+
+func (q *Queries) CountReferralBonuses(ctx context.Context, arg CountReferralBonusesParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countReferralBonuses, arg.ReferrerID, arg.GameID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -152,6 +199,17 @@ func (q *Queries) CountTransactions(ctx context.Context, participantID int64) (i
 	return count, err
 }
 
+const countUnreadContactMessages = `-- name: CountUnreadContactMessages :one
+SELECT COUNT(*) FROM contact_messages WHERE is_read = 0
+`
+
+func (q *Queries) CountUnreadContactMessages(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countUnreadContactMessages)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countUnreadNotifications = `-- name: CountUnreadNotifications :one
 SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0
 `
@@ -163,11 +221,37 @@ func (q *Queries) CountUnreadNotifications(ctx context.Context, userID int64) (i
 	return count, err
 }
 
+const createContactMessage = `-- name: CreateContactMessage :exec
+
+INSERT INTO contact_messages (user_id, name, email, message)
+VALUES (?, ?, ?, ?)
+`
+
+type CreateContactMessageParams struct {
+	UserID  sql.NullInt64
+	Name    string
+	Email   string
+	Message string
+}
+
+// =============================================================================
+// Contact Messages
+// =============================================================================
+func (q *Queries) CreateContactMessage(ctx context.Context, arg CreateContactMessageParams) error {
+	_, err := q.db.ExecContext(ctx, createContactMessage,
+		arg.UserID,
+		arg.Name,
+		arg.Email,
+		arg.Message,
+	)
+	return err
+}
+
 const createGame = `-- name: CreateGame :one
 
-INSERT INTO games (created_by, name, description, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, recurring_interval)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, recurring_interval, parent_game_id, template_id, created_at, updated_at
+INSERT INTO games (created_by, name, description, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, recurring_interval, referral_bonus_pct)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, created_at, updated_at
 `
 
 type CreateGameParams struct {
@@ -183,6 +267,7 @@ type CreateGameParams struct {
 	AllowShort        int64
 	TradeFee          int64
 	RecurringInterval sql.NullString
+	ReferralBonusPct  int64
 }
 
 // =============================================================================
@@ -202,6 +287,7 @@ func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) (Game, e
 		arg.AllowShort,
 		arg.TradeFee,
 		arg.RecurringInterval,
+		arg.ReferralBonusPct,
 	)
 	var i Game
 	err := row.Scan(
@@ -218,6 +304,7 @@ func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) (Game, e
 		&i.EndDate,
 		&i.AllowShort,
 		&i.TradeFee,
+		&i.ReferralBonusPct,
 		&i.RecurringInterval,
 		&i.ParentGameID,
 		&i.TemplateID,
@@ -361,6 +448,33 @@ func (q *Queries) CreateLimitOrder(ctx context.Context, arg CreateLimitOrderPara
 		&i.CreatedAt,
 		&i.ExpiresAt,
 		&i.FilledAt,
+	)
+	return i, err
+}
+
+const createLobbyMessage = `-- name: CreateLobbyMessage :one
+
+INSERT INTO lobby_messages (user_id, message)
+VALUES (?, ?)
+RETURNING id, user_id, message, created_at
+`
+
+type CreateLobbyMessageParams struct {
+	UserID  int64
+	Message string
+}
+
+// =============================================================================
+// Lobby Chat
+// =============================================================================
+func (q *Queries) CreateLobbyMessage(ctx context.Context, arg CreateLobbyMessageParams) (LobbyMessage, error) {
+	row := q.db.QueryRowContext(ctx, createLobbyMessage, arg.UserID, arg.Message)
+	var i LobbyMessage
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Message,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -555,6 +669,25 @@ func (q *Queries) GetAchievementByKey(ctx context.Context, key string) (Achievem
 	return i, err
 }
 
+const getAvatar = `-- name: GetAvatar :one
+SELECT id, "key", name, image_path, category, achievement_key, sort_order FROM avatars WHERE id = ?
+`
+
+func (q *Queries) GetAvatar(ctx context.Context, id int64) (Avatar, error) {
+	row := q.db.QueryRowContext(ctx, getAvatar, id)
+	var i Avatar
+	err := row.Scan(
+		&i.ID,
+		&i.Key,
+		&i.Name,
+		&i.ImagePath,
+		&i.Category,
+		&i.AchievementKey,
+		&i.SortOrder,
+	)
+	return i, err
+}
+
 const getExchangeRateOnDate = `-- name: GetExchangeRateOnDate :one
 SELECT id, date, rate_aud_usd, created_at FROM exchange_rates WHERE date = ?
 `
@@ -572,7 +705,7 @@ func (q *Queries) GetExchangeRateOnDate(ctx context.Context, date string) (Excha
 }
 
 const getGame = `-- name: GetGame :one
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, recurring_interval, parent_game_id, template_id, created_at, updated_at FROM games WHERE id = ?
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, created_at, updated_at FROM games WHERE id = ?
 `
 
 func (q *Queries) GetGame(ctx context.Context, id int64) (Game, error) {
@@ -592,6 +725,7 @@ func (q *Queries) GetGame(ctx context.Context, id int64) (Game, error) {
 		&i.EndDate,
 		&i.AllowShort,
 		&i.TradeFee,
+		&i.ReferralBonusPct,
 		&i.RecurringInterval,
 		&i.ParentGameID,
 		&i.TemplateID,
@@ -907,7 +1041,7 @@ func (q *Queries) GetStockBySymbol(ctx context.Context, arg GetStockBySymbolPara
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, google_id, email, name, picture_url, is_admin, created_at, last_login FROM users WHERE id = ?
+SELECT id, google_id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, deleted_at FROM users WHERE id = ?
 `
 
 func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
@@ -920,14 +1054,30 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 		&i.Name,
 		&i.PictureUrl,
 		&i.IsAdmin,
+		&i.AvatarID,
 		&i.CreatedAt,
 		&i.LastLogin,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
+const getUserAvatarPath = `-- name: GetUserAvatarPath :one
+SELECT COALESCE(a.image_path, '') AS avatar_path
+FROM users u
+LEFT JOIN avatars a ON a.id = u.avatar_id
+WHERE u.id = ?
+`
+
+func (q *Queries) GetUserAvatarPath(ctx context.Context, id int64) (string, error) {
+	row := q.db.QueryRowContext(ctx, getUserAvatarPath, id)
+	var avatar_path string
+	err := row.Scan(&avatar_path)
+	return avatar_path, err
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, google_id, email, name, picture_url, is_admin, created_at, last_login FROM users WHERE email = ?
+SELECT id, google_id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, deleted_at FROM users WHERE email = ?
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -940,8 +1090,10 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Name,
 		&i.PictureUrl,
 		&i.IsAdmin,
+		&i.AvatarID,
 		&i.CreatedAt,
 		&i.LastLogin,
+		&i.DeletedAt,
 	)
 	return i, err
 }
@@ -1058,6 +1210,34 @@ func (q *Queries) InsertFetchLog(ctx context.Context, arg InsertFetchLogParams) 
 		arg.StocksUpdated,
 		arg.ErrorMsg,
 		arg.DurationMs,
+	)
+	return err
+}
+
+const insertReferralBonus = `-- name: InsertReferralBonus :exec
+
+INSERT OR IGNORE INTO referral_bonuses (invite_id, referrer_id, referred_id, game_id, bonus_amount)
+VALUES (?, ?, ?, ?, ?)
+`
+
+type InsertReferralBonusParams struct {
+	InviteID    int64
+	ReferrerID  int64
+	ReferredID  int64
+	GameID      int64
+	BonusAmount int64
+}
+
+// =============================================================================
+// Referral Bonuses
+// =============================================================================
+func (q *Queries) InsertReferralBonus(ctx context.Context, arg InsertReferralBonusParams) error {
+	_, err := q.db.ExecContext(ctx, insertReferralBonus,
+		arg.InviteID,
+		arg.ReferrerID,
+		arg.ReferredID,
+		arg.GameID,
+		arg.BonusAmount,
 	)
 	return err
 }
@@ -1228,7 +1408,7 @@ func (q *Queries) ListAchievements(ctx context.Context) ([]Achievement, error) {
 }
 
 const listActiveGames = `-- name: ListActiveGames :many
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, recurring_interval, parent_game_id, template_id, created_at, updated_at FROM games WHERE status IN ('pending', 'active') ORDER BY start_date ASC
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, created_at, updated_at FROM games WHERE status IN ('pending', 'active') ORDER BY start_date ASC
 `
 
 func (q *Queries) ListActiveGames(ctx context.Context) ([]Game, error) {
@@ -1254,6 +1434,7 @@ func (q *Queries) ListActiveGames(ctx context.Context) ([]Game, error) {
 			&i.EndDate,
 			&i.AllowShort,
 			&i.TradeFee,
+			&i.ReferralBonusPct,
 			&i.RecurringInterval,
 			&i.ParentGameID,
 			&i.TemplateID,
@@ -1640,6 +1821,83 @@ func (q *Queries) ListAllTransactionsForExport(ctx context.Context, participantI
 	return items, nil
 }
 
+const listAvatars = `-- name: ListAvatars :many
+SELECT id, "key", name, image_path, category, achievement_key, sort_order FROM avatars ORDER BY sort_order, id
+`
+
+func (q *Queries) ListAvatars(ctx context.Context) ([]Avatar, error) {
+	rows, err := q.db.QueryContext(ctx, listAvatars)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Avatar
+	for rows.Next() {
+		var i Avatar
+		if err := rows.Scan(
+			&i.ID,
+			&i.Key,
+			&i.Name,
+			&i.ImagePath,
+			&i.Category,
+			&i.AchievementKey,
+			&i.SortOrder,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listContactMessages = `-- name: ListContactMessages :many
+SELECT id, user_id, name, email, message, is_read, created_at FROM contact_messages
+ORDER BY created_at DESC
+LIMIT ? OFFSET ?
+`
+
+type ListContactMessagesParams struct {
+	Limit  int64
+	Offset int64
+}
+
+func (q *Queries) ListContactMessages(ctx context.Context, arg ListContactMessagesParams) ([]ContactMessage, error) {
+	rows, err := q.db.QueryContext(ctx, listContactMessages, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ContactMessage
+	for rows.Next() {
+		var i ContactMessage
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Name,
+			&i.Email,
+			&i.Message,
+			&i.IsRead,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listFetchLogs = `-- name: ListFetchLogs :many
 SELECT id, market, status, stocks_updated, error_msg, duration_ms, created_at FROM price_fetch_log
 ORDER BY created_at DESC LIMIT 50
@@ -1678,7 +1936,7 @@ func (q *Queries) ListFetchLogs(ctx context.Context) ([]PriceFetchLog, error) {
 
 const listFinishedGames = `-- name: ListFinishedGames :many
 
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, recurring_interval, parent_game_id, template_id, created_at, updated_at FROM games WHERE status IN ('finished', 'cancelled')
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, created_at, updated_at FROM games WHERE status IN ('finished', 'cancelled')
 ORDER BY end_date DESC
 LIMIT ? OFFSET ?
 `
@@ -1714,6 +1972,7 @@ func (q *Queries) ListFinishedGames(ctx context.Context, arg ListFinishedGamesPa
 			&i.EndDate,
 			&i.AllowShort,
 			&i.TradeFee,
+			&i.ReferralBonusPct,
 			&i.RecurringInterval,
 			&i.ParentGameID,
 			&i.TemplateID,
@@ -1735,7 +1994,7 @@ func (q *Queries) ListFinishedGames(ctx context.Context, arg ListFinishedGamesPa
 
 const listFinishedRecurringGames = `-- name: ListFinishedRecurringGames :many
 
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, recurring_interval, parent_game_id, template_id, created_at, updated_at FROM games
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, created_at, updated_at FROM games
 WHERE status = 'finished' AND recurring_interval IS NOT NULL
 ORDER BY end_date DESC
 `
@@ -1766,6 +2025,7 @@ func (q *Queries) ListFinishedRecurringGames(ctx context.Context) ([]Game, error
 			&i.EndDate,
 			&i.AllowShort,
 			&i.TradeFee,
+			&i.ReferralBonusPct,
 			&i.RecurringInterval,
 			&i.ParentGameID,
 			&i.TemplateID,
@@ -1862,7 +2122,7 @@ func (q *Queries) ListGameTemplates(ctx context.Context) ([]GameTemplate, error)
 }
 
 const listGamesByCreator = `-- name: ListGamesByCreator :many
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, recurring_interval, parent_game_id, template_id, created_at, updated_at FROM games WHERE created_by = ? ORDER BY created_at DESC
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, created_at, updated_at FROM games WHERE created_by = ? ORDER BY created_at DESC
 `
 
 func (q *Queries) ListGamesByCreator(ctx context.Context, createdBy int64) ([]Game, error) {
@@ -1888,6 +2148,7 @@ func (q *Queries) ListGamesByCreator(ctx context.Context, createdBy int64) ([]Ga
 			&i.EndDate,
 			&i.AllowShort,
 			&i.TradeFee,
+			&i.ReferralBonusPct,
 			&i.RecurringInterval,
 			&i.ParentGameID,
 			&i.TemplateID,
@@ -1992,6 +2253,62 @@ func (q *Queries) ListHoldingsBySector(ctx context.Context, participantID int64)
 	for rows.Next() {
 		var i ListHoldingsBySectorRow
 		if err := rows.Scan(&i.Sector, &i.TotalValue); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listLobbyMessages = `-- name: ListLobbyMessages :many
+SELECT lm.id, lm.user_id, lm.message, lm.created_at, u.name AS user_name, u.picture_url AS user_picture,
+    COALESCE(a.image_path, '') AS avatar_path
+FROM lobby_messages lm
+JOIN users u ON u.id = lm.user_id
+LEFT JOIN avatars a ON a.id = u.avatar_id
+ORDER BY lm.created_at DESC
+LIMIT ? OFFSET ?
+`
+
+type ListLobbyMessagesParams struct {
+	Limit  int64
+	Offset int64
+}
+
+type ListLobbyMessagesRow struct {
+	ID          int64
+	UserID      int64
+	Message     string
+	CreatedAt   string
+	UserName    string
+	UserPicture sql.NullString
+	AvatarPath  string
+}
+
+func (q *Queries) ListLobbyMessages(ctx context.Context, arg ListLobbyMessagesParams) ([]ListLobbyMessagesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listLobbyMessages, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListLobbyMessagesRow
+	for rows.Next() {
+		var i ListLobbyMessagesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Message,
+			&i.CreatedAt,
+			&i.UserName,
+			&i.UserPicture,
+			&i.AvatarPath,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -2356,6 +2673,62 @@ func (q *Queries) ListPublicParticipantsByGame(ctx context.Context, gameID int64
 			&i.JoinedAt,
 			&i.UserName,
 			&i.UserPicture,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listReferralBonuses = `-- name: ListReferralBonuses :many
+SELECT rb.id, rb.invite_id, rb.referrer_id, rb.referred_id, rb.game_id, rb.bonus_amount, rb.created_at, u.name AS referred_name
+FROM referral_bonuses rb
+JOIN users u ON u.id = rb.referred_id
+WHERE rb.referrer_id = ? AND rb.game_id = ?
+ORDER BY rb.created_at DESC
+`
+
+type ListReferralBonusesParams struct {
+	ReferrerID int64
+	GameID     int64
+}
+
+type ListReferralBonusesRow struct {
+	ID           int64
+	InviteID     int64
+	ReferrerID   int64
+	ReferredID   int64
+	GameID       int64
+	BonusAmount  int64
+	CreatedAt    string
+	ReferredName string
+}
+
+func (q *Queries) ListReferralBonuses(ctx context.Context, arg ListReferralBonusesParams) ([]ListReferralBonusesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listReferralBonuses, arg.ReferrerID, arg.GameID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListReferralBonusesRow
+	for rows.Next() {
+		var i ListReferralBonusesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.InviteID,
+			&i.ReferrerID,
+			&i.ReferredID,
+			&i.GameID,
+			&i.BonusAmount,
+			&i.CreatedAt,
+			&i.ReferredName,
 		); err != nil {
 			return nil, err
 		}
@@ -2753,8 +3126,49 @@ func (q *Queries) ListUserAchievements(ctx context.Context, userID int64) ([]Lis
 	return items, nil
 }
 
+const listUserChatMessages = `-- name: ListUserChatMessages :many
+
+SELECT gm.message, gm.created_at, g.name AS game_name
+FROM game_messages gm
+JOIN games g ON g.id = gm.game_id
+WHERE gm.user_id = ?
+ORDER BY gm.created_at DESC
+`
+
+type ListUserChatMessagesRow struct {
+	Message   string
+	CreatedAt string
+	GameName  string
+}
+
+// =============================================================================
+// User Data Export
+// =============================================================================
+func (q *Queries) ListUserChatMessages(ctx context.Context, userID int64) ([]ListUserChatMessagesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listUserChatMessages, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUserChatMessagesRow
+	for rows.Next() {
+		var i ListUserChatMessagesRow
+		if err := rows.Scan(&i.Message, &i.CreatedAt, &i.GameName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUserGames = `-- name: ListUserGames :many
-SELECT g.id, g.created_by, g.name, g.description, g.status, g.markets, g.starting_balance, g.base_currency, g.max_participants, g.start_date, g.end_date, g.allow_short, g.trade_fee, g.recurring_interval, g.parent_game_id, g.template_id, g.created_at, g.updated_at FROM games g
+SELECT g.id, g.created_by, g.name, g.description, g.status, g.markets, g.starting_balance, g.base_currency, g.max_participants, g.start_date, g.end_date, g.allow_short, g.trade_fee, g.referral_bonus_pct, g.recurring_interval, g.parent_game_id, g.template_id, g.created_at, g.updated_at FROM games g
 JOIN participants p ON p.game_id = g.id
 WHERE p.user_id = ?
 ORDER BY g.start_date DESC
@@ -2783,6 +3197,7 @@ func (q *Queries) ListUserGames(ctx context.Context, userID int64) ([]Game, erro
 			&i.EndDate,
 			&i.AllowShort,
 			&i.TradeFee,
+			&i.ReferralBonusPct,
 			&i.RecurringInterval,
 			&i.ParentGameID,
 			&i.TemplateID,
@@ -2802,8 +3217,54 @@ func (q *Queries) ListUserGames(ctx context.Context, userID int64) ([]Game, erro
 	return items, nil
 }
 
+const listUserParticipations = `-- name: ListUserParticipations :many
+SELECT p.joined_at, p.cash_balance, p.portfolio_value,
+    g.name AS game_name, g.status AS game_status
+FROM participants p
+JOIN games g ON g.id = p.game_id
+WHERE p.user_id = ?
+ORDER BY p.joined_at DESC
+`
+
+type ListUserParticipationsRow struct {
+	JoinedAt       string
+	CashBalance    int64
+	PortfolioValue int64
+	GameName       string
+	GameStatus     string
+}
+
+func (q *Queries) ListUserParticipations(ctx context.Context, userID int64) ([]ListUserParticipationsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listUserParticipations, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUserParticipationsRow
+	for rows.Next() {
+		var i ListUserParticipationsRow
+		if err := rows.Scan(
+			&i.JoinedAt,
+			&i.CashBalance,
+			&i.PortfolioValue,
+			&i.GameName,
+			&i.GameStatus,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUsers = `-- name: ListUsers :many
-SELECT id, google_id, email, name, picture_url, is_admin, created_at, last_login FROM users ORDER BY created_at DESC
+SELECT id, google_id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, deleted_at FROM users ORDER BY created_at DESC
 `
 
 func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
@@ -2822,8 +3283,10 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.Name,
 			&i.PictureUrl,
 			&i.IsAdmin,
+			&i.AvatarID,
 			&i.CreatedAt,
 			&i.LastLogin,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -2897,6 +3360,15 @@ UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0
 
 func (q *Queries) MarkAllNotificationsRead(ctx context.Context, userID int64) error {
 	_, err := q.db.ExecContext(ctx, markAllNotificationsRead, userID)
+	return err
+}
+
+const markContactMessageRead = `-- name: MarkContactMessageRead :exec
+UPDATE contact_messages SET is_read = 1 WHERE id = ?
+`
+
+func (q *Queries) MarkContactMessageRead(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, markContactMessageRead, id)
 	return err
 }
 
@@ -2993,6 +3465,37 @@ type SetAdminParams struct {
 func (q *Queries) SetAdmin(ctx context.Context, arg SetAdminParams) error {
 	_, err := q.db.ExecContext(ctx, setAdmin, arg.IsAdmin, arg.ID)
 	return err
+}
+
+const softDeleteUser = `-- name: SoftDeleteUser :exec
+UPDATE users SET
+    name = 'Deleted User',
+    email = 'deleted-' || CAST(id AS TEXT) || '@deleted.local',
+    google_id = 'deleted-' || CAST(id AS TEXT),
+    picture_url = NULL,
+    deleted_at = datetime('now')
+WHERE id = ?
+`
+
+func (q *Queries) SoftDeleteUser(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, softDeleteUser, id)
+	return err
+}
+
+const totalReferralBonus = `-- name: TotalReferralBonus :one
+SELECT COALESCE(SUM(bonus_amount), 0) FROM referral_bonuses WHERE referrer_id = ? AND game_id = ?
+`
+
+type TotalReferralBonusParams struct {
+	ReferrerID int64
+	GameID     int64
+}
+
+func (q *Queries) TotalReferralBonus(ctx context.Context, arg TotalReferralBonusParams) (interface{}, error) {
+	row := q.db.QueryRowContext(ctx, totalReferralBonus, arg.ReferrerID, arg.GameID)
+	var coalesce interface{}
+	err := row.Scan(&coalesce)
+	return coalesce, err
 }
 
 const updateCashBalance = `-- name: UpdateCashBalance :exec
@@ -3105,6 +3608,20 @@ func (q *Queries) UpdatePortfolioValue(ctx context.Context, arg UpdatePortfolioV
 	return err
 }
 
+const updateUserAvatar = `-- name: UpdateUserAvatar :exec
+UPDATE users SET avatar_id = ? WHERE id = ?
+`
+
+type UpdateUserAvatarParams struct {
+	AvatarID sql.NullInt64
+	ID       int64
+}
+
+func (q *Queries) UpdateUserAvatar(ctx context.Context, arg UpdateUserAvatarParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserAvatar, arg.AvatarID, arg.ID)
+	return err
+}
+
 const upsertAchievement = `-- name: UpsertAchievement :exec
 
 INSERT OR IGNORE INTO achievements (key, name, description, icon)
@@ -3127,6 +3644,36 @@ func (q *Queries) UpsertAchievement(ctx context.Context, arg UpsertAchievementPa
 		arg.Name,
 		arg.Description,
 		arg.Icon,
+	)
+	return err
+}
+
+const upsertAvatar = `-- name: UpsertAvatar :exec
+
+INSERT OR IGNORE INTO avatars (key, name, image_path, category, achievement_key, sort_order)
+VALUES (?, ?, ?, ?, ?, ?)
+`
+
+type UpsertAvatarParams struct {
+	Key            string
+	Name           string
+	ImagePath      string
+	Category       string
+	AchievementKey sql.NullString
+	SortOrder      int64
+}
+
+// =============================================================================
+// Avatars
+// =============================================================================
+func (q *Queries) UpsertAvatar(ctx context.Context, arg UpsertAvatarParams) error {
+	_, err := q.db.ExecContext(ctx, upsertAvatar,
+		arg.Key,
+		arg.Name,
+		arg.ImagePath,
+		arg.Category,
+		arg.AchievementKey,
+		arg.SortOrder,
 	)
 	return err
 }
@@ -3257,7 +3804,7 @@ ON CONFLICT(google_id) DO UPDATE SET
     name       = excluded.name,
     picture_url = excluded.picture_url,
     last_login = datetime('now')
-RETURNING id, google_id, email, name, picture_url, is_admin, created_at, last_login
+RETURNING id, google_id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, deleted_at
 `
 
 type UpsertUserParams struct {
@@ -3285,8 +3832,10 @@ func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (User, e
 		&i.Name,
 		&i.PictureUrl,
 		&i.IsAdmin,
+		&i.AvatarID,
 		&i.CreatedAt,
 		&i.LastLogin,
+		&i.DeletedAt,
 	)
 	return i, err
 }

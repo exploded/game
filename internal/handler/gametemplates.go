@@ -50,16 +50,17 @@ func (h *Handler) GameFromTemplate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	game, err := h.q.CreateGame(r.Context(), db.CreateGameParams{
-		CreatedBy:       user.ID,
-		Name:            name,
-		Description:     tmpl.Description,
-		Markets:         tmpl.Markets,
-		StartingBalance: tmpl.StartingBalance,
-		BaseCurrency:    tmpl.BaseCurrency,
-		StartDate:       startDate,
-		EndDate:         endDate,
-		AllowShort:      tmpl.AllowShort,
-		TradeFee:        tmpl.TradeFee,
+		CreatedBy:        user.ID,
+		Name:             name,
+		Description:      tmpl.Description,
+		Markets:          tmpl.Markets,
+		StartingBalance:  tmpl.StartingBalance,
+		BaseCurrency:     tmpl.BaseCurrency,
+		StartDate:        startDate,
+		EndDate:          endDate,
+		AllowShort:       tmpl.AllowShort,
+		TradeFee:         tmpl.TradeFee,
+		ReferralBonusPct: 1,
 	})
 	if err != nil {
 		setFlashCookie(w, "Failed to create game from template", "error")

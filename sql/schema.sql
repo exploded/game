@@ -4,6 +4,19 @@
 -- Timestamps use TEXT with datetime('now') for SQLite compatibility.
 
 --------------------------------------------------------------------------------
+-- Avatars
+--------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS avatars (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    key             TEXT    NOT NULL UNIQUE,
+    name            TEXT    NOT NULL,
+    image_path      TEXT    NOT NULL,               -- e.g. '/static/avatars/bear.svg'
+    category        TEXT    NOT NULL DEFAULT 'free', -- 'free' | 'achievement'
+    achievement_key TEXT,                            -- NULL for free, matches achievements.key for locked
+    sort_order      INTEGER NOT NULL DEFAULT 0
+);
+
+--------------------------------------------------------------------------------
 -- Users (Google OAuth)
 --------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS users (
@@ -13,8 +26,10 @@ CREATE TABLE IF NOT EXISTS users (
     name        TEXT    NOT NULL,
     picture_url TEXT,
     is_admin    INTEGER NOT NULL DEFAULT 0,
+    avatar_id   INTEGER REFERENCES avatars(id),
     created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
-    last_login  TEXT    NOT NULL DEFAULT (datetime('now'))
+    last_login  TEXT    NOT NULL DEFAULT (datetime('now')),
+    deleted_at  TEXT                                        -- NULL = active, set = soft-deleted
 );
 
 --------------------------------------------------------------------------------
@@ -46,6 +61,7 @@ CREATE TABLE IF NOT EXISTS games (
     end_date         TEXT    NOT NULL,                      -- YYYY-MM-DD
     allow_short          INTEGER NOT NULL DEFAULT 0,
     trade_fee            INTEGER NOT NULL DEFAULT 0,            -- per-trade fee in cents
+    referral_bonus_pct   INTEGER NOT NULL DEFAULT 1,            -- % of starting_balance as referral reward
     recurring_interval   TEXT,                                   -- 'weekly' | 'monthly' | NULL
     parent_game_id       INTEGER REFERENCES games(id),
     template_id          INTEGER REFERENCES game_templates(id),
@@ -313,3 +329,44 @@ CREATE TABLE IF NOT EXISTS notifications (
     created_at TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read, created_at DESC);
+
+--------------------------------------------------------------------------------
+-- Contact Messages
+--------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS contact_messages (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER REFERENCES users(id),
+    name       TEXT    NOT NULL,
+    email      TEXT    NOT NULL,
+    message    TEXT    NOT NULL,
+    is_read    INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_contact_messages_read ON contact_messages(is_read, created_at DESC);
+
+--------------------------------------------------------------------------------
+-- Lobby Chat
+--------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS lobby_messages (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES users(id),
+    message    TEXT    NOT NULL,
+    created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_lobby_messages_created ON lobby_messages(created_at DESC);
+
+--------------------------------------------------------------------------------
+-- Referral Bonuses
+--------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS referral_bonuses (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    invite_id      INTEGER NOT NULL REFERENCES game_invites(id),
+    referrer_id    INTEGER NOT NULL REFERENCES users(id),
+    referred_id    INTEGER NOT NULL REFERENCES users(id),
+    game_id        INTEGER NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+    bonus_amount   INTEGER NOT NULL,                -- cents added to referrer
+    created_at     TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(invite_id, referred_id)
+);
+CREATE INDEX IF NOT EXISTS idx_referral_bonuses_referrer ON referral_bonuses(referrer_id);
+CREATE INDEX IF NOT EXISTS idx_referral_bonuses_game ON referral_bonuses(game_id);

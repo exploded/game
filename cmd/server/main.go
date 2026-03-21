@@ -38,9 +38,10 @@ func main() {
 	defer rawDB.Close()
 	queries := db.New(rawDB)
 
-	// Seed stocks and achievements on startup.
+	// Seed stocks, achievements, and avatars on startup.
 	market.SeedStocks(context.Background(), queries)
 	handler.SeedAchievements(context.Background(), queries)
+	handler.SeedAvatars(context.Background(), queries)
 
 	// Load templates.
 	pages, err := handler.LoadTemplates("templates")
@@ -75,6 +76,19 @@ func main() {
 	r.Get("/auth/google", auth.HandleLogin)
 	r.Get("/auth/google/callback", auth.HandleCallback(queries))
 	r.Post("/logout", auth.HandleLogout(queries))
+
+	// Public pages (with optional auth for pre-filling contact form).
+	r.Group(func(r chi.Router) {
+		r.Use(func(next http.Handler) http.Handler {
+			return auth.OptionalAuth(queries, next)
+		})
+		r.Get("/privacy", h.PrivacyPage)
+		r.Get("/terms", h.TermsPage)
+		r.Get("/about", h.AboutPage)
+		r.Get("/help", h.HelpPage)
+		r.Get("/contact", h.ContactPage)
+		r.Post("/contact", h.ContactSubmit)
+	})
 
 	// Authenticated routes.
 	r.Group(func(r chi.Router) {
@@ -128,6 +142,14 @@ func main() {
 		r.Get("/games/{id}/chat", h.ChatPage)
 		r.Post("/games/{id}/chat", h.ChatSend)
 
+		// Lobby Chat
+		r.Get("/lobby", h.LobbyPage)
+		r.Post("/lobby", h.LobbySend)
+
+		// Profile & Avatars
+		r.Get("/profile", h.ProfilePage)
+		r.Post("/profile/avatar", h.ProfileUpdateAvatar)
+
 		// Activity Feed (Feature 10)
 		r.Get("/games/{id}/activity", h.ActivityFeed)
 
@@ -158,6 +180,11 @@ func main() {
 		// Game History (Feature 20)
 		r.Get("/history", h.GameHistory)
 
+		// Account Settings
+		r.Get("/settings", h.SettingsPage)
+		r.Post("/settings/delete", h.AccountDelete)
+		r.Get("/settings/export", h.ExportPersonalData)
+
 		// Admin
 		r.Route("/admin", func(r chi.Router) {
 			r.Use(func(next http.Handler) http.Handler {
@@ -173,6 +200,8 @@ func main() {
 			r.Get("/activity", h.AdminUserActivity)
 			r.Post("/dividend", h.AdminDividend)
 			r.Post("/stock-split", h.AdminStockSplit)
+			r.Get("/messages", h.AdminContactMessages)
+			r.Post("/messages/{mid}/read", h.AdminMarkMessageRead)
 		})
 	})
 

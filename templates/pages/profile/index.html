@@ -1,0 +1,50 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Profile</h1>
+    <a href="/dashboard" class="btn btn-sm">&larr; Dashboard</a>
+</div>
+
+<div class="profile-section">
+    <h2>Current Avatar</h2>
+    <div class="current-avatar">
+        <img src="{{avatarURL .User.PictureUrl .User.AvatarID}}" alt="Current avatar" class="avatar-lg">
+        <div>
+            <p>{{.User.Name}}</p>
+            <p class="text-muted" style="font-size:0.85rem">{{.User.Email}}</p>
+            {{if .User.AvatarID.Valid}}
+            <form method="POST" action="/profile/avatar" style="margin-top:0.5rem">
+                <input type="hidden" name="avatar_id" value="0">
+                <button type="submit" class="btn btn-sm">Use Google Photo</button>
+            </form>
+            {{end}}
+        </div>
+    </div>
+</div>
+
+<div class="profile-section" style="margin-top:2rem">
+    <h2>Choose Avatar</h2>
+    <p class="text-muted" style="margin-bottom:1rem;font-size:0.85rem">Free avatars are available to everyone. Locked avatars require specific achievements.</p>
+    <div class="avatar-grid">
+        {{range .Items}}
+        {{$locked := false}}
+        {{if eq .Category "achievement"}}
+            {{if not (index $.Extra.EarnedKeys .AchievementKey.String)}}
+                {{$locked = true}}
+            {{end}}
+        {{end}}
+        <form method="POST" action="/profile/avatar" class="avatar-option {{if $locked}}locked{{end}} {{if and $.User.AvatarID.Valid (eq $.User.AvatarID.Int64 .ID)}}selected{{end}}">
+            <input type="hidden" name="avatar_id" value="{{.ID}}">
+            <button type="submit" class="avatar-btn" {{if $locked}}disabled title="Requires achievement: {{.AchievementKey.String}}"{{end}}>
+                <img src="{{.ImagePath}}" alt="{{.Name}}" class="avatar-preview">
+                <span class="avatar-name">{{.Name}}</span>
+                {{if $locked}}
+                <span class="avatar-lock">🔒</span>
+                {{end}}
+            </button>
+        </form>
+        {{end}}
+    </div>
+</div>
+{{end}}

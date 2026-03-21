@@ -1,0 +1,38 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Contact Us</h1>
+</div>
+
+<div class="legal-content">
+    <p>Have a question, found a bug, or want to give feedback? Send us a message and we&rsquo;ll get back to you.</p>
+
+    <form method="POST" action="/contact" class="form-card">
+        <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text" id="name" name="name" required
+                value="{{if .Extra.PrefillName}}{{.Extra.PrefillName}}{{end}}"
+                class="{{if .Errors.name}}input-error{{end}}">
+            {{if .Errors.name}}<span class="field-error">{{.Errors.name}}</span>{{end}}
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required
+                value="{{if .Extra.PrefillEmail}}{{.Extra.PrefillEmail}}{{end}}"
+                class="{{if .Errors.email}}input-error{{end}}">
+            {{if .Errors.email}}<span class="field-error">{{.Errors.email}}</span>{{end}}
+        </div>
+
+        <div class="form-group">
+            <label for="message">Message</label>
+            <textarea id="message" name="message" rows="6" required
+                class="{{if .Errors.message}}input-error{{end}}">{{if .Extra.Message}}{{.Extra.Message}}{{end}}</textarea>
+            {{if .Errors.message}}<span class="field-error">{{.Errors.message}}</span>{{end}}
+        </div>
+
+        <button type="submit" class="btn btn-primary">Send Message</button>
+    </form>
+</div>
+{{end}}

@@ -44,6 +44,9 @@ func runMigrations(db *sql.DB) {
 		"ALTER TABLE games ADD COLUMN recurring_interval TEXT DEFAULT NULL",
 		"ALTER TABLE games ADD COLUMN parent_game_id INTEGER DEFAULT NULL REFERENCES games(id)",
 		"ALTER TABLE games ADD COLUMN template_id INTEGER DEFAULT NULL REFERENCES game_templates(id)",
+		"ALTER TABLE users ADD COLUMN deleted_at TEXT DEFAULT NULL",
+		"ALTER TABLE users ADD COLUMN avatar_id INTEGER DEFAULT NULL REFERENCES avatars(id)",
+		"ALTER TABLE games ADD COLUMN referral_bonus_pct INTEGER NOT NULL DEFAULT 1",
 	}
 	for _, q := range alters {
 		if _, err := db.Exec(q); err != nil {

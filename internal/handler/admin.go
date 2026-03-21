@@ -120,3 +120,23 @@ func (h *Handler) AdminFetchPrices(w http.ResponseWriter, r *http.Request) {
 	setFlashCookie(w, "Price fetch started in background", "success")
 	http.Redirect(w, r, "/admin/prices", http.StatusSeeOther)
 }
+
+func (h *Handler) AdminContactMessages(w http.ResponseWriter, r *http.Request) {
+	msgs, _ := h.q.ListContactMessages(r.Context(), db.ListContactMessagesParams{
+		Limit: 100, Offset: 0,
+	})
+	h.render(w, r, "admin/messages", "", PageData{
+		Title: "Contact Messages",
+		Items: msgs,
+	})
+}
+
+func (h *Handler) AdminMarkMessageRead(w http.ResponseWriter, r *http.Request) {
+	mid, err := strconv.ParseInt(r.PathValue("mid"), 10, 64)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	_ = h.q.MarkContactMessageRead(r.Context(), mid)
+	http.Redirect(w, r, "/admin/messages", http.StatusSeeOther)
+}

@@ -52,6 +52,31 @@ func RequireAdmin(next http.Handler) http.Handler {
 	})
 }
 
+// OptionalAuth sets the user in context if a valid session exists, but does not
+// redirect when there is no session. Use for public pages that show extra info
+// when the visitor happens to be logged in.
+func OptionalAuth(queries *db.Queries, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("session")
+		if err != nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+		session, err := queries.GetSession(r.Context(), cookie.Value)
+		if err != nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+		user, err := queries.GetUser(r.Context(), session.UserID)
+		if err != nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+		ctx := context.WithValue(r.Context(), userKey, &user)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
 // UserFromContext extracts the authenticated user from context.
 func UserFromContext(ctx context.Context) *db.User {
 	user, _ := ctx.Value(userKey).(*db.User)

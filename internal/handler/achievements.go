@@ -26,6 +26,7 @@ func SeedAchievements(ctx context.Context, q *db.Queries) {
 		{"top_three", "Podium Finish", "Finish in the top 3", "🥇"},
 		{"joined_3_games", "Social Player", "Join 3 or more games", "🤝"},
 		{"watchlist_10", "Market Watcher", "Add 10 stocks to your watchlist", "👀"},
+		{"referral_3", "Recruiter", "Refer 3 players to a single game", "📣"},
 	}
 	for _, d := range defs {
 		if err := q.UpsertAchievement(ctx, db.UpsertAchievementParams{
@@ -33,6 +34,49 @@ func SeedAchievements(ctx context.Context, q *db.Queries) {
 		}); err != nil {
 			slog.Debug("seed achievement", "key", d.Key, "error", err)
 		}
+	}
+}
+
+// SeedAvatars inserts all avatar definitions.
+func SeedAvatars(ctx context.Context, q *db.Queries) {
+	type def struct {
+		Key, Name, Path, Category, AchKey string
+		Sort                              int64
+	}
+	avatars := []def{
+		// Free avatars (always available)
+		{"bull", "Bull", "/static/avatars/bull.svg", "free", "", 1},
+		{"bear", "Bear", "/static/avatars/bear.svg", "free", "", 2},
+		{"rocket", "Rocket", "/static/avatars/rocket.svg", "free", "", 3},
+		{"chart", "Chart", "/static/avatars/chart.svg", "free", "", 4},
+		{"diamond", "Diamond Hands", "/static/avatars/diamond.svg", "free", "", 5},
+		{"money", "Money Bags", "/static/avatars/money.svg", "free", "", 6},
+		{"wolf", "Wolf", "/static/avatars/wolf.svg", "free", "", 7},
+		{"eagle", "Eagle", "/static/avatars/eagle.svg", "free", "", 8},
+		{"shark", "Shark", "/static/avatars/shark.svg", "free", "", 9},
+		// Achievement-locked avatars
+		{"crown", "Crown", "/static/avatars/crown.svg", "achievement", "first_place", 20},
+		{"wizard", "Wizard", "/static/avatars/wizard.svg", "achievement", "twenty_five_pct_gain", 21},
+		{"fire", "On Fire", "/static/avatars/fire.svg", "achievement", "fifty_trades", 22},
+		{"trophy", "Trophy", "/static/avatars/trophy.svg", "achievement", "top_three", 23},
+	}
+	for _, a := range avatars {
+		var achKey sql.NullString
+		if a.AchKey != "" {
+			achKey = sql.NullString{String: a.AchKey, Valid: true}
+		}
+		if err := q.UpsertAvatar(ctx, db.UpsertAvatarParams{
+			Key: a.Key, Name: a.Name, ImagePath: a.Path,
+			Category: a.Category, AchievementKey: achKey, SortOrder: a.Sort,
+		}); err != nil {
+			slog.Debug("seed avatar", "key", a.Key, "error", err)
+		}
+	}
+
+	// Populate the template avatar path map for the avatarURL function.
+	allAvatars, _ := q.ListAvatars(ctx)
+	for _, av := range allAvatars {
+		RegisterAvatarPath(av.ID, av.ImagePath)
 	}
 }
 

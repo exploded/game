@@ -41,6 +41,12 @@
                 <span class="info-label">Created by</span>
                 <span class="info-value">{{.Extra.Creator.Name}}</span>
             </div>
+            {{if .Item.ReferralBonusPct}}
+            <div class="info-item">
+                <span class="info-label">Referral Bonus</span>
+                <span class="info-value">{{.Item.ReferralBonusPct}}%</span>
+            </div>
+            {{end}}
         </div>
 
         {{if .Extra.CanJoin}}

@@ -1,0 +1,64 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Lobby</h1>
+    <a href="/dashboard" class="btn btn-sm">&larr; Dashboard</a>
+</div>
+
+<p class="text-muted" style="margin-bottom:1rem;font-size:0.85rem">Chat with other players, share strategies, and find opponents.</p>
+
+<div class="chat-container">
+    <form hx-post="/lobby"
+          hx-swap="none"
+          hx-disabled-elt="find button"
+          class="chat-form"
+          id="lobby-form">
+        <input type="text" name="message" placeholder="Type a message..." autocomplete="off"
+               class="chat-input" maxlength="500" required id="lobby-input">
+        <button type="submit" class="btn btn-primary">Send</button>
+    </form>
+
+    <div id="messages-list" class="messages-list" style="min-height:200px">
+        {{if .Items}}
+        {{range .Items}}
+        <div class="chat-message">
+            <div class="chat-meta">
+                {{if .AvatarPath}}
+                <img src="{{.AvatarPath}}" alt="{{.UserName}}" class="avatar-sm">
+                {{else if .UserPicture.Valid}}
+                <img src="{{.UserPicture.String}}" alt="{{.UserName}}" class="avatar-sm">
+                {{else}}
+                <img src="/static/avatars/default.svg" alt="{{.UserName}}" class="avatar-sm">
+                {{end}}
+                <strong>{{.UserName}}</strong>
+                <span class="text-muted">{{.CreatedAt}}</span>
+            </div>
+            <p>{{.Message}}</p>
+        </div>
+        {{end}}
+        {{else}}
+        <p class="text-muted" style="padding:1rem">No messages yet. Start the conversation!</p>
+        {{end}}
+    </div>
+</div>
+
+{{if gt (int .Extra.TotalPages) 1}}
+<div class="pagination">
+    {{if gt (int .Extra.Page) 1}}
+    <a href="/lobby?page={{add (int .Extra.Page) -1}}" class="btn btn-sm">&larr; Newer</a>
+    {{end}}
+    <span class="text-muted">Page {{.Extra.Page}} of {{.Extra.TotalPages}}</span>
+    {{if lt (int .Extra.Page) (int .Extra.TotalPages)}}
+    <a href="/lobby?page={{add (int .Extra.Page) 1}}" class="btn btn-sm">Older &rarr;</a>
+    {{end}}
+</div>
+{{end}}
+
+<script>
+document.getElementById('lobby-form').addEventListener('htmx:afterRequest', function() {
+    document.getElementById('lobby-input').value = '';
+    document.getElementById('lobby-input').focus();
+});
+</script>
+{{end}}

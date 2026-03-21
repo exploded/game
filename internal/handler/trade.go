@@ -55,6 +55,13 @@ func (h *Handler) TradeForm(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Calculate current market value of holding in base currency.
+	var holdingValue int64
+	if holding.ID != 0 && latestPrice.ID != 0 {
+		nativeValue := holding.Quantity * latestPrice.Close
+		holdingValue = convertCurrency(nativeValue, stock.Currency, game.BaseCurrency, exchangeRate)
+	}
+
 	h.render(w, r, "trade/form", "", PageData{
 		Title: "Trade " + stock.Symbol,
 		Item:  stock,
@@ -64,6 +71,7 @@ func (h *Handler) TradeForm(w http.ResponseWriter, r *http.Request) {
 			"LatestPrice":  latestPrice,
 			"Holding":      holding,
 			"ExchangeRate": exchangeRate,
+			"HoldingValue": holdingValue,
 		},
 	})
 }

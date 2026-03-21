@@ -24,6 +24,15 @@ UPDATE users SET is_admin = ? WHERE id = ?;
 -- name: ListUsers :many
 SELECT * FROM users ORDER BY created_at DESC;
 
+-- name: SoftDeleteUser :exec
+UPDATE users SET
+    name = 'Deleted User',
+    email = 'deleted-' || CAST(id AS TEXT) || '@deleted.local',
+    google_id = 'deleted-' || CAST(id AS TEXT),
+    picture_url = NULL,
+    deleted_at = datetime('now')
+WHERE id = ?;
+
 -- =============================================================================
 -- Sessions
 -- =============================================================================
@@ -51,8 +60,8 @@ DELETE FROM sessions WHERE user_id = ?;
 -- =============================================================================
 
 -- name: CreateGame :one
-INSERT INTO games (created_by, name, description, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, recurring_interval)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO games (created_by, name, description, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, recurring_interval, referral_bonus_pct)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: GetGame :one
@@ -612,3 +621,112 @@ SELECT date, cash_balance, holdings_value, total_value
 FROM portfolio_snapshots
 WHERE participant_id = ?
 ORDER BY date ASC;
+
+-- =============================================================================
+-- Contact Messages
+-- =============================================================================
+
+-- name: CreateContactMessage :exec
+INSERT INTO contact_messages (user_id, name, email, message)
+VALUES (?, ?, ?, ?);
+
+-- name: ListContactMessages :many
+SELECT * FROM contact_messages
+ORDER BY created_at DESC
+LIMIT ? OFFSET ?;
+
+-- name: CountContactMessages :one
+SELECT COUNT(*) FROM contact_messages;
+
+-- name: CountUnreadContactMessages :one
+SELECT COUNT(*) FROM contact_messages WHERE is_read = 0;
+
+-- name: MarkContactMessageRead :exec
+UPDATE contact_messages SET is_read = 1 WHERE id = ?;
+
+-- =============================================================================
+-- User Data Export
+-- =============================================================================
+
+-- name: ListUserChatMessages :many
+SELECT gm.message, gm.created_at, g.name AS game_name
+FROM game_messages gm
+JOIN games g ON g.id = gm.game_id
+WHERE gm.user_id = ?
+ORDER BY gm.created_at DESC;
+
+-- name: ListUserParticipations :many
+SELECT p.joined_at, p.cash_balance, p.portfolio_value,
+    g.name AS game_name, g.status AS game_status
+FROM participants p
+JOIN games g ON g.id = p.game_id
+WHERE p.user_id = ?
+ORDER BY p.joined_at DESC;
+
+-- =============================================================================
+-- Avatars
+-- =============================================================================
+
+-- name: UpsertAvatar :exec
+INSERT OR IGNORE INTO avatars (key, name, image_path, category, achievement_key, sort_order)
+VALUES (?, ?, ?, ?, ?, ?);
+
+-- name: ListAvatars :many
+SELECT * FROM avatars ORDER BY sort_order, id;
+
+-- name: GetAvatar :one
+SELECT * FROM avatars WHERE id = ?;
+
+-- name: UpdateUserAvatar :exec
+UPDATE users SET avatar_id = ? WHERE id = ?;
+
+-- name: ClearUserAvatar :exec
+UPDATE users SET avatar_id = NULL WHERE id = ?;
+
+-- name: GetUserAvatarPath :one
+SELECT COALESCE(a.image_path, '') AS avatar_path
+FROM users u
+LEFT JOIN avatars a ON a.id = u.avatar_id
+WHERE u.id = ?;
+
+-- =============================================================================
+-- Lobby Chat
+-- =============================================================================
+
+-- name: CreateLobbyMessage :one
+INSERT INTO lobby_messages (user_id, message)
+VALUES (?, ?)
+RETURNING *;
+
+-- name: ListLobbyMessages :many
+SELECT lm.*, u.name AS user_name, u.picture_url AS user_picture,
+    COALESCE(a.image_path, '') AS avatar_path
+FROM lobby_messages lm
+JOIN users u ON u.id = lm.user_id
+LEFT JOIN avatars a ON a.id = u.avatar_id
+ORDER BY lm.created_at DESC
+LIMIT ? OFFSET ?;
+
+-- name: CountLobbyMessages :one
+SELECT COUNT(*) FROM lobby_messages;
+
+-- =============================================================================
+-- Referral Bonuses
+-- =============================================================================
+
+-- name: InsertReferralBonus :exec
+INSERT OR IGNORE INTO referral_bonuses (invite_id, referrer_id, referred_id, game_id, bonus_amount)
+VALUES (?, ?, ?, ?, ?);
+
+-- name: ListReferralBonuses :many
+SELECT rb.*, u.name AS referred_name
+FROM referral_bonuses rb
+JOIN users u ON u.id = rb.referred_id
+WHERE rb.referrer_id = ? AND rb.game_id = ?
+ORDER BY rb.created_at DESC;
+
+-- name: CountReferralBonuses :one
+SELECT COUNT(*) FROM referral_bonuses WHERE referrer_id = ? AND game_id = ?;
+
+-- name: TotalReferralBonus :one
+SELECT COALESCE(SUM(bonus_amount), 0) FROM referral_bonuses WHERE referrer_id = ? AND game_id = ?;

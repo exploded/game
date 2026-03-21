@@ -111,6 +111,54 @@ func (h *Handler) InviteJoin(w http.ResponseWriter, r *http.Request) {
 		setFlashCookie(w, "You're already in this game!", "info")
 	} else {
 		_ = h.q.IncrementInviteUse(r.Context(), invite.ID)
+
+		// Referral bonus: credit the invite creator.
+		if game.ReferralBonusPct > 0 && invite.CreatedBy != user.ID {
+			bonusAmount := game.StartingBalance * game.ReferralBonusPct / 100
+			referrerPart, refErr := h.q.GetParticipantByGameAndUser(r.Context(), db.GetParticipantByGameAndUserParams{
+				GameID: game.ID, UserID: invite.CreatedBy,
+			})
+			if refErr == nil && bonusAmount > 0 {
+				_ = h.q.UpdateCashBalance(r.Context(), db.UpdateCashBalanceParams{
+					CashBalance: referrerPart.CashBalance + bonusAmount,
+					ID:          referrerPart.ID,
+				})
+				_ = h.q.UpdatePortfolioValue(r.Context(), db.UpdatePortfolioValueParams{
+					PortfolioValue: referrerPart.PortfolioValue + bonusAmount,
+					ID:             referrerPart.ID,
+				})
+				_ = h.q.InsertReferralBonus(r.Context(), db.InsertReferralBonusParams{
+					InviteID:    invite.ID,
+					ReferrerID:  invite.CreatedBy,
+					ReferredID:  user.ID,
+					GameID:      game.ID,
+					BonusAmount: bonusAmount,
+				})
+				_ = h.q.CreateNotification(r.Context(), db.CreateNotificationParams{
+					UserID:  invite.CreatedBy,
+					GameID:  nint64(game.ID),
+					Type:    "referral_bonus",
+					Title:   "Referral Bonus!",
+					Message: fmt.Sprintf("You earned %s when %s joined %s!", fmtCents(bonusAmount), user.Name, game.Name),
+				})
+				_ = h.q.InsertActivity(r.Context(), db.InsertActivityParams{
+					GameID:   game.ID,
+					UserID:   invite.CreatedBy,
+					Action:   "referral",
+					Detail:   fmt.Sprintf("earned %s referral bonus", fmtCents(bonusAmount)),
+					IsPublic: 1,
+				})
+
+				// Check recruiter achievement (3+ referrals in one game).
+				refCount, _ := h.q.CountReferralBonuses(r.Context(), db.CountReferralBonusesParams{
+					ReferrerID: invite.CreatedBy, GameID: game.ID,
+				})
+				if refCount >= 3 {
+					h.grantIfNew(r.Context(), invite.CreatedBy, "referral_3", game.ID)
+				}
+			}
+		}
+
 		setFlashCookie(w, "Joined "+game.Name+"!", "success")
 	}
 

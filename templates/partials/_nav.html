@@ -10,6 +10,7 @@
             <a href="/dashboard">Dashboard</a>
             <a href="/games">Games</a>
             <a href="/templates">Templates</a>
+            <a href="/lobby">Lobby</a>
             <a href="/history">History</a>
             <a href="/achievements">Achievements</a>
             <a href="/notifications" class="nav-notif">
@@ -22,7 +23,11 @@
             {{if .User.IsAdmin}}
             <a href="/admin">Admin</a>
             {{end}}
-            <span class="nav-user">{{.User.Name}}</span>
+            <a href="/profile" class="nav-user-link" title="Profile">
+                <img src="{{avatarURL .User.PictureUrl .User.AvatarID}}" alt="" class="avatar-nav">
+                <span class="nav-user">{{.User.Name}}</span>
+            </a>
+            <a href="/settings" class="nav-settings" title="Account Settings">Settings</a>
             <a href="/logout" class="nav-logout">Logout</a>
         </div>
         {{end}}

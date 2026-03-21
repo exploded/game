@@ -62,6 +62,7 @@ func ProcessRecurringGames(ctx context.Context, q *db.Queries) {
 			AllowShort:        game.AllowShort,
 			TradeFee:          game.TradeFee,
 			RecurringInterval: game.RecurringInterval,
+			ReferralBonusPct:  game.ReferralBonusPct,
 		})
 		if err != nil {
 			slog.Error("create recurring game", "parentID", game.ID, "error", err)

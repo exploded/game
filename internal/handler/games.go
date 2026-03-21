@@ -108,6 +108,13 @@ func (h *Handler) GameCreate(w http.ResponseWriter, r *http.Request) {
 		recurringInterval = sql.NullString{String: v, Valid: true}
 	}
 
+	referralBonusPct := int64(1)
+	if v := r.FormValue("referral_bonus_pct"); v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil && n >= 0 && n <= 10 {
+			referralBonusPct = n
+		}
+	}
+
 	game, err := h.q.CreateGame(r.Context(), db.CreateGameParams{
 		CreatedBy:          user.ID,
 		Name:               name,
@@ -121,6 +128,7 @@ func (h *Handler) GameCreate(w http.ResponseWriter, r *http.Request) {
 		AllowShort:         allowShort,
 		TradeFee:           tradeFee,
 		RecurringInterval:  recurringInterval,
+		ReferralBonusPct:   referralBonusPct,
 	})
 	if err != nil {
 		h.render(w, r, "games/create", "", PageData{
