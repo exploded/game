@@ -1,0 +1,54 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Limit Orders</h1>
+    <div class="page-header-actions">
+        <a href="/games/{{.Item.ID}}" class="btn btn-sm">&larr; Game</a>
+        <a href="/games/{{.Item.ID}}/stocks" class="btn btn-primary btn-sm">Browse Stocks</a>
+    </div>
+</div>
+
+{{if .Items}}
+<table>
+    <thead>
+        <tr>
+            <th>Type</th>
+            <th>Symbol</th>
+            <th>Qty</th>
+            <th>Limit Price</th>
+            <th>Status</th>
+            <th>Expires</th>
+            <th>Created</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .Items}}
+        <tr>
+            <td><span class="badge {{if eq .Type "buy"}}badge-active{{else}}badge-cancelled{{end}}">{{.Type}}</span></td>
+            <td><strong><a href="/games/{{$.Item.ID}}/stocks/{{.StockID}}">{{.Symbol}}</a></strong></td>
+            <td>{{.Quantity}}</td>
+            <td>{{cents .LimitPrice}} <span class="text-muted">{{.Currency}}</span></td>
+            <td><span class="badge badge-{{if eq .Status "open"}}pending{{else if eq .Status "filled"}}active{{else}}cancelled{{end}}">{{.Status}}</span></td>
+            <td>{{if .ExpiresAt.Valid}}{{.ExpiresAt.String}}{{else}}<span class="text-muted">GTC</span>{{end}}</td>
+            <td class="text-muted">{{.CreatedAt}}</td>
+            <td>
+                {{if eq .Status "open"}}
+                <form method="POST" action="/games/{{$.Item.ID}}/orders/{{.ID}}/cancel" style="display:inline">
+                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Cancel this order?')">Cancel</button>
+                </form>
+                {{end}}
+            </td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+{{else}}
+<div class="empty-state">
+    <p class="text-muted">No open limit orders.</p>
+    <p class="text-muted">Place limit orders from any stock's trade page to buy or sell at your target price.</p>
+    <a href="/games/{{.Item.ID}}/stocks" class="btn btn-primary">Browse Stocks</a>
+</div>
+{{end}}
+{{end}}

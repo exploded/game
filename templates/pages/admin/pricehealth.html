@@ -1,0 +1,53 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Price Data Health</h1>
+    <a href="/admin" class="btn btn-sm">&larr; Admin</a>
+</div>
+
+<div class="portfolio-summary">
+    <div class="stat-card">
+        <span class="stat-label">Active Stocks</span>
+        <span class="stat-value">{{.Extra.StockCount}}</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Missing Today ({{.Extra.Today}})</span>
+        <span class="stat-value {{if .Extra.MissingCount}}text-red{{else}}text-green{{end}}">{{.Extra.MissingCount}}</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Oldest Data</span>
+        <span class="stat-value" style="font-size:1rem">{{.Extra.OldestDate}}</span>
+    </div>
+</div>
+
+{{if .Extra.MissingStocks}}
+<section class="section">
+    <h2>Stocks Missing Prices for {{.Extra.Today}}</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Name</th>
+                <th>Market</th>
+                <th>Sector</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Extra.MissingStocks}}
+            <tr>
+                <td><strong>{{.Symbol}}</strong></td>
+                <td>{{.Name}}</td>
+                <td>{{.Market | upper}}</td>
+                <td>{{.Sector}}</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</section>
+{{else}}
+<div class="empty-state" style="margin-top:2rem">
+    <p class="text-green" style="font-weight:600">All stocks have prices for today. Looking good!</p>
+</div>
+{{end}}
+{{end}}

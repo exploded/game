@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# deploy-game — called by GitHub Actions after SCP of new binary + assets.
+# Usage: sudo /usr/local/bin/deploy-game
+#
+# Expected layout on server:
+#   /var/www/game/game          (binary)
+#   /var/www/game/sql/          (schema)
+#   /var/www/game/templates/    (HTML templates)
+#   /var/www/game/static/       (CSS, JS)
+
+APP_DIR="/var/www/game"
+SERVICE="game"
+STAGING="/tmp/game-deploy"
+
+echo "=== deploy-game ==="
+
+# Self-update: if a newer version of this script was shipped, install it.
+if [ -f "$STAGING/deploy-game" ]; then
+    if ! cmp -s "$STAGING/deploy-game" "/usr/local/bin/deploy-game"; then
+        echo "Updating deploy script..."
+        cp "$STAGING/deploy-game" /usr/local/bin/deploy-game
+        chmod +x /usr/local/bin/deploy-game
+        echo "Deploy script updated. Re-running..."
+        exec /usr/local/bin/deploy-game
+    fi
+fi
+
+# Stop service.
+echo "Stopping $SERVICE..."
+systemctl stop "$SERVICE" || true
+sleep 1
+
+# Remove old binary to avoid "text file busy".
+rm -f "$APP_DIR/game"
+
+# Copy new files.
+if [ -f "$STAGING/game" ]; then
+    cp "$STAGING/game" "$APP_DIR/game"
+    chmod +x "$APP_DIR/game"
+fi
+
+# Copy web assets.
+for dir in sql templates static; do
+    if [ -d "$STAGING/$dir" ]; then
+        rm -rf "$APP_DIR/$dir"
+        cp -r "$STAGING/$dir" "$APP_DIR/$dir"
+    fi
+done
+
+# Fix ownership.
+chown -R www-data "$APP_DIR"
+
+# Start service.
+echo "Starting $SERVICE..."
+systemctl start "$SERVICE"
+sleep 2
+
+# Verify.
+if systemctl is-active --quiet "$SERVICE"; then
+    echo "Service $SERVICE is running."
+else
+    echo "ERROR: Service $SERVICE failed to start!"
+    journalctl -u "$SERVICE" --no-pager -n 20
+    exit 1
+fi
+
+# Clean up staging.
+rm -rf "$STAGING"
+
+echo "=== deploy-game complete ==="

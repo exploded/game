@@ -1,0 +1,39 @@
+{{template "base" .}}
+
+{{define "content"}}
+<h1>Dashboard</h1>
+
+{{if .Extra.MyGames}}
+<section class="section">
+    <h2>My Games</h2>
+    <div class="game-grid">
+        {{range .Extra.MyGames}}
+        <div class="game-card">
+            <h3><a href="/games/{{.ID}}">{{.Name}}</a></h3>
+            <span class="badge badge-{{.Status}}">{{.Status}}</span>
+            <p>{{.Markets | upper}} &middot; {{.BaseCurrency}}</p>
+            <p class="game-dates">{{.StartDate}} &rarr; {{.EndDate}}</p>
+        </div>
+        {{end}}
+    </div>
+</section>
+{{end}}
+
+<section class="section">
+    <h2>Available Games</h2>
+    {{if .Items}}
+    <div class="game-grid">
+        {{range .Items}}
+        <div class="game-card">
+            <h3><a href="/games/{{.ID}}">{{.Name}}</a></h3>
+            <span class="badge badge-{{.Status}}">{{.Status}}</span>
+            <p>{{.Markets | upper}} &middot; {{.BaseCurrency}} &middot; Starting: {{cents .StartingBalance}}</p>
+            <p class="game-dates">{{.StartDate}} &rarr; {{.EndDate}}</p>
+        </div>
+        {{end}}
+    </div>
+    {{else}}
+    <p>No active games. <a href="/games/new">Create one!</a></p>
+    {{end}}
+</section>
+{{end}}

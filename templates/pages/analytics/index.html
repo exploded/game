@@ -1,0 +1,100 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Trade Analytics</h1>
+    <div class="page-header-actions">
+        <a href="/games/{{.Item.ID}}" class="btn btn-sm">&larr; Game</a>
+        <a href="/games/{{.Item.ID}}/sectors" class="btn btn-sm">Sectors</a>
+        <a href="/games/{{.Item.ID}}/benchmark" class="btn btn-sm">Benchmark</a>
+        <a href="/games/{{.Item.ID}}/compare" class="btn btn-sm">Compare</a>
+    </div>
+</div>
+
+<div class="portfolio-summary">
+    <div class="stat-card">
+        <span class="stat-label">Total Trades</span>
+        <span class="stat-value">{{.Extra.TotalTrades}}</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Buys</span>
+        <span class="stat-value">{{.Extra.BuyCount}}</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Sells</span>
+        <span class="stat-value">{{.Extra.SellCount}}</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Win Rate</span>
+        <span class="stat-value">{{.Extra.WinRate}}%</span>
+    </div>
+</div>
+
+<div class="analytics-grid">
+    <div class="analytics-card">
+        <h3>Performance Summary</h3>
+        <div class="analytics-rows">
+            <div class="analytics-row">
+                <span>Total Bought</span>
+                <span>{{cents .Extra.TotalBuys}}</span>
+            </div>
+            <div class="analytics-row">
+                <span>Total Sold</span>
+                <span>{{cents .Extra.TotalSells}}</span>
+            </div>
+            <div class="analytics-row analytics-row-highlight">
+                <span>Realised P&amp;L</span>
+                <span class="{{if gt (int .Extra.TotalPnL) 0}}text-green{{else if lt (int .Extra.TotalPnL) 0}}text-red{{end}}">{{cents .Extra.TotalPnL}}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="analytics-card">
+        <h3>Win/Loss Breakdown</h3>
+        <div class="analytics-rows">
+            <div class="analytics-row">
+                <span>Winning Trades</span>
+                <span class="text-green">{{.Extra.Winners}}</span>
+            </div>
+            <div class="analytics-row">
+                <span>Losing Trades</span>
+                <span class="text-red">{{.Extra.Losers}}</span>
+            </div>
+            {{if .Extra.BestTrade.Symbol}}
+            <div class="analytics-row">
+                <span>Best Trade</span>
+                <span class="text-green">{{.Extra.BestTrade.Symbol}} ({{cents .Extra.BestTrade.PnL}})</span>
+            </div>
+            {{end}}
+            {{if .Extra.WorstTrade.Symbol}}
+            <div class="analytics-row">
+                <span>Worst Trade</span>
+                <span class="text-red">{{.Extra.WorstTrade.Symbol}} ({{cents .Extra.WorstTrade.PnL}})</span>
+            </div>
+            {{end}}
+        </div>
+    </div>
+</div>
+
+{{if .Extra.ClosedTrades}}
+<section class="section">
+    <h2>Closed Positions</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>P&amp;L</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Extra.ClosedTrades}}
+            <tr>
+                <td><strong>{{.Symbol}}</strong></td>
+                <td class="{{if gt .PnL 0}}text-green{{else if lt .PnL 0}}text-red{{end}}">{{cents .PnL}}</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</section>
+{{end}}
+{{end}}

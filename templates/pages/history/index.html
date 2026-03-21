@@ -1,0 +1,39 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Game History</h1>
+    <a href="/games" class="btn btn-sm">&larr; Active Games</a>
+</div>
+
+{{if .Items}}
+<div class="game-grid">
+    {{range .Items}}
+    <div class="game-card">
+        <div class="game-card-header">
+            <h3><a href="/games/{{.ID}}">{{.Name}}</a></h3>
+            <span class="badge badge-{{.Status}}">{{.Status}}</span>
+        </div>
+        <p>{{.Markets | upper}} &middot; {{.BaseCurrency}} &middot; {{cents .StartingBalance}}</p>
+        <p class="game-dates">{{.StartDate}} &rarr; {{.EndDate}}</p>
+    </div>
+    {{end}}
+</div>
+
+{{if gt .Extra.TotalPages 1}}
+<div class="pagination">
+    {{if gt .Extra.Page 1}}
+    <a href="/history?page={{add (int .Extra.Page) -1}}" class="btn btn-sm">&larr; Prev</a>
+    {{end}}
+    <span class="text-muted">Page {{.Extra.Page}} of {{.Extra.TotalPages}}</span>
+    {{if lt .Extra.Page .Extra.TotalPages}}
+    <a href="/history?page={{add (int .Extra.Page) 1}}" class="btn btn-sm">Next &rarr;</a>
+    {{end}}
+</div>
+{{end}}
+{{else}}
+<div class="empty-state">
+    <p class="text-muted">No finished or cancelled games yet.</p>
+</div>
+{{end}}
+{{end}}

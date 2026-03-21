@@ -1,0 +1,325 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Trade {{.Item.Symbol}}</h1>
+    <a href="/games/{{.Extra.Game.ID}}/stocks" class="btn btn-sm">&larr; Stocks</a>
+</div>
+
+<div class="trade-layout">
+    <div class="trade-info">
+        <h3>{{.Item.Name}}</h3>
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">Market</span>
+                <span class="info-value">{{.Item.Market | upper}}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Currency</span>
+                <span class="info-value">{{.Item.Currency}}</span>
+            </div>
+            {{if .Extra.LatestPrice.ID}}
+            <div class="info-item">
+                <span class="info-label">Latest Price</span>
+                <span class="info-value">{{cents .Extra.LatestPrice.Close}} {{.Item.Currency}}</span>
+            </div>
+            {{end}}
+            <div class="info-item">
+                <span class="info-label">Cash Available</span>
+                <span class="info-value" id="cash-display">{{cents .Extra.Participant.CashBalance}} {{.Extra.Game.BaseCurrency}}</span>
+            </div>
+            {{if .Extra.Holding.ID}}
+            <div class="info-item">
+                <span class="info-label">Currently Holding</span>
+                <span class="info-value">{{.Extra.Holding.Quantity}} shares</span>
+            </div>
+            {{end}}
+            {{if .Extra.Game.TradeFee}}
+            <div class="info-item">
+                <span class="info-label">Trade Fee</span>
+                <span class="info-value">{{cents .Extra.Game.TradeFee}} {{.Extra.Game.BaseCurrency}}</span>
+            </div>
+            {{end}}
+            {{if .Extra.Game.AllowShort}}
+            <div class="info-item">
+                <span class="info-label">Short Selling</span>
+                <span class="info-value text-green">Allowed</span>
+            </div>
+            {{end}}
+        </div>
+    </div>
+
+    <div class="trade-forms">
+        {{if .Extra.LatestPrice.ID}}
+        <div class="trade-card">
+            <h3>Buy</h3>
+            <form method="POST" action="/games/{{.Extra.Game.ID}}/trade/{{.Item.ID}}" id="buy-form">
+                <input type="hidden" name="type" value="buy">
+
+                <div class="form-group">
+                    <label for="buy-qty">Shares</label>
+                    <input type="number" id="buy-qty" name="quantity" min="0" max="0" value="0" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="buy-slider">Adjust</label>
+                    <input type="range" id="buy-slider" min="0" max="0" value="0" class="slider">
+                    <div class="slider-labels">
+                        <span>0</span>
+                        <span id="buy-max-label">0</span>
+                    </div>
+                </div>
+
+                <div class="estimate-box">
+                    <div class="estimate-row">
+                        <span>Cost ({{.Item.Currency}})</span>
+                        <span id="est-native">$0.00</span>
+                    </div>
+                    {{if ne .Item.Currency .Extra.Game.BaseCurrency}}
+                    <div class="estimate-row">
+                        <span>Cost ({{.Extra.Game.BaseCurrency}})</span>
+                        <span id="est-converted">$0.00</span>
+                    </div>
+                    {{end}}
+                    {{if .Extra.Game.TradeFee}}
+                    <div class="estimate-row">
+                        <span>Trade Fee</span>
+                        <span id="est-fee">{{cents .Extra.Game.TradeFee}}</span>
+                    </div>
+                    {{end}}
+                    <div class="estimate-row estimate-total">
+                        <span>Total ({{.Extra.Game.BaseCurrency}})</span>
+                        <span id="est-total">$0.00</span>
+                    </div>
+                    <div class="estimate-row">
+                        <span>Remaining Cash</span>
+                        <span id="est-remaining">{{cents .Extra.Participant.CashBalance}}</span>
+                    </div>
+                </div>
+
+                <button type="submit" id="buy-btn" class="btn btn-primary" style="width:100%" disabled>Buy 0 shares</button>
+            </form>
+        </div>
+
+        <div class="trade-card">
+            <h3>Limit Order</h3>
+            <form method="POST" action="/games/{{.Extra.Game.ID}}/orders/{{.Item.ID}}">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="lo-type">Type</label>
+                        <select id="lo-type" name="type">
+                            <option value="buy">Buy</option>
+                            <option value="sell">Sell</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="lo-qty">Quantity</label>
+                        <input type="number" id="lo-qty" name="quantity" min="1" value="1" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="lo-price">Limit Price ($)</label>
+                        <input type="number" id="lo-price" name="limit_price" min="0.01" step="0.01" required
+                            {{if .Extra.LatestPrice.ID}}value="{{rawDollars .Extra.LatestPrice.Close}}"{{end}}>
+                    </div>
+                    <div class="form-group">
+                        <label for="lo-expires">Expires (optional)</label>
+                        <input type="date" id="lo-expires" name="expires_at">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%">Place Limit Order</button>
+            </form>
+        </div>
+
+        {{if .Extra.Holding.ID}}
+        <div class="trade-card">
+            <h3>Sell</h3>
+            <form method="POST" action="/games/{{.Extra.Game.ID}}/trade/{{.Item.ID}}" id="sell-form">
+                <input type="hidden" name="type" value="sell">
+
+                <div class="form-group">
+                    <label for="sell-qty">Shares (max {{.Extra.Holding.Quantity}})</label>
+                    <input type="number" id="sell-qty" name="quantity" min="0" max="{{.Extra.Holding.Quantity}}" value="0" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="sell-slider">Adjust</label>
+                    <input type="range" id="sell-slider" min="0" max="{{.Extra.Holding.Quantity}}" value="0" class="slider">
+                    <div class="slider-labels">
+                        <span>0</span>
+                        <span>{{.Extra.Holding.Quantity}}</span>
+                    </div>
+                </div>
+
+                <div class="estimate-box">
+                    <div class="estimate-row">
+                        <span>Proceeds ({{.Item.Currency}})</span>
+                        <span id="sell-est-native">$0.00</span>
+                    </div>
+                    {{if ne .Item.Currency .Extra.Game.BaseCurrency}}
+                    <div class="estimate-row">
+                        <span>Proceeds ({{.Extra.Game.BaseCurrency}})</span>
+                        <span id="sell-est-converted">$0.00</span>
+                    </div>
+                    {{end}}
+                    <div class="estimate-row estimate-total">
+                        <span>Net Proceeds ({{.Extra.Game.BaseCurrency}})</span>
+                        <span id="sell-est-total">$0.00</span>
+                    </div>
+                </div>
+
+                <button type="submit" id="sell-btn" class="btn btn-danger" style="width:100%" disabled>Sell 0 shares</button>
+            </form>
+        </div>
+        {{end}}
+        {{else}}
+        <p class="text-muted">No price data available for this stock yet. Prices are fetched daily after market close.</p>
+        {{end}}
+    </div>
+</div>
+
+{{if .Extra.LatestPrice.ID}}
+<script>
+(function() {
+    // All values in cents.
+    const priceCents = {{.Extra.LatestPrice.Close}};
+    const cashCents = {{.Extra.Participant.CashBalance}};
+    const feeCents = {{.Extra.Game.TradeFee}};
+    const stockCurrency = "{{.Item.Currency}}";
+    const baseCurrency = "{{.Extra.Game.BaseCurrency}}";
+    // Exchange rate: AUD/USD * 1,000,000.
+    const exchangeRate = {{.Extra.ExchangeRate}};
+    const sameCurrency = (stockCurrency === baseCurrency);
+
+    function convertToBase(nativeCents) {
+        if (sameCurrency) return nativeCents;
+        if (stockCurrency === "AUD" && baseCurrency === "USD") {
+            return Math.round((nativeCents * exchangeRate) / 1000000);
+        }
+        if (stockCurrency === "USD" && baseCurrency === "AUD") {
+            return Math.round((nativeCents * 1000000) / exchangeRate);
+        }
+        return nativeCents;
+    }
+
+    function fmtDollars(cents) {
+        const neg = cents < 0;
+        const abs = Math.abs(cents);
+        const d = Math.floor(abs / 100);
+        const f = abs % 100;
+        const formatted = "$" + d.toLocaleString("en-US") + "." + String(f).padStart(2, "0");
+        return neg ? "-" + formatted : formatted;
+    }
+
+    // Calculate max shares affordable.
+    const costPerShareBase = convertToBase(priceCents);
+    const maxAffordable = costPerShareBase > 0 ? Math.floor((cashCents - feeCents) / costPerShareBase) : 0;
+    const maxBuy = Math.max(0, maxAffordable);
+
+    // Set up buy controls.
+    const buyQty = document.getElementById("buy-qty");
+    const buySlider = document.getElementById("buy-slider");
+    const buyBtn = document.getElementById("buy-btn");
+    const buyMaxLabel = document.getElementById("buy-max-label");
+
+    if (buyQty && buySlider) {
+        buyQty.max = maxBuy;
+        buySlider.max = maxBuy;
+        buyMaxLabel.textContent = maxBuy.toLocaleString();
+
+        function updateBuy() {
+            let qty = parseInt(buyQty.value) || 0;
+            if (qty < 0) qty = 0;
+            if (qty > maxBuy) qty = maxBuy;
+            buyQty.value = qty;
+            buySlider.value = qty;
+
+            const nativeCost = qty * priceCents;
+            const baseCost = convertToBase(nativeCost);
+            const total = baseCost + feeCents;
+            const remaining = cashCents - (qty > 0 ? total : 0);
+
+            document.getElementById("est-native").textContent = fmtDollars(nativeCost);
+            const estConverted = document.getElementById("est-converted");
+            if (estConverted) estConverted.textContent = fmtDollars(baseCost);
+            document.getElementById("est-total").textContent = fmtDollars(qty > 0 ? total : 0);
+
+            const remEl = document.getElementById("est-remaining");
+            remEl.textContent = fmtDollars(remaining);
+            remEl.className = remaining < 0 ? "text-red" : "";
+
+            buyBtn.disabled = qty <= 0;
+            buyBtn.textContent = "Buy " + qty.toLocaleString() + " share" + (qty !== 1 ? "s" : "");
+
+            // Block form submit if over balance.
+            if (remaining < 0) {
+                buyBtn.disabled = true;
+            }
+        }
+
+        buyQty.addEventListener("input", function() {
+            buySlider.value = buyQty.value;
+            updateBuy();
+        });
+        buySlider.addEventListener("input", function() {
+            buyQty.value = buySlider.value;
+            updateBuy();
+        });
+
+        document.getElementById("buy-form").addEventListener("submit", function(e) {
+            const qty = parseInt(buyQty.value) || 0;
+            if (qty <= 0) { e.preventDefault(); return; }
+            const total = convertToBase(qty * priceCents) + feeCents;
+            if (total > cashCents) { e.preventDefault(); return; }
+        });
+
+        updateBuy();
+    }
+
+    // Set up sell controls.
+    const sellQty = document.getElementById("sell-qty");
+    const sellSlider = document.getElementById("sell-slider");
+    const sellBtn = document.getElementById("sell-btn");
+
+    if (sellQty && sellSlider) {
+        function updateSell() {
+            let qty = parseInt(sellQty.value) || 0;
+            const max = parseInt(sellQty.max) || 0;
+            if (qty < 0) qty = 0;
+            if (qty > max) qty = max;
+            sellQty.value = qty;
+            sellSlider.value = qty;
+
+            const nativeProceeds = qty * priceCents;
+            const baseProceeds = convertToBase(nativeProceeds);
+            const net = Math.max(0, baseProceeds - feeCents);
+
+            document.getElementById("sell-est-native").textContent = fmtDollars(nativeProceeds);
+            const sellConverted = document.getElementById("sell-est-converted");
+            if (sellConverted) sellConverted.textContent = fmtDollars(baseProceeds);
+            document.getElementById("sell-est-total").textContent = fmtDollars(qty > 0 ? net : 0);
+
+            sellBtn.disabled = qty <= 0;
+            sellBtn.textContent = "Sell " + qty.toLocaleString() + " share" + (qty !== 1 ? "s" : "");
+        }
+
+        sellQty.addEventListener("input", function() {
+            sellSlider.value = sellQty.value;
+            updateSell();
+        });
+        sellSlider.addEventListener("input", function() {
+            sellQty.value = sellSlider.value;
+            updateSell();
+        });
+
+        document.getElementById("sell-form").addEventListener("submit", function(e) {
+            if ((parseInt(sellQty.value) || 0) <= 0) e.preventDefault();
+        });
+
+        updateSell();
+    }
+})();
+</script>
+{{end}}
+{{end}}

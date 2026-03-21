@@ -1,0 +1,53 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Watchlist</h1>
+    <div class="page-header-actions">
+        <a href="/games/{{.Item.ID}}" class="btn btn-sm">&larr; Game</a>
+        <a href="/games/{{.Item.ID}}/stocks" class="btn btn-primary btn-sm">Browse Stocks</a>
+    </div>
+</div>
+
+{{if .Items}}
+<table>
+    <thead>
+        <tr>
+            <th>Symbol</th>
+            <th>Name</th>
+            <th>Market</th>
+            <th>Sector</th>
+            <th>Latest Price</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .Items}}
+        <tr>
+            <td><strong><a href="/games/{{$.Item.ID}}/stocks/{{.StockID}}">{{.Symbol}}</a></strong></td>
+            <td>{{.StockName}}</td>
+            <td>{{.Market | upper}}</td>
+            <td>{{.Sector}}</td>
+            <td>{{if .LatestPrice}}{{cents .LatestPrice}} <span class="text-muted">{{.Currency}}</span>{{else}}<span class="text-muted">N/A</span>{{end}}</td>
+            <td>
+                <div class="btn-group">
+                    <a href="/games/{{$.Item.ID}}/trade/{{.StockID}}" class="btn btn-primary btn-sm">Trade</a>
+                    <button hx-delete="/games/{{$.Item.ID}}/watchlist/{{.StockID}}"
+                        hx-target="closest tr" hx-swap="outerHTML swap:200ms"
+                        hx-confirm="Remove from watchlist?"
+                        hx-disabled-elt="this"
+                        class="btn btn-danger btn-sm">Remove</button>
+                </div>
+            </td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+{{else}}
+<div class="empty-state">
+    <p class="text-muted">Your watchlist is empty.</p>
+    <p class="text-muted">Browse stocks and click "Watch" to track them here.</p>
+    <a href="/games/{{.Item.ID}}/stocks" class="btn btn-primary">Browse Stocks</a>
+</div>
+{{end}}
+{{end}}

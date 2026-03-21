@@ -1,0 +1,113 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>{{.Item.Name}}</h1>
+    <span class="badge badge-{{.Item.Status}}">{{.Item.Status}}</span>
+</div>
+
+<div class="detail-grid">
+    <div class="detail-main">
+        {{if .Item.Description}}
+        <p class="game-description">{{.Item.Description}}</p>
+        {{end}}
+
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">Markets</span>
+                <span class="info-value">{{.Item.Markets | upper}}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Currency</span>
+                <span class="info-value">{{.Item.BaseCurrency}}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Starting Balance</span>
+                <span class="info-value">{{cents .Item.StartingBalance}}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Dates</span>
+                <span class="info-value">{{.Item.StartDate}} &rarr; {{.Item.EndDate}}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Participants</span>
+                <span class="info-value">{{.Extra.Count}}{{if .Item.MaxParticipants.Valid}} / {{.Item.MaxParticipants.Int64}}{{end}}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Trade Fee</span>
+                <span class="info-value">{{if .Item.TradeFee}}{{cents .Item.TradeFee}}{{else}}Free{{end}}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Created by</span>
+                <span class="info-value">{{.Extra.Creator.Name}}</span>
+            </div>
+        </div>
+
+        {{if .Extra.CanJoin}}
+        <form method="POST" action="/games/{{.Item.ID}}/join" class="join-form">
+            <button type="submit" class="btn btn-primary">Join Game</button>
+        </form>
+        {{end}}
+
+        {{if .Extra.IsJoined}}
+        <div class="participant-actions" style="flex-wrap:wrap">
+            {{if or (eq .Item.Status "active") (eq .Item.Status "pending")}}
+            <a href="/games/{{.Item.ID}}/portfolio" class="btn btn-primary">My Portfolio</a>
+            {{end}}
+            {{if eq .Item.Status "active"}}
+            <a href="/games/{{.Item.ID}}/stocks" class="btn btn-primary">Browse Stocks</a>
+            <a href="/games/{{.Item.ID}}/orders" class="btn btn-sm">Limit Orders</a>
+            <a href="/games/{{.Item.ID}}/watchlist" class="btn btn-sm">Watchlist</a>
+            {{end}}
+            <a href="/games/{{.Item.ID}}/analytics" class="btn btn-sm">Analytics</a>
+            <a href="/games/{{.Item.ID}}/sectors" class="btn btn-sm">Sectors</a>
+            <a href="/games/{{.Item.ID}}/chat" class="btn btn-sm">Chat</a>
+            <a href="/games/{{.Item.ID}}/activity" class="btn btn-sm">Activity</a>
+        </div>
+        <div class="participant-actions" style="margin-top:0.5rem">
+            <a href="/games/{{.Item.ID}}/export/transactions" class="btn btn-sm">Export Transactions CSV</a>
+            <a href="/games/{{.Item.ID}}/export/snapshots" class="btn btn-sm">Export Snapshots CSV</a>
+        </div>
+        {{end}}
+
+        {{if .Extra.IsCreator}}
+        <div class="creator-actions" style="flex-wrap:wrap">
+            {{if or (eq .Item.Status "pending") (eq .Item.Status "active")}}
+            <form method="POST" action="/games/{{.Item.ID}}/invite" style="display:inline">
+                <button type="submit" class="btn btn-sm">Generate Invite Link</button>
+            </form>
+            <form method="POST" action="/games/{{.Item.ID}}/cancel" onsubmit="return confirm('Cancel this game?')" style="display:inline">
+                <button type="submit" class="btn btn-danger btn-sm">Cancel Game</button>
+            </form>
+            {{end}}
+        </div>
+        {{end}}
+    </div>
+
+    <div class="detail-sidebar">
+        <h2>Leaderboard</h2>
+        {{if .Items}}
+        <table class="leaderboard-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Player</th>
+                    <th>Portfolio Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range $i, $p := .Items}}
+                <tr>
+                    <td>{{add $i 1}}</td>
+                    <td>{{$p.UserName}}</td>
+                    <td>{{cents $p.PortfolioValue}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+        {{else}}
+        <p class="text-muted">No participants yet.</p>
+        {{end}}
+    </div>
+</div>
+{{end}}

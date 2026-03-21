@@ -1,0 +1,94 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Benchmark Comparison</h1>
+    <div class="page-header-actions">
+        <a href="/games/{{.Item.ID}}" class="btn btn-sm">&larr; Game</a>
+        <a href="/games/{{.Item.ID}}/analytics" class="btn btn-sm">Analytics</a>
+    </div>
+</div>
+
+<p class="text-muted" style="margin-bottom:1.5rem">Compare your portfolio performance against a hypothetical buy-and-hold of the starting balance.</p>
+
+<div class="portfolio-summary">
+    <div class="stat-card">
+        <span class="stat-label">Starting Balance</span>
+        <span class="stat-value">{{cents .Item.StartingBalance}}</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Current Value</span>
+        <span class="stat-value">{{cents .Extra.Participant.PortfolioValue}}</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Return</span>
+        <span class="stat-value {{if gt .Extra.Participant.PortfolioValue .Item.StartingBalance}}text-green{{else if lt .Extra.Participant.PortfolioValue .Item.StartingBalance}}text-red{{end}}">
+            {{pct .Extra.Participant.PortfolioValue .Item.StartingBalance}}%
+        </span>
+    </div>
+</div>
+
+{{if .Extra.Snapshots}}
+<section class="section">
+    <h2>Portfolio Value Over Time</h2>
+    <canvas id="benchmark-chart" height="300"></canvas>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+    const snapshots = [{{range .Extra.Snapshots}}{date:"{{.Date}}",val:{{.TotalValue}}},{{end}}];
+    if (!snapshots.length) return;
+
+    const startVal = {{.Item.StartingBalance}} / 100;
+    const labels = snapshots.map(s => s.date);
+    const portfolio = snapshots.map(s => s.val / 100);
+    // Benchmark is flat (starting balance held as cash).
+    const benchmark = snapshots.map(() => startVal);
+
+    new Chart(document.getElementById('benchmark-chart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Your Portfolio',
+                    data: portfolio,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59,130,246,0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 2,
+                },
+                {
+                    label: 'Starting Balance',
+                    data: benchmark,
+                    borderColor: '#9ca3af',
+                    borderDash: [5, 5],
+                    fill: false,
+                    tension: 0,
+                    pointRadius: 0,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ctx.dataset.label + ': $' + ctx.parsed.y.toLocaleString('en-US', {minimumFractionDigits:2})
+                    }
+                }
+            },
+            scales: {
+                y: { ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'k', color: '#9ca3af' }, grid: { color: '#2a2d3a' } },
+                x: { ticks: { color: '#9ca3af', maxTicksLimit: 10 }, grid: { display: false } }
+            }
+        }
+    });
+})();
+</script>
+{{else}}
+<p class="text-muted">No snapshot data available yet. Snapshots are taken daily for active games.</p>
+{{end}}
+{{end}}

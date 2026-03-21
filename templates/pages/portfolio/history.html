@@ -1,0 +1,51 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Transaction History</h1>
+    <a href="/games/{{.Item.ID}}/portfolio" class="btn btn-sm">&larr; Portfolio</a>
+</div>
+
+{{if .Items}}
+<table>
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Symbol</th>
+            <th>Qty</th>
+            <th>Price</th>
+            <th>Total</th>
+            <th>Fee</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .Items}}
+        <tr>
+            <td>{{.CreatedAt}}</td>
+            <td><span class="badge {{if eq .Type "buy"}}badge-active{{else}}badge-cancelled{{end}}">{{.Type}}</span></td>
+            <td><strong>{{.Symbol}}</strong></td>
+            <td>{{.Quantity}}</td>
+            <td>{{cents .Price}} <span class="text-muted">{{.Currency}}</span></td>
+            <td>{{cents .ConvertedTotal}}</td>
+            <td>{{if .Fee}}{{cents .Fee}}{{else}}-{{end}}</td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+
+{{if gt .Extra.TotalPages 1}}
+<div class="pagination">
+    {{if gt .Extra.Page 1}}
+    <a href="/games/{{.Item.ID}}/history?page={{add (int .Extra.Page) -1}}" class="btn btn-sm">&larr; Prev</a>
+    {{end}}
+    <span class="text-muted">Page {{.Extra.Page}} of {{.Extra.TotalPages}}</span>
+    {{if lt .Extra.Page .Extra.TotalPages}}
+    <a href="/games/{{.Item.ID}}/history?page={{add (int .Extra.Page) 1}}" class="btn btn-sm">Next &rarr;</a>
+    {{end}}
+</div>
+{{end}}
+{{else}}
+<p class="text-muted">No transactions yet.</p>
+{{end}}
+{{end}}

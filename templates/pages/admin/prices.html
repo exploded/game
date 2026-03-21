@@ -1,0 +1,55 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Price Management</h1>
+    <div class="page-header-actions">
+        <a href="/admin" class="btn btn-sm">&larr; Admin</a>
+        <form method="POST" action="/admin/prices/fetch" style="display:inline">
+            <button type="submit" class="btn btn-primary">Fetch Prices Now</button>
+        </form>
+        <form method="POST" action="/admin/prices/fake" style="display:inline">
+            <button type="submit" class="btn btn-sm" onclick="return confirm('Seed 30 days of fake prices for all stocks?')">Seed Fake Prices (Dev)</button>
+        </form>
+    </div>
+</div>
+
+<div class="info-grid">
+    <div class="stat-card">
+        <span class="stat-label">Active Stocks</span>
+        <span class="stat-value">{{.Extra.StockCount}}</span>
+    </div>
+</div>
+
+<section class="section">
+    <h2>Fetch Log</h2>
+    {{if .Items}}
+    <table>
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Market</th>
+                <th>Status</th>
+                <th>Stocks Updated</th>
+                <th>Duration</th>
+                <th>Error</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Items}}
+            <tr>
+                <td>{{.CreatedAt}}</td>
+                <td>{{.Market | upper}}</td>
+                <td><span class="badge badge-{{if eq .Status "success"}}active{{else if eq .Status "partial"}}pending{{else}}cancelled{{end}}">{{.Status}}</span></td>
+                <td>{{.StocksUpdated}}</td>
+                <td>{{if .DurationMs.Valid}}{{.DurationMs.Int64}}ms{{else}}-{{end}}</td>
+                <td>{{if .ErrorMsg.Valid}}<span class="text-red">{{.ErrorMsg.String}}</span>{{else}}-{{end}}</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+    {{else}}
+    <p class="text-muted">No fetch logs yet. Click "Fetch Prices Now" to get started.</p>
+    {{end}}
+</section>
+{{end}}

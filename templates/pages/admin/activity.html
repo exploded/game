@@ -1,0 +1,47 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>User Activity</h1>
+    <a href="/admin" class="btn btn-sm">&larr; Admin</a>
+</div>
+
+<div class="stat-card" style="margin-bottom:1.5rem;display:inline-block">
+    <span class="stat-label">Total Users</span>
+    <span class="stat-value">{{.Extra.UserCount}}</span>
+</div>
+
+{{if .Items}}
+<table>
+    <thead>
+        <tr>
+            <th>User</th>
+            <th>Email</th>
+            <th>Games</th>
+            <th>Trades</th>
+            <th>Last Login</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .Items}}
+        <tr>
+            <td>
+                <div style="display:flex;align-items:center;gap:0.5rem">
+                    {{if .PictureUrl.Valid}}
+                    <img src="{{.PictureUrl.String}}" alt="" class="avatar-sm">
+                    {{end}}
+                    <strong>{{.Name}}</strong>
+                </div>
+            </td>
+            <td class="text-muted">{{.Email}}</td>
+            <td>{{.GameCount}}</td>
+            <td>{{.TradeCount}}</td>
+            <td class="text-muted">{{.LastLogin}}</td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+{{else}}
+<p class="text-muted">No users found.</p>
+{{end}}
+{{end}}

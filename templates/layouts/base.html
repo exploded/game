@@ -1,0 +1,32 @@
+{{define "base"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{if .Title}}{{.Title}} - {{end}}StockGame</title>
+    <link rel="stylesheet" href="/static/css/app.css">
+    <script src="/static/js/htmx.min.js"></script>
+</head>
+<body hx-headers='{"X-CSRF-Token": "{{.CSRFToken}}"}'>
+    {{template "nav" .}}
+
+    {{if .Flash}}
+    <div class="flash flash-{{.Flash.Type}}">
+        {{.Flash.Message}}
+    </div>
+    {{end}}
+
+    <main class="container">
+        {{template "content" .}}
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>StockGame &mdash; Fantasy Stock Market</p>
+        </div>
+    </footer>
+
+    <div id="toast-container"></div>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>{{end}}

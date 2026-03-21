@@ -1,0 +1,83 @@
+{{template "base" .}}
+
+{{define "content"}}
+<h1>Create Game</h1>
+
+<form method="POST" action="/games" class="form-card">
+    <div class="form-group">
+        <label for="name">Game Name</label>
+        <input type="text" id="name" name="name" required placeholder="e.g. Q2 2026 Challenge">
+        {{if .Errors.name}}<div class="form-error">{{.Errors.name}}</div>{{end}}
+    </div>
+
+    <div class="form-group">
+        <label for="description">Description (optional)</label>
+        <textarea id="description" name="description" rows="3" placeholder="Rules, theme, etc."></textarea>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label for="markets">Markets</label>
+            <select id="markets" name="markets">
+                <option value="both">Both (ASX + S&amp;P 500)</option>
+                <option value="asx">ASX 200 only</option>
+                <option value="sp500">S&amp;P 500 only</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="base_currency">Base Currency</label>
+            <select id="base_currency" name="base_currency">
+                <option value="AUD">AUD</option>
+                <option value="USD">USD</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label for="start_date">Start Date</label>
+            <input type="date" id="start_date" name="start_date" required>
+            {{if .Errors.start_date}}<div class="form-error">{{.Errors.start_date}}</div>{{end}}
+        </div>
+        <div class="form-group">
+            <label for="end_date">End Date</label>
+            <input type="date" id="end_date" name="end_date" required>
+            {{if .Errors.end_date}}<div class="form-error">{{.Errors.end_date}}</div>{{end}}
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label for="starting_balance">Starting Balance ($)</label>
+            <input type="number" id="starting_balance" name="starting_balance" value="1000000" min="1000">
+        </div>
+        <div class="form-group">
+            <label for="max_participants">Max Participants (blank = unlimited)</label>
+            <input type="number" id="max_participants" name="max_participants" min="2" placeholder="Unlimited">
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label for="trade_fee">Trade Fee ($, per trade)</label>
+            <input type="number" id="trade_fee" name="trade_fee" value="0" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="allow_short" value="1"> Allow short selling
+            </label>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="recurring">Recurring (optional)</label>
+        <select id="recurring" name="recurring_interval">
+            <option value="">None</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+        </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Create Game</button>
+</form>
+{{end}}

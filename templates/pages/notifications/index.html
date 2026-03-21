@@ -1,0 +1,40 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Notifications</h1>
+    <div class="page-header-actions">
+        <a href="/dashboard" class="btn btn-sm">&larr; Dashboard</a>
+        {{if .Items}}
+        <form method="POST" action="/notifications/read-all" style="display:inline">
+            <button type="submit" class="btn btn-sm">Mark All Read</button>
+        </form>
+        {{end}}
+    </div>
+</div>
+
+{{if .Items}}
+<div class="notifications-list">
+    {{range .Items}}
+    <div class="notification-item {{if not .IsRead}}notification-unread{{end}}" id="notif-{{.ID}}">
+        <div class="notification-content">
+            <div class="notification-title">{{.Title}}</div>
+            <div class="notification-message">{{.Message}}</div>
+            <span class="text-muted" style="font-size:0.75rem">{{.CreatedAt}}</span>
+        </div>
+        {{if not .IsRead}}
+        <button hx-post="/notifications/{{.ID}}/read"
+                hx-target="#notif-{{.ID}}"
+                hx-swap="outerHTML"
+                hx-disabled-elt="this"
+                class="btn btn-sm">Mark Read</button>
+        {{end}}
+    </div>
+    {{end}}
+</div>
+{{else}}
+<div class="empty-state">
+    <p class="text-muted">No notifications. You'll be notified about achievements, game events, and filled orders.</p>
+</div>
+{{end}}
+{{end}}

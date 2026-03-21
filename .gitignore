@@ -1,0 +1,9 @@
+.env
+*.exe
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+*.bak
+.vscode/
+.claude/settings.local.json

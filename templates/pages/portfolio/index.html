@@ -1,0 +1,121 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Portfolio</h1>
+    <div class="page-header-actions">
+        <a href="/games/{{.Item.ID}}" class="btn btn-sm">&larr; Game</a>
+        <a href="/games/{{.Item.ID}}/stocks" class="btn btn-primary btn-sm">Browse Stocks</a>
+    </div>
+</div>
+
+<div class="portfolio-summary">
+    <div class="stat-card">
+        <span class="stat-label">Cash</span>
+        <span class="stat-value">{{cents .Extra.Participant.CashBalance}}</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Holdings Value</span>
+        <span class="stat-value">{{cents (subtract .Extra.Participant.PortfolioValue .Extra.Participant.CashBalance)}}</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Total Value</span>
+        <span class="stat-value">{{cents .Extra.Participant.PortfolioValue}}</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">P&amp;L</span>
+        <span class="stat-value {{if gt .Extra.Participant.PortfolioValue .Item.StartingBalance}}text-green{{else if lt .Extra.Participant.PortfolioValue .Item.StartingBalance}}text-red{{end}}">
+            {{cents (subtract .Extra.Participant.PortfolioValue .Item.StartingBalance)}}
+        </span>
+    </div>
+</div>
+
+{{if .Extra.Snapshots}}
+<section class="section">
+    <h2>Performance</h2>
+    <canvas id="portfolio-chart" height="200"></canvas>
+</section>
+{{end}}
+
+<section class="section">
+    <div class="section-header">
+        <h2>Holdings</h2>
+        <a href="/games/{{.Item.ID}}/history" class="btn btn-sm">Transaction History</a>
+    </div>
+    {{if .Items}}
+    <table>
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Name</th>
+                <th>Qty</th>
+                <th>Avg Cost</th>
+                <th>Current Value</th>
+                <th>Market</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Items}}
+            <tr>
+                <td><strong>{{.Symbol}}</strong></td>
+                <td>{{.StockName}}</td>
+                <td>{{.Quantity}}</td>
+                <td>{{cents .AvgCost}}</td>
+                <td>{{cents .CurrentValue}}</td>
+                <td>{{.Market | upper}}</td>
+                <td><a href="/games/{{$.Item.ID}}/trade/{{.StockID}}" class="btn btn-primary btn-sm">Trade</a></td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+    {{else}}
+    <p class="text-muted">No holdings yet. <a href="/games/{{.Item.ID}}/stocks">Browse stocks</a> to start trading.</p>
+    {{end}}
+</section>
+
+{{if .Extra.Snapshots}}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+const snapshots = [
+    {{range .Extra.Snapshots}}
+    {date: "{{.Date}}", value: {{.TotalValue}}},
+    {{end}}
+];
+const ctx = document.getElementById('portfolio-chart').getContext('2d');
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: snapshots.map(s => s.date),
+        datasets: [{
+            label: 'Portfolio Value',
+            data: snapshots.map(s => s.value / 100),
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59,130,246,0.1)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 2,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: function(ctx) { return '$' + ctx.parsed.y.toLocaleString('en-US', {minimumFractionDigits: 2}); }
+                }
+            }
+        },
+        scales: {
+            y: {
+                ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'k', color: '#9ca3af' },
+                grid: { color: '#2a2d3a' }
+            },
+            x: { ticks: { color: '#9ca3af', maxTicksLimit: 10 }, grid: { display: false } }
+        }
+    }
+});
+</script>
+{{end}}
+{{end}}

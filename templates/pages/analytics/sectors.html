@@ -1,0 +1,108 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Sector Analysis</h1>
+    <div class="page-header-actions">
+        <a href="/games/{{.Item.ID}}" class="btn btn-sm">&larr; Game</a>
+        <a href="/games/{{.Item.ID}}/analytics" class="btn btn-sm">Analytics</a>
+    </div>
+</div>
+
+{{if .Extra.Sectors}}
+<section class="section">
+    <h2>Sector Allocation</h2>
+    <div class="chart-row">
+        <canvas id="sector-chart" height="300" style="max-width:400px"></canvas>
+        <div class="sector-list">
+            {{range .Extra.Sectors}}
+            <div class="sector-item">
+                <span class="sector-dot"></span>
+                <span>{{if .Sector}}{{.Sector}}{{else}}Other{{end}}</span>
+                <span class="text-muted">{{if .TotalValue.Valid}}{{cents .TotalValue.Float64}}{{else}}$0.00{{end}}</span>
+            </div>
+            {{end}}
+        </div>
+    </div>
+</section>
+{{end}}
+
+<section class="section">
+    <h2>Holdings - Gain/Loss</h2>
+    {{if .Items}}
+    <table>
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Name</th>
+                <th>Qty</th>
+                <th>Avg Cost</th>
+                <th>Current</th>
+                <th>P&amp;L</th>
+                <th>P&amp;L %</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Items}}
+            <tr>
+                <td><strong><a href="/games/{{$.Item.ID}}/stocks/{{.StockID}}">{{.Symbol}}</a></strong></td>
+                <td>{{.StockName}}</td>
+                <td>{{.Quantity}}</td>
+                <td>{{cents .AvgCost}}</td>
+                <td>{{if .LatestPx}}{{cents .LatestPx}}{{else}}<span class="text-muted">N/A</span>{{end}}</td>
+                <td class="{{if gt .PnL 0}}text-green{{else if lt .PnL 0}}text-red{{end}}">{{cents .PnL}}</td>
+                <td class="{{if gt .PnL 0}}text-green{{else if lt .PnL 0}}text-red{{end}}">{{.PnLPct}}%</td>
+                <td><a href="/games/{{$.Item.ID}}/trade/{{.StockID}}" class="btn btn-primary btn-sm">Trade</a></td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+    {{else}}
+    <p class="text-muted">No holdings to analyse.</p>
+    {{end}}
+</section>
+
+{{if .Extra.ChartJSON}}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+    const data = JSON.parse('{{.Extra.ChartJSON}}');
+    if (!data || !data.length) return;
+
+    const colors = ['#3b82f6','#22c55e','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16','#f97316','#6366f1','#14b8a6','#e11d48'];
+    const ctx = document.getElementById('sector-chart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: data.map(d => d.sector),
+            datasets: [{
+                data: data.map(d => d.value / 100),
+                backgroundColor: colors.slice(0, data.length),
+                borderColor: '#1a1d27',
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            return ctx.label + ': $' + ctx.parsed.toLocaleString('en-US', {minimumFractionDigits:2});
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Color the dots.
+    document.querySelectorAll('.sector-dot').forEach((dot, i) => {
+        dot.style.backgroundColor = colors[i % colors.length];
+    });
+})();
+</script>
+{{end}}
+{{end}}

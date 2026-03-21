@@ -1,0 +1,189 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>{{.Item.Symbol}} - {{.Item.Name}}</h1>
+    <div class="page-header-actions">
+        <a href="/games/{{.Extra.Game.ID}}/stocks" class="btn btn-sm">&larr; Stocks</a>
+        <a href="/games/{{.Extra.Game.ID}}/trade/{{.Item.ID}}" class="btn btn-primary btn-sm">Trade</a>
+        <button hx-post="/games/{{.Extra.Game.ID}}/watchlist/{{.Item.ID}}" hx-swap="outerHTML" hx-disabled-elt="this" class="btn btn-sm">Watch</button>
+    </div>
+</div>
+
+{{if .Items}}
+<div class="price-stats" id="price-stats">
+    <div class="price-current" id="ps-price">--</div>
+    <div class="price-change" id="ps-change">--</div>
+    <div class="price-range">
+        <span class="text-muted">Day Range</span>
+        <span id="ps-range">--</span>
+    </div>
+</div>
+
+<div class="chart-container" id="chart-container"></div>
+{{end}}
+
+<div class="info-grid" id="info-grid">
+    <div class="info-item">
+        <span class="info-label">Market</span>
+        <span class="info-value">{{.Item.Market | upper}}</span>
+    </div>
+    <div class="info-item">
+        <span class="info-label">Currency</span>
+        <span class="info-value">{{.Item.Currency}}</span>
+    </div>
+    <div class="info-item">
+        <span class="info-label">Sector</span>
+        <span class="info-value">{{.Item.Sector}}</span>
+    </div>
+    {{if .Extra.LatestPrice.ID}}
+    <div class="info-item">
+        <span class="info-label">Latest Close</span>
+        <span class="info-value">{{cents .Extra.LatestPrice.Close}} {{.Item.Currency}}</span>
+    </div>
+    <div class="info-item">
+        <span class="info-label">Date</span>
+        <span class="info-value">{{.Extra.LatestPrice.Date}}</span>
+    </div>
+    {{end}}
+    {{if .Items}}
+    <div class="info-item">
+        <span class="info-label">30-Day High</span>
+        <span class="info-value" id="stat-high">--</span>
+    </div>
+    <div class="info-item">
+        <span class="info-label">30-Day Low</span>
+        <span class="info-value" id="stat-low">--</span>
+    </div>
+    <div class="info-item">
+        <span class="info-label">Avg Volume</span>
+        <span class="info-value" id="stat-vol">--</span>
+    </div>
+    {{end}}
+</div>
+
+{{if not .Items}}
+<p class="text-muted" style="margin-top:1.5rem">No price data available for this stock yet. Prices are fetched daily after market close.</p>
+{{end}}
+
+{{if .Items}}
+<script src="https://unpkg.com/lightweight-charts@4/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+(function() {
+    const raw = [
+        {{range .Items}}
+        {time:"{{.Date}}",o:{{.Open}},h:{{.High}},l:{{.Low}},c:{{.Close}},v:{{.Volume}}},
+        {{end}}
+    ];
+
+    if (!raw.length) return;
+
+    // Convert cents to dollars for OHLC.
+    const ohlc = raw.map(d => ({
+        time: d.time,
+        open: d.o / 100,
+        high: d.h / 100,
+        low: d.l / 100,
+        close: d.c / 100,
+    }));
+
+    const volume = raw.map(d => ({
+        time: d.time,
+        value: d.v,
+        color: d.c >= d.o ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)',
+    }));
+
+    // Price stats bar.
+    const last = raw[raw.length - 1];
+    const prev = raw.length > 1 ? raw[raw.length - 2] : last;
+    const lastClose = last.c / 100;
+    const prevClose = prev.c / 100;
+    const change = lastClose - prevClose;
+    const changePct = prevClose !== 0 ? (change / prevClose * 100) : 0;
+    const isUp = change >= 0;
+    const sign = isUp ? '+' : '';
+
+    document.getElementById('ps-price').textContent = '$' + lastClose.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+    const changeEl = document.getElementById('ps-change');
+    changeEl.textContent = sign + '$' + change.toFixed(2) + ' (' + sign + changePct.toFixed(2) + '%)';
+    changeEl.className = 'price-change ' + (isUp ? 'text-green' : 'text-red');
+    document.getElementById('ps-range').textContent =
+        '$' + (last.l/100).toFixed(2) + ' \u2014 $' + (last.h/100).toFixed(2);
+
+    // 30-day stats.
+    const highs = raw.map(d => d.h / 100);
+    const lows = raw.map(d => d.l / 100);
+    const vols = raw.map(d => d.v);
+    document.getElementById('stat-high').textContent = '$' + Math.max(...highs).toFixed(2);
+    document.getElementById('stat-low').textContent = '$' + Math.min(...lows).toFixed(2);
+    const avgVol = vols.reduce((a,b) => a+b, 0) / vols.length;
+    document.getElementById('stat-vol').textContent = avgVol >= 1e6
+        ? (avgVol/1e6).toFixed(1) + 'M'
+        : avgVol >= 1e3
+        ? (avgVol/1e3).toFixed(0) + 'K'
+        : avgVol.toFixed(0);
+
+    // Create chart.
+    const container = document.getElementById('chart-container');
+    const chart = LightweightCharts.createChart(container, {
+        width: container.clientWidth,
+        height: 400,
+        layout: {
+            background: { color: '#1a1d27' },
+            textColor: '#9ca3af',
+            fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        },
+        grid: {
+            vertLines: { color: '#2a2d3a' },
+            horzLines: { color: '#2a2d3a' },
+        },
+        crosshair: {
+            mode: LightweightCharts.CrosshairMode.Normal,
+            vertLine: { labelBackgroundColor: '#3b82f6' },
+            horzLine: { labelBackgroundColor: '#3b82f6' },
+        },
+        rightPriceScale: {
+            borderColor: '#2a2d3a',
+            scaleMargins: { top: 0.05, bottom: 0.25 },
+        },
+        timeScale: {
+            borderColor: '#2a2d3a',
+            timeVisible: false,
+            fixLeftEdge: true,
+            fixRightEdge: true,
+        },
+    });
+
+    // Candlestick series.
+    const candleSeries = chart.addCandlestickSeries({
+        upColor: '#22c55e',
+        downColor: '#ef4444',
+        borderUpColor: '#22c55e',
+        borderDownColor: '#ef4444',
+        wickUpColor: '#22c55e',
+        wickDownColor: '#ef4444',
+    });
+    candleSeries.setData(ohlc);
+
+    // Volume histogram.
+    const volumeSeries = chart.addHistogramSeries({
+        priceFormat: { type: 'volume' },
+        priceScaleId: 'volume',
+    });
+    chart.priceScale('volume').applyOptions({
+        scaleMargins: { top: 0.8, bottom: 0 },
+    });
+    volumeSeries.setData(volume);
+
+    // Fit content.
+    chart.timeScale().fitContent();
+
+    // Responsive.
+    const ro = new ResizeObserver(() => {
+        chart.applyOptions({ width: container.clientWidth });
+    });
+    ro.observe(container);
+})();
+</script>
+{{end}}
+{{end}}

@@ -1,0 +1,139 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Compare Portfolios</h1>
+    <div class="page-header-actions">
+        <a href="/games/{{.Item.ID}}" class="btn btn-sm">&larr; Game</a>
+        <a href="/games/{{.Item.ID}}/analytics" class="btn btn-sm">Analytics</a>
+    </div>
+</div>
+
+<form method="GET" action="/games/{{.Item.ID}}/compare" class="compare-form">
+    <div class="form-group">
+        <label for="vs">Compare with</label>
+        <select name="vs" id="vs" onchange="this.form.submit()">
+            <option value="">Select a player...</option>
+            {{range .Extra.Participants}}
+            {{if ne .ID $.Extra.MyParticipant.ID}}
+            <option value="{{.ID}}" {{if eq .ID (int $.Extra.SelectedVs)}}selected{{end}}>{{.UserName}}</option>
+            {{end}}
+            {{end}}
+        </select>
+    </div>
+</form>
+
+<div class="compare-grid">
+    <div class="compare-col">
+        <h2>You</h2>
+        <div class="stat-card">
+            <span class="stat-label">Portfolio Value</span>
+            <span class="stat-value">{{cents .Extra.MyParticipant.PortfolioValue}}</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Cash</span>
+            <span class="stat-value">{{cents .Extra.MyParticipant.CashBalance}}</span>
+        </div>
+        {{if .Extra.MyHoldings}}
+        <h3 style="margin:1rem 0 0.5rem">Holdings</h3>
+        <table class="compact-table">
+            <thead><tr><th>Symbol</th><th>Qty</th><th>Value</th></tr></thead>
+            <tbody>
+                {{range .Extra.MyHoldings}}
+                <tr><td>{{.Symbol}}</td><td>{{.Quantity}}</td><td>{{cents .CurrentValue}}</td></tr>
+                {{end}}
+            </tbody>
+        </table>
+        {{end}}
+    </div>
+
+    {{if .Extra.OtherParticipant.ID}}
+    <div class="compare-col">
+        <h2>{{.Extra.OtherParticipant.UserName}}</h2>
+        <div class="stat-card">
+            <span class="stat-label">Portfolio Value</span>
+            <span class="stat-value">{{cents .Extra.OtherParticipant.PortfolioValue}}</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Cash</span>
+            <span class="stat-value">{{cents .Extra.OtherParticipant.CashBalance}}</span>
+        </div>
+        {{if .Extra.OtherHoldings}}
+        <h3 style="margin:1rem 0 0.5rem">Holdings</h3>
+        <table class="compact-table">
+            <thead><tr><th>Symbol</th><th>Qty</th><th>Value</th></tr></thead>
+            <tbody>
+                {{range .Extra.OtherHoldings}}
+                <tr><td>{{.Symbol}}</td><td>{{.Quantity}}</td><td>{{cents .CurrentValue}}</td></tr>
+                {{end}}
+            </tbody>
+        </table>
+        {{end}}
+    </div>
+    {{else}}
+    <div class="compare-col compare-placeholder">
+        <p class="text-muted">Select a player to compare</p>
+    </div>
+    {{end}}
+</div>
+
+{{if and .Extra.MySnapshots .Extra.OtherSnapshots}}
+<section class="section" style="margin-top:2rem">
+    <h2>Performance Over Time</h2>
+    <canvas id="compare-chart" height="250"></canvas>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+    const my = [{{range .Extra.MySnapshots}}{date:"{{.Date}}",val:{{.TotalValue}}},{{end}}];
+    const other = [{{range .Extra.OtherSnapshots}}{date:"{{.Date}}",val:{{.TotalValue}}},{{end}}];
+
+    const allDates = [...new Set([...my.map(d=>d.date), ...other.map(d=>d.date)])].sort();
+    const myMap = Object.fromEntries(my.map(d => [d.date, d.val/100]));
+    const otherMap = Object.fromEntries(other.map(d => [d.date, d.val/100]));
+
+    new Chart(document.getElementById('compare-chart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: allDates,
+            datasets: [
+                {
+                    label: 'You',
+                    data: allDates.map(d => myMap[d] || null),
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59,130,246,0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 2,
+                },
+                {
+                    label: '{{if .Extra.OtherParticipant.ID}}{{.Extra.OtherParticipant.UserName}}{{else}}Other{{end}}',
+                    data: allDates.map(d => otherMap[d] || null),
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245,158,11,0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 2,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ctx.dataset.label + ': $' + ctx.parsed.y.toLocaleString('en-US', {minimumFractionDigits:2})
+                    }
+                }
+            },
+            scales: {
+                y: { ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'k', color: '#9ca3af' }, grid: { color: '#2a2d3a' } },
+                x: { ticks: { color: '#9ca3af', maxTicksLimit: 10 }, grid: { display: false } }
+            }
+        }
+    });
+})();
+</script>
+{{end}}
+{{end}}

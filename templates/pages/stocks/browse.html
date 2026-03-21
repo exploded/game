@@ -1,0 +1,40 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Stocks</h1>
+    <a href="/games/{{.Item.ID}}" class="btn btn-sm">&larr; Game</a>
+</div>
+
+<div class="search-bar">
+    <input type="text" placeholder="Search stocks..."
+        hx-get="/games/{{.Item.ID}}/search"
+        hx-trigger="input changed delay:300ms"
+        hx-target="#stock-results"
+        name="q"
+        class="search-input">
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Symbol</th>
+            <th>Name</th>
+            <th>Market</th>
+            <th>Sector</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody id="stock-results">
+        {{range .Items}}
+        <tr>
+            <td><a href="/games/{{$.Item.ID}}/stocks/{{.ID}}">{{.Symbol}}</a></td>
+            <td>{{.Name}}</td>
+            <td>{{.Market | upper}}</td>
+            <td>{{.Sector}}</td>
+            <td><a href="/games/{{$.Item.ID}}/trade/{{.ID}}" class="btn btn-primary btn-sm">Trade</a></td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+{{end}}

@@ -1,0 +1,35 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Users</h1>
+    <a href="/admin" class="btn btn-sm">&larr; Admin</a>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Admin</th>
+            <th>Joined</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .Items}}
+        <tr>
+            <td>{{.Name}}</td>
+            <td>{{.Email}}</td>
+            <td>{{if .IsAdmin}}<span class="badge badge-active">Admin</span>{{else}}-{{end}}</td>
+            <td>{{.CreatedAt}}</td>
+            <td>
+                <form method="POST" action="/admin/users/{{.ID}}/admin" style="display:inline">
+                    <button type="submit" class="btn btn-sm">{{if .IsAdmin}}Remove Admin{{else}}Make Admin{{end}}</button>
+                </form>
+            </td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+{{end}}

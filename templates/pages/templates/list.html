@@ -1,0 +1,89 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Game Templates</h1>
+    <a href="/games/new" class="btn btn-sm">Custom Game</a>
+</div>
+
+{{if .Items}}
+<div class="game-grid">
+    {{range .Items}}
+    <div class="game-card template-card">
+        <div class="game-card-header">
+            <h3>{{.Name}}</h3>
+            {{if .IsBuiltin}}<span class="badge badge-active">Built-in</span>{{end}}
+        </div>
+        {{if .Description}}<p>{{.Description}}</p>{{end}}
+        <div class="template-meta">
+            <span>{{.Markets | upper}}</span>
+            <span>{{.BaseCurrency}}</span>
+            <span>{{cents .StartingBalance}}</span>
+            <span>{{.DurationDays}} days</span>
+        </div>
+        <form method="POST" action="/templates/{{.ID}}/create-game" class="template-action">
+            <div class="form-row">
+                <div class="form-group">
+                    <input type="text" name="name" placeholder="Game name (optional)">
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">Create Game</button>
+            </div>
+        </form>
+    </div>
+    {{end}}
+</div>
+{{end}}
+
+<section class="section" style="margin-top:2rem">
+    <h2>Create Template</h2>
+    <form method="POST" action="/templates" class="form-card">
+        <div class="form-group">
+            <label for="name">Template Name</label>
+            <input type="text" id="name" name="name" required placeholder="e.g. ASX Sprint">
+        </div>
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" rows="2" placeholder="Optional description"></textarea>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="markets">Markets</label>
+                <select id="markets" name="markets">
+                    <option value="both">Both</option>
+                    <option value="asx">ASX 200</option>
+                    <option value="sp500">S&amp;P 500</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="base_currency">Currency</label>
+                <select id="base_currency" name="base_currency">
+                    <option value="AUD">AUD</option>
+                    <option value="USD">USD</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="starting_balance">Starting Balance ($)</label>
+                <input type="number" id="starting_balance" name="starting_balance" value="1000000" min="1000">
+            </div>
+            <div class="form-group">
+                <label for="duration_days">Duration (days)</label>
+                <input type="number" id="duration_days" name="duration_days" value="30" min="1">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="trade_fee">Trade Fee ($)</label>
+                <input type="number" id="trade_fee" name="trade_fee" value="0" min="0" step="0.01">
+            </div>
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="allow_short" value="1"> Allow short selling
+                </label>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Template</button>
+    </form>
+</section>
+{{end}}

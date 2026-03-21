@@ -1,0 +1,39 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Leaderboard - {{.Item.Name}}</h1>
+    <a href="/games/{{.Item.ID}}" class="btn btn-sm">&larr; Game</a>
+</div>
+
+{{if .Items}}
+<table>
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Player</th>
+            <th>Portfolio Value</th>
+            <th>P&amp;L</th>
+            <th>Return</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range $i, $p := .Items}}
+        <tr {{if and $.Extra.MyParticipant.ID (eq $p.ID $.Extra.MyParticipant.ID)}}class="highlight-row"{{end}}>
+            <td>{{add $i 1}}</td>
+            <td>{{$p.UserName}}</td>
+            <td>{{cents $p.PortfolioValue}}</td>
+            <td class="{{if gt $p.PortfolioValue $.Item.StartingBalance}}text-green{{else if lt $p.PortfolioValue $.Item.StartingBalance}}text-red{{end}}">
+                {{cents (subtract $p.PortfolioValue $.Item.StartingBalance)}}
+            </td>
+            <td class="{{if gt $p.PortfolioValue $.Item.StartingBalance}}text-green{{else if lt $p.PortfolioValue $.Item.StartingBalance}}text-red{{end}}">
+                {{pct $p.PortfolioValue $.Item.StartingBalance}}%
+            </td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+{{else}}
+<p class="text-muted">No public participants yet.</p>
+{{end}}
+{{end}}
