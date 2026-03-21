@@ -81,6 +81,7 @@ if [ ! -f "/etc/nginx/sites-available/$SERVICE" ]; then
     cat > "/etc/nginx/sites-available/$SERVICE" <<NGINXEOF
 server {
     listen 80;
+    listen [::]:80;
     server_name $DOMAIN;
 
     location / {
