@@ -47,6 +47,16 @@ func runMigrations(db *sql.DB) {
 		"ALTER TABLE users ADD COLUMN deleted_at TEXT DEFAULT NULL",
 		"ALTER TABLE users ADD COLUMN avatar_id INTEGER DEFAULT NULL REFERENCES avatars(id)",
 		"ALTER TABLE games ADD COLUMN referral_bonus_pct INTEGER NOT NULL DEFAULT 1",
+		"ALTER TABLE games ADD COLUMN is_public INTEGER NOT NULL DEFAULT 1",
+		"ALTER TABLE games ADD COLUMN portfolio_visibility TEXT NOT NULL DEFAULT 'public'",
+		"ALTER TABLE games ADD COLUMN credit_interest_rate INTEGER NOT NULL DEFAULT 100",
+		"ALTER TABLE games ADD COLUMN leverage_interest_rate INTEGER NOT NULL DEFAULT 500",
+		"ALTER TABLE games ADD COLUMN min_stock_price INTEGER DEFAULT NULL",
+		"ALTER TABLE games ADD COLUMN max_stock_price INTEGER DEFAULT NULL",
+		"ALTER TABLE games ADD COLUMN margin_trading INTEGER NOT NULL DEFAULT 0",
+		"ALTER TABLE games ADD COLUMN limit_orders INTEGER NOT NULL DEFAULT 0",
+		"ALTER TABLE games ADD COLUMN stop_loss INTEGER NOT NULL DEFAULT 0",
+		"ALTER TABLE games ADD COLUMN fractional_shares INTEGER NOT NULL DEFAULT 0",
 	}
 	for _, q := range alters {
 		if _, err := db.Exec(q); err != nil {
