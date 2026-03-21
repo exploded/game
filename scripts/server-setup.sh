@@ -24,7 +24,7 @@ if [ ! -f "$APP_DIR/.env" ]; then
     cat > "$APP_DIR/.env" <<'ENVEOF'
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-BASE_URL=https://game.yourdomain.com
+BASE_URL=https://game.mchugh.au
 ADMIN_EMAIL=
 PORT=8888
 PROD=1
@@ -71,6 +71,41 @@ EOF
 chmod 440 /etc/sudoers.d/game
 
 chown -R www-data "$APP_DIR"
+
+# Nginx reverse proxy.
+DOMAIN="game.mchugh.au"
+
+apt-get install -y certbot python3-certbot-nginx > /dev/null 2>&1 || true
+
+if [ ! -f "/etc/nginx/sites-available/$SERVICE" ]; then
+    cat > "/etc/nginx/sites-available/$SERVICE" <<NGINXEOF
+server {
+    listen 80;
+    server_name $DOMAIN;
+
+    location / {
+        proxy_pass http://127.0.0.1:8888;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+NGINXEOF
+    ln -sf "/etc/nginx/sites-available/$SERVICE" "/etc/nginx/sites-enabled/$SERVICE"
+    nginx -t && systemctl reload nginx
+    echo "Nginx config created for $DOMAIN"
+else
+    echo "Nginx config already exists for $SERVICE"
+fi
+
+# SSL via certbot (non-interactive).
+if [ ! -d "/etc/letsencrypt/live/$DOMAIN" ]; then
+    certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos --redirect -m admin@mchugh.au
+    echo "SSL certificate installed for $DOMAIN"
+else
+    echo "SSL certificate already exists for $DOMAIN"
+fi
 
 echo "=== setup complete ==="
 echo "Edit $APP_DIR/.env with your credentials, then start with: sudo systemctl start $SERVICE"
