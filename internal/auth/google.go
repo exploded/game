@@ -57,6 +57,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		MaxAge:   OAuthStateMaxAge,
 		HttpOnly: true,
+		Secure:   IsSecure(r),
 		SameSite: http.SameSiteLaxMode,
 	})
 	url := OAuthConfig().AuthCodeURL(state)

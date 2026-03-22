@@ -83,7 +83,12 @@ func SeedAvatars(ctx context.Context, q *db.Queries) {
 // CheckAndGrantAchievements checks if a user has earned new achievements after a trade.
 func (h *Handler) CheckAndGrantAchievements(ctx context.Context, userID, gameID, participantID int64) {
 	// Count trades.
-	tradeCount, _ := h.q.CountTransactions(ctx, participantID)
+	tradeCount, err := h.q.CountTransactions(ctx, participantID)
+	if err != nil {
+		slog.Error("achievement: count transactions", "error", err, "participant", participantID)
+		return
+	}
+	slog.Info("achievement: checking", "user", userID, "game", gameID, "trades", tradeCount)
 
 	type check struct {
 		key       string
@@ -132,27 +137,38 @@ func (h *Handler) CheckAndGrantAchievements(ctx context.Context, userID, gameID,
 func (h *Handler) grantIfNew(ctx context.Context, userID int64, key string, gameID int64) {
 	ach, err := h.q.GetAchievementByKey(ctx, key)
 	if err != nil {
+		slog.Error("achievement: get by key", "key", key, "error", err)
 		return
 	}
 	gid := sql.NullInt64{Int64: gameID, Valid: true}
-	already, _ := h.q.HasAchievement(ctx, db.HasAchievementParams{
+	already, err := h.q.HasAchievement(ctx, db.HasAchievementParams{
 		UserID: userID, AchievementID: ach.ID, GameID: gid,
 	})
+	if err != nil {
+		slog.Error("achievement: has check", "key", key, "error", err)
+		return
+	}
 	if already > 0 {
 		return
 	}
-	_ = h.q.GrantAchievement(ctx, db.GrantAchievementParams{
+	if err := h.q.GrantAchievement(ctx, db.GrantAchievementParams{
 		UserID: userID, AchievementID: ach.ID, GameID: gid,
-	})
+	}); err != nil {
+		slog.Error("achievement: grant", "key", key, "error", err)
+		return
+	}
+	slog.Info("achievement: granted", "key", key, "user", userID)
 
 	// Also create a notification.
-	_ = h.q.CreateNotification(ctx, db.CreateNotificationParams{
+	if err := h.q.CreateNotification(ctx, db.CreateNotificationParams{
 		UserID:  userID,
 		GameID:  gid,
 		Type:    "achievement",
 		Title:   "Achievement Unlocked!",
 		Message: ach.Icon + " " + ach.Name + " - " + ach.Description,
-	})
+	}); err != nil {
+		slog.Error("achievement: notification", "key", key, "error", err)
+	}
 }
 
 func (h *Handler) AchievementsPage(w http.ResponseWriter, r *http.Request) {

@@ -122,6 +122,7 @@ func fillLimitOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrde
 			StockID:       order.StockID,
 			Quantity:      newQty,
 			AvgCost:       newAvg,
+			CurrentValue:  newQty * pricePerShare,
 		})
 
 		// Insert transaction.
@@ -167,6 +168,7 @@ func fillLimitOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrde
 				StockID:       order.StockID,
 				Quantity:      newQty,
 				AvgCost:       holding.AvgCost,
+				CurrentValue:  newQty * pricePerShare,
 			})
 		}
 

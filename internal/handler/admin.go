@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/db"
 	"github.com/exploded/game/internal/market"
 )
@@ -35,11 +36,20 @@ func (h *Handler) AdminUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) AdminToggle(w http.ResponseWriter, r *http.Request) {
+	currentUser := auth.UserFromContext(r.Context())
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
+
+	// Prevent admins from demoting themselves.
+	if id == currentUser.ID {
+		setFlashCookie(w, "You cannot change your own admin status", "error")
+		http.Redirect(w, r, "/admin/users", http.StatusSeeOther)
+		return
+	}
+
 	user, err := h.q.GetUser(r.Context(), id)
 	if err != nil {
 		http.NotFound(w, r)

@@ -3,6 +3,7 @@ package handler
 import (
 	"database/sql"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -112,7 +113,7 @@ func (h *Handler) GameTemplateCreate(w http.ResponseWriter, r *http.Request) {
 	tradeFee := int64(0)
 	if v := r.FormValue("trade_fee"); v != "" {
 		if dollars, err := strconv.ParseFloat(v, 64); err == nil && dollars >= 0 {
-			tradeFee = int64(dollars * 100)
+			tradeFee = int64(math.Round(dollars * 100))
 		}
 	}
 	allowShort := int64(0)

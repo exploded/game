@@ -91,6 +91,9 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, pageName, fragm
 	}
 	if name == "base" {
 		data.User = auth.UserFromContext(r.Context())
+		if data.CSRFToken == "" {
+			data.CSRFToken = auth.CSRFTokenFromContext(r.Context())
+		}
 		if data.Flash == nil {
 			data.Flash = popFlashCookie(w, r)
 		}

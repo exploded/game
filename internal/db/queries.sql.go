@@ -3815,10 +3815,11 @@ func (q *Queries) UpsertExchangeRate(ctx context.Context, arg UpsertExchangeRate
 const upsertHolding = `-- name: UpsertHolding :exec
 
 INSERT INTO holdings (participant_id, stock_id, quantity, avg_cost, current_value, updated_at)
-VALUES (?, ?, ?, ?, 0, datetime('now'))
+VALUES (?, ?, ?, ?, ?, datetime('now'))
 ON CONFLICT(participant_id, stock_id) DO UPDATE SET
     quantity = excluded.quantity,
     avg_cost = excluded.avg_cost,
+    current_value = excluded.current_value,
     updated_at = datetime('now')
 `
 
@@ -3827,6 +3828,7 @@ type UpsertHoldingParams struct {
 	StockID       int64
 	Quantity      int64
 	AvgCost       int64
+	CurrentValue  int64
 }
 
 // =============================================================================
@@ -3838,6 +3840,7 @@ func (q *Queries) UpsertHolding(ctx context.Context, arg UpsertHoldingParams) er
 		arg.StockID,
 		arg.Quantity,
 		arg.AvgCost,
+		arg.CurrentValue,
 	)
 	return err
 }

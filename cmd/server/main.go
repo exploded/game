@@ -61,6 +61,12 @@ func main() {
 
 	h := handler.New(queries, rawDB, pages, production, loc)
 
+	// Generate CSRF secret.
+	csrfSecret, err := auth.GenerateCSRFSecret()
+	if err != nil {
+		log.Fatalf("csrf secret: %v", err)
+	}
+
 	// Start background scheduler.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -75,9 +81,15 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Compress(5))
 	r.Use(handler.SecurityHeaders)
+	r.Use(handler.MaxBodySize(1 << 20)) // 1 MB max request body
 
-	// Static assets.
-	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	// Rate limiters for public/chat endpoints.
+	contactLimiter := handler.NewRateLimiter(5, time.Minute)
+	chatLimiter := handler.NewRateLimiter(30, time.Minute)
+
+	// Static assets (directory listing disabled).
+	staticFS := handler.NewNoListFileServer("static")
+	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(staticFS)))
 
 	// Public routes.
 	r.Get("/login", func(w http.ResponseWriter, r *http.Request) {
@@ -85,7 +97,7 @@ func main() {
 	})
 	r.Get("/auth/google", auth.HandleLogin)
 	r.Get("/auth/google/callback", auth.HandleCallback(queries))
-	r.Post("/logout", auth.HandleLogout(queries))
+	r.With(auth.CSRFProtect(csrfSecret)).Post("/logout", auth.HandleLogout(queries))
 
 	// Public pages (with optional auth for pre-filling contact form).
 	r.Group(func(r chi.Router) {
@@ -97,7 +109,7 @@ func main() {
 		r.Get("/about", h.AboutPage)
 		r.Get("/help", h.HelpPage)
 		r.Get("/contact", h.ContactPage)
-		r.Post("/contact", h.ContactSubmit)
+		r.With(contactLimiter.Middleware).Post("/contact", h.ContactSubmit)
 	})
 
 	// Authenticated routes.
@@ -105,6 +117,7 @@ func main() {
 		r.Use(func(next http.Handler) http.Handler {
 			return auth.RequireAuth(queries, next)
 		})
+		r.Use(auth.CSRFProtect(csrfSecret))
 
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/dashboard", http.StatusTemporaryRedirect)
@@ -150,11 +163,11 @@ func main() {
 
 		// Chat (Feature 7)
 		r.Get("/games/{id}/chat", h.ChatPage)
-		r.Post("/games/{id}/chat", h.ChatSend)
+		r.With(chatLimiter.Middleware).Post("/games/{id}/chat", h.ChatSend)
 
 		// Lobby Chat
 		r.Get("/lobby", h.LobbyPage)
-		r.Post("/lobby", h.LobbySend)
+		r.With(chatLimiter.Middleware).Post("/lobby", h.LobbySend)
 
 		// Profile & Avatars
 		r.Get("/profile", h.ProfilePage)

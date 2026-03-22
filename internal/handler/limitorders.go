@@ -3,6 +3,7 @@ package handler
 import (
 	"database/sql"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 
@@ -88,7 +89,7 @@ func (h *Handler) LimitOrderCreate(w http.ResponseWriter, r *http.Request) {
 	orderType := r.FormValue("type")
 	quantity, _ := strconv.ParseInt(r.FormValue("quantity"), 10, 64)
 	limitPriceF, _ := strconv.ParseFloat(r.FormValue("limit_price"), 64)
-	limitPrice := int64(limitPriceF * 100)
+	limitPrice := int64(math.Round(limitPriceF * 100))
 	expiresAt := r.FormValue("expires_at")
 
 	if quantity <= 0 || limitPrice <= 0 {

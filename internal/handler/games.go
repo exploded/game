@@ -3,6 +3,7 @@ package handler
 import (
 	"database/sql"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 
@@ -86,7 +87,7 @@ func (h *Handler) GameCreate(w http.ResponseWriter, r *http.Request) {
 	tradeFee := int64(0)
 	if v := r.FormValue("trade_fee"); v != "" {
 		if dollars, err := strconv.ParseFloat(v, 64); err == nil && dollars >= 0 {
-			tradeFee = int64(dollars * 100)
+			tradeFee = int64(math.Round(dollars * 100))
 		}
 	}
 
@@ -128,28 +129,28 @@ func (h *Handler) GameCreate(w http.ResponseWriter, r *http.Request) {
 	creditInterestRate := int64(100) // 1.00% default
 	if v := r.FormValue("credit_interest_rate"); v != "" {
 		if f, err := strconv.ParseFloat(v, 64); err == nil && f >= 0 && f <= 100 {
-			creditInterestRate = int64(f * 100)
+			creditInterestRate = int64(math.Round(f * 100))
 		}
 	}
 
 	leverageInterestRate := int64(500) // 5.00% default
 	if v := r.FormValue("leverage_interest_rate"); v != "" {
 		if f, err := strconv.ParseFloat(v, 64); err == nil && f >= 0 && f <= 100 {
-			leverageInterestRate = int64(f * 100)
+			leverageInterestRate = int64(math.Round(f * 100))
 		}
 	}
 
 	var minStockPrice sql.NullInt64
 	if v := r.FormValue("min_stock_price"); v != "" {
 		if dollars, err := strconv.ParseFloat(v, 64); err == nil && dollars > 0 {
-			minStockPrice = sql.NullInt64{Int64: int64(dollars * 100), Valid: true}
+			minStockPrice = sql.NullInt64{Int64: int64(math.Round(dollars * 100)), Valid: true}
 		}
 	}
 
 	var maxStockPrice sql.NullInt64
 	if v := r.FormValue("max_stock_price"); v != "" {
 		if dollars, err := strconv.ParseFloat(v, 64); err == nil && dollars > 0 {
-			maxStockPrice = sql.NullInt64{Int64: int64(dollars * 100), Valid: true}
+			maxStockPrice = sql.NullInt64{Int64: int64(math.Round(dollars * 100)), Valid: true}
 		}
 	}
 
@@ -311,6 +312,7 @@ func (h *Handler) GameJoin(w http.ResponseWriter, r *http.Request) {
 				StockID:       ss.StockID,
 				Quantity:      ss.Quantity,
 				AvgCost:       0, // given for free
+				CurrentValue:  0, // revaluation will update
 			})
 		}
 

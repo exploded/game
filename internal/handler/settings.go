@@ -18,8 +18,16 @@ func (h *Handler) SettingsPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // AccountDelete soft-deletes the user's account and logs them out.
+// Requires the user to type "DELETE" to confirm.
 func (h *Handler) AccountDelete(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
+
+	r.ParseForm()
+	if r.FormValue("confirm_delete") != "DELETE" {
+		setFlashCookie(w, "Please type DELETE to confirm account deletion.", "error")
+		http.Redirect(w, r, "/settings", http.StatusSeeOther)
+		return
+	}
 
 	// Anonymise user record.
 	if err := h.q.SoftDeleteUser(r.Context(), user.ID); err != nil {

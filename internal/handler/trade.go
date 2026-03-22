@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 
@@ -142,6 +144,14 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pricePerShare := latestPrice.Close
+
+	// Guard against integer overflow (quantity * price).
+	if pricePerShare != 0 && quantity > math.MaxInt64/pricePerShare {
+		setFlashCookie(w, "Trade value too large", "error")
+		http.Redirect(w, r, fmt.Sprintf("/games/%d/trade/%d", gameID, stockID), http.StatusSeeOther)
+		return
+	}
+
 	totalNative := quantity * pricePerShare
 	totalBase := convertCurrency(totalNative, stock.Currency, game.BaseCurrency, exchangeRate)
 
@@ -189,6 +199,7 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 			StockID:       stock.ID,
 			Quantity:      newQty,
 			AvgCost:       newAvg,
+			CurrentValue:  newQty * pricePerShare,
 		})
 		if err != nil {
 			setFlashCookie(w, "Failed to update holding", "error")
@@ -255,6 +266,7 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 				StockID:       stock.ID,
 				Quantity:      newQty,
 				AvgCost:       avgCost,
+				CurrentValue:  newQty * pricePerShare,
 			})
 		}
 
@@ -288,6 +300,9 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Immediately revalue this participant's portfolio so the summary is correct.
+	h.revalueParticipant(r.Context(), participant.ID, game.BaseCurrency, exchangeRate)
+
 	action := "Bought"
 	if tradeType == "sell" {
 		action = "Sold"
@@ -297,10 +312,30 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 	h.InsertTradeActivity(r, gameID, user.ID, tradeType, stock.Symbol, quantity, participant.IsPublic)
 
 	// Check achievements.
-	go h.CheckAndGrantAchievements(r.Context(), user.ID, gameID, participant.ID)
+	go h.CheckAndGrantAchievements(context.Background(), user.ID, gameID, participant.ID)
 
 	setFlashCookie(w, fmt.Sprintf("%s %d shares of %s", action, quantity, stock.Symbol), "success")
 	http.Redirect(w, r, fmt.Sprintf("/games/%d/portfolio", gameID), http.StatusSeeOther)
+}
+
+// revalueParticipant recalculates portfolio_value for a single participant after a trade.
+func (h *Handler) revalueParticipant(ctx context.Context, participantID int64, baseCurrency string, exchangeRate int64) {
+	holdings, err := h.q.ListHoldings(ctx, participantID)
+	if err != nil {
+		return
+	}
+	var holdingsValue int64
+	for _, ho := range holdings {
+		holdingsValue += convertCurrency(ho.CurrentValue, ho.Currency, baseCurrency, exchangeRate)
+	}
+	p, err := h.q.GetParticipant(ctx, participantID)
+	if err != nil {
+		return
+	}
+	h.q.UpdatePortfolioValue(ctx, db.UpdatePortfolioValueParams{
+		PortfolioValue: p.CashBalance + holdingsValue,
+		ID:             participantID,
+	})
 }
 
 // convertCurrency converts cents from one currency to another using the exchange rate.

@@ -29,8 +29,8 @@
         <h3>Simulate Dividend</h3>
         <form method="POST" action="/admin/dividend">
             <div class="form-group">
-                <label for="div-stock">Stock ID</label>
-                <input type="number" id="div-stock" name="stock_id" required min="1" placeholder="Stock ID">
+                <label for="div-stock">Stock Ticker or Name</label>
+                <input type="text" id="div-stock" name="stock_search" required placeholder="e.g. BHP or Commonwealth">
             </div>
             <div class="form-group">
                 <label for="div-amount">Dividend per Share ($)</label>
@@ -43,8 +43,8 @@
         <h3>Simulate Stock Split</h3>
         <form method="POST" action="/admin/stock-split">
             <div class="form-group">
-                <label for="split-stock">Stock ID</label>
-                <input type="number" id="split-stock" name="stock_id" required min="1" placeholder="Stock ID">
+                <label for="split-stock">Stock Ticker or Name</label>
+                <input type="text" id="split-stock" name="stock_search" required placeholder="e.g. BHP or Commonwealth">
             </div>
             <div class="form-row">
                 <div class="form-group">
