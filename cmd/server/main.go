@@ -30,6 +30,16 @@ func main() {
 	}
 	production := os.Getenv("PROD") == "1"
 
+	// Load timezone for game date comparisons.
+	tz := os.Getenv("TIMEZONE")
+	if tz == "" {
+		tz = "UTC"
+	}
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		log.Fatalf("invalid TIMEZONE %q: %v", tz, err)
+	}
+
 	// Open database.
 	rawDB, err := handler.OpenDB("game.db", "sql/schema.sql")
 	if err != nil {
@@ -49,12 +59,12 @@ func main() {
 		log.Fatalf("templates: %v", err)
 	}
 
-	h := handler.New(queries, rawDB, pages, production)
+	h := handler.New(queries, rawDB, pages, production, loc)
 
 	// Start background scheduler.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	go scheduler.Start(ctx, queries)
+	go scheduler.Start(ctx, queries, loc)
 
 	// In dev mode, start fake live price feed (ticks every 30 seconds).
 	if !production {

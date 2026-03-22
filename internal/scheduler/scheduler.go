@@ -10,11 +10,12 @@ import (
 )
 
 // Start launches the background scheduler that runs every minute.
-func Start(ctx context.Context, q *db.Queries) {
+// loc is the timezone used for game date comparisons (start/end dates).
+func Start(ctx context.Context, q *db.Queries, loc *time.Location) {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
-	slog.Info("scheduler started")
+	slog.Info("scheduler started", "timezone", loc)
 
 	for {
 		select {
@@ -22,23 +23,24 @@ func Start(ctx context.Context, q *db.Queries) {
 			slog.Info("scheduler stopped")
 			return
 		case <-ticker.C:
-			run(ctx, q)
+			run(ctx, q, loc)
 		}
 	}
 }
 
-func run(ctx context.Context, q *db.Queries) {
-	now := time.Now().UTC()
-	today := now.Format("2006-01-02")
+func run(ctx context.Context, q *db.Queries, loc *time.Location) {
+	now := time.Now()
+	today := now.In(loc).Format("2006-01-02")
 
 	// 1. Advance game statuses.
 	q.AdvancePendingGames(ctx, today)
 	q.FinishExpiredGames(ctx, today)
 
-	// 2. Fetch prices (skip weekends).
-	weekday := now.Weekday()
+	// 2. Fetch prices (skip weekends; use UTC for market hours).
+	utcNow := now.UTC()
+	weekday := utcNow.Weekday()
 	if weekday != time.Saturday && weekday != time.Sunday {
-		maybeFetchPrices(ctx, q, now)
+		maybeFetchPrices(ctx, q, utcNow)
 	}
 
 	// 3. Process limit orders (after prices are available).

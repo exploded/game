@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/db"
@@ -18,14 +19,16 @@ type Handler struct {
 	q          *db.Queries
 	pages      PageTemplates
 	production bool
+	loc        *time.Location
 }
 
-func New(q *db.Queries, rawDB *sql.DB, pages PageTemplates, production bool) *Handler {
+func New(q *db.Queries, rawDB *sql.DB, pages PageTemplates, production bool, loc *time.Location) *Handler {
 	return &Handler{
 		rawDB:      rawDB,
 		q:          q,
 		pages:      pages,
 		production: production,
+		loc:        loc,
 	}
 }
 

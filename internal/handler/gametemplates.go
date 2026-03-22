@@ -41,11 +41,11 @@ func (h *Handler) GameFromTemplate(w http.ResponseWriter, r *http.Request) {
 
 	startDate := r.FormValue("start_date")
 	if startDate == "" {
-		startDate = time.Now().Format("2006-01-02")
+		startDate = time.Now().In(h.loc).Format("2006-01-02")
 	}
 	endDate := r.FormValue("end_date")
 	if endDate == "" {
-		end := time.Now().AddDate(0, 0, int(tmpl.DurationDays))
+		end := time.Now().In(h.loc).AddDate(0, 0, int(tmpl.DurationDays))
 		endDate = end.Format("2006-01-02")
 	}
 
