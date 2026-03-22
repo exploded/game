@@ -1006,22 +1006,22 @@ td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-
    ============================================================ */
 @media (max-width: 768px) {
     .nav-toggle { display: flex; }
+    .nav { overflow: visible; }
     .nav-links {
         display: none;
         flex-direction: column;
-        position: absolute;
-        top: 100%;
+        position: fixed;
+        top: 48px;
         left: 0;
         right: 0;
-        background: var(--color-nav-bg);
+        background: #000000;
         border-bottom: 1px solid var(--color-border);
         padding: 12px 24px;
         gap: 8px;
-        z-index: 1000;
+        z-index: 9999;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     }
     .nav-links a { height: auto; border-bottom: none; padding: 4px 0; }
-    .nav-inner { position: relative; }
     .nav-open .nav-links { display: flex; }
     .form-row { flex-direction: column; }
     .game-grid { grid-template-columns: 1fr; }
