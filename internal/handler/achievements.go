@@ -176,11 +176,18 @@ func (h *Handler) AchievementsPage(w http.ResponseWriter, r *http.Request) {
 	achievements, _ := h.q.ListUserAchievements(r.Context(), user.ID)
 	allAchievements, _ := h.q.ListAchievements(r.Context())
 
+	// Build a map of earned achievement keys → earned_at for easy template lookup.
+	earned := make(map[string]string, len(achievements))
+	for _, a := range achievements {
+		earned[a.Key] = a.EarnedAt
+	}
+
 	h.render(w, r, "achievements/index", "", PageData{
 		Title: "Achievements",
 		Items: achievements,
 		Extra: map[string]any{
-			"All": allAchievements,
+			"All":    allAchievements,
+			"Earned": earned,
 		},
 	})
 }

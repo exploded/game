@@ -8,40 +8,15 @@
 
 <div class="achievements-grid">
     {{range .Extra.All}}
-    {{$earned := false}}
-    {{$earnedAt := ""}}
-    {{range $.Items}}
-        {{if eq .AchievementName $.Extra.All}}{{end}}
-    {{end}}
-    <div class="achievement-card {{if $earned}}achievement-earned{{else}}achievement-locked{{end}}">
+    {{$earnedAt := index $.Extra.Earned .Key}}
+    <div class="achievement-card {{if $earnedAt}}achievement-earned{{else}}achievement-locked{{end}}">
         <div class="achievement-icon">{{.Icon}}</div>
         <div class="achievement-info">
             <h3>{{.Name}}</h3>
             <p>{{.Description}}</p>
+            {{if $earnedAt}}<span class="text-muted" style="font-size:0.75rem">Earned {{$earnedAt}}</span>{{end}}
         </div>
     </div>
     {{end}}
 </div>
-
-{{if .Items}}
-<section class="section" style="margin-top:2rem">
-    <h2>Earned</h2>
-    <div class="achievements-grid">
-        {{range .Items}}
-        <div class="achievement-card achievement-earned">
-            <div class="achievement-icon">{{.Icon}}</div>
-            <div class="achievement-info">
-                <h3>{{.AchievementName}}</h3>
-                <p>{{.Description}}</p>
-                <span class="text-muted" style="font-size:0.75rem">Earned {{.EarnedAt}}</span>
-            </div>
-        </div>
-        {{end}}
-    </div>
-</section>
-{{else}}
-<div class="empty-state" style="margin-top:2rem">
-    <p class="text-muted">No achievements yet. Start trading to earn them!</p>
-</div>
-{{end}}
 {{end}}
