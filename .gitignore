@@ -1,4 +1,5 @@
 .env
+game
 *.exe
 *.db
 *.db-wal

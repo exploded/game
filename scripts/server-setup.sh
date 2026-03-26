@@ -19,6 +19,23 @@ if ! id "$DEPLOY_USER" &>/dev/null; then
     echo "Created user: $DEPLOY_USER"
 fi
 
+# Create SSH key pair for GitHub Actions (reuse if exists).
+SSH_DIR="/home/$DEPLOY_USER/.ssh"
+SSH_KEY="$SSH_DIR/github_actions"
+mkdir -p "$SSH_DIR"
+if [ ! -f "$SSH_KEY" ]; then
+    ssh-keygen -t ed25519 -f "$SSH_KEY" -N "" -C "github-actions-deploy"
+    cat "$SSH_KEY.pub" >> "$SSH_DIR/authorized_keys"
+    echo "Created SSH key: $SSH_KEY"
+    echo "Add this PRIVATE key as DEPLOY_SSH_KEY in GitHub repo secrets:"
+    echo "---"
+    cat "$SSH_KEY"
+    echo "---"
+fi
+chown -R "$DEPLOY_USER:$DEPLOY_USER" "$SSH_DIR"
+chmod 700 "$SSH_DIR"
+chmod 600 "$SSH_KEY" "$SSH_DIR/authorized_keys"
+
 # Create .env file if it doesn't exist.
 if [ ! -f "$APP_DIR/.env" ]; then
     cat > "$APP_DIR/.env" <<'ENVEOF'
@@ -29,6 +46,8 @@ ADMIN_EMAIL=
 PORT=8888
 PROD=1
 TWELVEDATA_API_KEY=
+MONITOR_URL=
+MONITOR_API_KEY=
 ENVEOF
     echo "Created $APP_DIR/.env — edit with your credentials."
 fi
@@ -50,11 +69,18 @@ After=network.target
 [Service]
 Type=simple
 User=www-data
+Group=www-data
 WorkingDirectory=$APP_DIR
 ExecStart=$APP_DIR/game
 EnvironmentFile=$APP_DIR/.env
 Restart=on-failure
 RestartSec=5
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
 
 [Install]
 WantedBy=multi-user.target
@@ -70,7 +96,7 @@ $DEPLOY_USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop $SERVICE
 EOF
 chmod 440 /etc/sudoers.d/game
 
-chown -R www-data "$APP_DIR"
+chown -R www-data:www-data "$APP_DIR"
 
 # Nginx reverse proxy.
 DOMAIN="game.mchugh.au"
@@ -109,4 +135,12 @@ else
 fi
 
 echo "=== setup complete ==="
-echo "Edit $APP_DIR/.env with your credentials, then start with: sudo systemctl start $SERVICE"
+echo ""
+echo "Next steps:"
+echo "  1. Edit $APP_DIR/.env with your credentials"
+echo "  2. Add these GitHub repo secrets:"
+echo "     DEPLOY_HOST    = <server IP>"
+echo "     DEPLOY_USER    = deploy"
+echo "     DEPLOY_SSH_KEY = (contents of /home/deploy/.ssh/github_actions)"
+echo "     DEPLOY_PORT    = 22"
+echo "  3. Start with: sudo systemctl start $SERVICE"

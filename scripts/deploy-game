@@ -1,72 +1,55 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
+set -e
 
-# deploy-game — called by GitHub Actions after SCP of new binary + assets.
-# Usage: sudo /usr/local/bin/deploy-game
-#
-# Expected layout on server:
-#   /var/www/game/game          (binary)
-#   /var/www/game/sql/          (schema)
-#   /var/www/game/templates/    (HTML templates)
-#   /var/www/game/static/       (CSS, JS)
+DEPLOY_SRC="${1:-/tmp/game-deploy}"
+DEPLOY_DIR=/var/www/game
 
-APP_DIR="/var/www/game"
-SERVICE="game"
-STAGING="/tmp/game-deploy"
-
-echo "=== deploy-game ==="
-
-# Self-update: if a newer version of this script was shipped, install it.
-if [ -f "$STAGING/deploy-game" ]; then
-    if ! cmp -s "$STAGING/deploy-game" "/usr/local/bin/deploy-game"; then
-        echo "Updating deploy script..."
-        cp "$STAGING/deploy-game" /usr/local/bin/deploy-game
-        chmod +x /usr/local/bin/deploy-game
-        echo "Deploy script updated. Re-running..."
-        exec /usr/local/bin/deploy-game
-    fi
+# Self-update: if the bundle contains a newer version, install and re-exec
+BUNDLE_SCRIPT="$DEPLOY_SRC/scripts/deploy-game"
+if [ -f "$BUNDLE_SCRIPT" ] && ! diff -q /usr/local/bin/deploy-game "$BUNDLE_SCRIPT" > /dev/null 2>&1; then
+    echo "[deploy] Updating deploy script from bundle..."
+    install -m 755 "$BUNDLE_SCRIPT" /usr/local/bin/deploy-game
+    exec /usr/local/bin/deploy-game "$@"
 fi
 
-# Stop service.
-echo "Stopping $SERVICE..."
-systemctl stop "$SERVICE" || true
-sleep 1
+# Read service user dynamically from systemd (never hardcode www-data)
+SERVICE_USER=$(systemctl show game --property=User --value)
+SERVICE_GROUP=$(systemctl show game --property=Group --value)
 
-# Remove old binary to avoid "text file busy".
-rm -f "$APP_DIR/game"
-
-# Copy new files.
-if [ -f "$STAGING/game" ]; then
-    cp "$STAGING/game" "$APP_DIR/game"
-    chmod +x "$APP_DIR/game"
-fi
-
-# Copy web assets.
-for dir in sql templates static; do
-    if [ -d "$STAGING/$dir" ]; then
-        rm -rf "$APP_DIR/$dir"
-        cp -r "$STAGING/$dir" "$APP_DIR/$dir"
-    fi
-done
-
-# Fix ownership.
-chown -R www-data "$APP_DIR"
-
-# Start service.
-echo "Starting $SERVICE..."
-systemctl start "$SERVICE"
-sleep 2
-
-# Verify.
-if systemctl is-active --quiet "$SERVICE"; then
-    echo "Service $SERVICE is running."
-else
-    echo "ERROR: Service $SERVICE failed to start!"
-    journalctl -u "$SERVICE" --no-pager -n 20
+if [ -z "$SERVICE_USER" ]; then
+    echo "[deploy] ERROR: Could not read User from game.service"
     exit 1
 fi
 
-# Clean up staging.
-rm -rf "$STAGING"
+echo "[deploy] Stopping service..."
+systemctl stop game || true
 
-echo "=== deploy-game complete ==="
+echo "[deploy] Installing binary..."
+rm -f "$DEPLOY_DIR/game"
+cp "$DEPLOY_SRC/game" "$DEPLOY_DIR/game"
+chmod +x "$DEPLOY_DIR/game"
+
+echo "[deploy] Updating web assets..."
+for dir in sql templates static; do
+    if [ -d "$DEPLOY_SRC/$dir" ]; then
+        rm -rf "$DEPLOY_DIR/$dir"
+        cp -r "$DEPLOY_SRC/$dir" "$DEPLOY_DIR/$dir"
+    fi
+done
+chown -R "$SERVICE_USER:$SERVICE_GROUP" "$DEPLOY_DIR"
+
+echo "[deploy] Starting service..."
+systemctl start game
+
+echo "[deploy] Verifying service is active..."
+sleep 2
+if ! systemctl is-active --quiet game; then
+    echo "[deploy] ERROR: Service failed to start. Status:"
+    systemctl status game --no-pager --lines=30
+    exit 1
+fi
+
+echo "[deploy] Cleaning up..."
+rm -rf "$DEPLOY_SRC"
+
+echo "[deploy] Done — game is running."

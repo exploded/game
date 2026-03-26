@@ -8,8 +8,9 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
-
+	"syscall"
 	"time"
 
 	"github.com/exploded/game/internal/auth"
@@ -49,7 +50,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "8888"
 	}
 	production := os.Getenv("PROD") == "1"
 
@@ -100,8 +101,11 @@ func main() {
 		go market.StartFakeLiveFeed(ctx, queries, 30*time.Second)
 	}
 
+	handler.SecurityHeadersProd = production
+
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
+	r.Use(handler.RequestLogger)
 	r.Use(middleware.Compress(5))
 	r.Use(handler.SecurityHeaders)
 	r.Use(handler.MaxBodySize(1 << 20)) // 1 MB max request body
@@ -256,9 +260,27 @@ func main() {
 		})
 	})
 
+	srv := &http.Server{
+		Addr:         fmt.Sprintf(":%s", port),
+		Handler:      r,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	// Graceful shutdown on SIGINT/SIGTERM.
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-quit
+		slog.Info("shutting down server")
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer shutdownCancel()
+		srv.Shutdown(shutdownCtx)
+	}()
+
 	slog.Info("server starting", "port", port, "production", production)
-	addr := fmt.Sprintf(":%s", port)
-	if err := http.ListenAndServe(addr, r); err != nil {
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("server: %v", err)
 	}
 }
