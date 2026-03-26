@@ -48,7 +48,8 @@ func SecurityHeaders(next http.Handler) http.Handler {
 				"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "+
 				"font-src https://fonts.gstatic.com; "+
 				"img-src 'self' https://*.googleusercontent.com; "+
-				"script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com")
+				"script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; "+
+				"connect-src 'self' https://cdn.jsdelivr.net")
 		next.ServeHTTP(w, r)
 	})
 }
