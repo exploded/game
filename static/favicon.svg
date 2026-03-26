@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="80" fill="#1a1a2e"/>
+  <polyline points="80,380 160,320 240,350 320,200 400,140 440,180" fill="none" stroke="#00d68f" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="360,100 400,140 440,100" fill="none" stroke="#00d68f" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="256" y="470" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-weight="700" font-size="80" fill="#e0e0e0">SG</text>
+</svg>

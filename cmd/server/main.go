@@ -17,12 +17,28 @@ import (
 	"github.com/exploded/game/internal/handler"
 	"github.com/exploded/game/internal/market"
 	"github.com/exploded/game/internal/scheduler"
+	"github.com/exploded/monitor/pkg/logship"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
 func main() {
 	loadEnv(".env")
+
+	// Ship WARN+ logs to the monitor service.
+	ship := logship.New(logship.Options{
+		Endpoint: "https://monitor.mchugh.au/api/logs",
+		APIKey:   os.Getenv("MONITOR_API_KEY"),
+		App:      "game",
+		Level:    slog.LevelWarn,
+	})
+	defer ship.Shutdown()
+
+	logger := slog.New(logship.Multi(
+		slog.NewTextHandler(os.Stderr, nil),
+		ship,
+	))
+	slog.SetDefault(logger)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -90,6 +106,11 @@ func main() {
 	// Static assets (directory listing disabled).
 	staticFS := handler.NewNoListFileServer("static")
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(staticFS)))
+
+	// Serve favicon.ico from root (browsers request /favicon.ico automatically).
+	r.Get("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "static/favicon.ico")
+	})
 
 	// Public routes.
 	r.Get("/login", func(w http.ResponseWriter, r *http.Request) {
