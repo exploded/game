@@ -18,6 +18,13 @@
 - **Price API**: Twelve Data (twelvedata.com). ASX symbols use `:ASX` suffix.
 - **Build for Linux**: `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o game ./cmd/server/`
 
+### Content Security Policy
+Before modifying the CSP header in internal/handler/security.go, always audit templates/ for:
+- Inline `style="..."` attributes → require `'unsafe-inline'` in `style-src`
+- External `<script src="https://...">` CDN URLs → each domain must be in `script-src`
+- External image/font sources → must be in `img-src`/`font-src`
+A wrong CSP silently breaks pages in production.
+
 ### sqlc
 - Config: `sqlc.yaml`
 - Schema: `sql/schema.sql`

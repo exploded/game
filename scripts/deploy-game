@@ -1,10 +1,17 @@
 #!/bin/bash
+# /usr/local/bin/deploy-game
+# Runs as root (via sudo) during GitHub Actions deployments.
+#
+# To update this script on the server, include scripts/deploy-game in the SCP
+# bundle — it will self-update and re-exec before doing anything else.
+
 set -e
 
 DEPLOY_SRC="${1:-/tmp/game-deploy}"
 DEPLOY_DIR=/var/www/game
 
-# Self-update: if the bundle contains a newer version, install and re-exec
+# Self-update: if the bundle contains a newer version of this script, install
+# it and re-exec so the rest of the deployment runs with the updated logic.
 BUNDLE_SCRIPT="$DEPLOY_SRC/scripts/deploy-game"
 if [ -f "$BUNDLE_SCRIPT" ] && ! diff -q /usr/local/bin/deploy-game "$BUNDLE_SCRIPT" > /dev/null 2>&1; then
     echo "[deploy] Updating deploy script from bundle..."
@@ -12,7 +19,7 @@ if [ -f "$BUNDLE_SCRIPT" ] && ! diff -q /usr/local/bin/deploy-game "$BUNDLE_SCRI
     exec /usr/local/bin/deploy-game "$@"
 fi
 
-# Read service user dynamically from systemd (never hardcode www-data)
+# Read the service owner from the installed unit — no hardcoded username
 SERVICE_USER=$(systemctl show game --property=User --value)
 SERVICE_GROUP=$(systemctl show game --property=Group --value)
 
@@ -24,18 +31,15 @@ fi
 echo "[deploy] Stopping service..."
 systemctl stop game || true
 
-echo "[deploy] Installing binary..."
+echo "[deploy] Installing binary to $DEPLOY_DIR/game (owner: $SERVICE_USER:$SERVICE_GROUP)..."
 rm -f "$DEPLOY_DIR/game"
 cp "$DEPLOY_SRC/game" "$DEPLOY_DIR/game"
 chmod +x "$DEPLOY_DIR/game"
 
 echo "[deploy] Updating web assets..."
-for dir in sql templates static; do
-    if [ -d "$DEPLOY_SRC/$dir" ]; then
-        rm -rf "$DEPLOY_DIR/$dir"
-        cp -r "$DEPLOY_SRC/$dir" "$DEPLOY_DIR/$dir"
-    fi
-done
+cp -r "$DEPLOY_SRC/sql/"       "$DEPLOY_DIR/"
+cp -r "$DEPLOY_SRC/templates/" "$DEPLOY_DIR/"
+cp -r "$DEPLOY_SRC/static/"   "$DEPLOY_DIR/"
 chown -R "$SERVICE_USER:$SERVICE_GROUP" "$DEPLOY_DIR"
 
 echo "[deploy] Starting service..."
