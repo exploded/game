@@ -3,6 +3,7 @@ module github.com/exploded/game
 go 1.26.0
 
 require (
+	github.com/exploded/monitor v0.0.0-20260331015627-909d7b304ae3
 	github.com/go-chi/chi/v5 v5.2.5
 	golang.org/x/oauth2 v0.36.0
 	modernc.org/sqlite v1.47.0
@@ -11,7 +12,6 @@ require (
 require (
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/exploded/monitor v0.0.0-20260326042843-f05770c51617 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
