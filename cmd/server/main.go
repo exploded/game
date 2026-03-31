@@ -44,6 +44,7 @@ func main() {
 			ship,
 		))
 		slog.SetDefault(logger)
+		slog.Warn("game app started, log shipping active", "endpoint", monitorURL+"/api/logs")
 	} else {
 		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo})))
 	}
