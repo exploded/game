@@ -1,19 +1,51 @@
 # To do
 
-Ideas and requests not yet built. Move an item to `FEATURES.md` once it ships.
+Ideas and requests, with what's done ticked. `FEATURES.md` describes each
+feature once it's built.
 
 ## Requests from Rob (2026-10-29)
 
-- [ ] **Answer Rob's open questions for email:** sender name and postal address
-  for newsletters (`NEWS_SENDER`), reply-to address (`NEWS_REPLY_TO`). See
+Built on 2026-10-29 and merged into `master` on 2026-10-30. Not deployed yet.
+
+- [x] **Sign up with email, no Google.** Google sign-in is removed. `/login`
+  emails a link plus a 6-digit code, valid for 15 minutes. New players pick a
+  display name and opt in to news on `/welcome`. Existing users keep their
+  account and sign in with the same email.
+- [x] **Email through Amazon SES.** Outbox table with retries, per-category
+  settings on Settings, one-click unsubscribe. Every email is planned in
   `docs/emails.md`.
+- [x] **Trade and game emails:** orders filled, cancelled or expired,
+  dividends, splits, game started, ending in 3 days and 1 day, final results,
+  next round ready and referral bonus.
+- [x] **Newsletters from Rob.** `/admin/email`: write, send a test to
+  yourself, then send to everyone who opted in to news.
+- [x] **Ask a Question.** `/questions`: members post and vote; an admin
+  answers, and the asker and voters get the answer by email. Admins can hide
+  or delete questions.
+- [x] **Courses.** `/courses`: video lessons from YouTube, Vimeo or Bunny
+  Stream, with progress per player. Admins build them at `/admin/courses` and
+  can email members when a course is first published.
+- [x] **Review the whole game for improvements.** Findings are in the next
+  section.
+- [ ] **Go live.** Needs an SES IAM user and `SES_ACCESS_KEY_ID`,
+  `SES_SECRET_ACCESS_KEY`, `SES_REGION` and `MAIL_FROM` in the server `.env`.
+  Without them nobody can sign in. Remove `GOOGLE_CLIENT_*` from the `.env`.
+- [ ] **Answer Rob's open questions for email:** sender name and postal address
+  for newsletters (`NEWS_SENDER`), reply-to address (`NEWS_REPLY_TO`). The
+  newsletter page won't send without `NEWS_SENDER`. See `docs/emails.md`.
 - [ ] **Weekly summary and "we miss you" emails** (D1 and N2 in
   `docs/emails.md`). The Weekly summary setting is hidden until D1 exists.
+- [ ] **Remove Google leftovers:** `users.picture_url`, the
+  `*.googleusercontent.com` entry in the CSP `img-src`, and "Use Google Photo"
+  on the Profile page.
 
 ## From the whole-game review (2026-10-29)
 
-Highest impact for the effort first. Recurring games are already fixed.
+Highest impact for the effort first.
 
+- [x] **Recurring games made a new round every minute** once a round finished.
+  Fixed, with a test. No recurring game had finished in production, so no one
+  was affected.
 - [ ] **Invite links.** "Generate Invite Link" never shows the link
   (`ListGameInvites` is unused). Show it with a copy button, and send a
   signed-out visitor back to `/invite/{code}` after sign-in. `InviteJoin`
@@ -41,8 +73,8 @@ Highest impact for the effort first. Recurring games are already fixed.
 - [ ] **Real splits and dividends from Twelve Data**, so holdings don't break when
   a real split happens.
 - [ ] **Small fixes:** the leaderboard rank skips hidden players; chat cuts
-  messages at 500 bytes, not characters (can split an emoji); Profile still
-  has "Use Google Photo"; Help says "New Game" for the "Create Game" button.
+  messages at 500 bytes, not characters (can split an emoji); Help says
+  "New Game" for the "Create Game" button.
 
 ## Follow-ups from the terms review (2026-10-29)
 
@@ -51,11 +83,11 @@ Highest impact for the effort first. Recurring games are already fixed.
   Check with Rob whether it should name him instead.
 - [ ] **Admin tool to remove chat messages.** Section 9 of the terms says we can
   remove chat messages, but there's no way to do it yet. Add a delete or hide
-  action to `internal/handler/chat.go` for admins.
+  action to `internal/handler/chat.go` for admins. Part of Moderation above.
 - [ ] **Update the ASX wording.** The About page (`templates/pages/legal/about.html`),
   the create-game page (`templates/pages/games/create.html`) and the game
-  templates list (`templates/pages/templates/list.html`) say you can trade
-  ASX 200 stocks. While
-  the ASX licence is pending, the game offers US-listed Australian companies
-  instead (`AusUS` in `internal/market/symbols.go`). Update the wording when
-  that change ships, and again if the ASX licence comes through.
+  templates list (`templates/pages/templates/list.html`) still say you can
+  trade ASX 200 stocks. While the ASX licence is pending, the game offers
+  US-listed Australian companies instead (`AusUS` in
+  `internal/market/symbols.go`). Update the wording now, and again if the ASX
+  licence comes through.
