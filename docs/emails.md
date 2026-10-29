@@ -103,12 +103,15 @@ worked out but aren't written yet.
 
 | # | Email | Trigger | Status |
 |---|---|---|---|
-| N1 | Newsletter or announcement | An admin writes and sends it from `/admin/email` | Planned |
+| N1 | Newsletter or announcement | An admin writes and sends it from `/admin/email` | Built |
 | N2 | We miss you | No sign-in for 30 days, at most once every 90 days | Planned |
 
 - Only goes to people who ticked **Send me news from Rob** (unticked by
   default). The admin page shows the recipient count, sends a test to
-  yourself first, then queues the rest.
+  yourself first, then queues the rest. Sent newsletters are listed on the
+  page (`email_broadcasts`).
+- Won't send until `NEWS_SENDER` is set: the footer of every News email shows
+  it.
 
 ## Legal: the Spam Act 2003
 
@@ -117,9 +120,9 @@ commercial electronic message. To comply:
 
 - **Consent.** Send only to people who opted in. The opt-in box is unticked by
   default, and we record when they ticked it (`email_prefs.updated_at`).
-- **Identify the sender.** The footer names who runs StockGame and how to
-  contact them. US recipients also need a postal address under CAN-SPAM.
-  See the open question below.
+- **Identify the sender.** The footer shows `NEWS_SENDER`: who sends it and
+  how to contact them. US recipients also need a postal address under
+  CAN-SPAM, so include one. See the open question below.
 - **Unsubscribe.** Every marketing email has a working unsubscribe link. It
   takes effect immediately (the Act allows 5 business days).
 
@@ -131,7 +134,8 @@ link for their category.
 1. **IAM user for StockGame.** Create an IAM user with only
    `ses:SendRawEmail` on the `mchugh.au` identity, and put its keys in the
    server's `.env` as `SES_ACCESS_KEY_ID` and `SES_SECRET_ACCESS_KEY`. Set
-   `SES_REGION=ap-southeast-2` and `MAIL_FROM`.
+   `SES_REGION=ap-southeast-2` and `MAIL_FROM`, plus `NEWS_SENDER` and
+   `NEWS_REPLY_TO` once Rob confirms them.
 2. **Check SES production access.** A sandboxed SES account can only send to
    verified addresses. clearsky already mails the public, so this is probably
    done, but check the SES console.

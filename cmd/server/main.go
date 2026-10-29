@@ -117,7 +117,11 @@ func main() {
 		slog.Error("email isn't configured; set SES_ACCESS_KEY_ID, SES_SECRET_ACCESS_KEY and MAIL_FROM")
 		sender = mail.Unavailable{}
 	}
-	mailer, err := mail.New(queries, sender, os.Getenv("BASE_URL"), os.Getenv("NEWS_REPLY_TO"))
+	mailer, err := mail.New(queries, sender, mail.Config{
+		BaseURL:     os.Getenv("BASE_URL"),
+		NewsReplyTo: os.Getenv("NEWS_REPLY_TO"),
+		NewsSender:  os.Getenv("NEWS_SENDER"),
+	})
 	if err != nil {
 		log.Fatalf("email templates: %v", err)
 	}
@@ -315,6 +319,8 @@ func main() {
 			r.Post("/dividend", h.AdminDividend)
 			r.Post("/stock-split", h.AdminStockSplit)
 			r.Get("/messages", h.AdminContactMessages)
+			r.Get("/email", h.AdminEmail)
+			r.Post("/email", h.AdminEmailSend)
 			r.Post("/messages/{mid}/read", h.AdminMarkMessageRead)
 		})
 	})

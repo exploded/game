@@ -44,7 +44,7 @@ func newMailer(t *testing.T) (*mail.Mailer, *db.Queries, *fakeSender) {
 	}
 	q := db.New(d)
 	f := &fakeSender{}
-	m, err := mail.New(q, f, "https://game.example/", "rob@example.com")
+	m, err := mail.New(q, f, mail.Config{BaseURL: "https://game.example/", NewsReplyTo: "rob@example.com", NewsSender: "Rob, PO Box 1, Melbourne VIC 3000"})
 	if err != nil {
 		t.Fatal(err)
 	}

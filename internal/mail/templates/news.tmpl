@@ -1,0 +1,7 @@
+{{/* A newsletter written on /admin/email. D is mail.Newsletter. */}}
+{{define "subject"}}{{.D.Subject}}{{end}}
+
+{{define "text"}}{{.D.Body}}{{end}}
+
+{{define "html"}}{{range .D.Paragraphs}}<p style="margin:0 0 16px;">{{.}}</p>
+{{end}}{{end}}

@@ -40,6 +40,7 @@ All settings come from `.env` (or the environment, which takes priority):
 | `SES_REGION` | Default `ap-southeast-2` |
 | `MAIL_FROM` | Sender, such as `StockGame <stockgame@mchugh.au>`. Must be an SES identity. |
 | `NEWS_REPLY_TO` | Reply-to address for news from Rob |
+| `NEWS_SENDER` | Sender name and postal address for the newsletter footer. Newsletters can't be sent without it (Spam Act). |
 | `ADMIN_EMAIL` | Comma-separated emails that get the admin pages |
 | `PORT` | Listen port. Default `8888`. |
 | `PROD` | `1` in production: HSTS, and listens on `127.0.0.1` only |

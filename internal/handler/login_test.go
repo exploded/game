@@ -23,7 +23,7 @@ func loginServer(t *testing.T) (http.Handler, *sql.DB, *db.Queries) {
 	d := openTestDB(t)
 	q := db.New(d)
 	h := New(q, d, loadTestTemplates(t), false, time.UTC)
-	m, err := mail.New(q, mail.Log{}, "https://game.example", "")
+	m, err := mail.New(q, mail.Log{}, mail.Config{BaseURL: "https://game.example"})
 	if err != nil {
 		t.Fatal(err)
 	}

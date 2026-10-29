@@ -107,6 +107,22 @@ ON CONFLICT(user_id, category) DO UPDATE SET
     updated_at = excluded.updated_at
 WHERE email_prefs.enabled != excluded.enabled;
 
+-- name: ListNewsSubscribers :many
+SELECT u.id FROM users u
+JOIN email_prefs p ON p.user_id = u.id AND p.category = 'news' AND p.enabled = 1
+WHERE u.deleted_at IS NULL
+ORDER BY u.id;
+
+-- name: CreateBroadcast :exec
+INSERT INTO email_broadcasts (subject, body, sent_by, recipients) VALUES (?, ?, ?, ?);
+
+-- name: ListBroadcasts :many
+SELECT b.*, COALESCE(u.name, '') AS sent_by_name
+FROM email_broadcasts b
+LEFT JOIN users u ON u.id = b.sent_by
+ORDER BY b.id DESC
+LIMIT 20;
+
 -- name: QueueEmail :exec
 INSERT INTO email_outbox (user_id, to_email, category, template, subject, text_body, html_body, reply_to, unsubscribe_url)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);

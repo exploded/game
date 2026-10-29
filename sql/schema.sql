@@ -81,6 +81,16 @@ CREATE TABLE IF NOT EXISTS email_outbox (
 );
 CREATE INDEX IF NOT EXISTS idx_email_outbox_pending ON email_outbox(status, send_after);
 
+-- Newsletters sent from /admin/email.
+CREATE TABLE IF NOT EXISTS email_broadcasts (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    subject    TEXT    NOT NULL,
+    body       TEXT    NOT NULL,
+    sent_by    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    recipients INTEGER NOT NULL,
+    created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
 --------------------------------------------------------------------------------
 -- Sessions
 --------------------------------------------------------------------------------

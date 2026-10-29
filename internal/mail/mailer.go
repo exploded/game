@@ -30,28 +30,36 @@ const (
 	batchSize   = 50
 )
 
-// Mailer renders emails into the outbox and a background worker sends them.
-type Mailer struct {
-	q       *db.Queries
-	sender  Sender
-	baseURL string
-	replyTo string // for News emails, so replies reach Rob
-	text    map[string]*texttemplate.Template
-	html    map[string]*htmltemplate.Template
-	wake    chan struct{}
+// Config holds the site details emails need.
+type Config struct {
+	BaseURL     string // the site's public URL
+	NewsReplyTo string // Reply-To for News emails, so replies reach Rob; optional
+	// NewsSender names who sends News emails and how to reach them, such as
+	// "Rob Smith, PO Box 1, Melbourne VIC 3000". The Spam Act needs it in
+	// every marketing email, so News can't go out without it.
+	NewsSender string
 }
 
-// New parses the email templates. baseURL is the site's public URL, with no
-// trailing slash; newsReplyTo may be empty.
-func New(q *db.Queries, sender Sender, baseURL, newsReplyTo string) (*Mailer, error) {
+// Mailer renders emails into the outbox and a background worker sends them.
+type Mailer struct {
+	q      *db.Queries
+	sender Sender
+	cfg    Config
+	text   map[string]*texttemplate.Template
+	html   map[string]*htmltemplate.Template
+	wake   chan struct{}
+}
+
+// New parses the email templates.
+func New(q *db.Queries, sender Sender, cfg Config) (*Mailer, error) {
+	cfg.BaseURL = strings.TrimRight(cfg.BaseURL, "/")
 	m := &Mailer{
-		q:       q,
-		sender:  sender,
-		baseURL: strings.TrimRight(baseURL, "/"),
-		replyTo: newsReplyTo,
-		text:    map[string]*texttemplate.Template{},
-		html:    map[string]*htmltemplate.Template{},
-		wake:    make(chan struct{}, 1),
+		q:      q,
+		sender: sender,
+		cfg:    cfg,
+		text:   map[string]*texttemplate.Template{},
+		html:   map[string]*htmltemplate.Template{},
+		wake:   make(chan struct{}, 1),
 	}
 	textBase, err := texttemplate.ParseFS(templateFS, "templates/_layout.tmpl")
 	if err != nil {
@@ -89,7 +97,8 @@ type view struct {
 	Name           string // the recipient's display name; empty for sign-in email
 	UnsubscribeURL string
 	CategoryLabel  string
-	D              any // the email's own data
+	NewsSender     string // set on News emails
+	D              any    // the email's own data
 }
 
 // render executes the subject, text and html blocks of one template.
@@ -114,7 +123,7 @@ func (m *Mailer) render(name string, v view) (subject, text, html string, err er
 // ToAddress queues an Account email to an address that may not belong to a
 // user yet, such as a sign-in link.
 func (m *Mailer) ToAddress(ctx context.Context, to, template string, data any) error {
-	subject, text, html, err := m.render(template, view{BaseURL: m.baseURL, D: data})
+	subject, text, html, err := m.render(template, view{BaseURL: m.cfg.BaseURL, D: data})
 	if err != nil {
 		return err
 	}
@@ -131,6 +140,27 @@ func (m *Mailer) ToAddress(ctx context.Context, to, template string, data any) e
 // ToUser queues an email to a user, unless they've turned off its category.
 // It reports whether the email was queued.
 func (m *Mailer) ToUser(ctx context.Context, userID int64, c Category, template string, data any) (bool, error) {
+	return m.toUser(ctx, userID, c, template, data, false)
+}
+
+// Test queues an email to a user whatever their settings, with "[Test]" in
+// the subject: the admin page uses it to preview a newsletter.
+func (m *Mailer) Test(ctx context.Context, userID int64, c Category, template string, data any) error {
+	_, err := m.toUser(ctx, userID, c, template, data, true)
+	return err
+}
+
+// ErrNoNewsSender stops News going out without the sender details the Spam
+// Act requires.
+var ErrNoNewsSender = errors.New("NEWS_SENDER isn't set")
+
+// NewsReady reports whether News emails can be sent.
+func (m *Mailer) NewsReady() bool { return m.cfg.NewsSender != "" }
+
+func (m *Mailer) toUser(ctx context.Context, userID int64, c Category, template string, data any, test bool) (bool, error) {
+	if c == News && !m.NewsReady() {
+		return false, ErrNoNewsSender
+	}
 	user, err := m.q.GetUser(ctx, userID)
 	if err != nil {
 		return false, err
@@ -138,23 +168,29 @@ func (m *Mailer) ToUser(ctx context.Context, userID int64, c Category, template 
 	if user.DeletedAt.Valid {
 		return false, nil
 	}
-	v := view{BaseURL: m.baseURL, Name: user.Name, D: data}
+	v := view{BaseURL: m.cfg.BaseURL, Name: user.Name, D: data}
 	var replyTo string
 	if c != Account {
-		on, err := m.Enabled(ctx, userID, c)
-		if err != nil || !on {
-			return false, err
+		if !test {
+			on, err := m.Enabled(ctx, userID, c)
+			if err != nil || !on {
+				return false, err
+			}
 		}
 		info, _ := Info(c)
 		v.CategoryLabel = info.Label
 		v.UnsubscribeURL = m.UnsubscribeURL(user.EmailToken, c)
 		if c == News {
-			replyTo = m.replyTo
+			replyTo = m.cfg.NewsReplyTo
+			v.NewsSender = m.cfg.NewsSender
 		}
 	}
 	subject, text, html, err := m.render(template, v)
 	if err != nil {
 		return false, err
+	}
+	if test {
+		subject = "[Test] " + subject
 	}
 	if err := m.q.QueueEmail(ctx, db.QueueEmailParams{
 		UserID: sql.NullInt64{Int64: userID, Valid: true}, ToEmail: user.Email,
@@ -198,7 +234,7 @@ func Prefs(ctx context.Context, q *db.Queries, userID int64) (map[Category]bool,
 
 // UnsubscribeURL is the one-click link for a user's category.
 func (m *Mailer) UnsubscribeURL(emailToken string, c Category) string {
-	return m.baseURL + "/email/unsubscribe?" + url.Values{"t": {emailToken}, "c": {string(c)}}.Encode()
+	return m.cfg.BaseURL + "/email/unsubscribe?" + url.Values{"t": {emailToken}, "c": {string(c)}}.Encode()
 }
 
 // Wake asks the worker to send now rather than at its next poll.

@@ -6,6 +6,9 @@
 {{end}}{{template "text" .}}
 --
 StockGame: {{.BaseURL}}
+{{- if .NewsSender}}
+Sent by {{.NewsSender}}
+{{- end}}
 {{- if .UnsubscribeURL}}
 You get this because {{.CategoryLabel}} email is on.
 Unsubscribe: {{.UnsubscribeURL}}
@@ -34,6 +37,7 @@ All email settings: {{.BaseURL}}/settings
     </td></tr>
     <tr><td style="padding:16px 28px;border-top:1px solid #e3e7ee;font-size:12px;line-height:1.5;color:#6b7385;">
       <a href="{{.BaseURL}}" style="color:#6b7385;">StockGame</a>: a fantasy stock market game.
+      {{- if .NewsSender}}<br>Sent by {{.NewsSender}}.{{end}}
       {{- if .UnsubscribeURL}}<br>
       You get this because {{.CategoryLabel}} email is on.
       <a href="{{.UnsubscribeURL}}" style="color:#6b7385;">Unsubscribe</a> or

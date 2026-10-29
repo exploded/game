@@ -31,7 +31,7 @@ func setup(t *testing.T) (*sql.DB, *db.Queries, *mail.Mailer) {
 	t.Cleanup(func() { d.Close() })
 	exec(t, d, `INSERT INTO users (id, email, name, email_token) VALUES (1, 'a@x.com', 'Alice', 't1'), (2, 'b@x.com', 'Bob', 't2')`)
 	q := db.New(d)
-	m, err := mail.New(q, mail.Log{}, "https://game.example", "")
+	m, err := mail.New(q, mail.Log{}, mail.Config{BaseURL: "https://game.example"})
 	if err != nil {
 		t.Fatal(err)
 	}

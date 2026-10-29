@@ -284,6 +284,27 @@ func (q *Queries) CountUnreadNotifications(ctx context.Context, userID int64) (i
 	return count, err
 }
 
+const createBroadcast = `-- name: CreateBroadcast :exec
+INSERT INTO email_broadcasts (subject, body, sent_by, recipients) VALUES (?, ?, ?, ?)
+`
+
+type CreateBroadcastParams struct {
+	Subject    string
+	Body       string
+	SentBy     sql.NullInt64
+	Recipients int64
+}
+
+func (q *Queries) CreateBroadcast(ctx context.Context, arg CreateBroadcastParams) error {
+	_, err := q.db.ExecContext(ctx, createBroadcast,
+		arg.Subject,
+		arg.Body,
+		arg.SentBy,
+		arg.Recipients,
+	)
+	return err
+}
+
 const createContactMessage = `-- name: CreateContactMessage :exec
 
 INSERT INTO contact_messages (user_id, name, email, message)
@@ -2486,6 +2507,55 @@ func (q *Queries) ListAvatars(ctx context.Context) ([]Avatar, error) {
 	return items, nil
 }
 
+const listBroadcasts = `-- name: ListBroadcasts :many
+SELECT b.id, b.subject, b.body, b.sent_by, b.recipients, b.created_at, COALESCE(u.name, '') AS sent_by_name
+FROM email_broadcasts b
+LEFT JOIN users u ON u.id = b.sent_by
+ORDER BY b.id DESC
+LIMIT 20
+`
+
+type ListBroadcastsRow struct {
+	ID         int64
+	Subject    string
+	Body       string
+	SentBy     sql.NullInt64
+	Recipients int64
+	CreatedAt  string
+	SentByName string
+}
+
+func (q *Queries) ListBroadcasts(ctx context.Context) ([]ListBroadcastsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listBroadcasts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListBroadcastsRow
+	for rows.Next() {
+		var i ListBroadcastsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Subject,
+			&i.Body,
+			&i.SentBy,
+			&i.Recipients,
+			&i.CreatedAt,
+			&i.SentByName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listContactMessages = `-- name: ListContactMessages :many
 SELECT id, user_id, name, email, message, is_read, created_at FROM contact_messages
 ORDER BY created_at DESC
@@ -3258,6 +3328,36 @@ func (q *Queries) ListMostActiveUsers(ctx context.Context) ([]ListMostActiveUser
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listNewsSubscribers = `-- name: ListNewsSubscribers :many
+SELECT u.id FROM users u
+JOIN email_prefs p ON p.user_id = u.id AND p.category = 'news' AND p.enabled = 1
+WHERE u.deleted_at IS NULL
+ORDER BY u.id
+`
+
+func (q *Queries) ListNewsSubscribers(ctx context.Context) ([]int64, error) {
+	rows, err := q.db.QueryContext(ctx, listNewsSubscribers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

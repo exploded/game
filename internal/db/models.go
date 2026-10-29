@@ -46,6 +46,15 @@ type ContactMessage struct {
 	CreatedAt string
 }
 
+type EmailBroadcast struct {
+	ID         int64
+	Subject    string
+	Body       string
+	SentBy     sql.NullInt64
+	Recipients int64
+	CreatedAt  string
+}
+
 type EmailOutbox struct {
 	ID             int64
 	UserID         sql.NullInt64

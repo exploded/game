@@ -1,0 +1,51 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Email a newsletter</h1>
+    <a href="/admin" class="btn btn-sm">&larr; Admin</a>
+</div>
+
+<p style="margin-bottom:16px"><strong>{{index .Extra "Subscribers"}}</strong> people have opted in to News from Rob. Only they get this email, and each copy has an unsubscribe link.</p>
+
+{{if not (index .Extra "Ready")}}
+<div class="flash flash-error" style="margin:0 0 16px">Set <code>NEWS_SENDER</code> in <code>.env</code> before sending, for example <code>Rob Smith, PO Box 1, Melbourne VIC 3000</code>. The Spam Act needs every marketing email to say who sent it.</div>
+{{end}}
+{{with index .Errors "form"}}<div class="flash flash-error" style="margin:0 0 16px">{{.}}</div>{{end}}
+
+<div class="settings-card">
+    <form method="POST" action="/admin/email">
+        <div class="form-group">
+            <label for="subject">Subject</label>
+            <input type="text" id="subject" name="subject" value="{{index .Extra "Subject"}}" maxlength="150" required>
+            {{with index .Errors "subject"}}<p class="form-error">{{.}}</p>{{end}}
+        </div>
+        <div class="form-group">
+            <label for="body">Email</label>
+            <textarea id="body" name="body" rows="14" required>{{index .Extra "Body"}}</textarea>
+            {{with index .Errors "body"}}<p class="form-error">{{.}}</p>{{end}}
+            <p class="text-muted" style="font-size:12px;margin-top:4px">Plain text. Leave a blank line between paragraphs. Web addresses become links. Each email starts with &ldquo;Hi&nbsp;name,&rdquo;.</p>
+        </div>
+        <div class="btn-group">
+            <button type="submit" name="action" value="test" class="btn">Send a test to me</button>
+            <button type="submit" name="action" value="send" class="btn btn-primary" data-confirm="Send this to all {{index .Extra "Subscribers"}} subscribers? You can't undo it.">Send to {{index .Extra "Subscribers"}} subscribers</button>
+        </div>
+    </form>
+</div>
+
+{{if .Items}}
+<section class="section">
+    <h2>Sent</h2>
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th>Date</th><th>Subject</th><th>By</th><th class="num">Recipients</th></tr></thead>
+        <tbody>
+        {{range .Items}}
+        <tr><td>{{slice .CreatedAt 0 16}}</td><td>{{.Subject}}</td><td>{{.SentByName}}</td><td class="num">{{.Recipients}}</td></tr>
+        {{end}}
+        </tbody>
+    </table>
+    </div>
+</section>
+{{end}}
+{{end}}
