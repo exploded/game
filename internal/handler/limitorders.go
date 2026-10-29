@@ -37,7 +37,7 @@ func (h *Handler) LimitOrdersList(w http.ResponseWriter, r *http.Request) {
 	orders, _ := h.q.ListOpenLimitOrders(r.Context(), participant.ID)
 
 	h.render(w, r, "orders/list", "", PageData{
-		Title: "Limit Orders - " + game.Name,
+		Title: "Orders - " + game.Name,
 		Item:  game,
 		Items: orders,
 		Extra: map[string]any{
@@ -142,6 +142,49 @@ func (h *Handler) placeLimitOrder(w http.ResponseWriter, r *http.Request, game d
 	}
 
 	setFlashCookie(w, fmt.Sprintf("Limit %s order placed for %d shares of %s at %s", orderType, quantity, stock.Symbol, fmtCents(limitPrice)), "success")
+	http.Redirect(w, r, fmt.Sprintf("/games/%d/orders", game.ID), http.StatusSeeOther)
+}
+
+// queueMarketOrder stores a market order placed while the market is closed.
+// The scheduler fills it at the first price after the open. estimate is the
+// trade's value at the last price, in the game's base currency; cash is
+// checked again at the fill, when the order is cancelled if it's short.
+func (h *Handler) queueMarketOrder(w http.ResponseWriter, r *http.Request, game db.Game, participant db.Participant, stock db.Stock, side string, quantity, estimate int64) {
+	back := fmt.Sprintf("/games/%d/stocks/%d", game.ID, stock.ID)
+	switch side {
+	case "buy":
+		if estimate+game.TradeFee > participant.CashBalance {
+			setFlashCookie(w, "Insufficient funds", "error")
+			http.Redirect(w, r, back, http.StatusSeeOther)
+			return
+		}
+	case "sell":
+		holding, _ := h.q.GetHolding(r.Context(), db.GetHoldingParams{
+			ParticipantID: participant.ID, StockID: stock.ID,
+		})
+		if holding.Quantity < quantity && game.AllowShort == 0 {
+			setFlashCookie(w, "Insufficient shares (short selling not allowed)", "error")
+			http.Redirect(w, r, back, http.StatusSeeOther)
+			return
+		}
+	default:
+		setFlashCookie(w, "Invalid trade type", "error")
+		http.Redirect(w, r, back, http.StatusSeeOther)
+		return
+	}
+
+	if _, err := h.q.CreateMarketOrder(r.Context(), db.CreateMarketOrderParams{
+		ParticipantID: participant.ID,
+		StockID:       stock.ID,
+		Type:          side,
+		Quantity:      quantity,
+	}); err != nil {
+		setFlashCookie(w, "Failed to create order", "error")
+		http.Redirect(w, r, back, http.StatusSeeOther)
+		return
+	}
+
+	setFlashCookie(w, fmt.Sprintf("The market is closed, so your order to %s %d shares of %s is queued. It fills at the first price after the US market opens at 9:30 am New York time.", side, quantity, stock.Symbol), "success")
 	http.Redirect(w, r, fmt.Sprintf("/games/%d/orders", game.ID), http.StatusSeeOther)
 }
 

@@ -147,6 +147,7 @@ type LimitOrder struct {
 	CreatedAt     string
 	ExpiresAt     sql.NullString
 	FilledAt      sql.NullString
+	Kind          string
 }
 
 type LobbyMessage struct {

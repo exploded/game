@@ -117,7 +117,7 @@ func TestStockPageHasGameBarAndTicket(t *testing.T) {
 		`class="game-bar"`,
 		`Spring Cup`,
 		`href="/games/1/stocks" class="active">Stocks`,
-		`href="/games/1/orders"`, // the game has limit orders
+		`href="/games/1/orders"`,
 		`id="ticket-form"`,
 		`<option value="limit">`,
 		`id="side-sell" disabled`, // holds nothing, no shorting
@@ -151,6 +151,71 @@ func TestStockPageWithoutJoiningHasNoTicket(t *testing.T) {
 	}
 	if user, _ := q.GetUser(t.Context(), 2); user.LastGameID.Valid {
 		t.Error("viewing a game you haven't joined made it your current game")
+	}
+}
+
+// setMarketOpen opens or closes the US market for market orders, for one test.
+func setMarketOpen(t *testing.T, open bool) {
+	old := queuesMarketOrder
+	queuesMarketOrder = func(string) bool { return !open }
+	t.Cleanup(func() { queuesMarketOrder = old })
+}
+
+func postTicket(srv http.Handler, form url.Values) *httptest.ResponseRecorder {
+	req := httptest.NewRequest("POST", "/games/1/trade/1", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+	srv.ServeHTTP(w, req)
+	return w
+}
+
+func TestMarketOrderQueuesWhileClosed(t *testing.T) {
+	srv, q := gameServer(t)
+	setMarketOpen(t, false)
+	w := postTicket(srv, url.Values{"side": {"buy"}, "order_type": {"market"}, "quantity": {"5"}})
+	if w.Code != http.StatusSeeOther || w.Header().Get("Location") != "/games/1/orders" {
+		t.Fatalf("got %d to %q, want 303 to /games/1/orders", w.Code, w.Header().Get("Location"))
+	}
+
+	p, _ := q.GetParticipantByGameAndUser(t.Context(), db.GetParticipantByGameAndUserParams{GameID: 1, UserID: 1})
+	orders, _ := q.ListOpenLimitOrders(t.Context(), p.ID)
+	if len(orders) != 1 || orders[0].Kind != "market" || orders[0].Quantity != 5 || orders[0].Type != "buy" {
+		t.Errorf("open orders = %+v, want one queued market buy of 5", orders)
+	}
+	if p.CashBalance != 100000000 {
+		t.Errorf("cash = %d; a queued order must not spend cash until it fills", p.CashBalance)
+	}
+	if !strings.Contains(w.Header().Get("Set-Cookie"), "queued") {
+		t.Errorf("flash doesn't tell the player the order is queued: %q", w.Header().Get("Set-Cookie"))
+	}
+}
+
+func TestMarketOrderFillsWhileOpen(t *testing.T) {
+	srv, q := gameServer(t)
+	setMarketOpen(t, true)
+	w := postTicket(srv, url.Values{"side": {"buy"}, "order_type": {"market"}, "quantity": {"5"}})
+	if w.Code != http.StatusSeeOther || w.Header().Get("Location") != "/games/1/stocks/1" {
+		t.Fatalf("got %d to %q, want 303 to /games/1/stocks/1", w.Code, w.Header().Get("Location"))
+	}
+	p, _ := q.GetParticipantByGameAndUser(t.Context(), db.GetParticipantByGameAndUserParams{GameID: 1, UserID: 1})
+	if h, _ := q.GetHolding(t.Context(), db.GetHoldingParams{ParticipantID: p.ID, StockID: 1}); h.Quantity != 5 {
+		t.Errorf("holding = %d, want 5", h.Quantity)
+	}
+}
+
+func TestTicketSaysWhenOrdersQueue(t *testing.T) {
+	for _, open := range []bool{false, true} {
+		srv, _ := gameServer(t)
+		setMarketOpen(t, open)
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, httptest.NewRequest("GET", "/games/1/stocks/1", nil))
+		body := w.Body.String()
+		if got := strings.Contains(body, `id="queued-note"`); got == open {
+			t.Errorf("market open %v: queued note shown = %v", open, got)
+		}
+		if got := strings.Contains(body, "at the next open"); got == open {
+			t.Errorf("market open %v: order type says next open = %v", open, got)
+		}
 	}
 }
 

@@ -17,6 +17,7 @@
 - **Embedded assets**: `assets.go` embeds `templates/`, `static/` and `sql/schema.sql` into the binary. Template, CSS or JS changes need a rebuild. Link static files with `{{asset "css/app.css"}}`, which adds a content hash so they can be cached for a year.
 - **Templates**: layouts/base.html cloned per page. Partials prefixed with `_`. HTMX fragments via isHTMX(r).
 - **Game pages**: every `/games/{id}/...` route sits in one `r.Route` in `main.go` with the `GameContext` middleware, which loads the game bar (`partials/_gamebar.html`: game name, cash, tabs, switcher) and sets `users.last_game_id`. `render()` fills `PageData.GameBar` from the context, so handlers don't. Trading happens in the order ticket on the stock page (`stocks/_ticket.html`); `/trade/{sid}` GET redirects there.
+- **After-hours orders**: while `market.QuoteStatus()` says the US market is closed, an S&P 500 market order is stored in `limit_orders` with `kind = 'market'` instead of filling at the stale price. `ProcessLimitOrders` fills it at the first quote dated today once the market opens. `market.QueuesMarketOrder` holds the rule; handler tests override `queuesMarketOrder`.
 - **htmx 4**: use htmx 4 spellings (`hx-disable`, `:inherited`, `htmx:after:request`). The CSRF header is on `<body hx-headers:inherited=...>`. Error responses (4xx/5xx) don't swap (`noSwap` in base.html); `app.js` shows a toast instead.
 - **Auth**: Google OAuth via `internal/auth/`. Sessions in SQLite, 30-day expiry.
 - **Price API**: Twelve Data (twelvedata.com). ASX symbols use `:ASX` suffix.

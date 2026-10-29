@@ -1069,6 +1069,8 @@ td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-
 #side-sell:checked + label { background: var(--color-danger); color: #fff; }
 .ticket-sides input:disabled + label { opacity: 0.4; cursor: not-allowed; }
 .ticket .form-group { margin-bottom: 12px; }
+.ticket-note { font-size: 12px; line-height: 1.45; margin-bottom: 12px; padding: 8px 10px; border-radius: var(--radius); background: rgba(255, 177, 26, 0.12); color: var(--color-warning); }
+.ticket-note[hidden] { display: none; }
 
 /* ============================================================
    Responsive

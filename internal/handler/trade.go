@@ -10,7 +10,12 @@ import (
 
 	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/db"
+	"github.com/exploded/game/internal/market"
 )
+
+// queuesMarketOrder reports whether a market order for a stock on this market
+// waits for the open. A variable so tests can open and close the market.
+var queuesMarketOrder = market.QueuesMarketOrder
 
 // TradeForm used to be a separate trade page. Trading now happens in the
 // order ticket on the stock page, so old links land there.
@@ -25,6 +30,7 @@ type tradeContext struct {
 	Holding      db.Holding
 	HoldingValue int64 // in the game's base currency
 	ExchangeRate int64 // AUD/USD * 1,000,000; 1,000,000 when the currencies match
+	Queued       bool  // the market is closed, so a market order queues for the open
 }
 
 // loadTradeContext returns the ticket data, or false if the user isn't in
@@ -36,7 +42,7 @@ func (h *Handler) loadTradeContext(ctx context.Context, game db.Game, stock db.S
 	if err != nil {
 		return nil, false
 	}
-	tc := &tradeContext{Participant: participant, ExchangeRate: 1000000}
+	tc := &tradeContext{Participant: participant, ExchangeRate: 1000000, Queued: queuesMarketOrder(stock.Market)}
 	tc.Holding, _ = h.q.GetHolding(ctx, db.GetHoldingParams{
 		ParticipantID: participant.ID, StockID: stock.ID,
 	})
@@ -136,6 +142,11 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 
 	totalNative := quantity * pricePerShare
 	totalBase := convertCurrency(totalNative, stock.Currency, game.BaseCurrency, exchangeRate)
+
+	if queuesMarketOrder(stock.Market) {
+		h.queueMarketOrder(w, r, game, participant, stock, tradeType, quantity, totalBase)
+		return
+	}
 
 	tx, err := h.rawDB.BeginTx(r.Context(), nil)
 	if err != nil {

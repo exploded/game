@@ -213,11 +213,12 @@ CREATE TABLE IF NOT EXISTS limit_orders (
     stock_id        INTEGER NOT NULL REFERENCES stocks(id),
     type            TEXT    NOT NULL,              -- 'buy' or 'sell'
     quantity        INTEGER NOT NULL,
-    limit_price     INTEGER NOT NULL,              -- cents in stock's native currency
+    limit_price     INTEGER NOT NULL,              -- cents in stock's native currency; 0 for market orders
     status          TEXT    NOT NULL DEFAULT 'open', -- open | filled | cancelled | expired
     created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
     expires_at      TEXT,                           -- optional expiry date YYYY-MM-DD
-    filled_at       TEXT
+    filled_at       TEXT,
+    kind            TEXT    NOT NULL DEFAULT 'limit' -- limit | market (placed while the market was closed; fills at the open)
 );
 CREATE INDEX IF NOT EXISTS idx_limit_orders_participant ON limit_orders(participant_id, status);
 CREATE INDEX IF NOT EXISTS idx_limit_orders_stock ON limit_orders(stock_id, status);

@@ -571,6 +571,9 @@
     const orderType = document.getElementById("order-type");
     const limitFields = document.getElementById("limit-fields");
     const limitPrice = document.getElementById("limit-price");
+    // Market closed: a market order queues for the open (see _ticket.html).
+    const queued = form.hasAttribute("data-queued");
+    const queuedNote = document.getElementById("queued-note");
 
     function toBase(cents) {
         if (stockCurrency === baseCurrency) return cents;
@@ -634,9 +637,13 @@
 
         if (limitFields) limitFields.hidden = !isLimit();
         if (limitPrice) limitPrice.required = isLimit();
+        if (queuedNote) queuedNote.hidden = isLimit();
 
         const shares = n.toLocaleString() + " share" + (n === 1 ? "" : "s");
-        btn.textContent = (isLimit() ? "Place limit " + side() + ": " : (buying ? "Buy " : "Sell ")) + shares;
+        let action = buying ? "Buy " : "Sell ";
+        if (isLimit()) action = "Place limit " + side() + ": ";
+        else if (queued) action = "Queue " + side() + ": ";
+        btn.textContent = action + shares;
         btn.className = "btn " + (buying ? "btn-primary" : "btn-danger");
         btn.disabled = n <= 0 || after < 0 || (isLimit() && price() <= 0);
     }

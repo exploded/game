@@ -464,7 +464,7 @@ const createLimitOrder = `-- name: CreateLimitOrder :one
 
 INSERT INTO limit_orders (participant_id, stock_id, type, quantity, limit_price, expires_at)
 VALUES (?, ?, ?, ?, ?, ?)
-RETURNING id, participant_id, stock_id, type, quantity, limit_price, status, created_at, expires_at, filled_at
+RETURNING id, participant_id, stock_id, type, quantity, limit_price, status, created_at, expires_at, filled_at, kind
 `
 
 type CreateLimitOrderParams struct {
@@ -500,6 +500,7 @@ func (q *Queries) CreateLimitOrder(ctx context.Context, arg CreateLimitOrderPara
 		&i.CreatedAt,
 		&i.ExpiresAt,
 		&i.FilledAt,
+		&i.Kind,
 	)
 	return i, err
 }
@@ -527,6 +528,43 @@ func (q *Queries) CreateLobbyMessage(ctx context.Context, arg CreateLobbyMessage
 		&i.UserID,
 		&i.Message,
 		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const createMarketOrder = `-- name: CreateMarketOrder :one
+INSERT INTO limit_orders (participant_id, stock_id, type, quantity, limit_price, kind)
+VALUES (?, ?, ?, ?, 0, 'market')
+RETURNING id, participant_id, stock_id, type, quantity, limit_price, status, created_at, expires_at, filled_at, kind
+`
+
+type CreateMarketOrderParams struct {
+	ParticipantID int64
+	StockID       int64
+	Type          string
+	Quantity      int64
+}
+
+func (q *Queries) CreateMarketOrder(ctx context.Context, arg CreateMarketOrderParams) (LimitOrder, error) {
+	row := q.db.QueryRowContext(ctx, createMarketOrder,
+		arg.ParticipantID,
+		arg.StockID,
+		arg.Type,
+		arg.Quantity,
+	)
+	var i LimitOrder
+	err := row.Scan(
+		&i.ID,
+		&i.ParticipantID,
+		&i.StockID,
+		&i.Type,
+		&i.Quantity,
+		&i.LimitPrice,
+		&i.Status,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+		&i.FilledAt,
+		&i.Kind,
 	)
 	return i, err
 }
@@ -947,7 +985,7 @@ func (q *Queries) GetLatestPriceDate(ctx context.Context, market string) (interf
 }
 
 const getLimitOrder = `-- name: GetLimitOrder :one
-SELECT id, participant_id, stock_id, type, quantity, limit_price, status, created_at, expires_at, filled_at FROM limit_orders WHERE id = ?
+SELECT id, participant_id, stock_id, type, quantity, limit_price, status, created_at, expires_at, filled_at, kind FROM limit_orders WHERE id = ?
 `
 
 func (q *Queries) GetLimitOrder(ctx context.Context, id int64) (LimitOrder, error) {
@@ -964,6 +1002,7 @@ func (q *Queries) GetLimitOrder(ctx context.Context, id int64) (LimitOrder, erro
 		&i.CreatedAt,
 		&i.ExpiresAt,
 		&i.FilledAt,
+		&i.Kind,
 	)
 	return i, err
 }
@@ -1839,7 +1878,7 @@ func (q *Queries) ListAllActiveHoldings(ctx context.Context) ([]ListAllActiveHol
 }
 
 const listAllOpenOrders = `-- name: ListAllOpenOrders :many
-SELECT lo.id, lo.participant_id, lo.stock_id, lo.type, lo.quantity, lo.limit_price, lo.status, lo.created_at, lo.expires_at, lo.filled_at, s.symbol, s.market, s.currency, p.game_id
+SELECT lo.id, lo.participant_id, lo.stock_id, lo.type, lo.quantity, lo.limit_price, lo.status, lo.created_at, lo.expires_at, lo.filled_at, lo.kind, s.symbol, s.market, s.currency, p.game_id
 FROM limit_orders lo
 JOIN stocks s ON s.id = lo.stock_id
 JOIN participants p ON p.id = lo.participant_id
@@ -1858,6 +1897,7 @@ type ListAllOpenOrdersRow struct {
 	CreatedAt     string
 	ExpiresAt     sql.NullString
 	FilledAt      sql.NullString
+	Kind          string
 	Symbol        string
 	Market        string
 	Currency      string
@@ -1884,6 +1924,7 @@ func (q *Queries) ListAllOpenOrders(ctx context.Context) ([]ListAllOpenOrdersRow
 			&i.CreatedAt,
 			&i.ExpiresAt,
 			&i.FilledAt,
+			&i.Kind,
 			&i.Symbol,
 			&i.Market,
 			&i.Currency,
@@ -2799,7 +2840,7 @@ func (q *Queries) ListNotifications(ctx context.Context, arg ListNotificationsPa
 }
 
 const listOpenLimitOrders = `-- name: ListOpenLimitOrders :many
-SELECT lo.id, lo.participant_id, lo.stock_id, lo.type, lo.quantity, lo.limit_price, lo.status, lo.created_at, lo.expires_at, lo.filled_at, s.symbol, s.name AS stock_name, s.market, s.currency
+SELECT lo.id, lo.participant_id, lo.stock_id, lo.type, lo.quantity, lo.limit_price, lo.status, lo.created_at, lo.expires_at, lo.filled_at, lo.kind, s.symbol, s.name AS stock_name, s.market, s.currency
 FROM limit_orders lo
 JOIN stocks s ON s.id = lo.stock_id
 WHERE lo.participant_id = ? AND lo.status = 'open'
@@ -2817,6 +2858,7 @@ type ListOpenLimitOrdersRow struct {
 	CreatedAt     string
 	ExpiresAt     sql.NullString
 	FilledAt      sql.NullString
+	Kind          string
 	Symbol        string
 	StockName     string
 	Market        string
@@ -2843,6 +2885,7 @@ func (q *Queries) ListOpenLimitOrders(ctx context.Context, participantID int64) 
 			&i.CreatedAt,
 			&i.ExpiresAt,
 			&i.FilledAt,
+			&i.Kind,
 			&i.Symbol,
 			&i.StockName,
 			&i.Market,

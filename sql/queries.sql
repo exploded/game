@@ -491,6 +491,11 @@ INSERT INTO limit_orders (participant_id, stock_id, type, quantity, limit_price,
 VALUES (?, ?, ?, ?, ?, ?)
 RETURNING *;
 
+-- name: CreateMarketOrder :one
+INSERT INTO limit_orders (participant_id, stock_id, type, quantity, limit_price, kind)
+VALUES (?, ?, ?, ?, 0, 'market')
+RETURNING *;
+
 -- name: GetLimitOrder :one
 SELECT * FROM limit_orders WHERE id = ?;
 

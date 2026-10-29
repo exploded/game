@@ -91,6 +91,7 @@ var addedColumns = []struct{ table, column, ddl string }{
 	{"stock_profiles", "ipo_date", "TEXT NOT NULL DEFAULT ''"},
 	{"stock_profiles", "peers", "TEXT NOT NULL DEFAULT ''"},
 	{"users", "last_game_id", "INTEGER DEFAULT NULL REFERENCES games(id) ON DELETE SET NULL"},
+	{"limit_orders", "kind", "TEXT NOT NULL DEFAULT 'limit'"},
 }
 
 // onceMigrations run exactly once per database, in order. Each is recorded in

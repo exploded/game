@@ -18,7 +18,7 @@ inputs styled as tabs; the script in detail.html does the sums. */}}
         {{if $t.Holding.ID}}<div><span class="info-label">Worth</span><span class="mono">{{cents $t.HoldingValue}}</span></div>{{end}}
     </div>
 
-    <form method="POST" action="/games/{{$g.ID}}/trade/{{.Item.ID}}" id="ticket-form">
+    <form method="POST" action="/games/{{$g.ID}}/trade/{{.Item.ID}}" id="ticket-form"{{if $t.Queued}} data-queued{{end}}>
         <div class="ticket-sides">
             <input type="radio" name="side" value="buy" id="side-buy" checked>
             <label for="side-buy">Buy</label>
@@ -30,7 +30,7 @@ inputs styled as tabs; the script in detail.html does the sums. */}}
         <div class="form-group">
             <label for="order-type">Order type</label>
             <select id="order-type" name="order_type">
-                <option value="market">Market: at the current price</option>
+                <option value="market">Market: {{if $t.Queued}}at the next open{{else}}at the current price{{end}}</option>
                 <option value="limit">Limit: at your price or better</option>
             </select>
         </div>
@@ -86,6 +86,10 @@ inputs styled as tabs; the script in detail.html does the sums. */}}
                 <span id="est-remaining">{{cents $t.Participant.CashBalance}}</span>
             </div>
         </div>
+
+        {{if $t.Queued}}
+        <p class="ticket-note" id="queued-note">The US market is closed. A market order is queued and fills at the first price after the open (9:30 am New York time), which can differ from this estimate.</p>
+        {{end}}
 
         <button type="submit" id="ticket-btn" class="btn btn-primary" style="width:100%" disabled>Buy 0 shares</button>
     </form>

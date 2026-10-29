@@ -2,7 +2,7 @@
 
 {{define "content"}}
 <div class="page-header">
-    <h1>Limit Orders</h1>
+    <h1>Orders</h1>
     <div class="page-header-actions">
         <a href="/games/{{.Item.ID}}/stocks" class="btn btn-primary btn-sm">Browse Stocks</a>
     </div>
@@ -15,7 +15,7 @@
             <th>Type</th>
             <th>Symbol</th>
             <th>Qty</th>
-            <th>Limit Price</th>
+            <th>Price</th>
             <th>Status</th>
             <th>Expires</th>
             <th>Created</th>
@@ -28,9 +28,15 @@
             <td><span class="badge {{if eq .Type "buy"}}badge-active{{else}}badge-cancelled{{end}}">{{.Type}}</span></td>
             <td><strong><a href="/games/{{$.Item.ID}}/stocks/{{.StockID}}">{{.Symbol}}</a></strong></td>
             <td>{{.Quantity}}</td>
-            <td>{{cents .LimitPrice}} <span class="text-muted">{{.Currency}}</span></td>
+            {{if eq .Kind "market"}}
+            <td>Market, at the open</td>
+            <td><span class="badge badge-pending">queued</span></td>
+            <td><span class="text-muted">Next open</span></td>
+            {{else}}
+            <td>Limit {{cents .LimitPrice}} <span class="text-muted">{{.Currency}}</span></td>
             <td><span class="badge badge-{{if eq .Status "open"}}pending{{else if eq .Status "filled"}}active{{else}}cancelled{{end}}">{{.Status}}</span></td>
             <td>{{if .ExpiresAt.Valid}}{{.ExpiresAt.String}}{{else}}<span class="text-muted">GTC</span>{{end}}</td>
+            {{end}}
             <td class="text-muted">{{.CreatedAt}}</td>
             <td>
                 {{if eq .Status "open"}}
@@ -43,10 +49,11 @@
         {{end}}
     </tbody>
 </table>
+<p class="text-muted">Queued orders were placed while the US market was closed. They fill at the first price after it opens at 9:30 am New York time, which can differ from the price when you placed them. A buy is cancelled if you don't have enough cash at that price.</p>
 {{else}}
 <div class="empty-state">
-    <p class="text-muted">No open limit orders.</p>
-    <p class="text-muted">Place limit orders from any stock's trade page to buy or sell at your target price.</p>
+    <p class="text-muted">No open orders.</p>
+    <p class="text-muted">{{if .Item.LimitOrders}}Place a limit order from any stock's page to buy or sell at your target price. {{end}}Market orders placed while the US market is closed wait here until it opens.</p>
     <a href="/games/{{.Item.ID}}/stocks" class="btn btn-primary">Browse Stocks</a>
 </div>
 {{end}}

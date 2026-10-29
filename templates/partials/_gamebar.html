@@ -32,7 +32,7 @@
             <a href="/games/{{$g.ID}}/portfolio"{{if eq .Tab "portfolio"}} class="active"{{end}}>Portfolio</a>
             {{if eq $g.Status "active"}}
             <a href="/games/{{$g.ID}}/stocks"{{if eq .Tab "stocks"}} class="active"{{end}}>Stocks</a>
-            {{if $g.LimitOrders}}<a href="/games/{{$g.ID}}/orders"{{if eq .Tab "orders"}} class="active"{{end}}>Orders</a>{{end}}
+            <a href="/games/{{$g.ID}}/orders"{{if eq .Tab "orders"}} class="active"{{end}}>Orders</a>
             <a href="/games/{{$g.ID}}/watchlist"{{if eq .Tab "watchlist"}} class="active"{{end}}>Watchlist</a>
             {{end}}
             {{end}}

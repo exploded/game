@@ -23,11 +23,31 @@ func fmtCentsSimple(c int64) string {
 	return fmt.Sprintf("$%.2f", float64(c)/100)
 }
 
-// ProcessLimitOrders checks all open limit orders and fills those where the price condition is met.
+// QueuesMarketOrder reports whether a market order for a stock on this market
+// waits for the next session instead of filling at the last stored price.
+// Only S&P 500 stocks get intraday quotes, so only they queue, and only while
+// QuoteStatus says the US market is closed.
+func QueuesMarketOrder(stockMarket string) bool {
+	if stockMarket != "sp500" || NewYork == nil {
+		return false
+	}
+	_, open := QuoteStatus()
+	return !open
+}
+
+// ProcessLimitOrders fills open limit orders whose price condition is met, and
+// queued market orders once the market has opened.
 func ProcessLimitOrders(ctx context.Context, q *db.Queries) {
 	// Expire old orders first.
 	today := time.Now().UTC().Format("2006-01-02")
 	_ = q.ExpireOldLimitOrders(ctx, sql.NullString{String: today, Valid: true})
+
+	// A queued market order fills at the first price of the session: the
+	// market must be open and the stock's newest price dated today.
+	sessionDate := ""
+	if NewYork != nil {
+		sessionDate = time.Now().In(NewYork).Format("2006-01-02")
+	}
 
 	orders, err := q.ListAllOpenOrders(ctx)
 	if err != nil {
@@ -42,7 +62,9 @@ func ProcessLimitOrders(ctx context.Context, q *db.Queries) {
 		}
 
 		shouldFill := false
-		if order.Type == "buy" && latestPrice.Close <= order.LimitPrice {
+		if order.Kind == "market" {
+			shouldFill = !QueuesMarketOrder(order.Market) && (NewYork == nil || latestPrice.Date == sessionDate)
+		} else if order.Type == "buy" && latestPrice.Close <= order.LimitPrice {
 			shouldFill = true
 		} else if order.Type == "sell" && latestPrice.Close >= order.LimitPrice {
 			shouldFill = true
@@ -75,7 +97,7 @@ func fillLimitOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrde
 	}
 
 	if game.Status != "active" {
-		_ = q.CancelLimitOrder(ctx, order.ID)
+		cancelOrder(ctx, q, order, participant.UserID, "the game is no longer active")
 		return nil
 	}
 
@@ -95,8 +117,7 @@ func fillLimitOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrde
 	if order.Type == "buy" {
 		cost := totalBase + game.TradeFee
 		if cost > participant.CashBalance {
-			// Can't afford - cancel.
-			_ = q.CancelLimitOrder(ctx, order.ID)
+			cancelOrder(ctx, q, order, participant.UserID, "you didn't have enough cash at "+fmtCentsSimple(pricePerShare))
 			return nil
 		}
 
@@ -139,11 +160,14 @@ func fillLimitOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrde
 		})
 
 	} else { // sell
-		holding, err := q.GetHolding(ctx, db.GetHoldingParams{
+		// No holding reads as zero shares. A queued market sell can go short
+		// in a short-selling game, as it could have if placed while open.
+		holding, _ := q.GetHolding(ctx, db.GetHoldingParams{
 			ParticipantID: participant.ID, StockID: order.StockID,
 		})
-		if err != nil || holding.Quantity < order.Quantity {
-			_ = q.CancelLimitOrder(ctx, order.ID)
+		canShort := order.Kind == "market" && game.AllowShort != 0
+		if holding.Quantity < order.Quantity && !canShort {
+			cancelOrder(ctx, q, order, participant.UserID, "you no longer hold enough shares")
 			return nil
 		}
 
@@ -163,11 +187,16 @@ func fillLimitOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrde
 				ParticipantID: participant.ID, StockID: order.StockID,
 			})
 		} else {
+			// A short position is tracked at the price it was opened at.
+			avgCost := holding.AvgCost
+			if newQty < 0 {
+				avgCost = pricePerShare
+			}
 			_ = q.UpsertHolding(ctx, db.UpsertHoldingParams{
 				ParticipantID: participant.ID,
 				StockID:       order.StockID,
 				Quantity:      newQty,
-				AvgCost:       holding.AvgCost,
+				AvgCost:       avgCost,
 				CurrentValue:  newQty * pricePerShare,
 			})
 		}
@@ -188,15 +217,33 @@ func fillLimitOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrde
 	// Mark filled.
 	_ = q.FillLimitOrder(ctx, order.ID)
 
-	// Create notification.
-	// Find user_id from participant.
+	title, when := "Limit Order Filled", ""
+	if order.Kind == "market" {
+		title, when = "Queued Order Filled", " at the open"
+	}
 	_ = q.CreateNotification(ctx, db.CreateNotificationParams{
 		UserID:  participant.UserID,
 		GameID:  nint64(order.GameID),
 		Type:    "order_filled",
-		Title:   "Limit Order Filled",
-		Message: order.Type + " " + itoa(order.Quantity) + " shares of " + order.Symbol + " filled at " + fmtCentsSimple(pricePerShare),
+		Title:   title,
+		Message: order.Type + " " + itoa(order.Quantity) + " shares of " + order.Symbol + " filled" + when + " at " + fmtCentsSimple(pricePerShare),
 	})
 
 	return nil
+}
+
+// cancelOrder cancels an order that can't fill and tells the player why.
+func cancelOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrdersRow, userID int64, reason string) {
+	_ = q.CancelLimitOrder(ctx, order.ID)
+	title := "Limit Order Cancelled"
+	if order.Kind == "market" {
+		title = "Queued Order Cancelled"
+	}
+	_ = q.CreateNotification(ctx, db.CreateNotificationParams{
+		UserID:  userID,
+		GameID:  nint64(order.GameID),
+		Type:    "order_cancelled",
+		Title:   title,
+		Message: "Your " + order.Type + " order for " + itoa(order.Quantity) + " shares of " + order.Symbol + " was cancelled: " + reason + ".",
+	})
 }
