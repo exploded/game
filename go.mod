@@ -3,14 +3,19 @@ module github.com/exploded/game
 go 1.26.0
 
 require (
+	github.com/aws/aws-sdk-go-v2 v1.47.5
+	github.com/aws/aws-sdk-go-v2/credentials v1.20.12
+	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.79.4
 	github.com/exploded/monitor v0.0.0-20261028083409-0a3a8a56d880
 	github.com/go-chi/chi/v5 v5.5.0
-	golang.org/x/oauth2 v0.37.0
 	modernc.org/sqlite v1.60.1
 )
 
 require (
-	cloud.google.com/go/compute/metadata v0.3.0 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.8 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.8 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/v4a v1.5.8 // indirect
+	github.com/aws/smithy-go v1.28.7 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect

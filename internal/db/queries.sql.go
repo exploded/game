@@ -10,6 +10,18 @@ import (
 	"database/sql"
 )
 
+const addLoginAttempt = `-- name: AddLoginAttempt :one
+UPDATE login_requests SET attempts = attempts + 1 WHERE id = ?
+RETURNING attempts
+`
+
+func (q *Queries) AddLoginAttempt(ctx context.Context, id string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, addLoginAttempt, id)
+	var attempts int64
+	err := row.Scan(&attempts)
+	return attempts, err
+}
+
 const addStartingStock = `-- name: AddStartingStock :exec
 
 INSERT OR REPLACE INTO game_starting_stocks (game_id, stock_id, quantity)
@@ -137,6 +149,18 @@ SELECT COUNT(*) FROM participants WHERE game_id = ?
 
 func (q *Queries) CountParticipants(ctx context.Context, gameID int64) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countParticipants, gameID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countRecentLoginRequests = `-- name: CountRecentLoginRequests :one
+SELECT COUNT(*) FROM login_requests
+WHERE email = ? AND created_at > datetime('now', '-1 hour')
+`
+
+func (q *Queries) CountRecentLoginRequests(ctx context.Context, email string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countRecentLoginRequests, email)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -532,6 +556,34 @@ func (q *Queries) CreateLobbyMessage(ctx context.Context, arg CreateLobbyMessage
 	return i, err
 }
 
+const createLoginRequest = `-- name: CreateLoginRequest :exec
+
+INSERT INTO login_requests (id, email, token_hash, code_hash, expires_at)
+VALUES (?, ?, ?, ?, ?)
+`
+
+type CreateLoginRequestParams struct {
+	ID        string
+	Email     string
+	TokenHash string
+	CodeHash  string
+	ExpiresAt string
+}
+
+// =============================================================================
+// Sign-in requests
+// =============================================================================
+func (q *Queries) CreateLoginRequest(ctx context.Context, arg CreateLoginRequestParams) error {
+	_, err := q.db.ExecContext(ctx, createLoginRequest,
+		arg.ID,
+		arg.Email,
+		arg.TokenHash,
+		arg.CodeHash,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
 const createMarketOrder = `-- name: CreateMarketOrder :one
 INSERT INTO limit_orders (participant_id, stock_id, type, quantity, limit_price, kind)
 VALUES (?, ?, ?, ?, 0, 'market')
@@ -654,6 +706,41 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 	return i, err
 }
 
+const createUser = `-- name: CreateUser :one
+
+INSERT INTO users (email, name, email_token)
+VALUES (?, ?, ?)
+RETURNING id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, deleted_at, last_game_id, email_token
+`
+
+type CreateUserParams struct {
+	Email      string
+	Name       string
+	EmailToken string
+}
+
+// =============================================================================
+// Users
+// =============================================================================
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, createUser, arg.Email, arg.Name, arg.EmailToken)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Name,
+		&i.PictureUrl,
+		&i.IsAdmin,
+		&i.AvatarID,
+		&i.CreatedAt,
+		&i.LastLogin,
+		&i.DeletedAt,
+		&i.LastGameID,
+		&i.EmailToken,
+	)
+	return i, err
+}
+
 const deleteExpiredSessions = `-- name: DeleteExpiredSessions :exec
 DELETE FROM sessions WHERE expires_at <= datetime('now')
 `
@@ -683,6 +770,24 @@ type DeleteHoldingParams struct {
 
 func (q *Queries) DeleteHolding(ctx context.Context, arg DeleteHoldingParams) error {
 	_, err := q.db.ExecContext(ctx, deleteHolding, arg.ParticipantID, arg.StockID)
+	return err
+}
+
+const deleteOldEmails = `-- name: DeleteOldEmails :exec
+DELETE FROM email_outbox WHERE status != 'pending' AND created_at < datetime('now', '-90 days')
+`
+
+func (q *Queries) DeleteOldEmails(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, deleteOldEmails)
+	return err
+}
+
+const deleteOldLoginRequests = `-- name: DeleteOldLoginRequests :exec
+DELETE FROM login_requests WHERE created_at < datetime('now', '-1 day')
+`
+
+func (q *Queries) DeleteOldLoginRequests(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, deleteOldLoginRequests)
 	return err
 }
 
@@ -1007,6 +1112,48 @@ func (q *Queries) GetLimitOrder(ctx context.Context, id int64) (LimitOrder, erro
 	return i, err
 }
 
+const getLoginRequest = `-- name: GetLoginRequest :one
+SELECT id, email, token_hash, code_hash, attempts, expires_at, used_at, created_at FROM login_requests
+WHERE id = ? AND used_at IS NULL AND expires_at > datetime('now')
+`
+
+func (q *Queries) GetLoginRequest(ctx context.Context, id string) (LoginRequest, error) {
+	row := q.db.QueryRowContext(ctx, getLoginRequest, id)
+	var i LoginRequest
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.TokenHash,
+		&i.CodeHash,
+		&i.Attempts,
+		&i.ExpiresAt,
+		&i.UsedAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getLoginRequestByToken = `-- name: GetLoginRequestByToken :one
+SELECT id, email, token_hash, code_hash, attempts, expires_at, used_at, created_at FROM login_requests
+WHERE token_hash = ? AND used_at IS NULL AND expires_at > datetime('now')
+`
+
+func (q *Queries) GetLoginRequestByToken(ctx context.Context, tokenHash string) (LoginRequest, error) {
+	row := q.db.QueryRowContext(ctx, getLoginRequestByToken, tokenHash)
+	var i LoginRequest
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.TokenHash,
+		&i.CodeHash,
+		&i.Attempts,
+		&i.ExpiresAt,
+		&i.UsedAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getOldestPriceDate = `-- name: GetOldestPriceDate :one
 SELECT CAST(COALESCE(MIN(date), '') AS TEXT) AS oldest_date FROM stock_prices
 `
@@ -1254,7 +1401,7 @@ func (q *Queries) GetStockProfile(ctx context.Context, stockID int64) (StockProf
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, google_id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, deleted_at, last_game_id FROM users WHERE id = ?
+SELECT id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, deleted_at, last_game_id, email_token FROM users WHERE id = ?
 `
 
 func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
@@ -1262,7 +1409,6 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 	var i User
 	err := row.Scan(
 		&i.ID,
-		&i.GoogleID,
 		&i.Email,
 		&i.Name,
 		&i.PictureUrl,
@@ -1272,6 +1418,7 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 		&i.LastLogin,
 		&i.DeletedAt,
 		&i.LastGameID,
+		&i.EmailToken,
 	)
 	return i, err
 }
@@ -1291,7 +1438,7 @@ func (q *Queries) GetUserAvatarPath(ctx context.Context, id int64) (string, erro
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, google_id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, deleted_at, last_game_id FROM users WHERE email = ?
+SELECT id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, deleted_at, last_game_id, email_token FROM users WHERE email = ?
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -1299,7 +1446,6 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 	var i User
 	err := row.Scan(
 		&i.ID,
-		&i.GoogleID,
 		&i.Email,
 		&i.Name,
 		&i.PictureUrl,
@@ -1309,6 +1455,30 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.LastLogin,
 		&i.DeletedAt,
 		&i.LastGameID,
+		&i.EmailToken,
+	)
+	return i, err
+}
+
+const getUserByEmailToken = `-- name: GetUserByEmailToken :one
+SELECT id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, deleted_at, last_game_id, email_token FROM users WHERE email_token = ? AND deleted_at IS NULL
+`
+
+func (q *Queries) GetUserByEmailToken(ctx context.Context, emailToken string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByEmailToken, emailToken)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Name,
+		&i.PictureUrl,
+		&i.IsAdmin,
+		&i.AvatarID,
+		&i.CreatedAt,
+		&i.LastLogin,
+		&i.DeletedAt,
+		&i.LastGameID,
+		&i.EmailToken,
 	)
 	return i, err
 }
@@ -2180,6 +2350,89 @@ func (q *Queries) ListContactMessages(ctx context.Context, arg ListContactMessag
 			&i.Message,
 			&i.IsRead,
 			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listDueEmails = `-- name: ListDueEmails :many
+SELECT id, user_id, to_email, category, template, subject, text_body, html_body, reply_to, unsubscribe_url, status, attempts, last_error, send_after, sent_at, created_at FROM email_outbox
+WHERE status = 'pending' AND send_after <= datetime('now')
+ORDER BY id
+LIMIT ?
+`
+
+func (q *Queries) ListDueEmails(ctx context.Context, limit int64) ([]EmailOutbox, error) {
+	rows, err := q.db.QueryContext(ctx, listDueEmails, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EmailOutbox
+	for rows.Next() {
+		var i EmailOutbox
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.ToEmail,
+			&i.Category,
+			&i.Template,
+			&i.Subject,
+			&i.TextBody,
+			&i.HtmlBody,
+			&i.ReplyTo,
+			&i.UnsubscribeUrl,
+			&i.Status,
+			&i.Attempts,
+			&i.LastError,
+			&i.SendAfter,
+			&i.SentAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listEmailPrefs = `-- name: ListEmailPrefs :many
+
+SELECT user_id, category, enabled, updated_at FROM email_prefs WHERE user_id = ?
+`
+
+// =============================================================================
+// Email
+// =============================================================================
+func (q *Queries) ListEmailPrefs(ctx context.Context, userID int64) ([]EmailPref, error) {
+	rows, err := q.db.QueryContext(ctx, listEmailPrefs, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EmailPref
+	for rows.Next() {
+		var i EmailPref
+		if err := rows.Scan(
+			&i.UserID,
+			&i.Category,
+			&i.Enabled,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -3818,7 +4071,7 @@ func (q *Queries) ListUserParticipations(ctx context.Context, userID int64) ([]L
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, google_id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, deleted_at, last_game_id FROM users ORDER BY created_at DESC
+SELECT id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, deleted_at, last_game_id, email_token FROM users ORDER BY created_at DESC
 `
 
 func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
@@ -3832,7 +4085,6 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 		var i User
 		if err := rows.Scan(
 			&i.ID,
-			&i.GoogleID,
 			&i.Email,
 			&i.Name,
 			&i.PictureUrl,
@@ -3842,6 +4094,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.LastLogin,
 			&i.DeletedAt,
 			&i.LastGameID,
+			&i.EmailToken,
 		); err != nil {
 			return nil, err
 		}
@@ -3927,6 +4180,47 @@ func (q *Queries) MarkContactMessageRead(ctx context.Context, id int64) error {
 	return err
 }
 
+const markEmailFailed = `-- name: MarkEmailFailed :exec
+UPDATE email_outbox SET status = 'failed', attempts = attempts + 1, last_error = ?
+WHERE id = ?
+`
+
+type MarkEmailFailedParams struct {
+	LastError string
+	ID        int64
+}
+
+func (q *Queries) MarkEmailFailed(ctx context.Context, arg MarkEmailFailedParams) error {
+	_, err := q.db.ExecContext(ctx, markEmailFailed, arg.LastError, arg.ID)
+	return err
+}
+
+const markEmailRetry = `-- name: MarkEmailRetry :exec
+UPDATE email_outbox SET attempts = attempts + 1, last_error = ?, send_after = ?
+WHERE id = ?
+`
+
+type MarkEmailRetryParams struct {
+	LastError string
+	SendAfter string
+	ID        int64
+}
+
+func (q *Queries) MarkEmailRetry(ctx context.Context, arg MarkEmailRetryParams) error {
+	_, err := q.db.ExecContext(ctx, markEmailRetry, arg.LastError, arg.SendAfter, arg.ID)
+	return err
+}
+
+const markEmailSent = `-- name: MarkEmailSent :exec
+UPDATE email_outbox SET status = 'sent', sent_at = datetime('now'), attempts = attempts + 1, last_error = ''
+WHERE id = ?
+`
+
+func (q *Queries) MarkEmailSent(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, markEmailSent, id)
+	return err
+}
+
 const markNotificationRead = `-- name: MarkNotificationRead :exec
 UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?
 `
@@ -3938,6 +4232,50 @@ type MarkNotificationReadParams struct {
 
 func (q *Queries) MarkNotificationRead(ctx context.Context, arg MarkNotificationReadParams) error {
 	_, err := q.db.ExecContext(ctx, markNotificationRead, arg.ID, arg.UserID)
+	return err
+}
+
+const pruneEmailOutbox = `-- name: PruneEmailOutbox :exec
+UPDATE email_outbox SET text_body = '', html_body = ''
+WHERE template = 'login' AND status != 'pending' AND text_body != ''
+`
+
+// Sign-in emails hold a live link and code, so their bodies are cleared once
+// sent. Other sent mail is kept for 90 days.
+func (q *Queries) PruneEmailOutbox(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, pruneEmailOutbox)
+	return err
+}
+
+const queueEmail = `-- name: QueueEmail :exec
+INSERT INTO email_outbox (user_id, to_email, category, template, subject, text_body, html_body, reply_to, unsubscribe_url)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+`
+
+type QueueEmailParams struct {
+	UserID         sql.NullInt64
+	ToEmail        string
+	Category       string
+	Template       string
+	Subject        string
+	TextBody       string
+	HtmlBody       string
+	ReplyTo        string
+	UnsubscribeUrl string
+}
+
+func (q *Queries) QueueEmail(ctx context.Context, arg QueueEmailParams) error {
+	_, err := q.db.ExecContext(ctx, queueEmail,
+		arg.UserID,
+		arg.ToEmail,
+		arg.Category,
+		arg.Template,
+		arg.Subject,
+		arg.TextBody,
+		arg.HtmlBody,
+		arg.ReplyTo,
+		arg.UnsubscribeUrl,
+	)
 	return err
 }
 
@@ -4023,6 +4361,26 @@ func (q *Queries) SetAdmin(ctx context.Context, arg SetAdminParams) error {
 	return err
 }
 
+const setEmailPref = `-- name: SetEmailPref :exec
+INSERT INTO email_prefs (user_id, category, enabled, updated_at)
+VALUES (?, ?, ?, datetime('now'))
+ON CONFLICT(user_id, category) DO UPDATE SET
+    enabled    = excluded.enabled,
+    updated_at = excluded.updated_at
+WHERE email_prefs.enabled != excluded.enabled
+`
+
+type SetEmailPrefParams struct {
+	UserID   int64
+	Category string
+	Enabled  int64
+}
+
+func (q *Queries) SetEmailPref(ctx context.Context, arg SetEmailPrefParams) error {
+	_, err := q.db.ExecContext(ctx, setEmailPref, arg.UserID, arg.Category, arg.Enabled)
+	return err
+}
+
 const setLastGame = `-- name: SetLastGame :exec
 UPDATE users SET last_game_id = ? WHERE id = ?
 `
@@ -4041,7 +4399,6 @@ const softDeleteUser = `-- name: SoftDeleteUser :exec
 UPDATE users SET
     name = 'Deleted User',
     email = 'deleted-' || CAST(id AS TEXT) || '@deleted.local',
-    google_id = 'deleted-' || CAST(id AS TEXT),
     picture_url = NULL,
     deleted_at = datetime('now')
 WHERE id = ?
@@ -4066,6 +4423,15 @@ func (q *Queries) TotalReferralBonus(ctx context.Context, arg TotalReferralBonus
 	var coalesce interface{}
 	err := row.Scan(&coalesce)
 	return coalesce, err
+}
+
+const touchLastLogin = `-- name: TouchLastLogin :exec
+UPDATE users SET last_login = datetime('now') WHERE id = ?
+`
+
+func (q *Queries) TouchLastLogin(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, touchLastLogin, id)
+	return err
 }
 
 const updateCashBalance = `-- name: UpdateCashBalance :exec
@@ -4227,6 +4593,20 @@ type UpdateUserAvatarParams struct {
 
 func (q *Queries) UpdateUserAvatar(ctx context.Context, arg UpdateUserAvatarParams) error {
 	_, err := q.db.ExecContext(ctx, updateUserAvatar, arg.AvatarID, arg.ID)
+	return err
+}
+
+const updateUserName = `-- name: UpdateUserName :exec
+UPDATE users SET name = ? WHERE id = ?
+`
+
+type UpdateUserNameParams struct {
+	Name string
+	ID   int64
+}
+
+func (q *Queries) UpdateUserName(ctx context.Context, arg UpdateUserNameParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserName, arg.Name, arg.ID)
 	return err
 }
 
@@ -4663,48 +5043,15 @@ func (q *Queries) UpsertStockStatistics(ctx context.Context, arg UpsertStockStat
 	return err
 }
 
-const upsertUser = `-- name: UpsertUser :one
-
-INSERT INTO users (google_id, email, name, picture_url, last_login)
-VALUES (?, ?, ?, ?, datetime('now'))
-ON CONFLICT(google_id) DO UPDATE SET
-    email      = excluded.email,
-    name       = excluded.name,
-    picture_url = excluded.picture_url,
-    last_login = datetime('now')
-RETURNING id, google_id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, deleted_at, last_game_id
+const useLoginRequest = `-- name: UseLoginRequest :execrows
+UPDATE login_requests SET used_at = datetime('now')
+WHERE id = ? AND used_at IS NULL
 `
 
-type UpsertUserParams struct {
-	GoogleID   string
-	Email      string
-	Name       string
-	PictureUrl sql.NullString
-}
-
-// =============================================================================
-// Users
-// =============================================================================
-func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, upsertUser,
-		arg.GoogleID,
-		arg.Email,
-		arg.Name,
-		arg.PictureUrl,
-	)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.GoogleID,
-		&i.Email,
-		&i.Name,
-		&i.PictureUrl,
-		&i.IsAdmin,
-		&i.AvatarID,
-		&i.CreatedAt,
-		&i.LastLogin,
-		&i.DeletedAt,
-		&i.LastGameID,
-	)
-	return i, err
+func (q *Queries) UseLoginRequest(ctx context.Context, id string) (int64, error) {
+	result, err := q.db.ExecContext(ctx, useLoginRequest, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

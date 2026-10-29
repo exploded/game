@@ -1,0 +1,49 @@
+{{/* Shared wrapper for every email. Each email file defines "subject",
+"text" and "html"; the mailer executes "text-layout" and "html-layout". */}}
+
+{{define "text-layout"}}{{if .Name}}Hi {{.Name}},
+
+{{end}}{{template "text" .}}
+--
+StockGame: {{.BaseURL}}
+{{- if .UnsubscribeURL}}
+You get this because {{.CategoryLabel}} email is on.
+Unsubscribe: {{.UnsubscribeURL}}
+All email settings: {{.BaseURL}}/settings
+{{- end}}
+{{end}}
+
+{{define "html-layout"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>{{template "subject" .}}</title>
+</head>
+<body style="margin:0;padding:0;background:#f2f4f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1d2330;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f2f4f7;">
+<tr><td align="center" style="padding:24px 12px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:8px;">
+    <tr><td style="padding:20px 28px;border-bottom:1px solid #e3e7ee;">
+      <a href="{{.BaseURL}}" style="font-size:20px;font-weight:700;color:#007994;text-decoration:none;">StockGame</a>
+    </td></tr>
+    <tr><td style="padding:24px 28px;font-size:15px;line-height:1.6;">
+      {{if .Name}}<p style="margin:0 0 16px;">Hi {{.Name}},</p>{{end}}
+      {{template "html" .}}
+    </td></tr>
+    <tr><td style="padding:16px 28px;border-top:1px solid #e3e7ee;font-size:12px;line-height:1.5;color:#6b7385;">
+      <a href="{{.BaseURL}}" style="color:#6b7385;">StockGame</a>: a fantasy stock market game.
+      {{- if .UnsubscribeURL}}<br>
+      You get this because {{.CategoryLabel}} email is on.
+      <a href="{{.UnsubscribeURL}}" style="color:#6b7385;">Unsubscribe</a> or
+      <a href="{{.BaseURL}}/settings" style="color:#6b7385;">change your email settings</a>.
+      {{- end}}
+    </td></tr>
+  </table>
+</td></tr>
+</table>
+</body>
+</html>
+{{end}}
+

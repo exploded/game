@@ -1,0 +1,23 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="login-page">
+    {{template "login-hero"}}
+    <div class="login-right">
+        <div class="login-card">
+            <div class="login-logo">StockGame</div>
+            <h1 class="login-title">Check your email</h1>
+            <p class="login-subtitle">We sent a sign-in link and a 6-digit code to <strong>{{index .Extra "Email"}}</strong>. Click the link, or enter the code here. Both expire in 15 minutes.</p>
+            <form method="POST" action="/login/code">
+                <div class="form-group">
+                    <label for="code">Sign-in code</label>
+                    <input type="text" id="code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]*" maxlength="7" required autofocus style="font-size:20px;letter-spacing:6px;height:48px">
+                    {{with index .Errors "code"}}<p class="form-error">{{.}}</p>{{end}}
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%;height:44px">Sign in</button>
+            </form>
+            <p class="login-footer-text">No email after a minute? Check your spam folder, or <a href="/login">try a different address</a>.</p>
+        </div>
+    </div>
+</div>
+{{end}}

@@ -20,7 +20,8 @@
 - **Phones first**: most players are on a phone. Under 768px the game tabs are replaced by a bottom tab bar (`game-dock` in `_gamebar.html`). List tables use `class="rtable"`, which turns each row into a card: `.c-main` (stock) and `.c-end` (value) on the first line, other cells wrap below with their `data-label`, `a.stretch` makes the card tappable, and `.hide-sm`/`.show-sm` hide or show things on a phone. Other tables scroll sideways inside themselves. Keep inputs at 16px on phones, or iOS zooms in.
 - **After-hours orders**: while `market.QuoteStatus()` says the US market is closed, an S&P 500 market order is stored in `limit_orders` with `kind = 'market'` instead of filling at the stale price. `ProcessLimitOrders` fills it at the first quote dated today once the market opens. `market.QueuesMarketOrder` holds the rule; handler tests override `queuesMarketOrder`.
 - **htmx 4**: use htmx 4 spellings (`hx-disable`, `:inherited`, `htmx:after:request`). The CSRF header is on `<body hx-headers:inherited=...>`. Error responses (4xx/5xx) don't swap (`noSwap` in base.html); `app.js` shows a toast instead.
-- **Auth**: Google OAuth via `internal/auth/`. Sessions in SQLite, 30-day expiry.
+- **Auth**: email sign-in, no passwords (`internal/handler/login.go`). `/login` emails a link and a 6-digit code (15 minutes, single use); an unknown address creates the account. Sessions in SQLite, 30-day expiry (`internal/auth/`).
+- **Email**: `internal/mail` renders templates from `internal/mail/templates/` into the `email_outbox` table; a worker sends them through SES. Send with `mailer.ToUser(ctx, userID, category, template, data)`, which skips users who turned the category off. `docs/emails.md` is the plan for every email: update it when you add one.
 - **Price API**: Twelve Data (twelvedata.com). ASX symbols use `:ASX` suffix.
 - **Build for Linux**: `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o game ./cmd/server/`
 

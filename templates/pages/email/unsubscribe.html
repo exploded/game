@@ -1,0 +1,23 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="settings-card" style="max-width:520px;margin:48px auto">
+    {{if not (index .Extra "Valid")}}
+    <h1 style="font-size:20px;margin-bottom:12px">This link doesn't work</h1>
+    <p>The unsubscribe link is incomplete or the account no longer exists. To change which emails you get, <a href="/settings">sign in and open Settings</a>.</p>
+    {{else if index .Extra "Done"}}
+    {{with index .Extra "Category"}}
+    <h1 style="font-size:20px;margin-bottom:12px">You're unsubscribed</h1>
+    <p><strong>{{index $.Extra "Email"}}</strong> won't get {{.Label}} email any more. To change other emails, <a href="/settings">open Settings</a>.</p>
+    {{end}}
+    {{else}}
+    {{with index .Extra "Category"}}
+    <h1 style="font-size:20px;margin-bottom:12px">Unsubscribe from {{.Label}} email?</h1>
+    <p style="margin-bottom:16px"><strong>{{index $.Extra "Email"}}</strong> will stop getting: {{.Description}}</p>
+    <form method="POST" action="{{index $.Extra "Action"}}">
+        <button type="submit" class="btn btn-primary">Unsubscribe</button>
+    </form>
+    {{end}}
+    {{end}}
+</div>
+{{end}}

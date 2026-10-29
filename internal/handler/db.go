@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log/slog"
@@ -109,6 +110,9 @@ var onceMigrations = []struct{ name, stmt string }{
 }
 
 func runMigrations(db *sql.DB) error {
+	if err := rebuildUsersTable(db); err != nil {
+		return err
+	}
 	for _, c := range addedColumns {
 		var n int
 		if err := db.QueryRow(
@@ -176,5 +180,82 @@ func runMigrations(db *sql.DB) error {
 		rows, _ := res.RowsAffected()
 		slog.Info("applied migration", "name", m.name, "rows", rows)
 	}
+	return nil
+}
+
+// rebuildUsersTable moves a database from Google sign-in to email sign-in.
+// SQLite can't drop a UNIQUE column, so it copies users into a new table
+// without google_id, keeping each id so every foreign key still points at the
+// same person, and gives each user an email_token. It does nothing once
+// google_id is gone.
+func rebuildUsersTable(db *sql.DB) error {
+	var n int
+	if err := db.QueryRow(
+		"SELECT COUNT(*) FROM pragma_table_info('users') WHERE name = 'google_id'",
+	).Scan(&n); err != nil {
+		return fmt.Errorf("checking users.google_id: %w", err)
+	}
+	if n == 0 {
+		return nil
+	}
+
+	// Dropping users with foreign keys on would cascade or fail, and the
+	// PRAGMA is ignored inside a transaction, so pin one connection and turn
+	// them off around it.
+	ctx := context.Background()
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	if _, err := conn.ExecContext(ctx, "PRAGMA foreign_keys = OFF"); err != nil {
+		return err
+	}
+	defer conn.ExecContext(ctx, "PRAGMA foreign_keys = ON")
+
+	tx, err := conn.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	for _, stmt := range []string{
+		`CREATE TABLE users_new (
+			id          INTEGER PRIMARY KEY AUTOINCREMENT,
+			email       TEXT    NOT NULL UNIQUE,
+			name        TEXT    NOT NULL,
+			picture_url TEXT,
+			is_admin    INTEGER NOT NULL DEFAULT 0,
+			avatar_id   INTEGER REFERENCES avatars(id),
+			created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+			last_login  TEXT    NOT NULL DEFAULT (datetime('now')),
+			deleted_at  TEXT,
+			last_game_id INTEGER REFERENCES games(id) ON DELETE SET NULL,
+			email_token TEXT    NOT NULL UNIQUE
+		)`,
+		`INSERT INTO users_new (id, email, name, picture_url, is_admin, avatar_id,
+			created_at, last_login, deleted_at, last_game_id, email_token)
+		 SELECT id, lower(email), name, picture_url, is_admin, avatar_id,
+			created_at, last_login, deleted_at, last_game_id, lower(hex(randomblob(16)))
+		 FROM users`,
+		`DROP TABLE users`,
+		`ALTER TABLE users_new RENAME TO users`,
+	} {
+		if _, err := tx.ExecContext(ctx, stmt); err != nil {
+			return fmt.Errorf("rebuilding users: %w", err)
+		}
+	}
+	// Production once ran with foreign keys off, so older rows may already
+	// point at missing users. Report them rather than refusing to start.
+	var broken int
+	if err := tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM pragma_foreign_key_check").Scan(&broken); err != nil {
+		return err
+	}
+	if broken > 0 {
+		slog.Warn("foreign_key_check found broken references after rebuilding users", "rows", broken)
+	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	slog.Info("rebuilt users table for email sign-in")
 	return nil
 }

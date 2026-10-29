@@ -25,7 +25,7 @@ func ordersDB(t *testing.T, priceDate, side string, quantity int64) (*db.Queries
 		t.Fatalf("schema: %v", err)
 	}
 	for _, stmt := range []string{
-		`INSERT INTO users (id, google_id, email, name) VALUES (1, 'g1', 'a@x', 'Alice')`,
+		`INSERT INTO users (id, email, name, email_token) VALUES (1, 'a@x', 'Alice', 't1')`,
 		`INSERT INTO games (id, created_by, name, status, base_currency, start_date, end_date, allow_short)
 		 VALUES (1, 1, 'Spring Cup', 'active', 'USD', '2026-01-01', '2026-12-31', 1)`,
 		`INSERT INTO participants (id, game_id, user_id, cash_balance, portfolio_value) VALUES (1, 1, 1, 100000, 100000)`,

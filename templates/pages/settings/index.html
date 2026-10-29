@@ -8,16 +8,29 @@
 
 <div class="settings-card">
     <h2>Your Profile</h2>
-    <div class="profile-info">
-        {{if .Item.PictureUrl.Valid}}
-        <img src="{{.Item.PictureUrl.String}}" alt="Profile picture" class="profile-avatar">
-        {{end}}
-        <div class="profile-details">
-            <p><strong>Name:</strong> {{.Item.Name}}</p>
-            <p><strong>Email:</strong> {{.Item.Email}}</p>
-            <p class="text-muted">Member since {{slice .Item.CreatedAt 0 10}}</p>
+    <p><strong>Email:</strong> {{.Item.Email}}</p>
+    <p class="text-muted" style="margin-bottom:12px">Member since {{slice .Item.CreatedAt 0 10}}</p>
+    <form method="POST" action="/settings/profile">
+        <div class="form-group" style="max-width:320px">
+            <label for="name">Display name</label>
+            <input type="text" id="name" name="name" value="{{.Item.Name}}" maxlength="40" required>
         </div>
-    </div>
+        <button type="submit" class="btn btn-sm">Save name</button>
+    </form>
+</div>
+
+<div class="settings-card">
+    <h2>Email</h2>
+    <p style="margin-bottom:8px">Choose which emails you get. Sign-in emails always come through.</p>
+    <form method="POST" action="/settings/email">
+        {{range .Items}}
+        <label class="checkbox-label" style="padding-top:8px;align-items:flex-start">
+            <input type="checkbox" name="{{.Key}}" value="1" {{if .On}}checked{{end}} style="margin-top:3px">
+            <span><strong>{{.Label}}</strong><br><span class="text-muted">{{.Description}}</span></span>
+        </label>
+        {{end}}
+        <button type="submit" class="btn btn-sm" style="margin-top:16px">Save email settings</button>
+    </form>
 </div>
 
 <div class="settings-card">
@@ -28,7 +41,7 @@
 
 <div class="settings-card danger-zone">
     <h2>Delete Account</h2>
-    <p>Permanently delete your account. Your name, email, and profile picture will be removed and replaced with &ldquo;Deleted User&rdquo;. Your game history will be kept in anonymised form for leaderboard integrity.</p>
+    <p>Permanently delete your account. Your name and email will be removed and replaced with &ldquo;Deleted User&rdquo;. Your game history will be kept in anonymised form for leaderboard integrity.</p>
     <p><strong>This action cannot be undone.</strong></p>
     <form method="POST" action="/settings/delete">
         <label for="confirm_delete" style="display:block;margin-bottom:0.5rem">Type <strong>DELETE</strong> to confirm:</label>

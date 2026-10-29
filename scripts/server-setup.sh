@@ -23,9 +23,12 @@ fi
 # Create .env file if it doesn't exist.
 if [ ! -f "$APP_DIR/.env" ]; then
     cat > "$APP_DIR/.env" <<'ENVEOF'
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
 BASE_URL=https://game.mchugh.au
+SES_ACCESS_KEY_ID=
+SES_SECRET_ACCESS_KEY=
+SES_REGION=ap-southeast-2
+MAIL_FROM=StockGame <stockgame@mchugh.au>
+NEWS_REPLY_TO=
 ADMIN_EMAIL=
 PORT=8888
 PROD=1

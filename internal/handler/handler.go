@@ -12,6 +12,7 @@ import (
 
 	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/db"
+	"github.com/exploded/game/internal/mail"
 )
 
 // Handler holds shared dependencies for all HTTP handlers.
@@ -21,6 +22,7 @@ type Handler struct {
 	pages      PageTemplates
 	production bool
 	loc        *time.Location
+	mailer     *mail.Mailer
 }
 
 func New(q *db.Queries, rawDB *sql.DB, pages PageTemplates, production bool, loc *time.Location) *Handler {
@@ -32,6 +34,9 @@ func New(q *db.Queries, rawDB *sql.DB, pages PageTemplates, production bool, loc
 		loc:        loc,
 	}
 }
+
+// SetMailer gives the handlers a way to send email.
+func (h *Handler) SetMailer(m *mail.Mailer) { h.mailer = m }
 
 // PageData is the standard data envelope passed to all templates.
 type PageData struct {

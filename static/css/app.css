@@ -145,33 +145,6 @@ main.container { flex: 1; padding-top: 24px; padding-bottom: 32px; }
 .btn-secondary:hover { background: var(--color-surface-2); color: var(--color-text); }
 .btn-sm { padding: 4px 12px; font-size: 12px; height: 28px; }
 
-/* Google sign-in button — follows Google branding */
-.btn-google {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    background: #fff;
-    color: #3c4043;
-    border: 1px solid #dadce0;
-    border-radius: 4px;
-    font-family: "Inter", Roboto, Arial, sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    padding: 0 24px;
-    height: 44px;
-    cursor: pointer;
-    text-decoration: none;
-    transition: background 0.2s, box-shadow 0.2s;
-    letter-spacing: 0.25px;
-}
-.btn-google:hover {
-    background: #f7f8f8;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-    text-decoration: none;
-}
-.btn-google:active { background: #e8e8e8; }
-.google-icon { flex-shrink: 0; }
-
 /* ============================================================
    Forms — dark inputs with teal focus
    ============================================================ */

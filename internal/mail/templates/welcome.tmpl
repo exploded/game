@@ -1,0 +1,23 @@
+{{define "subject"}}Welcome to StockGame{{end}}
+
+{{define "text"}}Welcome to StockGame, the fantasy stock market game.
+
+Here's how it works:
+
+1. Join a game, or create one and invite friends.
+2. You start with $1,000,000 of virtual cash.
+3. Buy and sell real stocks at real prices.
+4. The player with the biggest portfolio when the game ends wins.
+
+Find a game: {{.BaseURL}}/games
+How to play: {{.BaseURL}}/help{{end}}
+
+{{define "html"}}<p style="margin:0 0 16px;">Welcome to StockGame, the fantasy stock market game. Here's how it works:</p>
+<ol style="margin:0 0 20px;padding-left:20px;">
+  <li>Join a game, or create one and invite friends.</li>
+  <li>You start with $1,000,000 of virtual cash.</li>
+  <li>Buy and sell real stocks at real prices.</li>
+  <li>The player with the biggest portfolio when the game ends wins.</li>
+</ol>
+<p style="margin:0 0 24px;"><a href="{{.BaseURL}}/games" style="display:inline-block;background:#007994;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:6px;">Find a game</a></p>
+<p style="margin:0;">New to investing? Read <a href="{{.BaseURL}}/help" style="color:#007994;">how to play</a>.</p>{{end}}

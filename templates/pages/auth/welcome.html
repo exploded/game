@@ -1,0 +1,23 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Welcome to StockGame</h1>
+</div>
+
+<div class="settings-card" style="max-width:520px">
+    <p style="margin-bottom:16px">Pick the name other players see on leaderboards and in chat. You can change it later in Settings.</p>
+    <form method="POST" action="/welcome">
+        <div class="form-group">
+            <label for="name">Display name</label>
+            <input type="text" id="name" name="name" value="{{index .Extra "Name"}}" maxlength="40" required autofocus>
+            {{with index .Errors "name"}}<p class="form-error">{{.}}</p>{{end}}
+        </div>
+        <label class="checkbox-label" style="padding-top:0;margin-bottom:20px">
+            <input type="checkbox" name="news" value="1" {{if index .Extra "News"}}checked{{end}}>
+            <span>Send me news from Rob: investing tips, courses and announcements. You can unsubscribe at any time.</span>
+        </label>
+        <button type="submit" class="btn btn-primary">Start playing</button>
+    </form>
+</div>
+{{end}}

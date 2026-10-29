@@ -93,8 +93,9 @@ func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location) 
 		maybeFetchNews(ctx, q, rawDB)
 	}
 
-	// 7. Clean expired sessions.
+	// 7. Clean expired sessions and sign-in requests.
 	q.DeleteExpiredSessions(ctx)
+	q.DeleteOldLoginRequests(ctx)
 }
 
 // startupBackfill runs FetchAll once at server startup if any sp500 stock is

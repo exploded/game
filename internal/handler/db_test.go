@@ -162,3 +162,76 @@ func openTestDBAt(t *testing.T, path string) *sql.DB {
 	t.Cleanup(func() { d.Close() })
 	return d
 }
+
+// TestRebuildUsersForEmailSignIn: a database from the Google sign-in days
+// loses google_id, keeps every user's id and the rows pointing at them, and
+// gives each user an email_token.
+func TestRebuildUsersForEmailSignIn(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "test.db")
+	d, err := OpenDB(path, game.Schema)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, q := range []string{
+		"PRAGMA foreign_keys = OFF",
+		"DROP TABLE users",
+		`CREATE TABLE users (
+			id          INTEGER PRIMARY KEY AUTOINCREMENT,
+			google_id   TEXT    NOT NULL UNIQUE,
+			email       TEXT    NOT NULL UNIQUE,
+			name        TEXT    NOT NULL,
+			picture_url TEXT,
+			is_admin    INTEGER NOT NULL DEFAULT 0,
+			avatar_id   INTEGER REFERENCES avatars(id),
+			created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+			last_login  TEXT    NOT NULL DEFAULT (datetime('now')),
+			deleted_at  TEXT,
+			last_game_id INTEGER REFERENCES games(id) ON DELETE SET NULL
+		)`,
+		"INSERT INTO users (id, google_id, email, name, is_admin) VALUES (7, 'g7', 'James@Example.com', 'James', 1), (9, 'g9', 'rob@example.com', 'Rob', 0)",
+		"INSERT INTO sessions (id, user_id, expires_at) VALUES ('s', 9, datetime('now', '+1 day'))",
+		"INSERT INTO games (id, created_by, name, status, base_currency, start_date, end_date) VALUES (1, 7, 'Cup', 'active', 'USD', '2026-01-01', '2026-12-31')",
+		"PRAGMA foreign_keys = ON",
+	} {
+		if _, err := d.Exec(q); err != nil {
+			t.Fatalf("%s: %v", q, err)
+		}
+	}
+	d.Close()
+
+	d = openTestDBAt(t, path)
+	var n int
+	d.QueryRow("SELECT COUNT(*) FROM pragma_table_info('users') WHERE name = 'google_id'").Scan(&n)
+	if n != 0 {
+		t.Error("users.google_id is still there")
+	}
+	var email, token string
+	var admin int
+	if err := d.QueryRow("SELECT email, is_admin, email_token FROM users WHERE id = 7").Scan(&email, &admin, &token); err != nil {
+		t.Fatalf("user 7: %v", err)
+	}
+	if email != "james@example.com" || admin != 1 || len(token) != 32 {
+		t.Errorf("user 7 = (%q, admin %d, token %q), want lower-cased email, admin kept, a 32-char token", email, admin, token)
+	}
+	var owner int64
+	d.QueryRow("SELECT user_id FROM sessions WHERE id = 's'").Scan(&owner)
+	if owner != 9 {
+		t.Errorf("session belongs to user %d, want 9", owner)
+	}
+	if err := d.QueryRow("SELECT COUNT(*) FROM pragma_foreign_key_check").Scan(&n); err != nil || n != 0 {
+		t.Errorf("foreign_key_check: %d broken rows, err %v", n, err)
+	}
+	var fk int
+	d.QueryRow("PRAGMA foreign_keys").Scan(&fk)
+	if fk != 1 {
+		t.Error("foreign keys left off after the rebuild")
+	}
+	// Deleting a user still cascades to their sessions.
+	if _, err := d.Exec("DELETE FROM users WHERE id = 9"); err != nil {
+		t.Fatal(err)
+	}
+	d.QueryRow("SELECT COUNT(*) FROM sessions").Scan(&n)
+	if n != 0 {
+		t.Error("deleting a user didn't cascade to sessions")
+	}
+}

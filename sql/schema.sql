@@ -17,12 +17,12 @@ CREATE TABLE IF NOT EXISTS avatars (
 );
 
 --------------------------------------------------------------------------------
--- Users (Google OAuth)
+-- Users (email sign-in). rebuildUsersTable in internal/handler/db.go copies
+-- this definition for databases created when sign-in used Google.
 --------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS users (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    google_id   TEXT    NOT NULL UNIQUE,
-    email       TEXT    NOT NULL UNIQUE,
+    email       TEXT    NOT NULL UNIQUE,                    -- lower case
     name        TEXT    NOT NULL,
     picture_url TEXT,
     is_admin    INTEGER NOT NULL DEFAULT 0,
@@ -30,8 +30,56 @@ CREATE TABLE IF NOT EXISTS users (
     created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
     last_login  TEXT    NOT NULL DEFAULT (datetime('now')),
     deleted_at  TEXT,                                       -- NULL = active, set = soft-deleted
-    last_game_id INTEGER REFERENCES games(id) ON DELETE SET NULL -- the game the game bar last showed
+    last_game_id INTEGER REFERENCES games(id) ON DELETE SET NULL, -- the game the game bar last showed
+    email_token TEXT    NOT NULL UNIQUE                     -- random; identifies the user in unsubscribe links
 );
+
+--------------------------------------------------------------------------------
+-- Sign-in requests. Each emailed link and code works once, for 15 minutes.
+--------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS login_requests (
+    id         TEXT    PRIMARY KEY,                 -- random; the login_req cookie holds it for the code form
+    email      TEXT    NOT NULL,
+    token_hash TEXT    NOT NULL UNIQUE,             -- SHA-256 of the link token
+    code_hash  TEXT    NOT NULL,                    -- SHA-256 of id + ":" + the 6-digit code
+    attempts   INTEGER NOT NULL DEFAULT 0,          -- wrong codes entered
+    expires_at TEXT    NOT NULL,
+    used_at    TEXT,
+    created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_login_requests_email ON login_requests(email, created_at);
+
+--------------------------------------------------------------------------------
+-- Email. Categories are listed in internal/mail/categories.go; a missing
+-- email_prefs row means the category's default. docs/emails.md has the plan.
+--------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS email_prefs (
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    category   TEXT    NOT NULL,
+    enabled    INTEGER NOT NULL,
+    updated_at TEXT    NOT NULL DEFAULT (datetime('now')), -- when they opted in or out (Spam Act consent record)
+    PRIMARY KEY (user_id, category)
+);
+
+CREATE TABLE IF NOT EXISTS email_outbox (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id         INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    to_email        TEXT    NOT NULL,
+    category        TEXT    NOT NULL,
+    template        TEXT    NOT NULL,               -- e.g. 'login'
+    subject         TEXT    NOT NULL,
+    text_body       TEXT    NOT NULL,
+    html_body       TEXT    NOT NULL,
+    reply_to        TEXT    NOT NULL DEFAULT '',
+    unsubscribe_url TEXT    NOT NULL DEFAULT '',
+    status          TEXT    NOT NULL DEFAULT 'pending', -- 'pending' | 'sent' | 'failed'
+    attempts        INTEGER NOT NULL DEFAULT 0,
+    last_error      TEXT    NOT NULL DEFAULT '',
+    send_after      TEXT    NOT NULL DEFAULT (datetime('now')),
+    sent_at         TEXT,
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_email_outbox_pending ON email_outbox(status, send_after);
 
 --------------------------------------------------------------------------------
 -- Sessions

@@ -46,6 +46,32 @@ type ContactMessage struct {
 	CreatedAt string
 }
 
+type EmailOutbox struct {
+	ID             int64
+	UserID         sql.NullInt64
+	ToEmail        string
+	Category       string
+	Template       string
+	Subject        string
+	TextBody       string
+	HtmlBody       string
+	ReplyTo        string
+	UnsubscribeUrl string
+	Status         string
+	Attempts       int64
+	LastError      string
+	SendAfter      string
+	SentAt         sql.NullString
+	CreatedAt      string
+}
+
+type EmailPref struct {
+	UserID    int64
+	Category  string
+	Enabled   int64
+	UpdatedAt string
+}
+
 type ExchangeRate struct {
 	ID         int64
 	Date       string
@@ -154,6 +180,17 @@ type LobbyMessage struct {
 	ID        int64
 	UserID    int64
 	Message   string
+	CreatedAt string
+}
+
+type LoginRequest struct {
+	ID        string
+	Email     string
+	TokenHash string
+	CodeHash  string
+	Attempts  int64
+	ExpiresAt string
+	UsedAt    sql.NullString
 	CreatedAt string
 }
 
@@ -353,7 +390,6 @@ type Transaction struct {
 
 type User struct {
 	ID         int64
-	GoogleID   string
 	Email      string
 	Name       string
 	PictureUrl sql.NullString
@@ -363,6 +399,7 @@ type User struct {
 	LastLogin  string
 	DeletedAt  sql.NullString
 	LastGameID sql.NullInt64
+	EmailToken string
 }
 
 type UserAchievement struct {

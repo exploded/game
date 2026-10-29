@@ -17,6 +17,7 @@ import (
 	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/db"
 	"github.com/exploded/game/internal/handler"
+	"github.com/exploded/game/internal/mail"
 	"github.com/exploded/game/internal/market"
 	"github.com/exploded/game/internal/scheduler"
 	"github.com/exploded/monitor/pkg/logship"
@@ -102,6 +103,27 @@ func main() {
 
 	h := handler.New(queries, rawDB, pages, production, loc)
 
+	// Email goes through SES. Dev without credentials prints it to the log;
+	// production without them keeps it queued rather than logging sign-in
+	// links.
+	var sender mail.Sender = mail.Log{}
+	if key, secret, from := os.Getenv("SES_ACCESS_KEY_ID"), os.Getenv("SES_SECRET_ACCESS_KEY"), os.Getenv("MAIL_FROM"); key != "" && secret != "" && from != "" {
+		region := os.Getenv("SES_REGION")
+		if region == "" {
+			region = "ap-southeast-2"
+		}
+		sender = mail.NewSES(region, key, secret, from)
+	} else if production {
+		slog.Error("email isn't configured; set SES_ACCESS_KEY_ID, SES_SECRET_ACCESS_KEY and MAIL_FROM")
+		sender = mail.Unavailable{}
+	}
+	mailer, err := mail.New(queries, sender, os.Getenv("BASE_URL"), os.Getenv("NEWS_REPLY_TO"))
+	if err != nil {
+		log.Fatalf("email templates: %v", err)
+	}
+	h.SetMailer(mailer)
+	go mailer.Run(ctx)
+
 	// Generate CSRF secret.
 	csrfSecret, err := auth.GenerateCSRFSecret()
 	if err != nil {
@@ -136,12 +158,26 @@ func main() {
 	r.Get("/health", h.Health)
 
 	// Public routes.
-	r.Get("/login", func(w http.ResponseWriter, r *http.Request) {
-		h.LoginPage(w, r)
+	// Sign-in. These POSTs come before there's a session, so the CSRF
+	// middleware can't cover them; CrossOriginProtection stops another site
+	// submitting them, which would sign a visitor in to the attacker's account.
+	loginLimiter := handler.NewRateLimiter(10, time.Minute)
+	crossOrigin := http.NewCrossOriginProtection()
+	r.Get("/login", h.LoginPage)
+	r.Get("/login/check", h.LoginCheck)
+	r.Get("/login/verify", h.LoginVerifyPage)
+	r.Group(func(r chi.Router) {
+		r.Use(crossOrigin.Handler, loginLimiter.Middleware)
+		r.Post("/login", h.LoginSubmit)
+		r.Post("/login/code", h.LoginCode)
+		r.Post("/login/verify", h.LoginVerify)
 	})
-	r.Get("/auth/google", auth.HandleLogin)
-	r.Get("/auth/google/callback", auth.HandleCallback(queries))
 	r.With(auth.CSRFProtect(csrfSecret)).Post("/logout", auth.HandleLogout(queries))
+
+	// Unsubscribe links work without signing in. The POST also takes the
+	// RFC 8058 one-click request from mail clients, which has no session.
+	r.Get("/email/unsubscribe", h.UnsubscribePage)
+	r.Post("/email/unsubscribe", h.Unsubscribe)
 
 	// Public pages (with optional auth for pre-filling contact form).
 	r.Group(func(r chi.Router) {
@@ -167,6 +203,8 @@ func main() {
 			http.Redirect(w, r, "/dashboard", http.StatusTemporaryRedirect)
 		})
 		r.Get("/dashboard", h.Dashboard)
+		r.Get("/welcome", h.WelcomePage)
+		r.Post("/welcome", h.WelcomeSubmit)
 
 		// Games
 		r.Get("/games", h.GamesList)
@@ -256,6 +294,8 @@ func main() {
 
 		// Account Settings
 		r.Get("/settings", h.SettingsPage)
+		r.Post("/settings/profile", h.SettingsProfile)
+		r.Post("/settings/email", h.SettingsEmail)
 		r.Post("/settings/delete", h.AccountDelete)
 		r.Get("/settings/export", h.ExportPersonalData)
 

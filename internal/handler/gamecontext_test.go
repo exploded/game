@@ -44,7 +44,7 @@ func gameServer(t *testing.T) (http.Handler, *db.Queries) {
 	t.Helper()
 	d := openTestDB(t)
 	for _, stmt := range []string{
-		`INSERT INTO users (id, google_id, email, name) VALUES (1, 'g1', 'a@x', 'Alice'), (2, 'g2', 'b@x', 'Bob')`,
+		`INSERT INTO users (id, email, name, email_token) VALUES (1, 'a@x', 'Alice', 't1'), (2, 'b@x', 'Bob', 't2')`,
 		`INSERT INTO games (id, created_by, name, status, base_currency, start_date, end_date, limit_orders)
 		 VALUES (1, 1, 'Spring Cup', 'active', 'USD', '2026-01-01', '2026-12-31', 1)`,
 		`INSERT INTO participants (game_id, user_id, cash_balance, portfolio_value) VALUES (1, 1, 100000000, 100000000)`,

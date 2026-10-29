@@ -2,15 +2,19 @@
 -- Users
 -- =============================================================================
 
--- name: UpsertUser :one
-INSERT INTO users (google_id, email, name, picture_url, last_login)
-VALUES (?, ?, ?, ?, datetime('now'))
-ON CONFLICT(google_id) DO UPDATE SET
-    email      = excluded.email,
-    name       = excluded.name,
-    picture_url = excluded.picture_url,
-    last_login = datetime('now')
+-- name: CreateUser :one
+INSERT INTO users (email, name, email_token)
+VALUES (?, ?, ?)
 RETURNING *;
+
+-- name: TouchLastLogin :exec
+UPDATE users SET last_login = datetime('now') WHERE id = ?;
+
+-- name: UpdateUserName :exec
+UPDATE users SET name = ? WHERE id = ?;
+
+-- name: GetUserByEmailToken :one
+SELECT * FROM users WHERE email_token = ? AND deleted_at IS NULL;
 
 -- name: GetUser :one
 SELECT * FROM users WHERE id = ?;
@@ -31,7 +35,6 @@ SELECT * FROM users ORDER BY created_at DESC;
 UPDATE users SET
     name = 'Deleted User',
     email = 'deleted-' || CAST(id AS TEXT) || '@deleted.local',
-    google_id = 'deleted-' || CAST(id AS TEXT),
     picture_url = NULL,
     deleted_at = datetime('now')
 WHERE id = ?;
@@ -57,6 +60,83 @@ DELETE FROM sessions WHERE expires_at <= datetime('now');
 
 -- name: DeleteUserSessions :exec
 DELETE FROM sessions WHERE user_id = ?;
+
+-- =============================================================================
+-- Sign-in requests
+-- =============================================================================
+
+-- name: CreateLoginRequest :exec
+INSERT INTO login_requests (id, email, token_hash, code_hash, expires_at)
+VALUES (?, ?, ?, ?, ?);
+
+-- name: CountRecentLoginRequests :one
+SELECT COUNT(*) FROM login_requests
+WHERE email = ? AND created_at > datetime('now', '-1 hour');
+
+-- name: GetLoginRequest :one
+SELECT * FROM login_requests
+WHERE id = ? AND used_at IS NULL AND expires_at > datetime('now');
+
+-- name: GetLoginRequestByToken :one
+SELECT * FROM login_requests
+WHERE token_hash = ? AND used_at IS NULL AND expires_at > datetime('now');
+
+-- name: AddLoginAttempt :one
+UPDATE login_requests SET attempts = attempts + 1 WHERE id = ?
+RETURNING attempts;
+
+-- name: UseLoginRequest :execrows
+UPDATE login_requests SET used_at = datetime('now')
+WHERE id = ? AND used_at IS NULL;
+
+-- name: DeleteOldLoginRequests :exec
+DELETE FROM login_requests WHERE created_at < datetime('now', '-1 day');
+
+-- =============================================================================
+-- Email
+-- =============================================================================
+
+-- name: ListEmailPrefs :many
+SELECT * FROM email_prefs WHERE user_id = ?;
+
+-- name: SetEmailPref :exec
+INSERT INTO email_prefs (user_id, category, enabled, updated_at)
+VALUES (?, ?, ?, datetime('now'))
+ON CONFLICT(user_id, category) DO UPDATE SET
+    enabled    = excluded.enabled,
+    updated_at = excluded.updated_at
+WHERE email_prefs.enabled != excluded.enabled;
+
+-- name: QueueEmail :exec
+INSERT INTO email_outbox (user_id, to_email, category, template, subject, text_body, html_body, reply_to, unsubscribe_url)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- name: ListDueEmails :many
+SELECT * FROM email_outbox
+WHERE status = 'pending' AND send_after <= datetime('now')
+ORDER BY id
+LIMIT ?;
+
+-- name: MarkEmailSent :exec
+UPDATE email_outbox SET status = 'sent', sent_at = datetime('now'), attempts = attempts + 1, last_error = ''
+WHERE id = ?;
+
+-- name: MarkEmailRetry :exec
+UPDATE email_outbox SET attempts = attempts + 1, last_error = ?, send_after = ?
+WHERE id = ?;
+
+-- name: MarkEmailFailed :exec
+UPDATE email_outbox SET status = 'failed', attempts = attempts + 1, last_error = ?
+WHERE id = ?;
+
+-- Sign-in emails hold a live link and code, so their bodies are cleared once
+-- sent. Other sent mail is kept for 90 days.
+-- name: PruneEmailOutbox :exec
+UPDATE email_outbox SET text_body = '', html_body = ''
+WHERE template = 'login' AND status != 'pending' AND text_body != '';
+
+-- name: DeleteOldEmails :exec
+DELETE FROM email_outbox WHERE status != 'pending' AND created_at < datetime('now', '-90 days');
 
 -- =============================================================================
 -- Games

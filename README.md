@@ -8,7 +8,7 @@ A fantasy stock market game at https://game.mchugh.au. Players join a game, get 
 
 - Go 1.26, chi, `html/template` and htmx 4
 - SQLite through `modernc.org/sqlite` (pure Go, no CGO) and sqlc
-- Google OAuth sign-in
+- Email sign-in (a link and a 6-digit code, no passwords) and all other email through Amazon SES. [docs/emails.md](docs/emails.md) lists every email.
 - Prices, company profiles and statistics from Twelve Data (Venture plan: 610 credits a minute, external display allowed), S&P 500 news from TickerTick (none for ASX: TickerTick only knows US tickers)
 - Chart.js and TradingView Lightweight Charts, self-hosted in `static/js/`
 
@@ -16,7 +16,7 @@ Templates, static files and the schema are embedded in the binary (`assets.go`),
 
 ## Run locally
 
-1. Copy `.env.example` to `.env` and fill in the Google OAuth client, `ADMIN_EMAIL` and `TWELVEDATA_API_KEY`.
+1. Copy `.env.example` to `.env` and fill in `ADMIN_EMAIL` and `TWELVEDATA_API_KEY`. Without SES credentials, emails print to the console: copy the sign-in link from there.
 2. In PowerShell, in `C:\Projects\go\game`, run `build.bat`. It builds `game.exe` and starts it on http://localhost:8888.
 
 Template, CSS and JS changes need a rebuild because they're embedded.
@@ -27,7 +27,7 @@ Template, CSS and JS changes need a rebuild because they're embedded.
 go test ./...
 ```
 
-The tests cover the SQLite settings and migrations, the CSP rules for templates, static file caching, and `/health`. CI also runs `gofmt` and `go vet`.
+The tests cover the SQLite settings and migrations, sign-in, email preferences and the outbox, the CSP rules for templates, static file caching, and `/health`. CI also runs `gofmt` and `go vet`.
 
 ## Configuration
 
@@ -35,8 +35,11 @@ All settings come from `.env` (or the environment, which takes priority):
 
 | Variable | Purpose |
 |---|---|
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google OAuth client |
-| `BASE_URL` | Public URL, used for the OAuth callback |
+| `BASE_URL` | Public URL, used for links in emails |
+| `SES_ACCESS_KEY_ID`, `SES_SECRET_ACCESS_KEY` | IAM user with `ses:SendRawEmail`. Without them, dev prints emails to the console and production keeps them queued. |
+| `SES_REGION` | Default `ap-southeast-2` |
+| `MAIL_FROM` | Sender, such as `StockGame <stockgame@mchugh.au>`. Must be an SES identity. |
+| `NEWS_REPLY_TO` | Reply-to address for news from Rob |
 | `ADMIN_EMAIL` | Comma-separated emails that get the admin pages |
 | `PORT` | Listen port. Default `8888`. |
 | `PROD` | `1` in production: HSTS, and listens on `127.0.0.1` only |
