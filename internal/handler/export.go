@@ -9,6 +9,7 @@ import (
 
 	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/db"
+	"github.com/exploded/game/internal/market"
 )
 
 // csvSafe prevents CSV injection by prefixing dangerous leading characters with a single quote.
@@ -66,7 +67,7 @@ func (h *Handler) ExportTransactionsCSV(w http.ResponseWriter, r *http.Request) 
 			csvSafe(t.Type),
 			csvSafe(t.Symbol),
 			csvSafe(t.StockName),
-			csvSafe(t.Market),
+			csvSafe(market.MarketLabel(t.Symbol, t.Market)),
 			t.Quantity,
 			float64(t.Price)/100,
 			float64(t.Total)/100,

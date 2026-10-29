@@ -2,18 +2,18 @@
 
 {{define "content"}}
 <div class="page-header">
-    <h1>Leaderboard - {{.Item.Name}}</h1>
+    <h1>Leaderboard</h1>
 </div>
 
 {{if .Items}}
-<table>
+<table class="leaderboard-table fit-sm">
     <thead>
         <tr>
             <th>#</th>
             <th>Player</th>
-            <th>Portfolio Value</th>
-            <th>P&amp;L</th>
-            <th>Return</th>
+            <th class="num">Value</th>
+            <th class="num hide-sm">P&amp;L</th>
+            <th class="num">Return</th>
         </tr>
     </thead>
     <tbody>
@@ -21,11 +21,11 @@
         <tr {{if and $.Extra.MyParticipant.ID (eq $p.ID $.Extra.MyParticipant.ID)}}class="highlight-row"{{end}}>
             <td>{{add $i 1}}</td>
             <td>{{$p.UserName}}</td>
-            <td>{{cents $p.PortfolioValue}}</td>
-            <td class="{{if gt $p.PortfolioValue $.Item.StartingBalance}}text-green{{else if lt $p.PortfolioValue $.Item.StartingBalance}}text-red{{end}}">
+            <td class="num">{{cents $p.PortfolioValue}}</td>
+            <td class="num hide-sm {{if gt $p.PortfolioValue $.Item.StartingBalance}}text-green{{else if lt $p.PortfolioValue $.Item.StartingBalance}}text-red{{end}}">
                 {{cents (subtract $p.PortfolioValue $.Item.StartingBalance)}}
             </td>
-            <td class="{{if gt $p.PortfolioValue $.Item.StartingBalance}}text-green{{else if lt $p.PortfolioValue $.Item.StartingBalance}}text-red{{end}}">
+            <td class="num {{if gt $p.PortfolioValue $.Item.StartingBalance}}text-green{{else if lt $p.PortfolioValue $.Item.StartingBalance}}text-red{{end}}">
                 {{pct $p.PortfolioValue $.Item.StartingBalance}}%
             </td>
         </tr>

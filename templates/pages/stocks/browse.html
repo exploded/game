@@ -6,34 +6,44 @@
 </div>
 
 <div class="search-bar">
-    <input type="text" placeholder="Search stocks..."
+    <input type="search" placeholder="Search by symbol or name"
         hx-get="/games/{{.Item.ID}}/search"
-        hx-trigger="input changed delay:300ms"
+        hx-trigger="input changed delay:300ms, search"
         hx-target="#stock-results"
         name="q"
+        autocomplete="off"
+        aria-label="Search stocks"
         class="search-input">
 </div>
 
-<table>
+<table class="rtable">
     <thead>
         <tr>
-            <th>Symbol</th>
-            <th>Name</th>
+            <th>Stock</th>
             <th>Market</th>
             <th>Sector</th>
-            <th></th>
+            <th class="hide-sm"></th>
         </tr>
     </thead>
     <tbody id="stock-results">
-        {{range .Items}}
-        <tr>
-            <td><a href="/games/{{$.Item.ID}}/stocks/{{.ID}}">{{.Symbol}}</a></td>
-            <td>{{.Name}}</td>
-            <td>{{.Market | upper}}</td>
-            <td>{{.Sector}}</td>
-            <td><a href="/games/{{$.Item.ID}}/stocks/{{.ID}}" class="btn btn-primary btn-sm">Trade</a></td>
-        </tr>
-        {{end}}
+        {{template "stock-rows" .}}
     </tbody>
 </table>
+{{end}}
+
+{{/* Also served alone by StockSearch as the search results. */}}
+{{define "stock-rows"}}
+{{range .Items}}
+<tr>
+    <td class="c-main">
+        <a href="/games/{{$.Item.ID}}/stocks/{{.ID}}" class="stretch"><strong>{{.Symbol}}</strong></a>
+        <span class="c-sub">{{.Name}}</span>
+    </td>
+    <td class="c-end">{{marketLabel .Symbol .Market}}</td>
+    <td class="text-muted">{{.Sector}}</td>
+    <td class="hide-sm"><a href="/games/{{$.Item.ID}}/stocks/{{.ID}}" class="btn btn-primary btn-sm">Trade</a></td>
+</tr>
+{{else}}
+<tr><td colspan="4" class="text-muted">No stocks match.</td></tr>
+{{end}}
 {{end}}

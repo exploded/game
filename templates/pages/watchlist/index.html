@@ -9,33 +9,34 @@
 </div>
 
 {{if .Items}}
-<table>
+<table class="rtable">
     <thead>
         <tr>
-            <th>Symbol</th>
-            <th>Name</th>
+            <th>Stock</th>
+            <th class="num">Latest price</th>
             <th>Market</th>
             <th>Sector</th>
-            <th>Latest Price</th>
             <th></th>
         </tr>
     </thead>
     <tbody>
         {{range .Items}}
         <tr>
-            <td><strong><a href="/games/{{$.Item.ID}}/stocks/{{.StockID}}">{{.Symbol}}</a></strong></td>
-            <td>{{.StockName}}</td>
-            <td>{{.Market | upper}}</td>
-            <td>{{.Sector}}</td>
-            <td>{{if .LatestPrice}}{{cents .LatestPrice}} <span class="text-muted">{{.Currency}}</span>{{else}}<span class="text-muted">N/A</span>{{end}}</td>
-            <td>
+            <td class="c-main">
+                <a href="/games/{{$.Item.ID}}/stocks/{{.StockID}}" class="stretch"><strong>{{.Symbol}}</strong></a>
+                <span class="c-sub">{{.StockName}}</span>
+            </td>
+            <td class="c-end num">{{if .LatestPrice}}{{cents .LatestPrice}} <span class="text-muted c-cur">{{.Currency}}</span>{{else}}<span class="text-muted">N/A</span>{{end}}</td>
+            <td>{{marketLabel .Symbol .Market}}</td>
+            <td class="text-muted">{{.Sector}}</td>
+            <td class="c-action">
                 <div class="btn-group">
-                    <a href="/games/{{$.Item.ID}}/stocks/{{.StockID}}" class="btn btn-primary btn-sm">Trade</a>
+                    <a href="/games/{{$.Item.ID}}/stocks/{{.StockID}}" class="btn btn-primary btn-sm hide-sm">Trade</a>
                     <button hx-delete="/games/{{$.Item.ID}}/watchlist/{{.StockID}}"
                         hx-target="closest tr" hx-swap="outerHTML swap:200ms"
                         hx-confirm="Remove from watchlist?"
                         hx-disable="this"
-                        class="btn btn-danger btn-sm">Remove</button>
+                        class="btn btn-secondary btn-sm">Remove</button>
                 </div>
             </td>
         </tr>
@@ -45,7 +46,7 @@
 {{else}}
 <div class="empty-state">
     <p class="text-muted">Your watchlist is empty.</p>
-    <p class="text-muted">Browse stocks and click "Watch" to track them here.</p>
+    <p class="text-muted">Tap Watch on any stock to track it here.</p>
     <a href="/games/{{.Item.ID}}/stocks" class="btn btn-primary">Browse Stocks</a>
 </div>
 {{end}}

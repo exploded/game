@@ -1,14 +1,14 @@
 {{define "gamebar"}}
 {{- $g := .Game -}}
-<div class="game-bar">
+<div class="game-bar{{if .Participant}} has-dock{{end}}">
     <div class="container">
         <div class="game-bar-top">
             <div class="game-bar-title">
                 <a href="/games/{{$g.ID}}" class="game-bar-name">{{$g.Name}}</a>
-                <span class="badge badge-{{$g.Status}}">{{$g.Status}}</span>
+                {{if ne $g.Status "active"}}<span class="badge badge-{{$g.Status}}">{{$g.Status}}</span>{{end}}
                 {{if .Others}}
-                <details class="game-switcher">
-                    <summary>Switch game</summary>
+                <details class="game-switcher" data-dismiss>
+                    <summary>Switch</summary>
                     <ul>
                         {{range .Others}}
                         <li><a href="/games/{{.ID}}{{if eq .Status "active"}}/portfolio{{end}}">{{.Name}}</a></li>
@@ -17,14 +17,15 @@
                 </details>
                 {{end}}
             </div>
-            {{with .Participant}}
+            {{/* The portfolio page shows these in its summary card. */}}
+            {{if ne .Tab "portfolio"}}{{with .Participant}}
             <div class="game-bar-stats">
                 <span><span class="game-bar-label">Cash</span> <span class="mono">{{cents .CashBalance}}</span></span>
                 <span><span class="game-bar-label">Value</span> <span class="mono">{{cents .PortfolioValue}}</span></span>
                 {{$pl := subtract .PortfolioValue $g.StartingBalance}}
                 <span><span class="game-bar-label">P&amp;L</span> <span class="mono {{if gt $pl 0}}text-green{{else if lt $pl 0}}text-red{{end}}">{{cents $pl}}</span></span>
             </div>
-            {{end}}
+            {{end}}{{end}}
         </div>
         <nav class="game-tabs" aria-label="Game">
             <a href="/games/{{$g.ID}}"{{if eq .Tab "overview"}} class="active"{{end}}>Overview</a>
@@ -44,4 +45,42 @@
         </nav>
     </div>
 </div>
+
+{{/* On a phone the tabs above are hidden and players get this bar at the
+bottom of the screen instead, in thumb reach. Desktop never shows it. */}}
+{{if .Participant}}
+<nav class="game-dock" aria-label="Game">
+    <a href="/games/{{$g.ID}}/portfolio"{{if eq .Tab "portfolio"}} class="active"{{end}}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+        <span>Portfolio</span>
+    </a>
+    {{if eq $g.Status "active"}}
+    <a href="/games/{{$g.ID}}/stocks"{{if eq .Tab "stocks"}} class="active"{{end}}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+        <span>Stocks</span>
+    </a>
+    <a href="/games/{{$g.ID}}/orders"{{if eq .Tab "orders"}} class="active"{{end}}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg>
+        <span>Orders</span>
+    </a>
+    {{end}}
+    <a href="/games/{{$g.ID}}/leaderboard"{{if eq .Tab "leaderboard"}} class="active"{{end}}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0z"/><path d="M17 5h3v2a3 3 0 01-3 3M7 5H4v2a3 3 0 003 3"/></svg>
+        <span>Ranks</span>
+    </a>
+    <details class="dock-more" data-dismiss>
+        <summary{{if or (eq .Tab "overview") (eq .Tab "watchlist") (eq .Tab "analytics") (eq .Tab "chat")}} class="active"{{end}}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+            <span>More</span>
+        </summary>
+        <div class="dock-sheet">
+            <a href="/games/{{$g.ID}}">Game overview</a>
+            {{if eq $g.Status "active"}}<a href="/games/{{$g.ID}}/watchlist">Watchlist</a>{{end}}
+            <a href="/games/{{$g.ID}}/history">Trade history</a>
+            <a href="/games/{{$g.ID}}/analytics">Analytics</a>
+            <a href="/games/{{$g.ID}}/chat">Chat</a>
+        </div>
+    </details>
+</nav>
+{{end}}
 {{end}}

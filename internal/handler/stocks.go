@@ -218,34 +218,21 @@ func (h *Handler) StockSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	q := r.URL.Query().Get("q")
-	if q == "" {
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(""))
-		return
+	// An empty query (the search box cleared) shows the full list again.
+	var stocks []db.Stock
+	if q := r.URL.Query().Get("q"); q == "" {
+		stocks, _ = h.q.ListStocksByMarket(r.Context(), db.ListStocksByMarketParams{
+			Market: game.Markets, Column2: game.Markets,
+		})
+	} else {
+		pattern := "%" + q + "%"
+		stocks, _ = h.q.SearchStocks(r.Context(), db.SearchStocksParams{
+			Market:  game.Markets,
+			Column2: game.Markets,
+			Symbol:  pattern,
+			Name:    pattern,
+		})
 	}
 
-	pattern := "%" + q + "%"
-	stocks, _ := h.q.SearchStocks(r.Context(), db.SearchStocksParams{
-		Market:  game.Markets,
-		Column2: game.Markets,
-		Symbol:  pattern,
-		Name:    pattern,
-	})
-
-	w.Header().Set("Content-Type", "text/html")
-	for _, s := range stocks {
-		latestPrice, _ := h.q.GetLatestPrice(r.Context(), s.ID)
-		priceStr := "N/A"
-		if latestPrice.ID != 0 {
-			priceStr = fmtCents(latestPrice.Close)
-		}
-		w.Write([]byte(`<tr>
-			<td><a href="/games/` + r.PathValue("id") + `/stocks/` + strconv.FormatInt(s.ID, 10) + `">` + s.Symbol + `</a></td>
-			<td>` + s.Name + `</td>
-			<td>` + s.Market + `</td>
-			<td>` + priceStr + `</td>
-			<td><a href="/games/` + r.PathValue("id") + `/stocks/` + strconv.FormatInt(s.ID, 10) + `" class="btn btn-primary btn-sm">Trade</a></td>
-		</tr>`))
-	}
+	h.render(w, r, "stocks/browse", "stock-rows", PageData{Item: game, Items: stocks})
 }

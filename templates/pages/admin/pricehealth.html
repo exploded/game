@@ -38,7 +38,7 @@
             <tr>
                 <td><strong>{{.Symbol}}</strong></td>
                 <td>{{.Name}}</td>
-                <td>{{.Market | upper}}</td>
+                <td>{{marketLabel .Symbol .Market}}</td>
                 <td>{{.Sector}}</td>
             </tr>
             {{end}}

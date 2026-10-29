@@ -307,7 +307,7 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 	// Check achievements.
 	go h.CheckAndGrantAchievements(context.Background(), user.ID, gameID, participant.ID)
 
-	setFlashCookie(w, fmt.Sprintf("%s %d shares of %s", action, quantity, stock.Symbol), "success")
+	setFlashCookie(w, fmt.Sprintf("%s %s of %s", action, shares(quantity), stock.Symbol), "success")
 	http.Redirect(w, r, back, http.StatusSeeOther)
 }
 

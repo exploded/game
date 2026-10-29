@@ -127,8 +127,10 @@ main.container { flex: 1; padding-top: 24px; padding-bottom: 32px; }
     transition: background 0.15s, opacity 0.15s;
     line-height: 1.4;
     height: 36px;
+    background: var(--color-surface-2);
+    color: var(--color-text);
 }
-.btn:hover { text-decoration: none; }
+.btn:hover { text-decoration: none; filter: brightness(1.15); }
 .btn-primary { background: #007994; color: #fff; }
 .btn-primary:hover { background: var(--color-primary-hover); }
 .btn-success, .btn-buy { background: var(--color-success); color: #fff; }
@@ -443,18 +445,27 @@ td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-
 /* ============================================================
    Toasts
    ============================================================ */
-#toast-container { position: fixed; top: 12px; right: 12px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+/* Solid backgrounds: a see-through toast over a busy page can't be read. */
+#toast-container { position: fixed; top: 12px; right: 12px; z-index: 10001; display: flex; flex-direction: column; gap: 8px; max-width: 420px; }
 .toast {
-    padding: 10px 16px;
+    padding: 12px 16px 12px 14px;
     border-radius: var(--radius);
-    font-size: 13px;
+    border-left: 4px solid;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--color-text);
+    background: var(--color-surface-2);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
+    cursor: pointer;
     opacity: 0;
-    transform: translateX(100%);
-    transition: all 0.3s ease;
+    transform: translateY(-8px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
 }
-.toast-show { opacity: 1; transform: translateX(0); }
-.toast-success { background: rgba(2, 199, 122, 0.1); color: var(--color-success); border: 1px solid rgba(2, 199, 122, 0.25); }
-.toast-error { background: rgba(255, 59, 105, 0.1); color: var(--color-danger); border: 1px solid rgba(255, 59, 105, 0.25); }
+.toast-show { opacity: 1; transform: none; }
+.toast-success { background: #0E3B2C; border-color: var(--color-success); }
+.toast-error { background: #4A1424; border-color: var(--color-danger); }
+.toast-info { background: #0C3640; border-color: var(--color-primary); }
 
 /* ============================================================
    Footer
@@ -1073,6 +1084,40 @@ td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-
 .ticket-note[hidden] { display: none; }
 
 /* ============================================================
+   Phone-first pieces: pills, portfolio summary, card tables, tab bar
+   ============================================================ */
+.pill {
+    display: inline-block; padding: 2px 8px; border-radius: 6px;
+    font-family: var(--font-mono); font-size: 13px; font-weight: 600; white-space: nowrap;
+    background: rgba(135, 138, 155, 0.15); color: var(--color-text-muted);
+}
+.pill-up { background: rgba(2, 199, 122, 0.15); color: var(--color-success); }
+.pill-down { background: rgba(255, 59, 105, 0.15); color: var(--color-danger); }
+
+.portfolio-hero {
+    background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius);
+    padding: 18px 20px; margin-bottom: 24px;
+}
+.hero-value { font-size: 32px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.2; margin: 2px 0 8px; }
+.hero-change { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
+.hero-split { display: flex; gap: 32px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--color-border); }
+.hero-split .mono { font-size: 15px; font-weight: 600; }
+.perf-chart { position: relative; height: 260px; }
+
+/* rtable: a normal table on desktop; see the phone rules below. */
+.rtable .c-sub { display: block; color: var(--color-text-muted); font-size: 12px; }
+.rtable .c-main .badge { margin-right: 4px; }
+.rtable .c-action form { display: inline; }
+.show-sm { display: none !important; }
+
+.stock-title { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.stock-title h1 { margin: 0; }
+.stock-logo { width: 44px; height: 44px; border-radius: 8px; background: #fff; padding: 3px; object-fit: contain; flex-shrink: 0; }
+#ticket { scroll-margin-top: 12px; }
+
+.game-dock { display: none; }
+
+/* ============================================================
    Responsive
    ============================================================ */
 @media (max-width: 768px) {
@@ -1114,4 +1159,118 @@ td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-
     .login-hero-title { font-size: 32px; }
     .login-hero-stats { gap: 24px; }
     .login-stat-value { font-size: 18px; }
+
+    /* Readable type and thumb-sized targets. 16px inputs stop iOS
+       zooming the page when a field is focused. */
+    body { font-size: 15px; }
+    .container { padding: 0 16px; }
+    main.container { padding-top: 16px; }
+    h1 { font-size: 22px; }
+    td { font-size: 14px; }
+    .btn { height: 44px; padding: 10px 18px; font-size: 15px; }
+    .btn-sm { height: 36px; padding: 6px 14px; font-size: 14px; }
+    .form-group input, .form-group select, .form-group textarea,
+    .search-input, .chat-input { font-size: 16px; height: 44px; }
+    .form-group textarea { height: auto; }
+    .search-input { max-width: none; }
+    .nav-links a, .nav-logout { font-size: 16px; padding: 10px 0; }
+    .page-header { margin-bottom: 16px; }
+
+    /* Toasts sit at the bottom, full width, above the tab bar. */
+    #toast-container {
+        top: auto; left: 12px; right: 12px; max-width: none;
+        bottom: calc(12px + env(safe-area-inset-bottom));
+    }
+    body:has(.game-dock) #toast-container { bottom: calc(76px + env(safe-area-inset-bottom)); }
+    .toast { font-size: 15px; padding: 14px 16px 14px 14px; transform: translateY(8px); }
+    .toast-show { transform: none; }
+
+    /* Game bar: name and stats only; the tab bar at the bottom replaces the tabs. */
+    .game-bar-top { padding-top: 8px; padding-bottom: 8px; gap: 6px; }
+    .game-bar-stats { width: 100%; justify-content: space-between; gap: 8px; font-size: 13px; }
+    .game-bar-stats > span { display: flex; flex-direction: column; }
+    .game-bar-label { font-size: 10px; }
+    .game-bar.has-dock .game-tabs { display: none; }
+    .game-bar:not(.has-dock) .game-tabs { margin-top: 0; }
+
+    .game-dock {
+        display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000;
+        background: var(--color-nav-bg); border-top: 1px solid var(--color-border);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    .game-dock > a, .dock-more > summary {
+        flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+        height: 60px; font-size: 11px; font-weight: 500; color: var(--color-text-muted);
+        list-style: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    }
+    .dock-more { flex: 1; display: flex; }
+    .dock-more > summary::-webkit-details-marker { display: none; }
+    .game-dock svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .game-dock .active, .dock-more[open] > summary { color: var(--color-primary); }
+    .dock-sheet {
+        position: fixed; left: 8px; right: 8px; bottom: calc(68px + env(safe-area-inset-bottom));
+        background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: 12px;
+        box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.6); padding: 6px 0;
+    }
+    .dock-sheet a { display: block; padding: 14px 20px; font-size: 16px; color: var(--color-text); }
+    body:has(.game-dock) { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+
+    /* Tables with no phone layout scroll sideways inside themselves
+       rather than widening the whole page. */
+    table:not(.rtable):not(.fit-sm) { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    th, td { padding: 8px 10px; }
+    .hide-sm { display: none !important; }
+    .show-sm { display: inline-flex !important; }
+
+    /* rtable: each row becomes a card. The first line holds .c-main
+       (stock) and .c-end (value); everything else wraps below it as
+       small "label value" items. a.stretch makes the whole card a link. */
+    .rtable { display: block; }
+    .rtable thead { display: none; }
+    .rtable tbody { display: flex; flex-direction: column; gap: 8px; }
+    .rtable tr {
+        position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px;
+        padding: 12px 14px; background: var(--color-surface);
+        border: 1px solid var(--color-border); border-radius: var(--radius);
+    }
+    .rtable tr::before { content: ""; order: 1; flex-basis: 100%; height: 0; }
+    .rtable tr:hover td { background: none; }
+    .rtable td { display: block; padding: 0; border: 0; order: 2; font-size: 13px; text-align: left; }
+    .rtable td:empty { display: none; }
+    .rtable td[data-label]::before { content: attr(data-label) " "; color: var(--color-text-muted); }
+    .rtable .c-main { order: 0; flex: 1; min-width: 0; font-size: 15px; }
+    .rtable .c-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+    .rtable .c-end { order: 0; text-align: right; font-size: 15px; font-weight: 600; }
+    .rtable .c-cur { display: block; font-size: 11px; font-weight: 400; }
+    .rtable .c-action { margin-left: auto; position: relative; z-index: 1; }
+    .rtable a.stretch { color: var(--color-text); }
+    .rtable a.stretch::after { content: ""; position: absolute; inset: 0; }
+    .rtable td[colspan] { order: 0; }
+
+    /* Portfolio */
+    .portfolio-hero { padding: 16px; margin-bottom: 20px; }
+    .hero-value { font-size: 30px; }
+    .hero-split { gap: 24px; }
+    .perf-chart { height: 200px; }
+
+    /* Stock page: shorter chart so the ticket is closer. */
+    .stock-header { flex-wrap: nowrap; align-items: flex-start; }
+    .stock-title { flex: 1; }
+    .stock-logo { width: 40px; height: 40px; }
+    .stock-header .page-header-actions { flex-shrink: 0; }
+    .page-header-actions { flex-wrap: wrap; }
+    .chart-container { height: 280px; }
+    .price-stats { gap: 4px 14px; }
+    .price-current { font-size: 26px; }
+    .info-item { padding: 10px 12px; }
+    .info-value { font-size: 14px; overflow-wrap: anywhere; }
+    .ticket { padding: 14px; }
+    .ticket-sides label { padding: 11px 0; font-size: 15px; }
+    .ticket .slider { height: 6px; margin: 14px 0 6px; }
+    .ticket .slider::-webkit-slider-thumb { width: 28px; height: 28px; }
+    .ticket .slider::-moz-range-thumb { width: 28px; height: 28px; }
+    .estimate-row { font-size: 14px; }
+    #ticket-btn { height: 50px; font-size: 16px; }
+
+    .footer-links { gap: 8px 20px; }
 }

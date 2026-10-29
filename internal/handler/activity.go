@@ -50,7 +50,7 @@ func (h *Handler) InsertTradeActivity(r *http.Request, gameID, userID int64, act
 	if action == "sell" {
 		verb = "sold"
 	}
-	detail := fmt.Sprintf("%s %d shares of %s", verb, quantity, symbol)
+	detail := fmt.Sprintf("%s %s of %s", verb, shares(quantity), symbol)
 	_ = h.q.InsertActivity(r.Context(), db.InsertActivityParams{
 		GameID:   gameID,
 		UserID:   userID,

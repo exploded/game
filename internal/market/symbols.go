@@ -3,6 +3,7 @@ package market
 import (
 	"context"
 	"log/slog"
+	"strings"
 
 	"github.com/exploded/game/internal/db"
 )
@@ -12,6 +13,16 @@ import (
 func SeedStocks(ctx context.Context, q *db.Queries) {
 	count := 0
 	for _, s := range SP500 {
+		q.InsertStock(ctx, db.InsertStockParams{
+			Symbol:   s.Symbol,
+			Name:     s.Name,
+			Market:   "sp500",
+			Sector:   s.Sector,
+			Currency: "USD",
+		})
+		count++
+	}
+	for _, s := range AusUS {
 		q.InsertStock(ctx, db.InsertStockParams{
 			Symbol:   s.Symbol,
 			Name:     s.Name,
@@ -139,6 +150,40 @@ var ASX200 = []StockInfo{
 	{"WEB", "Webjet", "Consumer Discretionary"},
 	{"WOR", "Worley", "Energy"},
 	{"WTC", "WiseTech Global", "Information Technology"},
+}
+
+// AusUS contains Australian companies that trade in the US, as shares or ADRs.
+// They stand in for ASX listings, which need a separate ASX data licence.
+// They're priced in USD on US hours, and an ADR can represent several ordinary
+// shares (one BHP ADR is two), so prices don't match the ASX. They share the
+// sp500 market so the existing fetch, order and news paths cover them.
+var AusUS = []StockInfo{
+	{"BHP", "BHP Group (US-listed)", "Materials"},
+	{"RIO", "Rio Tinto plc (US-listed)", "Materials"},
+	{"WDS", "Woodside Energy (US-listed)", "Energy"},
+	{"JHX", "James Hardie (US-listed)", "Materials"},
+	{"TEAM", "Atlassian (US-listed)", "Information Technology"},
+	{"CSLLY", "CSL Limited (US OTC)", "Healthcare"},
+	{"WBKCY", "Westpac Banking (US OTC)", "Financials"},
+	{"ANZGY", "ANZ Group (US OTC)", "Financials"},
+	{"MQBKY", "Macquarie Group (US OTC)", "Financials"},
+}
+
+var ausUSSymbols = func() map[string]bool {
+	m := make(map[string]bool, len(AusUS))
+	for _, s := range AusUS {
+		m[s.Symbol] = true
+	}
+	return m
+}()
+
+// MarketLabel is the market name shown to players for a stock. AusUS stocks
+// sit in the sp500 market but aren't in the index, so they get "AU (US)".
+func MarketLabel(symbol, market string) string {
+	if market == "sp500" && ausUSSymbols[symbol] {
+		return "AU (US)"
+	}
+	return strings.ToUpper(market)
 }
 
 // SP500 contains the top S&P 500 constituents.

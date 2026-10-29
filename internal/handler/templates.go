@@ -8,6 +8,8 @@ import (
 	"path"
 	"strings"
 	"time"
+
+	"github.com/exploded/game/internal/market"
 )
 
 // PageTemplates maps page keys (e.g. "games/list") to cloned template sets.
@@ -65,7 +67,8 @@ func LoadTemplates(fsys fs.FS, static *Static) (PageTemplates, error) {
 			pct := float64(c-total) / float64(total) * 100
 			return fmt.Sprintf("%+.2f", pct)
 		},
-		"upper": strings.ToUpper,
+		"upper":       strings.ToUpper,
+		"marketLabel": market.MarketLabel,
 		"bps": func(bp int64) string {
 			return fmt.Sprintf("%.2f%%", float64(bp)/100)
 		},
@@ -119,6 +122,7 @@ func LoadTemplates(fsys fs.FS, static *Static) (PageTemplates, error) {
 			return s[start:end]
 		},
 		"subtract": func(a, b int64) int64 { return a - b },
+		"multiply": func(a, b int64) int64 { return a * b },
 		"avatarURL": func(pictureURL sql.NullString, avatarID sql.NullInt64) string {
 			// Avatar lookup is done via a simple static path convention.
 			// The actual avatar_id -> image_path mapping is handled by the

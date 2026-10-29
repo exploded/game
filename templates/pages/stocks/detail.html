@@ -1,14 +1,18 @@
 {{template "base" .}}
 
 {{define "content"}}
-<div class="page-header">
-    <div style="display:flex; align-items:center; gap:12px;">
-        {{if .Extra.Profile.Logo}}<img src="{{.Extra.Profile.Logo}}" alt="" referrerpolicy="no-referrer" style="width:44px; height:44px; border-radius:8px; background:#fff; padding:3px; object-fit:contain; flex-shrink:0;">{{end}}
-        <h1 style="margin:0;">{{.Item.Symbol}} - {{.Item.Name}}</h1>
+<div class="page-header stock-header">
+    <div class="stock-title">
+        {{if .Extra.Profile.Logo}}<img src="{{.Extra.Profile.Logo}}" alt="" referrerpolicy="no-referrer" class="stock-logo">{{end}}
+        <div>
+            <h1>{{.Item.Symbol}}</h1>
+            <div class="text-muted">{{.Item.Name}}</div>
+        </div>
     </div>
     <div class="page-header-actions">
-        <a href="/games/{{.Extra.Game.ID}}/stocks" class="btn btn-sm">&larr; Stocks</a>
+        <a href="/games/{{.Extra.Game.ID}}/stocks" class="btn btn-sm hide-sm">&larr; Stocks</a>
         <button hx-post="/games/{{.Extra.Game.ID}}/watchlist/{{.Item.ID}}" hx-swap="outerHTML" hx-disable="this" class="btn btn-sm">Watch</button>
+        {{if .Extra.Trade}}<a href="#ticket" class="btn btn-primary btn-sm show-sm">Trade</a>{{end}}
     </div>
 </div>
 
@@ -27,7 +31,7 @@
 <div class="info-grid" id="info-grid">
     <div class="info-item">
         <span class="info-label">Market</span>
-        <span class="info-value">{{.Item.Market | upper}}</span>
+        <span class="info-value">{{marketLabel .Item.Symbol .Item.Market}}</span>
     </div>
     <div class="info-item">
         <span class="info-label">Currency</span>
@@ -479,7 +483,7 @@
     const container = document.getElementById('chart-container');
     const chart = LightweightCharts.createChart(container, {
         width: container.clientWidth,
-        height: 400,
+        height: container.clientHeight,
         layout: {
             background: { color: '#1a1d27' },
             textColor: '#9ca3af',

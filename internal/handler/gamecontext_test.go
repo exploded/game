@@ -114,7 +114,8 @@ func TestStockPageHasGameBarAndTicket(t *testing.T) {
 	}
 	body := w.Body.String()
 	for _, want := range []string{
-		`class="game-bar"`,
+		`class="game-bar has-dock"`,
+		`class="game-dock"`, // the phone tab bar, for players only
 		`Spring Cup`,
 		`href="/games/1/stocks" class="active">Stocks`,
 		`href="/games/1/orders"`,

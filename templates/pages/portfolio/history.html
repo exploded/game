@@ -7,28 +7,27 @@
 </div>
 
 {{if .Items}}
-<table>
+<table class="rtable">
     <thead>
         <tr>
+            <th>Trade</th>
+            <th class="num">Total</th>
             <th>Date</th>
-            <th>Type</th>
-            <th>Symbol</th>
-            <th>Qty</th>
-            <th>Price</th>
-            <th>Total</th>
-            <th>Fee</th>
+            <th class="num">Price</th>
+            <th class="num">Fee</th>
         </tr>
     </thead>
     <tbody>
         {{range .Items}}
         <tr>
-            <td>{{.CreatedAt}}</td>
-            <td><span class="badge {{if eq .Type "buy"}}badge-active{{else}}badge-cancelled{{end}}">{{.Type}}</span></td>
-            <td><strong>{{.Symbol}}</strong></td>
-            <td>{{.Quantity}}</td>
-            <td>{{cents .Price}} <span class="text-muted">{{.Currency}}</span></td>
-            <td>{{cents .ConvertedTotal}}</td>
-            <td>{{if .Fee}}{{cents .Fee}}{{else}}-{{end}}</td>
+            <td class="c-main">
+                <span class="badge {{if eq .Type "buy"}}badge-active{{else}}badge-cancelled{{end}}">{{.Type}}</span>
+                {{.Quantity}} <strong>{{.Symbol}}</strong>
+            </td>
+            <td class="c-end num">{{cents .ConvertedTotal}}</td>
+            <td class="text-muted">{{.CreatedAt}}</td>
+            <td class="num" data-label="at">{{cents .Price}} <span class="text-muted">{{.Currency}}</span></td>
+            <td class="num" data-label="Fee">{{if .Fee}}{{cents .Fee}}{{else}}-{{end}}</td>
         </tr>
         {{end}}
     </tbody>

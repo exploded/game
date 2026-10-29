@@ -7,18 +7,24 @@ document.body.addEventListener("showToast", function(e) {
     showToast(msg, type);
 });
 
+// Toasts stay long enough to read on a phone (errors longer), and a tap
+// dismisses one early.
 function showToast(msg, type) {
     const container = document.getElementById("toast-container");
     if (!container) return;
     const toast = document.createElement("div");
-    toast.className = "toast toast-" + type;
+    toast.className = "toast toast-" + (type || "info");
+    toast.setAttribute("role", type === "error" ? "alert" : "status");
     toast.textContent = msg;
     container.appendChild(toast);
-    setTimeout(() => toast.classList.add("toast-show"), 10);
-    setTimeout(() => {
+    const hide = () => {
+        clearTimeout(timer);
         toast.classList.remove("toast-show");
         setTimeout(() => toast.remove(), 300);
-    }, 3000);
+    };
+    const timer = setTimeout(hide, type === "error" ? 9000 : 6000);
+    toast.addEventListener("click", hide);
+    setTimeout(() => toast.classList.add("toast-show"), 10);
 }
 
 // htmx config keeps 4xx/5xx responses out of the page, so say something.
@@ -54,6 +60,14 @@ document.addEventListener("click", function(e) {
     if (btn) {
         btn.parentElement.classList.toggle("nav-open");
     }
+});
+
+// details[data-dismiss] (the game switcher and the phone tab bar's More
+// menu): close when tapping anywhere outside it.
+document.addEventListener("click", function(e) {
+    document.querySelectorAll("details[data-dismiss][open]").forEach(function(d) {
+        if (!d.contains(e.target)) d.removeAttribute("open");
+    });
 });
 
 // data-reset-on-success on an htmx form: clear it and refocus after a

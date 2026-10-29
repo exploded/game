@@ -141,7 +141,7 @@ func (h *Handler) placeLimitOrder(w http.ResponseWriter, r *http.Request, game d
 		return
 	}
 
-	setFlashCookie(w, fmt.Sprintf("Limit %s order placed for %d shares of %s at %s", orderType, quantity, stock.Symbol, fmtCents(limitPrice)), "success")
+	setFlashCookie(w, fmt.Sprintf("Limit %s order placed for %s of %s at %s", orderType, shares(quantity), stock.Symbol, fmtCents(limitPrice)), "success")
 	http.Redirect(w, r, fmt.Sprintf("/games/%d/orders", game.ID), http.StatusSeeOther)
 }
 
@@ -184,7 +184,7 @@ func (h *Handler) queueMarketOrder(w http.ResponseWriter, r *http.Request, game 
 		return
 	}
 
-	setFlashCookie(w, fmt.Sprintf("The market is closed, so your order to %s %d shares of %s is queued. It fills at the first price after the US market opens at 9:30 am New York time.", side, quantity, stock.Symbol), "success")
+	setFlashCookie(w, fmt.Sprintf("Order queued: %s %s of %s. The US market is closed, so it fills when it opens at 9:30 am New York time.", side, shares(quantity), stock.Symbol), "success")
 	http.Redirect(w, r, fmt.Sprintf("/games/%d/orders", game.ID), http.StatusSeeOther)
 }
 

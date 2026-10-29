@@ -128,14 +128,23 @@ func nint64(v int64) sql.NullInt64 {
 	return sql.NullInt64{Int64: v, Valid: true}
 }
 
-// fmtCents formats a cent amount as "$X,XXX.XX".
-func fmtCents(c int64) string {
-	d := c / 100
-	frac := c % 100
-	if frac < 0 {
-		frac = -frac
+// shares is "1 share" or "5 shares".
+func shares(n int64) string {
+	if n == 1 {
+		return "1 share"
 	}
-	return "$" + fmtThousands(d) + fmt.Sprintf(".%02d", frac)
+	return fmt.Sprintf("%d shares", n)
+}
+
+// fmtCents formats cents as dollars: -2050 is "-$20.50", not "$-20.50", and
+// -50 keeps its sign ("-$0.50").
+func fmtCents(c int64) string {
+	sign := ""
+	if c < 0 {
+		sign = "-"
+		c = -c
+	}
+	return sign + "$" + fmtThousands(c/100) + fmt.Sprintf(".%02d", c%100)
 }
 
 func fmtThousands(n int64) string {

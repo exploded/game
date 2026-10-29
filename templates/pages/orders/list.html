@@ -9,38 +9,37 @@
 </div>
 
 {{if .Items}}
-<table>
+<table class="rtable">
     <thead>
         <tr>
-            <th>Type</th>
-            <th>Symbol</th>
-            <th>Qty</th>
-            <th>Price</th>
+            <th>Order</th>
             <th>Status</th>
+            <th>Price</th>
             <th>Expires</th>
-            <th>Created</th>
+            <th>Placed</th>
             <th></th>
         </tr>
     </thead>
     <tbody>
         {{range .Items}}
         <tr>
-            <td><span class="badge {{if eq .Type "buy"}}badge-active{{else}}badge-cancelled{{end}}">{{.Type}}</span></td>
-            <td><strong><a href="/games/{{$.Item.ID}}/stocks/{{.StockID}}">{{.Symbol}}</a></strong></td>
-            <td>{{.Quantity}}</td>
+            <td class="c-main">
+                <span class="badge {{if eq .Type "buy"}}badge-active{{else}}badge-cancelled{{end}}">{{.Type}}</span>
+                {{.Quantity}} <strong><a href="/games/{{$.Item.ID}}/stocks/{{.StockID}}">{{.Symbol}}</a></strong>
+            </td>
             {{if eq .Kind "market"}}
-            <td>Market, at the open</td>
-            <td><span class="badge badge-pending">queued</span></td>
-            <td><span class="text-muted">Next open</span></td>
+            <td class="c-end"><span class="badge badge-pending">queued</span></td>
+            <td>Market, at the next open</td>
+            <td class="hide-sm"><span class="text-muted">Next open</span></td>
             {{else}}
+            <td class="c-end"><span class="badge badge-{{if eq .Status "open"}}pending{{else if eq .Status "filled"}}active{{else}}cancelled{{end}}">{{.Status}}</span></td>
             <td>Limit {{cents .LimitPrice}} <span class="text-muted">{{.Currency}}</span></td>
-            <td><span class="badge badge-{{if eq .Status "open"}}pending{{else if eq .Status "filled"}}active{{else}}cancelled{{end}}">{{.Status}}</span></td>
-            <td>{{if .ExpiresAt.Valid}}{{.ExpiresAt.String}}{{else}}<span class="text-muted">GTC</span>{{end}}</td>
+            <td data-label="Expires">{{if .ExpiresAt.Valid}}{{.ExpiresAt.String}}{{else}}<span class="text-muted">GTC</span>{{end}}</td>
             {{end}}
-            <td class="text-muted">{{.CreatedAt}}</td>
-            <td>
+            <td class="text-muted" data-label="Placed">{{.CreatedAt}}</td>
+            <td class="c-action">
                 {{if eq .Status "open"}}
-                <form method="POST" action="/games/{{$.Item.ID}}/orders/{{.ID}}/cancel" style="display:inline">
+                <form method="POST" action="/games/{{$.Item.ID}}/orders/{{.ID}}/cancel">
                     <button type="submit" class="btn btn-danger btn-sm" data-confirm="Cancel this order?">Cancel</button>
                 </form>
                 {{end}}
@@ -49,7 +48,7 @@
         {{end}}
     </tbody>
 </table>
-<p class="text-muted">Queued orders were placed while the US market was closed. They fill at the first price after it opens at 9:30 am New York time, which can differ from the price when you placed them. A buy is cancelled if you don't have enough cash at that price.</p>
+<p class="text-muted" style="margin-top:16px">Queued orders were placed while the US market was closed. They fill at the first price after it opens at 9:30 am New York time, which can differ from the price when you placed them. A buy is cancelled if you don't have enough cash at that price.</p>
 {{else}}
 <div class="empty-state">
     <p class="text-muted">No open orders.</p>

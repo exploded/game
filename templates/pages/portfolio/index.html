@@ -8,68 +8,70 @@
     </div>
 </div>
 
-<div class="portfolio-summary">
-    <div class="stat-card">
-        <span class="stat-label">Cash</span>
-        <span class="stat-value">{{cents .Extra.Participant.CashBalance}}</span>
+{{- $pt := .Extra.Participant -}}
+{{- $pl := subtract $pt.PortfolioValue .Item.StartingBalance -}}
+<div class="portfolio-hero">
+    <span class="stat-label">Total value</span>
+    <div class="hero-value mono">{{cents $pt.PortfolioValue}}</div>
+    <div class="hero-change">
+        <span class="pill {{if gt $pl 0}}pill-up{{else if lt $pl 0}}pill-down{{end}}">{{cents $pl}} ({{pct $pt.PortfolioValue .Item.StartingBalance}}%)</span>
+        <span class="text-muted">since the start</span>
     </div>
-    <div class="stat-card">
-        <span class="stat-label">Holdings Value</span>
-        <span class="stat-value">{{cents (subtract .Extra.Participant.PortfolioValue .Extra.Participant.CashBalance)}}</span>
-    </div>
-    <div class="stat-card">
-        <span class="stat-label">Total Value</span>
-        <span class="stat-value">{{cents .Extra.Participant.PortfolioValue}}</span>
-    </div>
-    <div class="stat-card">
-        <span class="stat-label">P&amp;L</span>
-        <span class="stat-value {{if gt .Extra.Participant.PortfolioValue .Item.StartingBalance}}text-green{{else if lt .Extra.Participant.PortfolioValue .Item.StartingBalance}}text-red{{end}}">
-            {{cents (subtract .Extra.Participant.PortfolioValue .Item.StartingBalance)}}
-        </span>
+    <div class="hero-split">
+        <div><span class="stat-label">Cash</span><span class="mono">{{cents $pt.CashBalance}}</span></div>
+        <div><span class="stat-label">Invested</span><span class="mono">{{cents (subtract $pt.PortfolioValue $pt.CashBalance)}}</span></div>
     </div>
 </div>
 
 {{if .Extra.Snapshots}}
 <section class="section">
     <h2>Performance</h2>
-    <canvas id="portfolio-chart" height="200"></canvas>
+    <div class="perf-chart"><canvas id="portfolio-chart"></canvas></div>
 </section>
 {{end}}
 
 <section class="section">
     <div class="section-header">
         <h2>Holdings</h2>
-        <a href="/games/{{.Item.ID}}/history" class="btn btn-sm">Transaction History</a>
+        <a href="/games/{{.Item.ID}}/history" class="btn btn-sm">History</a>
     </div>
     {{if .Items}}
-    <table>
+    {{/* rtable: a table on desktop, one tappable card per row on a phone. */}}
+    <table class="rtable">
         <thead>
             <tr>
-                <th>Symbol</th>
-                <th>Name</th>
-                <th>Qty</th>
-                <th>Avg Cost</th>
-                <th>Current Value</th>
+                <th>Stock</th>
+                <th class="num">Value</th>
+                <th class="num">Gain</th>
+                <th class="num">Qty</th>
+                <th class="num">Avg cost</th>
                 <th>Market</th>
-                <th></th>
+                <th class="hide-sm"></th>
             </tr>
         </thead>
         <tbody>
             {{range .Items}}
+            {{- $cost := multiply .Quantity .AvgCost -}}
             <tr>
-                <td><strong>{{.Symbol}}</strong></td>
-                <td>{{.StockName}}</td>
-                <td>{{.Quantity}}</td>
-                <td>{{cents .AvgCost}}</td>
-                <td>{{cents .CurrentValue}}</td>
-                <td>{{.Market | upper}}</td>
-                <td><a href="/games/{{$.Item.ID}}/stocks/{{.StockID}}" class="btn btn-primary btn-sm">Trade</a></td>
+                <td class="c-main">
+                    <a href="/games/{{$.Item.ID}}/stocks/{{.StockID}}" class="stretch"><strong>{{.Symbol}}</strong></a>
+                    <span class="c-sub">{{.StockName}}</span>
+                </td>
+                <td class="c-end num">{{cents .CurrentValue}} <span class="text-muted c-cur">{{.Currency}}</span></td>
+                <td class="num c-pill">{{if $cost}}<span class="pill {{if gt .CurrentValue $cost}}pill-up{{else if lt .CurrentValue $cost}}pill-down{{end}}">{{pct .CurrentValue $cost}}%</span>{{end}}</td>
+                <td class="num" data-label="Qty">{{.Quantity}}</td>
+                <td class="num" data-label="Avg">{{cents .AvgCost}}</td>
+                <td data-label="">{{marketLabel .Symbol .Market}}</td>
+                <td class="hide-sm"><a href="/games/{{$.Item.ID}}/stocks/{{.StockID}}" class="btn btn-primary btn-sm">Trade</a></td>
             </tr>
             {{end}}
         </tbody>
     </table>
     {{else}}
-    <p class="text-muted">No holdings yet. <a href="/games/{{.Item.ID}}/stocks">Browse stocks</a> to start trading.</p>
+    <div class="empty-state">
+        <p>No holdings yet.</p>
+        <a href="/games/{{.Item.ID}}/stocks" class="btn btn-primary">Browse stocks</a>
+    </div>
     {{end}}
 </section>
 
@@ -89,15 +91,18 @@ new Chart(ctx, {
         datasets: [{
             label: 'Portfolio Value',
             data: snapshots.map(s => s.value / 100),
-            borderColor: '#3b82f6',
-            backgroundColor: 'rgba(59,130,246,0.1)',
+            borderColor: '#00B4C9',
+            backgroundColor: 'rgba(0,180,201,0.12)',
             fill: true,
             tension: 0.3,
-            pointRadius: 2,
+            pointRadius: 0,
+            pointHitRadius: 12,
         }]
     },
     options: {
         responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
         plugins: {
             legend: { display: false },
             tooltip: {
@@ -108,10 +113,10 @@ new Chart(ctx, {
         },
         scales: {
             y: {
-                ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'k', color: '#9ca3af' },
+                ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'k', color: '#9ca3af', maxTicksLimit: 5 },
                 grid: { color: '#2a2d3a' }
             },
-            x: { ticks: { color: '#9ca3af', maxTicksLimit: 10 }, grid: { display: false } }
+            x: { ticks: { color: '#9ca3af', maxTicksLimit: window.innerWidth < 600 ? 4 : 10, maxRotation: 0 }, grid: { display: false } }
         }
     }
 });
