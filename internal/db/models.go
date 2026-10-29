@@ -127,6 +127,7 @@ type Game struct {
 	LimitOrders          int64
 	StopLoss             int64
 	FractionalShares     int64
+	Quarter              sql.NullString
 	CreatedAt            string
 	UpdatedAt            string
 }

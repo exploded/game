@@ -1,222 +1,70 @@
 package handler
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
-	"math"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/db"
+	"github.com/exploded/game/internal/market"
 )
 
+// gameCard is one game on the Games page and the dashboard.
+type gameCard struct {
+	Game        db.Game
+	Label       string          // "This quarter" or "Next game"; "" for past games
+	Participant *db.Participant // nil when the user hasn't joined
+	Players     int64
+}
+
+func (h *Handler) gameCard(ctx context.Context, g db.Game, label string, userID int64) gameCard {
+	c := gameCard{Game: g, Label: label}
+	c.Players, _ = h.q.CountParticipants(ctx, g.ID)
+	if p, err := h.q.GetParticipantByGameAndUser(ctx, db.GetParticipantByGameAndUserParams{
+		GameID: g.ID, UserID: userID,
+	}); err == nil {
+		c.Participant = &p
+	}
+	return c
+}
+
+// quarterCards are this quarter's game and the next one, for those the
+// scheduler has created (see market.EnsureQuarterlyGames).
+func (h *Handler) quarterCards(ctx context.Context, userID int64) []gameCard {
+	this := market.QuarterOf(time.Now().In(h.loc))
+	var cards []gameCard
+	for _, c := range []struct {
+		qtr   market.Quarter
+		label string
+	}{{this, "This quarter"}, {this.Next(), "Next game"}} {
+		g, err := h.q.GetGameByQuarter(ctx, sql.NullString{String: c.qtr.Key(), Valid: true})
+		if err != nil {
+			continue
+		}
+		cards = append(cards, h.gameCard(ctx, g, c.label, userID))
+	}
+	return cards
+}
+
+// GamesList shows this quarter's game, the next one and every past game.
 func (h *Handler) GamesList(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 
-	active, _ := h.q.ListActiveGames(r.Context())
-	myGames, _ := h.q.ListUserGames(r.Context(), user.ID)
-
-	// Build a set of game IDs the user has joined.
-	joined := make(map[int64]bool)
-	for _, g := range myGames {
-		joined[g.ID] = true
+	finished, _ := h.q.ListFinishedGames(r.Context(), db.ListFinishedGamesParams{Limit: 200, Offset: 0})
+	past := make([]gameCard, len(finished))
+	for i, g := range finished {
+		past[i] = h.gameCard(r.Context(), g, "", user.ID)
 	}
 
 	h.render(w, r, "games/list", "", PageData{
 		Title: "Games",
-		Items: active,
-		Extra: map[string]any{
-			"MyGames": myGames,
-			"Joined":  joined,
-		},
+		Items: h.quarterCards(r.Context(), user.ID),
+		Extra: map[string]any{"Past": past},
 	})
-}
-
-func (h *Handler) GameNew(w http.ResponseWriter, r *http.Request) {
-	h.render(w, r, "games/create", "", PageData{
-		Title: "Create Game",
-	})
-}
-
-func (h *Handler) GameCreate(w http.ResponseWriter, r *http.Request) {
-	user := auth.UserFromContext(r.Context())
-	r.ParseForm()
-
-	name := r.FormValue("name")
-	description := r.FormValue("description")
-	markets := r.FormValue("markets")
-	baseCurrency := r.FormValue("base_currency")
-	startDate := r.FormValue("start_date")
-	endDate := r.FormValue("end_date")
-
-	errors := make(map[string]string)
-	if name == "" {
-		errors["name"] = "Name is required"
-	}
-	if markets == "" {
-		markets = "both"
-	}
-	if baseCurrency == "" {
-		baseCurrency = "AUD"
-	}
-	if startDate == "" {
-		errors["start_date"] = "Start date is required"
-	}
-	if endDate == "" {
-		errors["end_date"] = "End date is required"
-	}
-	if startDate >= endDate {
-		errors["end_date"] = "End date must be after start date"
-	}
-
-	startingBalance := int64(100000000) // $1,000,000
-	if v := r.FormValue("starting_balance"); v != "" {
-		if dollars, err := strconv.ParseInt(v, 10, 64); err == nil && dollars > 0 {
-			startingBalance = dollars * 100
-		}
-	}
-
-	var maxParticipants sql.NullInt64
-	if v := r.FormValue("max_participants"); v != "" {
-		if n, err := strconv.ParseInt(v, 10, 64); err == nil && n > 0 {
-			maxParticipants = sql.NullInt64{Int64: n, Valid: true}
-		}
-	}
-
-	tradeFee := int64(0)
-	if v := r.FormValue("trade_fee"); v != "" {
-		if dollars, err := strconv.ParseFloat(v, 64); err == nil && dollars >= 0 {
-			tradeFee = int64(math.Round(dollars * 100))
-		}
-	}
-
-	allowShort := int64(0)
-	if r.FormValue("allow_short") == "1" {
-		allowShort = 1
-	}
-
-	if len(errors) > 0 {
-		h.render(w, r, "games/create", "", PageData{
-			Title:  "Create Game",
-			Errors: errors,
-		})
-		return
-	}
-
-	var recurringInterval sql.NullString
-	if v := r.FormValue("recurring_interval"); v != "" {
-		recurringInterval = sql.NullString{String: v, Valid: true}
-	}
-
-	referralBonusPct := int64(1)
-	if v := r.FormValue("referral_bonus_pct"); v != "" {
-		if n, err := strconv.ParseInt(v, 10, 64); err == nil && n >= 0 && n <= 10 {
-			referralBonusPct = n
-		}
-	}
-
-	isPublic := int64(1)
-	if r.FormValue("is_public") == "0" {
-		isPublic = 0
-	}
-
-	portfolioVisibility := "public"
-	if v := r.FormValue("portfolio_visibility"); v == "private" || v == "user_selectable" {
-		portfolioVisibility = v
-	}
-
-	creditInterestRate := int64(100) // 1.00% default
-	if v := r.FormValue("credit_interest_rate"); v != "" {
-		if f, err := strconv.ParseFloat(v, 64); err == nil && f >= 0 && f <= 100 {
-			creditInterestRate = int64(math.Round(f * 100))
-		}
-	}
-
-	leverageInterestRate := int64(500) // 5.00% default
-	if v := r.FormValue("leverage_interest_rate"); v != "" {
-		if f, err := strconv.ParseFloat(v, 64); err == nil && f >= 0 && f <= 100 {
-			leverageInterestRate = int64(math.Round(f * 100))
-		}
-	}
-
-	var minStockPrice sql.NullInt64
-	if v := r.FormValue("min_stock_price"); v != "" {
-		if dollars, err := strconv.ParseFloat(v, 64); err == nil && dollars > 0 {
-			minStockPrice = sql.NullInt64{Int64: int64(math.Round(dollars * 100)), Valid: true}
-		}
-	}
-
-	var maxStockPrice sql.NullInt64
-	if v := r.FormValue("max_stock_price"); v != "" {
-		if dollars, err := strconv.ParseFloat(v, 64); err == nil && dollars > 0 {
-			maxStockPrice = sql.NullInt64{Int64: int64(math.Round(dollars * 100)), Valid: true}
-		}
-	}
-
-	marginTrading := int64(0)
-	if r.FormValue("margin_trading") == "1" {
-		marginTrading = 1
-	}
-
-	limitOrders := int64(0)
-	if r.FormValue("limit_orders") == "1" {
-		limitOrders = 1
-	}
-
-	stopLoss := int64(0)
-	if r.FormValue("stop_loss") == "1" {
-		stopLoss = 1
-	}
-
-	fractionalShares := int64(0)
-	if r.FormValue("fractional_shares") == "1" {
-		fractionalShares = 1
-	}
-
-	game, err := h.q.CreateGame(r.Context(), db.CreateGameParams{
-		CreatedBy:            user.ID,
-		Name:                 name,
-		Description:          description,
-		Markets:              markets,
-		StartingBalance:      startingBalance,
-		BaseCurrency:         baseCurrency,
-		MaxParticipants:      maxParticipants,
-		StartDate:            startDate,
-		EndDate:              endDate,
-		AllowShort:           allowShort,
-		TradeFee:             tradeFee,
-		RecurringInterval:    recurringInterval,
-		ReferralBonusPct:     referralBonusPct,
-		IsPublic:             isPublic,
-		PortfolioVisibility:  portfolioVisibility,
-		CreditInterestRate:   creditInterestRate,
-		LeverageInterestRate: leverageInterestRate,
-		MinStockPrice:        minStockPrice,
-		MaxStockPrice:        maxStockPrice,
-		MarginTrading:        marginTrading,
-		LimitOrders:          limitOrders,
-		StopLoss:             stopLoss,
-		FractionalShares:     fractionalShares,
-	})
-	if err != nil {
-		h.render(w, r, "games/create", "", PageData{
-			Title:  "Create Game",
-			Errors: map[string]string{"name": "Failed to create game"},
-		})
-		return
-	}
-
-	// Auto-join the creator.
-	_, _ = h.q.JoinGame(r.Context(), db.JoinGameParams{
-		GameID:         game.ID,
-		UserID:         user.ID,
-		CashBalance:    game.StartingBalance,
-		PortfolioValue: game.StartingBalance,
-	})
-
-	setFlashCookie(w, "Game created!", "success")
-	http.Redirect(w, r, fmt.Sprintf("/games/%d", game.ID), http.StatusSeeOther)
 }
 
 // GameDetail is a game's home page. Players get their portfolio; everyone
@@ -254,9 +102,6 @@ func (h *Handler) gamePage(w http.ResponseWriter, r *http.Request, portfolioIfJo
 	}
 
 	count, _ := h.q.CountParticipants(r.Context(), game.ID)
-	creator, _ := h.q.GetUser(r.Context(), game.CreatedBy)
-
-	isCreator := game.CreatedBy == user.ID
 	isJoined := participant.ID != 0
 
 	canJoin := !isJoined && (game.Status == "pending" || game.Status == "active")
@@ -270,10 +115,9 @@ func (h *Handler) gamePage(w http.ResponseWriter, r *http.Request, portfolioIfJo
 		Extra: map[string]any{
 			"Participant": participant,
 			"Count":       count,
-			"IsCreator":   isCreator,
+			"IsAdmin":     user.IsAdmin == 1,
 			"IsJoined":    isJoined,
 			"CanJoin":     canJoin,
-			"Creator":     creator,
 		},
 	})
 }
@@ -341,28 +185,4 @@ func (h *Handler) GameJoin(w http.ResponseWriter, r *http.Request) {
 		setFlashCookie(w, "Joined game!", "success")
 	}
 	http.Redirect(w, r, fmt.Sprintf("/games/%d", id), http.StatusSeeOther)
-}
-
-func (h *Handler) GameCancel(w http.ResponseWriter, r *http.Request) {
-	user := auth.UserFromContext(r.Context())
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-
-	game, err := h.q.GetGame(r.Context(), id)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-
-	if game.CreatedBy != user.ID && user.IsAdmin == 0 {
-		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
-	}
-
-	_ = h.q.UpdateGameStatus(r.Context(), db.UpdateGameStatusParams{Status: "cancelled", ID: game.ID})
-	setFlashCookie(w, "Game cancelled", "info")
-	http.Redirect(w, r, "/games", http.StatusSeeOther)
 }

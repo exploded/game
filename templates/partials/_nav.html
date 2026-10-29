@@ -3,21 +3,15 @@
     <div class="container nav-inner">
         <a href="/dashboard" class="nav-brand">StockGame</a>
         {{if .User}}
-        <span class="nav-price-status"
-            hx-get="/api/price-status"
-            hx-trigger="load, every 30s"
-            hx-swap="innerHTML"></span>
         <button class="nav-toggle" data-nav-toggle aria-label="Menu">
             <span></span><span></span><span></span>
         </button>
         <div class="nav-links">
             <a href="/dashboard">Dashboard</a>
             <a href="/games">Games</a>
-            <a href="/templates">Templates</a>
             <a href="/lobby">Lobby</a>
             <a href="/questions">Questions</a>
             <a href="/courses">Courses</a>
-            <a href="/history">History</a>
             <a href="/achievements">Achievements</a>
             <a href="/notifications" class="nav-notif">
                 Notifications

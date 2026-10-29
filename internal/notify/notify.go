@@ -28,7 +28,6 @@ var notificationCategory = map[string]mail.Category{
 	"dividend":        mail.Trades,
 	"stock_split":     mail.Trades,
 	"referral_bonus":  mail.Games,
-	"game_start":      mail.Games, // a recurring game's next round
 }
 
 // Run sends whatever is due. now is the current time and loc the game time

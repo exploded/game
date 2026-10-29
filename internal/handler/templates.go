@@ -139,6 +139,14 @@ func LoadTemplates(fsys fs.FS, static *Static) (PageTemplates, error) {
 			}
 			return "/static/avatars/default.svg"
 		},
+		// longDate turns "2026-10-01" into "1 Oct 2026".
+		"longDate": func(d string) string {
+			t, err := time.Parse(time.DateOnly, d)
+			if err != nil {
+				return d
+			}
+			return t.Format("2 Jan 2006")
+		},
 		"unixDate": func(ts int64) string {
 			if ts == 0 {
 				return ""

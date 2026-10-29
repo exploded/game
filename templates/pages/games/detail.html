@@ -27,7 +27,7 @@
             </div>
             <div class="info-item">
                 <span class="info-label">Dates</span>
-                <span class="info-value">{{.Item.StartDate}} &rarr; {{.Item.EndDate}}</span>
+                <span class="info-value">{{longDate .Item.StartDate}} to {{longDate .Item.EndDate}}</span>
             </div>
             <div class="info-item">
                 <span class="info-label">Participants</span>
@@ -37,10 +37,6 @@
                 <span class="info-label">Trade Fee</span>
                 <span class="info-value">{{if .Item.TradeFee}}{{cents .Item.TradeFee}}{{else}}Free{{end}}</span>
             </div>
-            <div class="info-item">
-                <span class="info-label">Created by</span>
-                <span class="info-value">{{.Extra.Creator.Name}}</span>
-            </div>
             {{if .Item.ReferralBonusPct}}
             <div class="info-item">
                 <span class="info-label">Referral Bonus</span>
@@ -48,42 +44,12 @@
             </div>
             {{end}}
             <div class="info-item">
-                <span class="info-label">Game Visibility</span>
-                <span class="info-value">{{if .Item.IsPublic}}Public{{else}}Private{{end}}</span>
+                <span class="info-label">Short Selling</span>
+                <span class="info-value">{{if .Item.AllowShort}}Allowed{{else}}Not allowed{{end}}</span>
             </div>
             <div class="info-item">
-                <span class="info-label">Player Portfolios</span>
-                <span class="info-value">{{if eq .Item.PortfolioVisibility "user_selectable"}}User Selectable{{else}}{{.Item.PortfolioVisibility | title}}{{end}}</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Credit Interest</span>
-                <span class="info-value">{{bps .Item.CreditInterestRate}}</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Leverage Interest</span>
-                <span class="info-value">{{bps .Item.LeverageInterestRate}}</span>
-            </div>
-            {{if .Item.MinStockPrice.Valid}}
-            <div class="info-item">
-                <span class="info-label">Min Stock Price</span>
-                <span class="info-value">{{cents .Item.MinStockPrice.Int64}}</span>
-            </div>
-            {{end}}
-            {{if .Item.MaxStockPrice.Valid}}
-            <div class="info-item">
-                <span class="info-label">Max Stock Price</span>
-                <span class="info-value">{{cents .Item.MaxStockPrice.Int64}}</span>
-            </div>
-            {{end}}
-            <div class="info-item">
-                <span class="info-label">Features</span>
-                <span class="info-value">
-                    {{if .Item.MarginTrading}}Margin{{end}}
-                    {{if .Item.LimitOrders}}Limits{{end}}
-                    {{if .Item.StopLoss}}Stop-Loss{{end}}
-                    {{if .Item.FractionalShares}}Fractional{{end}}
-                    {{if not (or .Item.MarginTrading .Item.LimitOrders .Item.StopLoss .Item.FractionalShares)}}None{{end}}
-                </span>
+                <span class="info-label">Limit Orders</span>
+                <span class="info-value">{{if .Item.LimitOrders}}On{{else}}Off{{end}}</span>
             </div>
         </div>
 
@@ -99,14 +65,12 @@
         </div>
         {{end}}
 
-        {{if .Extra.IsCreator}}
+        {{if .Extra.IsAdmin}}
         <div class="creator-actions" style="flex-wrap:wrap">
+            <a href="/admin/games/{{.Item.ID}}" class="btn btn-sm">Change settings</a>
             {{if or (eq .Item.Status "pending") (eq .Item.Status "active")}}
             <form method="POST" action="/games/{{.Item.ID}}/invite" style="display:inline">
                 <button type="submit" class="btn btn-sm">Generate Invite Link</button>
-            </form>
-            <form method="POST" action="/games/{{.Item.ID}}/cancel" data-confirm="Cancel this game?" style="display:inline">
-                <button type="submit" class="btn btn-danger btn-sm">Cancel Game</button>
             </form>
             {{end}}
         </div>

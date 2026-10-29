@@ -94,6 +94,7 @@ var addedColumns = []struct{ table, column, ddl string }{
 	{"users", "last_game_id", "INTEGER DEFAULT NULL REFERENCES games(id) ON DELETE SET NULL"},
 	{"limit_orders", "kind", "TEXT NOT NULL DEFAULT 'limit'"},
 	{"notifications", "emailed", "INTEGER NOT NULL DEFAULT 0"},
+	{"games", "quarter", "TEXT DEFAULT NULL"},
 }
 
 // onceMigrations run exactly once per database, in order. Each is recorded in
@@ -112,6 +113,9 @@ var onceMigrations = []struct{ name, stmt string }{
 	{"mark-old-notifications-emailed", "UPDATE notifications SET emailed = 1"},
 	// Not in schema.sql, which runs before addedColumns adds emailed.
 	{"idx-notifications-emailed", "CREATE INDEX IF NOT EXISTS idx_notifications_emailed ON notifications(emailed) WHERE emailed = 0"},
+	// One game per quarter. Not in schema.sql, which runs before addedColumns
+	// adds quarter.
+	{"idx-games-quarter", "CREATE UNIQUE INDEX IF NOT EXISTS idx_games_quarter ON games(quarter) WHERE quarter IS NOT NULL"},
 }
 
 func runMigrations(db *sql.DB) error {

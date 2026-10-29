@@ -15,7 +15,6 @@ import (
 )
 
 var pricesChanged atomic.Bool
-var fetchInProgress atomic.Bool
 var quotesRunning atomic.Bool
 var profilesRunning atomic.Bool
 
@@ -26,9 +25,7 @@ const quoteEveryMinutes = 2
 
 // SignalPricesChanged marks that new prices are available, triggering
 // limit-order processing and portfolio revaluation on the next tick.
-func SignalPricesChanged()      { pricesChanged.Store(true) }
-func SetFetchInProgress(v bool) { fetchInProgress.Store(v) }
-func IsFetchInProgress() bool   { return fetchInProgress.Load() }
+func SignalPricesChanged() { pricesChanged.Store(true) }
 
 // Start launches the background scheduler that runs every minute.
 // loc is the timezone used for game date comparisons (start/end dates).
@@ -60,7 +57,9 @@ func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, 
 	now := time.Now()
 	today := now.In(loc).Format("2006-01-02")
 
-	// 1. Advance game statuses.
+	// 1. Make sure this quarter's game and the next exist, then advance game
+	// statuses.
+	market.EnsureQuarterlyGames(ctx, q, now.In(loc))
 	q.AdvancePendingGames(ctx, today)
 	q.FinishExpiredGames(ctx, today)
 
@@ -87,18 +86,15 @@ func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, 
 		}
 	}
 
-	// 5. Process recurring games.
-	market.ProcessRecurringGames(ctx, q)
-
-	// 6. Refresh news from TickerTick (every 4 hours, on the hour).
+	// 5. Refresh news from TickerTick (every 4 hours, on the hour).
 	if utcNow.Minute() == 0 && utcNow.Hour()%4 == 0 {
 		maybeFetchNews(ctx, q, rawDB)
 	}
 
-	// 7. Email order fills, game results and the like.
+	// 6. Email order fills, game results and the like.
 	notify.Run(ctx, q, m, now, loc)
 
-	// 8. Clean expired sessions and sign-in requests.
+	// 7. Clean expired sessions and sign-in requests.
 	q.DeleteExpiredSessions(ctx)
 	q.DeleteOldLoginRequests(ctx)
 }
@@ -127,12 +123,10 @@ func startupBackfill(ctx context.Context, q *db.Queries, rawDB *sql.DB) {
 		return // every stock already has at least one price row
 	}
 	slog.Info("S&P 500 backfill needed, starting in background", "missing", len(missing))
-	SetFetchInProgress(true)
 	fetcher := market.NewFetcher(q, rawDB)
 	if err := fetcher.FetchAll(q); err != nil {
 		slog.Error("startup backfill", "error", err)
 	}
-	SetFetchInProgress(false)
 	SignalPricesChanged()
 }
 
@@ -145,10 +139,8 @@ func maybeFetchPrices(ctx context.Context, q *db.Queries, rawDB *sql.DB, now tim
 		log, err := q.GetLatestFetchLog(ctx, "sp500")
 		if err != nil || !isSameDay(log.CreatedAt, today) {
 			slog.Info("fetching S&P 500 prices")
-			SetFetchInProgress(true)
 			fetcher := market.NewFetcher(q, rawDB)
 			fetcher.FetchMarketOnly(q, "sp500")
-			SetFetchInProgress(false)
 			SignalPricesChanged()
 		}
 	}

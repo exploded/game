@@ -159,15 +159,28 @@ DELETE FROM email_outbox WHERE status != 'pending' AND created_at < datetime('no
 -- =============================================================================
 
 -- name: CreateGame :one
-INSERT INTO games (created_by, name, description, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, recurring_interval, referral_bonus_pct, is_public, portfolio_visibility, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares)
+INSERT INTO games (created_by, name, description, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, is_public, portfolio_visibility, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, quarter)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: GetGame :one
 SELECT * FROM games WHERE id = ?;
 
--- name: ListActiveGames :many
-SELECT * FROM games WHERE status IN ('pending', 'active') ORDER BY start_date ASC;
+-- name: GetGameByQuarter :one
+SELECT * FROM games WHERE quarter = ?;
+
+-- The most recent quarter's game, whose settings the next one copies.
+-- name: GetLatestQuarterlyGame :one
+SELECT * FROM games WHERE quarter IS NOT NULL ORDER BY start_date DESC LIMIT 1;
+
+-- Who quarterly games are created by: the first admin, else the first user.
+-- name: GetGameOwner :one
+SELECT id FROM users WHERE deleted_at IS NULL ORDER BY is_admin DESC, id LIMIT 1;
+
+-- name: ListGamesWithPlayers :many
+SELECT g.*, (SELECT COUNT(*) FROM participants p WHERE p.game_id = g.id) AS players
+FROM games g
+ORDER BY g.start_date DESC, g.id DESC;
 
 -- name: ListUserGames :many
 SELECT g.* FROM games g
@@ -175,20 +188,15 @@ JOIN participants p ON p.game_id = g.id
 WHERE p.user_id = ?
 ORDER BY g.start_date DESC;
 
--- name: ListGamesByCreator :many
-SELECT * FROM games WHERE created_by = ? ORDER BY created_at DESC;
-
 -- name: UpdateGameStatus :exec
 UPDATE games SET status = ?, updated_at = datetime('now') WHERE id = ?;
 
+-- The settings admins can change. Dates come from the quarter.
 -- name: UpdateGameSettings :exec
 UPDATE games SET
     name = ?, description = ?, markets = ?, starting_balance = ?,
-    base_currency = ?, max_participants = ?, start_date = ?, end_date = ?,
-    allow_short = ?, trade_fee = ?, is_public = ?, portfolio_visibility = ?,
-    credit_interest_rate = ?, leverage_interest_rate = ?,
-    min_stock_price = ?, max_stock_price = ?,
-    margin_trading = ?, limit_orders = ?, stop_loss = ?, fractional_shares = ?,
+    base_currency = ?, max_participants = ?, trade_fee = ?, allow_short = ?,
+    limit_orders = ?, referral_bonus_pct = ?,
     updated_at = datetime('now')
 WHERE id = ?;
 
@@ -728,24 +736,6 @@ ORDER BY af.created_at DESC
 LIMIT ? OFFSET ?;
 
 -- =============================================================================
--- Game Templates (Feature 16)
--- =============================================================================
-
--- name: CreateGameTemplate :one
-INSERT INTO game_templates (name, description, markets, starting_balance, base_currency, duration_days, allow_short, trade_fee, is_builtin, created_by)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING *;
-
--- name: ListGameTemplates :many
-SELECT * FROM game_templates ORDER BY is_builtin DESC, name ASC;
-
--- name: GetGameTemplate :one
-SELECT * FROM game_templates WHERE id = ?;
-
--- name: DeleteGameTemplate :exec
-DELETE FROM game_templates WHERE id = ? AND is_builtin = 0;
-
--- =============================================================================
 -- Starting Portfolio (Feature 18)
 -- =============================================================================
 
@@ -824,8 +814,6 @@ SELECT * FROM games WHERE status IN ('finished', 'cancelled')
 ORDER BY end_date DESC
 LIMIT ? OFFSET ?;
 
--- name: CountFinishedGames :one
-SELECT COUNT(*) FROM games WHERE status IN ('finished', 'cancelled');
 
 -- =============================================================================
 -- Admin - Price Health (Feature 21)
@@ -889,20 +877,6 @@ JOIN stocks s ON s.id = h.stock_id
 WHERE h.participant_id = ?
 GROUP BY s.sector
 ORDER BY total_value DESC;
-
--- =============================================================================
--- Recurring Games (Feature 17)
--- =============================================================================
-
--- Finished recurring games whose next round doesn't exist yet.
--- name: ListFinishedRecurringGames :many
-SELECT * FROM games g
-WHERE g.status = 'finished' AND g.recurring_interval IS NOT NULL
-  AND NOT EXISTS (SELECT 1 FROM games c WHERE c.parent_game_id = g.id)
-ORDER BY g.end_date DESC;
-
--- name: SetGameParent :exec
-UPDATE games SET parent_game_id = ? WHERE id = ?;
 
 -- =============================================================================
 -- CSV Export Helpers (Feature 23)

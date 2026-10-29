@@ -134,6 +134,7 @@ CREATE TABLE IF NOT EXISTS games (
     limit_orders         INTEGER NOT NULL DEFAULT 0,             -- 1 = enabled
     stop_loss            INTEGER NOT NULL DEFAULT 0,             -- 1 = enabled
     fractional_shares    INTEGER NOT NULL DEFAULT 0,             -- 1 = enabled
+    quarter              TEXT,                                   -- '2027-Q1' for a quarter's game, NULL for older games
     created_at           TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at           TEXT    NOT NULL DEFAULT (datetime('now'))
 );

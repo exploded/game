@@ -1,0 +1,26 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Games</h1>
+    <a href="/admin" class="btn btn-sm">&larr; Admin</a>
+</div>
+
+<p style="margin-bottom:16px">There's one game each quarter. The server creates this quarter's game and the next one by itself, copying the settings of the game before. Change the next game's settings before it starts, so players know the rules when they join.</p>
+
+<div class="table-wrap">
+<table>
+    <thead><tr><th>Game</th><th>Dates</th><th class="num">Players</th><th>Status</th></tr></thead>
+    <tbody>
+    {{range .Items}}
+    <tr>
+        <td><a href="/admin/games/{{.ID}}">{{.Name}}</a></td>
+        <td>{{longDate .StartDate}} to {{longDate .EndDate}}</td>
+        <td class="num">{{.Players}}</td>
+        <td><span class="badge badge-{{.Status}}">{{.Status}}</span></td>
+    </tr>
+    {{end}}
+    </tbody>
+</table>
+</div>
+{{end}}

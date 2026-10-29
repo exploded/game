@@ -210,10 +210,12 @@ func main() {
 		r.Get("/welcome", h.WelcomePage)
 		r.Post("/welcome", h.WelcomeSubmit)
 
-		// Games
+		// Games: one per quarter, created by the scheduler. Admins change
+		// their settings under /admin/games.
 		r.Get("/games", h.GamesList)
-		r.Get("/games/new", h.GameNew)
-		r.Post("/games", h.GameCreate)
+		r.Get("/history", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/games", http.StatusMovedPermanently)
+		})
 		// Everything inside one game. GameContext adds the game bar.
 		r.Route("/games/{id}", func(r chi.Router) {
 			r.Use(h.GameContext)
@@ -221,7 +223,6 @@ func main() {
 			r.Get("/", h.GameDetail)
 			r.Get("/rules", h.GameRules)
 			r.Post("/join", h.GameJoin)
-			r.Post("/cancel", h.GameCancel)
 
 			// Portfolio
 			r.Get("/portfolio", h.Portfolio)
@@ -300,17 +301,8 @@ func main() {
 		// Notifications (Feature 19)
 		r.Get("/notifications", h.NotificationsPage)
 		r.Get("/notifications/count", h.NotificationCount)
-		r.Get("/api/price-status", h.PriceStatus)
 		r.Post("/notifications/{nid}/read", h.NotificationMarkRead)
 		r.Post("/notifications/read-all", h.NotificationMarkAllRead)
-
-		// Game Templates (Feature 16)
-		r.Get("/templates", h.GameTemplatesList)
-		r.Post("/templates", h.GameTemplateCreate)
-		r.Post("/templates/{tid}/create-game", h.GameFromTemplate)
-
-		// Game History (Feature 20)
-		r.Get("/history", h.GameHistory)
 
 		// Account Settings
 		r.Get("/settings", h.SettingsPage)
@@ -325,6 +317,10 @@ func main() {
 				return auth.RequireAdmin(next)
 			})
 			r.Get("/", h.AdminDashboard)
+			r.Get("/games", h.AdminGames)
+			r.Get("/games/{gid}", h.AdminGame)
+			r.Post("/games/{gid}", h.AdminGameUpdate)
+			r.Post("/games/{gid}/cancel", h.AdminGameCancel)
 			r.Get("/users", h.AdminUsers)
 			r.Post("/users/{id}/admin", h.AdminToggle)
 			r.Get("/prices", h.AdminPrices)

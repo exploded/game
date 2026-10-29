@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -115,11 +114,9 @@ func (h *Handler) AdminUserActivity(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) AdminFetchPrices(w http.ResponseWriter, r *http.Request) {
 	fetcher := market.NewFetcher(h.q, h.rawDB)
 	go func() {
-		scheduler.SetFetchInProgress(true)
 		if err := fetcher.FetchAll(h.q); err != nil {
 			slog.Error("manual price fetch", "error", err)
 		}
-		scheduler.SetFetchInProgress(false)
 		scheduler.SignalPricesChanged()
 	}()
 	setFlashCookie(w, "Price fetch started in background", "success")
@@ -158,61 +155,4 @@ func (h *Handler) AdminMarkMessageRead(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = h.q.MarkContactMessageRead(r.Context(), mid)
 	http.Redirect(w, r, "/admin/messages", http.StatusSeeOther)
-}
-
-// PriceStatus returns an HTML fragment showing a countdown to the next price
-// update, or "Updating..." when a fetch is in progress. Polled by the nav bar.
-func (h *Handler) PriceStatus(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-
-	if scheduler.IsFetchInProgress() {
-		fmt.Fprint(w, `<span class="price-status updating">Updating prices&hellip;</span>`)
-		return
-	}
-
-	now := time.Now().UTC()
-	next := nextFetchTime(now)
-	remaining := next.Sub(now)
-
-	// If updated within the last 10 minutes, show "just updated".
-	log, err := h.q.GetLatestFetchLog(r.Context(), "sp500")
-	if err == nil && log.CreatedAt != "" {
-		if t, err := time.Parse("2006-01-02 15:04:05", log.CreatedAt); err == nil {
-			if now.Sub(t) < 10*time.Minute {
-				fmt.Fprint(w, `<span class="price-status updated">Prices updated</span>`)
-				return
-			}
-		}
-	}
-
-	totalSec := int(remaining.Seconds())
-	hours := totalSec / 3600
-	mins := (totalSec % 3600) / 60
-
-	var label string
-	if hours > 0 {
-		label = fmt.Sprintf("%dh %dm", hours, mins)
-	} else {
-		label = fmt.Sprintf("%dm", mins)
-	}
-
-	fmt.Fprintf(w, `<span class="price-status countdown" data-target="%d">Prices in %s</span>`,
-		next.Unix(), label)
-}
-
-// nextFetchTime returns the next weekday at 22:00 UTC.
-func nextFetchTime(now time.Time) time.Time {
-	target := time.Date(now.Year(), now.Month(), now.Day(), 22, 0, 0, 0, time.UTC)
-
-	// If we're past 22:00 today, move to tomorrow.
-	if now.After(target) {
-		target = target.AddDate(0, 0, 1)
-	}
-
-	// Skip weekends.
-	for target.Weekday() == time.Saturday || target.Weekday() == time.Sunday {
-		target = target.AddDate(0, 0, 1)
-	}
-
-	return target
 }

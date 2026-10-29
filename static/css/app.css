@@ -77,9 +77,6 @@ main.container { flex: 1; padding-top: 24px; padding-bottom: 32px; }
     letter-spacing: -0.3px;
 }
 .nav-brand:hover { color: var(--color-primary-link); }
-.nav-price-status { font-size: 11px; color: var(--color-text-muted); margin-left: 12px; }
-.price-status.updating { color: var(--color-warning, #f0ad4e); }
-.price-status.updated { color: var(--color-success, #5cb85c); }
 .nav-links { display: flex; align-items: center; gap: 24px; height: 100%; }
 .nav-links a {
     color: var(--color-text-muted);

@@ -39,6 +39,22 @@ Built on 2026-10-29 and merged into `master` on 2026-10-30. Not deployed yet.
   `*.googleusercontent.com` entry in the CSP `img-src`, and "Use Google Photo"
   on the Profile page.
 
+## One game per quarter (2026-10-30)
+
+Built on 2026-10-30. Not deployed yet.
+
+- [x] **One game at a time, one each quarter.** Starts at midnight on 1 January,
+  April, July and October and ends at midnight at the end of the quarter. The
+  scheduler creates this quarter's game and the next one, copying settings
+  forward. Players can't create games; templates and recurring games are gone.
+- [x] **Past games** are listed on `/games` with their final standings.
+- [x] **Only admins change game settings**, at `/admin/games`.
+- [ ] **Cancel "Test 3" in production** (`/admin/games/3`) once this is
+  deployed, so the quarterly game is the only one running. It has one player
+  and no trades.
+- [ ] **Email everyone when a quarter's game opens**, not only players who
+  joined early. Today G1 (game started) goes only to players already in it.
+
 ## From the whole-game review (2026-10-29)
 
 Highest impact for the effort first.
@@ -50,16 +66,15 @@ Highest impact for the effort first.
   (`ListGameInvites` is unused). Show it with a copy button, and send a
   signed-out visitor back to `/invite/{code}` after sign-in. `InviteJoin`
   ignores `expires_at` and `max_participants` and joins on a GET.
-- [ ] **An always-open official game.** A monthly public recurring game Rob
-  runs, so a new player always has a game to join.
+- [x] **An always-open official game.** Done as one game per quarter
+  (2026-10-30).
 - [ ] **First-trade onboarding.** After `/welcome`, join the official game and
   land on Stocks, with a short checklist. Today it's about 7 steps.
-- [ ] **Hide game settings that do nothing:** margin, stop loss, fractional
-  shares, min/max price, interest rates and "Player Portfolios" are stored but
-  never enforced. Default limit orders to on. Template games are created
-  private, with blank portfolio visibility (`gametemplates.go:53`).
-- [ ] **Enforce private games.** `ListActiveGames` lists them and `GameJoin`
-  lets anyone in.
+- [x] **Hide game settings that do nothing.** The Rules page and the admin
+  settings form show only the settings that work. Quarterly games have limit
+  orders on.
+- [x] **Enforce private games.** No longer needed: every quarterly game is
+  public.
 - [ ] **Achievements that never fire:** Champion, Podium Finish, Social Player,
   Market Watcher. Return badges are only checked after a market trade.
 - [ ] **Stocks page:** show last price and day change, a sector filter and top
@@ -69,12 +84,12 @@ Highest impact for the effort first.
 - [ ] **Promote courses and Questions** on the dashboard and in emails.
 - [ ] **Live chat:** poll every 15 seconds and show relative times.
 - [ ] **Benchmark against the S&P 500** rather than a flat line.
-- [ ] **Shorter nav:** fold Templates, History and Achievements into other pages.
+- [ ] **Shorter nav:** fold Achievements into another page. Templates and
+  History are gone.
 - [ ] **Real splits and dividends from Twelve Data**, so holdings don't break when
   a real split happens.
 - [ ] **Small fixes:** the leaderboard rank skips hidden players; chat cuts
-  messages at 500 bytes, not characters (can split an emoji); Help says
-  "New Game" for the "Create Game" button.
+  messages at 500 bytes, not characters (can split an emoji).
 
 ## Follow-ups from the terms review (2026-10-29)
 
@@ -84,10 +99,8 @@ Highest impact for the effort first.
 - [ ] **Admin tool to remove chat messages.** Section 9 of the terms says we can
   remove chat messages, but there's no way to do it yet. Add a delete or hide
   action to `internal/handler/chat.go` for admins. Part of Moderation above.
-- [ ] **Update the ASX wording.** The About page (`templates/pages/legal/about.html`),
-  the create-game page (`templates/pages/games/create.html`) and the game
-  templates list (`templates/pages/templates/list.html`) still say you can
-  trade ASX 200 stocks. While the ASX licence is pending, the game offers
+- [ ] **Update the ASX wording.** The About page (`templates/pages/legal/about.html`)
+  still says you can trade ASX 200 stocks. While the ASX licence is pending, the game offers
   US-listed Australian companies instead (`AusUS` in
   `internal/market/symbols.go`). Update the wording now, and again if the ASX
   licence comes through.

@@ -72,7 +72,7 @@ worked out but aren't written yet.
 | G1 | Game started | A game you joined moves from pending to active | Built |
 | G2 | Game ending soon | 3 days and 1 day before a game you're in ends | Built |
 | G3 | Final results | A game you're in finishes: your rank, return and the top 3 | Built |
-| G4 | Next round ready | A recurring game you created starts its next round | Built |
+| G4 | Next round ready | A recurring game you created starts its next round | Removed: recurring games were replaced by one game per quarter |
 | G5 | Referral bonus | Someone joins a game through your invite link | Built |
 
 - G2 and G3 matter most to Rob: they bring people back before a game ends.

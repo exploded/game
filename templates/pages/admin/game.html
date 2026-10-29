@@ -1,0 +1,105 @@
+{{template "base" .}}
+
+{{define "content"}}
+{{- $g := .Item -}}
+<div class="page-header">
+    <h1>{{$g.Name}}</h1>
+    <span class="badge badge-{{$g.Status}}">{{$g.Status}}</span>
+    <a href="/admin/games" class="btn btn-sm">&larr; Games</a>
+</div>
+
+<p style="margin-bottom:16px">{{longDate $g.StartDate}} to {{longDate $g.EndDate}} &middot; {{.Extra.Players}} {{if eq .Extra.Players 1}}player{{else}}players{{end}} &middot; <a href="/games/{{$g.ID}}">Open the game</a></p>
+
+{{if .Extra.Editable}}
+{{if eq $g.Status "active"}}
+<div class="disclaimer-banner">This game is running. Changes apply straight away to everyone in it.</div>
+{{end}}
+
+<form method="POST" action="/admin/games/{{$g.ID}}" class="form-card">
+    <div class="form-group">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" value="{{$g.Name}}" maxlength="80" required>
+        {{if .Errors.name}}<div class="form-error">{{.Errors.name}}</div>{{end}}
+    </div>
+
+    <div class="form-group">
+        <label for="description">Description</label>
+        <textarea id="description" name="description" rows="3">{{$g.Description}}</textarea>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label for="markets">Markets</label>
+            <select id="markets" name="markets">
+                <option value="both"{{if eq $g.Markets "both"}} selected{{end}}>Both</option>
+                <option value="sp500"{{if eq $g.Markets "sp500"}} selected{{end}}>S&amp;P 500 only</option>
+                <option value="asx"{{if eq $g.Markets "asx"}} selected{{end}}>ASX only</option>
+            </select>
+            {{if .Errors.markets}}<div class="form-error">{{.Errors.markets}}</div>{{end}}
+        </div>
+        <div class="form-group">
+            <label for="max_participants">Most players (blank for no limit)</label>
+            <input type="number" id="max_participants" name="max_participants" min="1" value="{{if $g.MaxParticipants.Valid}}{{$g.MaxParticipants.Int64}}{{end}}">
+            {{if .Errors.max_participants}}<div class="form-error">{{.Errors.max_participants}}</div>{{end}}
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label for="starting_balance">Starting cash ($)</label>
+            <input type="number" id="starting_balance" name="starting_balance" min="1000" value="{{rawDollars $g.StartingBalance}}"{{if .Extra.MoneyLocked}} disabled{{end}}>
+            {{if .Errors.starting_balance}}<div class="form-error">{{.Errors.starting_balance}}</div>{{end}}
+        </div>
+        <div class="form-group">
+            <label for="base_currency">Currency</label>
+            <select id="base_currency" name="base_currency"{{if .Extra.MoneyLocked}} disabled{{end}}>
+                <option value="AUD"{{if eq $g.BaseCurrency "AUD"}} selected{{end}}>AUD</option>
+                <option value="USD"{{if eq $g.BaseCurrency "USD"}} selected{{end}}>USD</option>
+            </select>
+            {{if .Errors.base_currency}}<div class="form-error">{{.Errors.base_currency}}</div>{{end}}
+        </div>
+    </div>
+    {{if .Extra.MoneyLocked}}
+    <p class="text-muted" style="font-size:12px;margin-bottom:12px">Starting cash and currency are fixed once someone has joined.</p>
+    {{end}}
+
+    <div class="form-row">
+        <div class="form-group">
+            <label for="trade_fee">Fee per trade ($)</label>
+            <input type="number" id="trade_fee" name="trade_fee" min="0" step="0.01" value="{{rawDollars $g.TradeFee}}">
+            {{if .Errors.trade_fee}}<div class="form-error">{{.Errors.trade_fee}}</div>{{end}}
+        </div>
+        <div class="form-group">
+            <label for="referral_bonus_pct">Referral bonus (% of starting cash)</label>
+            <input type="number" id="referral_bonus_pct" name="referral_bonus_pct" min="0" max="10" step="1" value="{{$g.ReferralBonusPct}}">
+            {{if .Errors.referral_bonus_pct}}<div class="form-error">{{.Errors.referral_bonus_pct}}</div>{{end}}
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="limit_orders" value="1"{{if $g.LimitOrders}} checked{{end}}> Limit orders
+            </label>
+        </div>
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="allow_short" value="1"{{if $g.AllowShort}} checked{{end}}> Short selling
+            </label>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save settings</button>
+</form>
+
+<section class="section" style="margin-top:24px">
+    <h2>Cancel this game</h2>
+    <p class="text-muted" style="margin-bottom:8px">Players can't trade in a cancelled game, and the server doesn't make a new one for this quarter.</p>
+    <form method="POST" action="/admin/games/{{$g.ID}}/cancel" data-confirm="Cancel {{$g.Name}}? This can't be undone.">
+        <button type="submit" class="btn btn-danger btn-sm">Cancel game</button>
+    </form>
+</section>
+{{else}}
+<p class="text-muted">This game has {{if eq $g.Status "cancelled"}}been cancelled{{else}}finished{{end}}, so its settings can't change.</p>
+{{end}}
+{{end}}

@@ -122,17 +122,15 @@ Dashboard showing trade statistics: total trades, buy/sell counts, win rate, tot
 
 ## Game Enhancements
 
-### 16. Game Templates
-Preset game configurations for quick creation. Users can create custom templates with name, markets, currency, duration, starting balance, trade fee, and short selling settings. Create a game from any template with one click.
+### 16. One game per quarter
+There's one game each calendar quarter. It starts at midnight on 1 January, April, July or October and ends at midnight after the quarter's last day, in `TIMEZONE`. Players can't create games. The scheduler creates this quarter's game and the next one, named like "Jan–Mar 2027", each copying the settings of the game before it, so players can join the next game early. Admins change a game's settings at `/admin/games`: name, description, markets, player limit, trade fee, referral bonus, limit orders and short selling. Starting cash and currency are fixed once someone has joined. Finished games are listed on `/games` with their final standings.
 
-- **Routes:** `/templates` (GET/POST), `/templates/{tid}/create-game` (POST)
-- **Files:** `internal/handler/gametemplates.go`, `templates/pages/templates/list.html`
+- **Schema:** `games.quarter` (`2027-Q1`, unique; NULL for games from before quarters)
+- **Routes:** `/games`, `/admin/games`, `/admin/games/{gid}` (GET/POST), `/admin/games/{gid}/cancel`
+- **Files:** `internal/market/quarterly.go`, `internal/handler/games.go`, `internal/handler/admin_games.go`, `templates/pages/admin/game*.html`
 
-### 17. Recurring Games
-Games can be set to recurring (weekly or monthly). When a recurring game finishes, the scheduler automatically creates a new game with the same settings and the next date range. The creator is auto-joined and notified.
-
-- **Schema:** `games.recurring_interval` column (weekly/monthly/NULL)
-- **Files:** `internal/market/recurring.go`, updated game create form
+### 17. Game templates and recurring games (removed)
+Replaced by quarterly games on 2026-10-30. The `game_templates` table and the `recurring_interval`, `parent_game_id` and `template_id` columns are still in the schema but unused.
 
 ### 18. Starting Portfolio
 Game creators can configure a set of stocks that every player starts with when joining. Starting stocks are granted with zero cost basis (free). Managed via `game_starting_stocks` table.
@@ -146,18 +144,14 @@ In-app notification system. Users are notified about:
 - Limit orders filled
 - Dividends received
 - Stock splits applied
-- Recurring games created
 
 Unread count shown as a badge in the nav bar (HTMX polled on page load). Mark individual or all notifications as read.
 
 - **Routes:** `/notifications`, `/notifications/count`, `/notifications/{nid}/read`, `/notifications/read-all`
 - **Files:** `internal/handler/notifications.go`, `templates/pages/notifications/index.html`
 
-### 20. Game History/Archive
-Browse finished and cancelled games with pagination. Accessible from the nav bar.
-
-- **Routes:** `/history`
-- **Files:** `internal/handler/history.go`, `templates/pages/history/index.html`
+### 20. Past games
+Finished and cancelled games are listed under Past games on `/games`. `/history` redirects there.
 
 ---
 

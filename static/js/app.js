@@ -98,22 +98,6 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 
-// Price status countdown: ticks every second between HTMX 30s refreshes.
-setInterval(function() {
-    var el = document.querySelector(".price-status.countdown");
-    if (!el) return;
-    var target = parseInt(el.getAttribute("data-target"), 10);
-    if (!target) return;
-    var remaining = target - Math.floor(Date.now() / 1000);
-    if (remaining <= 0) {
-        el.textContent = "Updating soon…";
-        return;
-    }
-    var h = Math.floor(remaining / 3600);
-    var m = Math.floor((remaining % 3600) / 60);
-    el.textContent = h > 0 ? "Prices in " + h + "h " + m + "m" : "Prices in " + m + "m";
-}, 60000);
-
 // Promote flash banners into toasts.
 document.addEventListener("DOMContentLoaded", function() {
     document.querySelectorAll(".flash").forEach(function(el) {
