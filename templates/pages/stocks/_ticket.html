@@ -1,0 +1,94 @@
+{{/* Order ticket beside the chart on the stock page. Buy/Sell are radio
+inputs styled as tabs; the script in detail.html does the sums. */}}
+{{define "ticket"}}
+{{- $g := .Extra.Game -}}
+{{- $t := .Extra.Trade -}}
+<aside class="ticket" id="ticket">
+    {{if not $t}}
+    <p class="text-muted">You're not playing in this game. <a href="/games/{{$g.ID}}">Join it</a> to trade {{.Item.Symbol}}.</p>
+    {{else if ne $g.Status "active"}}
+    <p class="text-muted">This game is {{$g.Status}}, so trading is closed.</p>
+    {{else if not .Extra.LatestPrice.ID}}
+    <p class="text-muted">No price yet, so {{.Item.Symbol}} can't be traded. Prices are fetched daily after market close.</p>
+    {{else}}
+    <div class="ticket-game">Trading in <strong>{{$g.Name}}</strong></div>
+    <div class="ticket-position">
+        <div><span class="info-label">Cash</span><span class="mono">{{cents $t.Participant.CashBalance}}</span></div>
+        <div><span class="info-label">You hold</span><span class="mono">{{$t.Holding.Quantity}}</span></div>
+        {{if $t.Holding.ID}}<div><span class="info-label">Worth</span><span class="mono">{{cents $t.HoldingValue}}</span></div>{{end}}
+    </div>
+
+    <form method="POST" action="/games/{{$g.ID}}/trade/{{.Item.ID}}" id="ticket-form">
+        <div class="ticket-sides">
+            <input type="radio" name="side" value="buy" id="side-buy" checked>
+            <label for="side-buy">Buy</label>
+            <input type="radio" name="side" value="sell" id="side-sell"{{if and (le $t.Holding.Quantity 0) (not $g.AllowShort)}} disabled{{end}}>
+            <label for="side-sell"{{if and (le $t.Holding.Quantity 0) (not $g.AllowShort)}} title="You don't hold any {{.Item.Symbol}}"{{end}}>Sell</label>
+        </div>
+
+        {{if $g.LimitOrders}}
+        <div class="form-group">
+            <label for="order-type">Order type</label>
+            <select id="order-type" name="order_type">
+                <option value="market">Market: at the current price</option>
+                <option value="limit">Limit: at your price or better</option>
+            </select>
+        </div>
+        {{else}}
+        <input type="hidden" name="order_type" value="market">
+        {{end}}
+
+        <div class="form-group">
+            <label for="qty">Shares</label>
+            <input type="number" id="qty" name="quantity" min="1" value="0" required>
+            <input type="range" id="qty-slider" min="0" max="0" value="0" class="slider" aria-label="Shares">
+            <div class="slider-labels"><span>0</span><span id="qty-max">0</span></div>
+        </div>
+
+        {{if $g.LimitOrders}}
+        <div id="limit-fields" hidden>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="limit-price">Limit price ({{.Item.Currency}})</label>
+                    <input type="number" id="limit-price" name="limit_price" min="0.01" step="0.01" value="{{rawDollars .Extra.LatestPrice.Close}}">
+                </div>
+                <div class="form-group">
+                    <label for="limit-expires">Expires (optional)</label>
+                    <input type="date" id="limit-expires" name="expires_at">
+                </div>
+            </div>
+        </div>
+        {{end}}
+
+        <div class="estimate-box">
+            <div class="estimate-row">
+                <span id="est-native-label">Cost ({{.Item.Currency}})</span>
+                <span id="est-native">$0.00</span>
+            </div>
+            {{if ne .Item.Currency $g.BaseCurrency}}
+            <div class="estimate-row">
+                <span id="est-converted-label">Cost ({{$g.BaseCurrency}})</span>
+                <span id="est-converted">$0.00</span>
+            </div>
+            {{end}}
+            {{if $g.TradeFee}}
+            <div class="estimate-row">
+                <span>Trade fee</span>
+                <span>{{cents $g.TradeFee}}</span>
+            </div>
+            {{end}}
+            <div class="estimate-row estimate-total">
+                <span id="est-total-label">Total ({{$g.BaseCurrency}})</span>
+                <span id="est-total">$0.00</span>
+            </div>
+            <div class="estimate-row">
+                <span>Cash after</span>
+                <span id="est-remaining">{{cents $t.Participant.CashBalance}}</span>
+            </div>
+        </div>
+
+        <button type="submit" id="ticket-btn" class="btn btn-primary" style="width:100%" disabled>Buy 0 shares</button>
+    </form>
+    {{end}}
+</aside>
+{{end}}

@@ -1,0 +1,20 @@
+{{/* Price header for the stock page, also served alone by StockPrice. While
+the US market is open it polls itself every minute; once closed it renders
+without the trigger, so polling stops. The data-* values let the chart move
+today's candle after each swap. */}}
+{{define "price-stats"}}{{with .Extra.PriceStats}}{{if .Latest.ID}}
+<div class="price-stats" id="price-stats"
+     data-date="{{.Latest.Date}}" data-o="{{.Latest.Open}}" data-h="{{.Latest.High}}" data-l="{{.Latest.Low}}" data-c="{{.Latest.Close}}"
+     {{if .Open}}hx-get="/games/{{.GameID}}/stocks/{{.StockID}}/price" hx-trigger="every 60s" hx-swap="outerHTML"{{end}}>
+    <div class="price-current">{{cents .Latest.Close}}</div>
+    <div class="price-change {{if .Up}}text-green{{else}}text-red{{end}}">{{.ChangeText}}</div>
+    <div class="price-range">
+        <span class="text-muted">Day Range</span>
+        <span>{{cents .Latest.Low}} &mdash; {{cents .Latest.High}}</span>
+    </div>
+    <div class="price-range">
+        <span class="badge {{if .Open}}badge-active{{else}}badge-finished{{end}}">{{if .Open}}Market open{{else}}Market closed{{end}}</span>
+        <span>{{.AsOf}}</span>
+    </div>
+</div>
+{{end}}{{end}}{{end}}

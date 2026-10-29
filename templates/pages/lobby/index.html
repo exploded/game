@@ -11,8 +11,9 @@
 <div class="chat-container">
     <form hx-post="/lobby"
           hx-swap="none"
-          hx-disabled-elt="find button"
+          hx-disable="find button"
           class="chat-form"
+          data-reset-on-success
           id="lobby-form">
         <input type="text" name="message" placeholder="Type a message..." autocomplete="off"
                class="chat-input" maxlength="500" required id="lobby-input">
@@ -55,10 +56,4 @@
 </div>
 {{end}}
 
-<script>
-document.getElementById('lobby-form').addEventListener('htmx:afterRequest', function() {
-    document.getElementById('lobby-input').value = '';
-    document.getElementById('lobby-input').focus();
-});
-</script>
 {{end}}

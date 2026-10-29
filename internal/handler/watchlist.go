@@ -88,7 +88,7 @@ func (h *Handler) WatchlistAdd(w http.ResponseWriter, r *http.Request) {
 
 	if isHTMX(r) {
 		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(fmt.Sprintf(`<button hx-delete="/games/%d/watchlist/%d" hx-swap="outerHTML" hx-disabled-elt="this" class="btn btn-sm btn-watchlist-active">Watching</button>`, gameID, stockID)))
+		w.Write([]byte(fmt.Sprintf(`<button hx-delete="/games/%d/watchlist/%d" hx-swap="outerHTML" hx-disable="this" class="btn btn-sm btn-watchlist-active">Watching</button>`, gameID, stockID)))
 		return
 	}
 	http.Redirect(w, r, fmt.Sprintf("/games/%d/stocks/%d", gameID, stockID), http.StatusSeeOther)
@@ -122,7 +122,7 @@ func (h *Handler) WatchlistRemove(w http.ResponseWriter, r *http.Request) {
 
 	if isHTMX(r) {
 		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(fmt.Sprintf(`<button hx-post="/games/%d/watchlist/%d" hx-swap="outerHTML" hx-disabled-elt="this" class="btn btn-sm">Watch</button>`, gameID, stockID)))
+		w.Write([]byte(fmt.Sprintf(`<button hx-post="/games/%d/watchlist/%d" hx-swap="outerHTML" hx-disable="this" class="btn btn-sm">Watch</button>`, gameID, stockID)))
 		return
 	}
 	http.Redirect(w, r, fmt.Sprintf("/games/%d/watchlist", gameID), http.StatusSeeOther)

@@ -1,0 +1,47 @@
+{{define "gamebar"}}
+{{- $g := .Game -}}
+<div class="game-bar">
+    <div class="container">
+        <div class="game-bar-top">
+            <div class="game-bar-title">
+                <a href="/games/{{$g.ID}}" class="game-bar-name">{{$g.Name}}</a>
+                <span class="badge badge-{{$g.Status}}">{{$g.Status}}</span>
+                {{if .Others}}
+                <details class="game-switcher">
+                    <summary>Switch game</summary>
+                    <ul>
+                        {{range .Others}}
+                        <li><a href="/games/{{.ID}}{{if eq .Status "active"}}/portfolio{{end}}">{{.Name}}</a></li>
+                        {{end}}
+                    </ul>
+                </details>
+                {{end}}
+            </div>
+            {{with .Participant}}
+            <div class="game-bar-stats">
+                <span><span class="game-bar-label">Cash</span> <span class="mono">{{cents .CashBalance}}</span></span>
+                <span><span class="game-bar-label">Value</span> <span class="mono">{{cents .PortfolioValue}}</span></span>
+                {{$pl := subtract .PortfolioValue $g.StartingBalance}}
+                <span><span class="game-bar-label">P&amp;L</span> <span class="mono {{if gt $pl 0}}text-green{{else if lt $pl 0}}text-red{{end}}">{{cents $pl}}</span></span>
+            </div>
+            {{end}}
+        </div>
+        <nav class="game-tabs" aria-label="Game">
+            <a href="/games/{{$g.ID}}"{{if eq .Tab "overview"}} class="active"{{end}}>Overview</a>
+            {{if .Participant}}
+            <a href="/games/{{$g.ID}}/portfolio"{{if eq .Tab "portfolio"}} class="active"{{end}}>Portfolio</a>
+            {{if eq $g.Status "active"}}
+            <a href="/games/{{$g.ID}}/stocks"{{if eq .Tab "stocks"}} class="active"{{end}}>Stocks</a>
+            {{if $g.LimitOrders}}<a href="/games/{{$g.ID}}/orders"{{if eq .Tab "orders"}} class="active"{{end}}>Orders</a>{{end}}
+            <a href="/games/{{$g.ID}}/watchlist"{{if eq .Tab "watchlist"}} class="active"{{end}}>Watchlist</a>
+            {{end}}
+            {{end}}
+            <a href="/games/{{$g.ID}}/leaderboard"{{if eq .Tab "leaderboard"}} class="active"{{end}}>Leaderboard</a>
+            {{if .Participant}}
+            <a href="/games/{{$g.ID}}/analytics"{{if eq .Tab "analytics"}} class="active"{{end}}>Analytics</a>
+            <a href="/games/{{$g.ID}}/chat"{{if eq .Tab "chat"}} class="active"{{end}}>Chat</a>
+            {{end}}
+        </nav>
+    </div>
+</div>
+{{end}}

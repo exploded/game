@@ -4,7 +4,6 @@
 <div class="page-header">
     <h1>Sector Analysis</h1>
     <div class="page-header-actions">
-        <a href="/games/{{.Item.ID}}" class="btn btn-sm">&larr; Game</a>
         <a href="/games/{{.Item.ID}}/analytics" class="btn btn-sm">Analytics</a>
     </div>
 </div>
@@ -53,7 +52,7 @@
                 <td>{{if .LatestPx}}{{cents .LatestPx}}{{else}}<span class="text-muted">N/A</span>{{end}}</td>
                 <td class="{{if gt .PnL 0}}text-green{{else if lt .PnL 0}}text-red{{end}}">{{cents .PnL}}</td>
                 <td class="{{if gt .PnL 0}}text-green{{else if lt .PnL 0}}text-red{{end}}">{{.PnLPct}}%</td>
-                <td><a href="/games/{{$.Item.ID}}/trade/{{.StockID}}" class="btn btn-primary btn-sm">Trade</a></td>
+                <td><a href="/games/{{$.Item.ID}}/stocks/{{.StockID}}" class="btn btn-primary btn-sm">Trade</a></td>
             </tr>
             {{end}}
         </tbody>
@@ -64,8 +63,8 @@
 </section>
 
 {{if .Extra.ChartJSON}}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-<script>
+<script src="{{asset "js/chart-4.5.1.umd.min.js"}}"></script>
+<script nonce="{{.Nonce}}">
 (function() {
     const data = JSON.parse('{{.Extra.ChartJSON}}');
     if (!data || !data.length) return;

@@ -4,9 +4,10 @@ import (
 	"database/sql"
 	"fmt"
 	"html/template"
-	"os"
-	"path/filepath"
+	"io/fs"
+	"path"
 	"strings"
+	"time"
 )
 
 // PageTemplates maps page keys (e.g. "games/list") to cloned template sets.
@@ -20,8 +21,11 @@ func RegisterAvatarPath(id int64, path string) {
 	avatarPathMap[id] = path
 }
 
-func LoadTemplates(dir string) (PageTemplates, error) {
+// LoadTemplates parses the templates in fsys (layouts/, partials/, pages/).
+// static supplies the cache-busting URLs for the "asset" func.
+func LoadTemplates(fsys fs.FS, static *Static) (PageTemplates, error) {
 	funcMap := template.FuncMap{
+		"asset": static.URL,
 		"cents": func(v any) string {
 			switch val := v.(type) {
 			case int64:
@@ -65,6 +69,43 @@ func LoadTemplates(dir string) (PageTemplates, error) {
 		"bps": func(bp int64) string {
 			return fmt.Sprintf("%.2f%%", float64(bp)/100)
 		},
+		"bigMoney": func(v int64) string {
+			if v == 0 {
+				return "N/A"
+			}
+			abs := v
+			if abs < 0 {
+				abs = -abs
+			}
+			switch {
+			case abs >= 1_000_000_000_000:
+				return fmt.Sprintf("$%.2fT", float64(v)/1_000_000_000_000)
+			case abs >= 1_000_000_000:
+				return fmt.Sprintf("$%.2fB", float64(v)/1_000_000_000)
+			case abs >= 1_000_000:
+				return fmt.Sprintf("$%.2fM", float64(v)/1_000_000)
+			default:
+				return "$" + fmtThousands(v)
+			}
+		},
+		"ratio100": func(v int64) string {
+			if v == 0 {
+				return "N/A"
+			}
+			return fmt.Sprintf("%.2f", float64(v)/100)
+		},
+		"pct100": func(v int64) string {
+			if v == 0 {
+				return "N/A"
+			}
+			return fmt.Sprintf("%.2f%%", float64(v)/100)
+		},
+		"commas": func(v int64) string {
+			if v == 0 {
+				return "N/A"
+			}
+			return fmtThousands(v)
+		},
 		"rawDollars": func(c int64) string {
 			return fmt.Sprintf("%.2f", float64(c)/100)
 		},
@@ -92,6 +133,12 @@ func LoadTemplates(dir string) (PageTemplates, error) {
 			}
 			return "/static/avatars/default.svg"
 		},
+		"unixDate": func(ts int64) string {
+			if ts == 0 {
+				return ""
+			}
+			return time.Unix(ts, 0).UTC().Format("2006-01-02")
+		},
 		"int": func(v any) int {
 			switch val := v.(type) {
 			case int:
@@ -107,36 +154,40 @@ func LoadTemplates(dir string) (PageTemplates, error) {
 	}
 
 	// Build shared base from layouts + partials.
-	base := template.New("").Funcs(funcMap)
-	base = template.Must(base.ParseGlob(filepath.Join(dir, "layouts", "*.html")))
+	base, err := template.New("").Funcs(funcMap).ParseFS(fsys, "layouts/*.html")
+	if err != nil {
+		return nil, err
+	}
 
 	// Parse partials if they exist.
-	partials, _ := filepath.Glob(filepath.Join(dir, "partials", "*.html"))
-	if len(partials) > 0 {
-		base = template.Must(base.ParseFiles(partials...))
+	if partials, _ := fs.Glob(fsys, "partials/*.html"); len(partials) > 0 {
+		if base, err = base.ParseFS(fsys, partials...); err != nil {
+			return nil, err
+		}
 	}
 
 	// Walk pages directory - clone base per page file.
 	pages := make(PageTemplates)
-	pagesDir := filepath.Join(dir, "pages")
-	err := filepath.WalkDir(pagesDir, func(path string, d os.DirEntry, err error) error {
-		if err != nil || d.IsDir() || filepath.Ext(path) != ".html" {
+	err = fs.WalkDir(fsys, "pages", func(p string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() || path.Ext(p) != ".html" {
 			return err
 		}
 		// Skip fragment files (prefixed with _) as standalone pages.
 		if strings.HasPrefix(d.Name(), "_") {
 			return nil
 		}
-		rel, _ := filepath.Rel(pagesDir, path)
-		key := filepath.ToSlash(rel[:len(rel)-len(".html")])
+		key := strings.TrimSuffix(strings.TrimPrefix(p, "pages/"), ".html")
 
-		clone := template.Must(base.Clone())
-		pages[key] = template.Must(clone.ParseFiles(path))
-
-		// Also parse sibling fragments (_*.html) into this clone.
-		frags, _ := filepath.Glob(filepath.Join(filepath.Dir(path), "_*.html"))
-		for _, f := range frags {
-			pages[key] = template.Must(pages[key].ParseFiles(f))
+		clone, err := base.Clone()
+		if err != nil {
+			return err
+		}
+		// Parse the page plus its sibling fragments (_*.html) into this clone.
+		files := []string{p}
+		frags, _ := fs.Glob(fsys, path.Join(path.Dir(p), "_*.html"))
+		files = append(files, frags...)
+		if pages[key], err = clone.ParseFS(fsys, files...); err != nil {
+			return fmt.Errorf("parsing %s: %w", p, err)
 		}
 		return nil
 	})

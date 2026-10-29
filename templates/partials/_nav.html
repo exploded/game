@@ -1,9 +1,13 @@
 {{define "nav"}}
 <nav class="nav">
     <div class="container nav-inner">
-        <a href="/" class="nav-brand">StockGame</a>
+        <a href="/dashboard" class="nav-brand">StockGame</a>
         {{if .User}}
-        <button class="nav-toggle" onclick="this.parentElement.classList.toggle('nav-open')" aria-label="Menu">
+        <span class="nav-price-status"
+            hx-get="/api/price-status"
+            hx-trigger="load, every 30s"
+            hx-swap="innerHTML"></span>
+        <button class="nav-toggle" data-nav-toggle aria-label="Menu">
             <span></span><span></span><span></span>
         </button>
         <div class="nav-links">

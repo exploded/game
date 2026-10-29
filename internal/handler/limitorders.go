@@ -86,7 +86,13 @@ func (h *Handler) LimitOrderCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	r.ParseForm()
-	orderType := r.FormValue("type")
+	h.placeLimitOrder(w, r, game, participant, stock, r.FormValue("type"))
+}
+
+// placeLimitOrder validates and stores a limit order from the form in r. Both
+// LimitOrderCreate and the order ticket's Limit option (via TradeExecute) use it.
+func (h *Handler) placeLimitOrder(w http.ResponseWriter, r *http.Request, game db.Game, participant db.Participant, stock db.Stock, orderType string) {
+	back := fmt.Sprintf("/games/%d/stocks/%d", game.ID, stock.ID)
 	quantity, _ := strconv.ParseInt(r.FormValue("quantity"), 10, 64)
 	limitPriceF, _ := strconv.ParseFloat(r.FormValue("limit_price"), 64)
 	limitPrice := int64(math.Round(limitPriceF * 100))
@@ -94,13 +100,13 @@ func (h *Handler) LimitOrderCreate(w http.ResponseWriter, r *http.Request) {
 
 	if quantity <= 0 || limitPrice <= 0 {
 		setFlashCookie(w, "Quantity and price must be positive", "error")
-		http.Redirect(w, r, fmt.Sprintf("/games/%d/trade/%d", gameID, stockID), http.StatusSeeOther)
+		http.Redirect(w, r, back, http.StatusSeeOther)
 		return
 	}
 
 	if orderType != "buy" && orderType != "sell" {
 		setFlashCookie(w, "Invalid order type", "error")
-		http.Redirect(w, r, fmt.Sprintf("/games/%d/trade/%d", gameID, stockID), http.StatusSeeOther)
+		http.Redirect(w, r, back, http.StatusSeeOther)
 		return
 	}
 
@@ -111,7 +117,7 @@ func (h *Handler) LimitOrderCreate(w http.ResponseWriter, r *http.Request) {
 		})
 		if holding.Quantity < quantity {
 			setFlashCookie(w, "Insufficient shares for limit sell order", "error")
-			http.Redirect(w, r, fmt.Sprintf("/games/%d/trade/%d", gameID, stockID), http.StatusSeeOther)
+			http.Redirect(w, r, back, http.StatusSeeOther)
 			return
 		}
 	}
@@ -121,7 +127,7 @@ func (h *Handler) LimitOrderCreate(w http.ResponseWriter, r *http.Request) {
 		expiry = sql.NullString{String: expiresAt, Valid: true}
 	}
 
-	_, err = h.q.CreateLimitOrder(r.Context(), db.CreateLimitOrderParams{
+	_, err := h.q.CreateLimitOrder(r.Context(), db.CreateLimitOrderParams{
 		ParticipantID: participant.ID,
 		StockID:       stock.ID,
 		Type:          orderType,
@@ -131,12 +137,12 @@ func (h *Handler) LimitOrderCreate(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		setFlashCookie(w, "Failed to create order", "error")
-		http.Redirect(w, r, fmt.Sprintf("/games/%d/trade/%d", gameID, stockID), http.StatusSeeOther)
+		http.Redirect(w, r, back, http.StatusSeeOther)
 		return
 	}
 
 	setFlashCookie(w, fmt.Sprintf("Limit %s order placed for %d shares of %s at %s", orderType, quantity, stock.Symbol, fmtCents(limitPrice)), "success")
-	http.Redirect(w, r, fmt.Sprintf("/games/%d/orders", gameID), http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/games/%d/orders", game.ID), http.StatusSeeOther)
 }
 
 func (h *Handler) LimitOrderCancel(w http.ResponseWriter, r *http.Request) {

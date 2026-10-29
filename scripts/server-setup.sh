@@ -13,28 +13,12 @@ echo "=== game server setup ==="
 # Create app directory.
 mkdir -p "$APP_DIR"
 
-# Create deploy user if it doesn't exist.
+# The deploy user and its SSH key are shared by every app on this box and set
+# up once for the server, not per app. The key is the DEPLOY_SSH_KEY secret.
 if ! id "$DEPLOY_USER" &>/dev/null; then
-    useradd -m -s /bin/bash "$DEPLOY_USER"
-    echo "Created user: $DEPLOY_USER"
+    echo "ERROR: user '$DEPLOY_USER' doesn't exist. Set up the shared deploy user first."
+    exit 1
 fi
-
-# Create SSH key pair for GitHub Actions (reuse if exists).
-SSH_DIR="/home/$DEPLOY_USER/.ssh"
-SSH_KEY="$SSH_DIR/github_actions"
-mkdir -p "$SSH_DIR"
-if [ ! -f "$SSH_KEY" ]; then
-    ssh-keygen -t ed25519 -f "$SSH_KEY" -N "" -C "github-actions-deploy"
-    cat "$SSH_KEY.pub" >> "$SSH_DIR/authorized_keys"
-    echo "Created SSH key: $SSH_KEY"
-    echo "Add this PRIVATE key as DEPLOY_SSH_KEY in GitHub repo secrets:"
-    echo "---"
-    cat "$SSH_KEY"
-    echo "---"
-fi
-chown -R "$DEPLOY_USER:$DEPLOY_USER" "$SSH_DIR"
-chmod 700 "$SSH_DIR"
-chmod 600 "$SSH_KEY" "$SSH_DIR/authorized_keys"
 
 # Create .env file if it doesn't exist.
 if [ ! -f "$APP_DIR/.env" ]; then
@@ -46,9 +30,10 @@ ADMIN_EMAIL=
 PORT=8888
 PROD=1
 TWELVEDATA_API_KEY=
-MONITOR_URL=
+MONITOR_URL=https://monitor.mchugh.au
 MONITOR_API_KEY=
 ENVEOF
+    chmod 600 "$APP_DIR/.env"
     echo "Created $APP_DIR/.env — edit with your credentials."
 fi
 
@@ -98,49 +83,27 @@ chmod 440 /etc/sudoers.d/game
 
 chown -R www-data:www-data "$APP_DIR"
 
-# Nginx reverse proxy.
-DOMAIN="game.mchugh.au"
+# Caddy site block. Caddy (shared by every app on this box) handles TLS, so
+# print the block for the Caddyfile rather than editing it here.
+echo ""
+echo "[note] Add this block to /etc/caddy/Caddyfile, then run: sudo systemctl reload caddy"
+cat <<'CADDY'
 
-apt-get install -y certbot python3-certbot-nginx > /dev/null 2>&1 || true
-
-if [ ! -f "/etc/nginx/sites-available/$SERVICE" ]; then
-    cat > "/etc/nginx/sites-available/$SERVICE" <<NGINXEOF
-server {
-    listen 80;
-    listen [::]:80;
-    server_name $DOMAIN;
-
-    location / {
-        proxy_pass http://127.0.0.1:8888;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
+game.mchugh.au {
+	import access_log
+	reverse_proxy 127.0.0.1:8888 {
+		header_up X-Forwarded-For {client_ip}
+		import go_proxy
+	}
 }
-NGINXEOF
-    ln -sf "/etc/nginx/sites-available/$SERVICE" "/etc/nginx/sites-enabled/$SERVICE"
-    nginx -t && systemctl reload nginx
-    echo "Nginx config created for $DOMAIN"
-else
-    echo "Nginx config already exists for $SERVICE"
-fi
 
-# SSL via certbot (non-interactive).
-if [ ! -d "/etc/letsencrypt/live/$DOMAIN" ]; then
-    certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos --redirect -m admin@mchugh.au
-    echo "SSL certificate installed for $DOMAIN"
-else
-    echo "SSL certificate already exists for $DOMAIN"
-fi
+CADDY
 
 echo "=== setup complete ==="
 echo ""
 echo "Next steps:"
-echo "  1. Edit $APP_DIR/.env with your credentials"
-echo "  2. Add these GitHub repo secrets:"
-echo "     DEPLOY_HOST    = <server IP>"
-echo "     DEPLOY_USER    = deploy"
-echo "     DEPLOY_SSH_KEY = (contents of /home/deploy/.ssh/github_actions)"
-echo "     DEPLOY_PORT    = 22"
-echo "  3. Start with: sudo systemctl start $SERVICE"
+echo "  1. Edit $APP_DIR/.env with your credentials (copy MONITOR_API_KEY from another app's .env)"
+echo "  2. Add the Caddy block above, then: sudo systemctl reload caddy"
+echo "  3. Make sure the GitHub repo has the DEPLOY_HOST, DEPLOY_USER, DEPLOY_PORT (2222)"
+echo "     and DEPLOY_SSH_KEY Actions secrets, then push to master to deploy"
+echo "  4. Point the monitor uptime check at https://game.mchugh.au/health"

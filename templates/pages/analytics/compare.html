@@ -4,7 +4,6 @@
 <div class="page-header">
     <h1>Compare Portfolios</h1>
     <div class="page-header-actions">
-        <a href="/games/{{.Item.ID}}" class="btn btn-sm">&larr; Game</a>
         <a href="/games/{{.Item.ID}}/analytics" class="btn btn-sm">Analytics</a>
     </div>
 </div>
@@ -12,7 +11,7 @@
 <form method="GET" action="/games/{{.Item.ID}}/compare" class="compare-form">
     <div class="form-group">
         <label for="vs">Compare with</label>
-        <select name="vs" id="vs" onchange="this.form.submit()">
+        <select name="vs" id="vs" data-autosubmit>
             <option value="">Select a player...</option>
             {{range .Extra.Participants}}
             {{if ne .ID $.Extra.MyParticipant.ID}}
@@ -83,8 +82,8 @@
     <canvas id="compare-chart" height="250"></canvas>
 </section>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-<script>
+<script src="{{asset "js/chart-4.5.1.umd.min.js"}}"></script>
+<script nonce="{{.Nonce}}">
 (function() {
     const my = [{{range .Extra.MySnapshots}}{date:"{{.Date}}",val:{{.TotalValue}}},{{end}}];
     const other = [{{range .Extra.OtherSnapshots}}{date:"{{.Date}}",val:{{.TotalValue}}},{{end}}];

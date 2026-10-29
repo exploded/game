@@ -4,7 +4,6 @@
 <div class="page-header">
     <h1>Limit Orders</h1>
     <div class="page-header-actions">
-        <a href="/games/{{.Item.ID}}" class="btn btn-sm">&larr; Game</a>
         <a href="/games/{{.Item.ID}}/stocks" class="btn btn-primary btn-sm">Browse Stocks</a>
     </div>
 </div>
@@ -36,7 +35,7 @@
             <td>
                 {{if eq .Status "open"}}
                 <form method="POST" action="/games/{{$.Item.ID}}/orders/{{.ID}}/cancel" style="display:inline">
-                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Cancel this order?')">Cancel</button>
+                    <button type="submit" class="btn btn-danger btn-sm" data-confirm="Cancel this order?">Cancel</button>
                 </form>
                 {{end}}
             </td>

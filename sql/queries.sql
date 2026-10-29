@@ -21,6 +21,9 @@ SELECT * FROM users WHERE email = ?;
 -- name: SetAdmin :exec
 UPDATE users SET is_admin = ? WHERE id = ?;
 
+-- name: SetLastGame :exec
+UPDATE users SET last_game_id = ? WHERE id = ?;
+
 -- name: ListUsers :many
 SELECT * FROM users ORDER BY created_at DESC;
 
@@ -161,12 +164,31 @@ SELECT * FROM stocks
 WHERE is_active = 1
   AND (market = ? OR ? = 'both')
   AND (symbol LIKE ? OR name LIKE ?)
+  AND id IN (SELECT DISTINCT stock_id FROM stock_prices)
 ORDER BY symbol ASC
 LIMIT 20;
 
 -- name: ListStocksByMarket :many
 SELECT * FROM stocks
 WHERE is_active = 1 AND (market = ? OR ? = 'both')
+  AND id IN (SELECT DISTINCT stock_id FROM stock_prices)
+ORDER BY symbol ASC;
+
+-- name: ListAllStocksByMarket :many
+SELECT * FROM stocks
+WHERE is_active = 1 AND (market = ? OR ? = 'both')
+ORDER BY symbol ASC;
+
+-- name: ListStocksWithoutHistory :many
+-- Stocks in a market with fewer than 30 rows in stock_prices: never backfilled,
+-- or only holding the odd row from intraday quotes or a daily fetch that ran
+-- before the backfill finished. Used to resume an interrupted backfill without
+-- re-fetching stocks we already have.
+SELECT * FROM stocks
+WHERE is_active = 1 AND market = ?
+  AND id NOT IN (
+    SELECT stock_id FROM stock_prices GROUP BY stock_id HAVING COUNT(*) >= 30
+  )
 ORDER BY symbol ASC;
 
 -- name: CountStocks :one
@@ -188,6 +210,12 @@ SELECT * FROM stock_prices
 WHERE stock_id = ?
 ORDER BY date DESC LIMIT 1;
 
+-- name: ListLatestPrices :many
+-- The newest two bars: today's (or the last session's) and the close before it.
+SELECT * FROM stock_prices
+WHERE stock_id = ?
+ORDER BY date DESC LIMIT 2;
+
 -- name: GetPriceOnDate :one
 SELECT * FROM stock_prices
 WHERE stock_id = ? AND date = ?;
@@ -200,6 +228,142 @@ ORDER BY date ASC;
 -- name: GetLatestPriceDate :one
 SELECT MAX(date) AS latest_date FROM stock_prices
 WHERE stock_id IN (SELECT id FROM stocks WHERE market = ?);
+
+-- =============================================================================
+-- Stock Profiles
+-- =============================================================================
+
+-- name: GetStockProfile :one
+SELECT * FROM stock_profiles WHERE stock_id = ?;
+
+-- name: CountStockProfiles :one
+SELECT COUNT(*) FROM stock_profiles;
+
+-- name: CountStockProfilesWithLogo :one
+SELECT COUNT(*) FROM stock_profiles WHERE logo != '';
+
+-- name: ListStocksNeedingProfile :many
+-- Active stocks with no profile row, or one last refreshed before the cutoff.
+SELECT s.* FROM stocks s
+LEFT JOIN stock_profiles p ON p.stock_id = s.id
+WHERE s.is_active = 1 AND s.market = ?
+  AND (p.stock_id IS NULL OR p.updated_at < ?)
+ORDER BY s.symbol ASC;
+
+-- name: UpsertStockProfileInfo :exec
+-- Company details from Twelve Data /profile. Leaves the statistics columns,
+-- logo, ipo_date and peers alone.
+INSERT INTO stock_profiles (
+    stock_id, exchange, industry, description, type, ceo, employees,
+    website, address, city, state, country, phone, updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+ON CONFLICT(stock_id) DO UPDATE SET
+    exchange = excluded.exchange, industry = excluded.industry,
+    description = excluded.description, type = excluded.type,
+    ceo = excluded.ceo, employees = excluded.employees,
+    website = excluded.website, address = excluded.address,
+    city = excluded.city, state = excluded.state,
+    country = excluded.country, phone = excluded.phone,
+    updated_at = excluded.updated_at;
+
+-- name: UpsertStockStatistics :exec
+-- Metrics from Twelve Data /statistics. Leaves the company details alone.
+INSERT INTO stock_profiles (
+    stock_id,
+    market_cap, enterprise_value, trailing_pe, forward_pe, peg_ratio,
+    price_to_book, price_to_sales, ev_to_revenue, ev_to_ebitda,
+    revenue, revenue_per_share, quarterly_rev_growth, gross_profit, ebitda,
+    net_income, diluted_eps, quarterly_earn_growth,
+    total_cash, cash_per_share, total_debt, debt_to_equity, current_ratio,
+    book_value_per_share, operating_cash_flow, free_cash_flow,
+    gross_margin, operating_margin, profit_margin, return_on_equity, return_on_assets,
+    shares_outstanding, float_shares, avg_10_volume, avg_90_volume, shares_short,
+    short_ratio, short_pct_outstanding, pct_held_insiders, pct_held_institutions,
+    week_52_high, week_52_low, week_52_change, beta, day_50_ma, day_200_ma,
+    forward_div_rate, forward_div_yield, trailing_div_rate, trailing_div_yield,
+    avg_div_yield_5y, payout_ratio, dividend_frequency, dividend_date,
+    ex_dividend_date, last_split_factor, last_split_date,
+    fiscal_year_ends, most_recent_quarter, updated_at
+) VALUES (
+    ?,
+    ?, ?, ?, ?, ?,
+    ?, ?, ?, ?,
+    ?, ?, ?, ?, ?,
+    ?, ?, ?,
+    ?, ?, ?, ?, ?,
+    ?, ?, ?,
+    ?, ?, ?, ?, ?,
+    ?, ?, ?, ?, ?,
+    ?, ?, ?, ?,
+    ?, ?, ?, ?, ?, ?,
+    ?, ?, ?, ?,
+    ?, ?, ?, ?,
+    ?, ?, ?,
+    ?, ?, datetime('now')
+)
+ON CONFLICT(stock_id) DO UPDATE SET
+    market_cap = excluded.market_cap, enterprise_value = excluded.enterprise_value,
+    trailing_pe = excluded.trailing_pe, forward_pe = excluded.forward_pe,
+    peg_ratio = excluded.peg_ratio, price_to_book = excluded.price_to_book,
+    price_to_sales = excluded.price_to_sales, ev_to_revenue = excluded.ev_to_revenue,
+    ev_to_ebitda = excluded.ev_to_ebitda,
+    revenue = excluded.revenue, revenue_per_share = excluded.revenue_per_share,
+    quarterly_rev_growth = excluded.quarterly_rev_growth,
+    gross_profit = excluded.gross_profit, ebitda = excluded.ebitda,
+    net_income = excluded.net_income, diluted_eps = excluded.diluted_eps,
+    quarterly_earn_growth = excluded.quarterly_earn_growth,
+    total_cash = excluded.total_cash, cash_per_share = excluded.cash_per_share,
+    total_debt = excluded.total_debt, debt_to_equity = excluded.debt_to_equity,
+    current_ratio = excluded.current_ratio,
+    book_value_per_share = excluded.book_value_per_share,
+    operating_cash_flow = excluded.operating_cash_flow,
+    free_cash_flow = excluded.free_cash_flow,
+    gross_margin = excluded.gross_margin, operating_margin = excluded.operating_margin,
+    profit_margin = excluded.profit_margin, return_on_equity = excluded.return_on_equity,
+    return_on_assets = excluded.return_on_assets,
+    shares_outstanding = excluded.shares_outstanding, float_shares = excluded.float_shares,
+    avg_10_volume = excluded.avg_10_volume, avg_90_volume = excluded.avg_90_volume,
+    shares_short = excluded.shares_short, short_ratio = excluded.short_ratio,
+    short_pct_outstanding = excluded.short_pct_outstanding,
+    pct_held_insiders = excluded.pct_held_insiders,
+    pct_held_institutions = excluded.pct_held_institutions,
+    week_52_high = excluded.week_52_high, week_52_low = excluded.week_52_low,
+    week_52_change = excluded.week_52_change, beta = excluded.beta,
+    day_50_ma = excluded.day_50_ma, day_200_ma = excluded.day_200_ma,
+    forward_div_rate = excluded.forward_div_rate,
+    forward_div_yield = excluded.forward_div_yield,
+    trailing_div_rate = excluded.trailing_div_rate,
+    trailing_div_yield = excluded.trailing_div_yield,
+    avg_div_yield_5y = excluded.avg_div_yield_5y, payout_ratio = excluded.payout_ratio,
+    dividend_frequency = excluded.dividend_frequency,
+    dividend_date = excluded.dividend_date, ex_dividend_date = excluded.ex_dividend_date,
+    last_split_factor = excluded.last_split_factor,
+    last_split_date = excluded.last_split_date,
+    fiscal_year_ends = excluded.fiscal_year_ends,
+    most_recent_quarter = excluded.most_recent_quarter,
+    updated_at = excluded.updated_at;
+
+-- name: UpdateStockLogo :exec
+UPDATE stock_profiles SET logo = ? WHERE stock_id = ?;
+
+-- name: DeleteStockNews :exec
+DELETE FROM stock_news WHERE stock_id = ?;
+
+-- name: InsertStockNews :exec
+INSERT INTO stock_news (stock_id, headline, summary, source, url, published_at)
+VALUES (?, ?, ?, ?, ?, ?);
+
+-- name: ListStockNews :many
+SELECT * FROM stock_news WHERE stock_id = ?
+ORDER BY published_at DESC LIMIT ?;
+
+-- name: GetStockNewsAge :one
+-- Returns the created_at of the newest news row for a stock, or NULL if none.
+SELECT CAST(MAX(created_at) AS TEXT) FROM stock_news WHERE stock_id = ?;
+
+-- name: ListStockRecommendations :many
+SELECT * FROM stock_recommendations WHERE stock_id = ?
+ORDER BY period DESC LIMIT ?;
 
 -- =============================================================================
 -- Exchange Rates

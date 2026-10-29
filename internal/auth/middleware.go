@@ -82,3 +82,9 @@ func UserFromContext(ctx context.Context) *db.User {
 	user, _ := ctx.Value(userKey).(*db.User)
 	return user
 }
+
+// WithUser returns ctx carrying user, as RequireAuth does. Handler tests use
+// it to skip the session lookup.
+func WithUser(ctx context.Context, user *db.User) context.Context {
+	return context.WithValue(ctx, userKey, user)
+}

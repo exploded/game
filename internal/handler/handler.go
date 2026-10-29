@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -36,12 +37,14 @@ func New(q *db.Queries, rawDB *sql.DB, pages PageTemplates, production bool, loc
 type PageData struct {
 	Title     string
 	CSRFToken string
+	Nonce     string // CSP nonce; inline <script> tags need nonce="{{.Nonce}}"
 	Flash     *Flash
 	User      *db.User
 	Items     any
 	Item      any
 	Extra     map[string]any
 	Errors    map[string]string
+	GameBar   *gameBar // set by the GameContext middleware on /games/{id} pages
 }
 
 type Flash struct {
@@ -89,6 +92,7 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, pageName, fragm
 	if isHTMX(r) && fragment != "" {
 		name = fragment
 	}
+	data.Nonce = cspNonce(r)
 	if name == "base" {
 		data.User = auth.UserFromContext(r.Context())
 		if data.CSRFToken == "" {
@@ -97,12 +101,20 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, pageName, fragm
 		if data.Flash == nil {
 			data.Flash = popFlashCookie(w, r)
 		}
+		if data.GameBar == nil {
+			data.GameBar, _ = r.Context().Value(gameBarKey{}).(*gameBar)
+		}
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := tmpl.ExecuteTemplate(w, name, data); err != nil {
+	// Render into a buffer first: a template error halfway through would
+	// otherwise have already sent a 200 and half a page.
+	var buf bytes.Buffer
+	if err := tmpl.ExecuteTemplate(&buf, name, data); err != nil {
 		http.Error(w, "render error", http.StatusInternalServerError)
 		slog.Error("template execute", "page", pageName, "fragment", name, "error", err)
+		return
 	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	buf.WriteTo(w)
 }
 
 func triggerToast(w http.ResponseWriter, msg, kind string) {

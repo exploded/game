@@ -3,7 +3,6 @@
 {{define "content"}}
 <div class="page-header">
     <h1>Stocks</h1>
-    <a href="/games/{{.Item.ID}}" class="btn btn-sm">&larr; Game</a>
 </div>
 
 <div class="search-bar">
@@ -32,7 +31,7 @@
             <td>{{.Name}}</td>
             <td>{{.Market | upper}}</td>
             <td>{{.Sector}}</td>
-            <td><a href="/games/{{$.Item.ID}}/trade/{{.ID}}" class="btn btn-primary btn-sm">Trade</a></td>
+            <td><a href="/games/{{$.Item.ID}}/stocks/{{.ID}}" class="btn btn-primary btn-sm">Trade</a></td>
         </tr>
         {{end}}
     </tbody>

@@ -62,7 +62,7 @@ func (h *Handler) LobbySend(w http.ResponseWriter, r *http.Request) {
 		avatarPath, _ := h.q.GetUserAvatarPath(r.Context(), user.ID)
 		avatarHTML := avatarImg(user.Name, user.PictureUrl.String, avatarPath)
 		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(fmt.Sprintf(`<div class="chat-message" id="msg-new" hx-swap-oob="afterbegin:#messages-list">
+		w.Write([]byte(fmt.Sprintf(`<div class="chat-message" hx-swap-oob="afterbegin target:#messages-list strip:false">
 	<div class="chat-meta">
 		%s
 		<strong>%s</strong>

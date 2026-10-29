@@ -18,15 +18,17 @@ import (
 
 type Fetcher struct {
 	q      *db.Queries
+	rawDB  *sql.DB // for transactions around bulk price writes
 	apiKey string
 	client *http.Client
 }
 
-func NewFetcher(q *db.Queries) *Fetcher {
+func NewFetcher(q *db.Queries, rawDB *sql.DB) *Fetcher {
 	return &Fetcher{
 		q:      q,
+		rawDB:  rawDB,
 		apiKey: os.Getenv("TWELVEDATA_API_KEY"),
-		client: &http.Client{Timeout: 30 * time.Second},
+		client: &http.Client{Timeout: 60 * time.Second},
 	}
 }
 
@@ -37,46 +39,152 @@ type twelveDataResponse struct {
 	Code   int              `json:"code"`
 }
 
-// FetchAll fetches prices for all active stocks and the AUD/USD exchange rate.
+// FetchAll fetches end-of-day prices for S&P 500 stocks.
+//
+// Behaviour:
+//   - If ANY stocks in the market have no price history yet (first run OR an
+//     interrupted previous backfill), it backfills just those stocks with full
+//     history (outputsize=5000). This makes backfills resumable across restarts.
+//   - Once every stock has at least one price row, it switches to fetching the
+//     latest day only (outputsize=1).
 func (f *Fetcher) FetchAll(q *db.Queries) error {
 	ctx := context.Background()
 
-	// Fetch ASX prices.
-	if err := f.fetchMarket(ctx, q, "asx"); err != nil {
-		slog.Error("fetch asx prices", "error", err)
+	missing, err := q.ListStocksWithoutHistory(ctx, "sp500")
+	if err != nil {
+		return err
+	}
+	missing = LimitStocks(missing)
+	if len(missing) > 0 {
+		slog.Info("backfilling stocks without price history", "count", len(missing))
+		return f.fetchStocksBatch(ctx, q, "sp500", missing, 5000)
 	}
 
-	// Fetch S&P 500 prices.
-	if err := f.fetchMarket(ctx, q, "sp500"); err != nil {
-		slog.Error("fetch sp500 prices", "error", err)
+	return f.fetchMarketBatch(ctx, q, "sp500", 1)
+}
+
+// LimitStocks keeps only the stocks named in TWELVEDATA_SYMBOLS (comma
+// separated, such as "MSFT,AMZN,BRK.B,IBM"), or returns stocks unchanged if
+// it's unset. Every Twelve Data job filters its stock list through here. Set
+// it on a dev machine: dev and production share the API key and its 610
+// credits a minute, so a dev server tracking every stock would push both over.
+func LimitStocks(stocks []db.Stock) []db.Stock {
+	only := limitSymbols()
+	if only == nil {
+		return stocks
+	}
+	var out []db.Stock
+	for _, s := range stocks {
+		if only[s.Symbol] {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// limitSymbols parses TWELVEDATA_SYMBOLS, returning nil when it's unset.
+func limitSymbols() map[string]bool {
+	v := strings.TrimSpace(os.Getenv("TWELVEDATA_SYMBOLS"))
+	if v == "" {
+		return nil
+	}
+	only := make(map[string]bool)
+	for _, s := range strings.Split(v, ",") {
+		if s = strings.ToUpper(strings.TrimSpace(s)); s != "" {
+			only[s] = true
+		}
+	}
+	return only
+}
+
+// fetchSingleStock fetches time_series for a single symbol and saves all values.
+func (f *Fetcher) fetchSingleStock(ctx context.Context, q *db.Queries, s db.Stock, outputSize int) error {
+	if err := takeCredits(ctx, 1); err != nil {
+		return err
+	}
+	url := fmt.Sprintf("https://api.twelvedata.com/time_series?symbol=%s&interval=1day&outputsize=%d&apikey=%s",
+		s.Symbol, outputSize, f.apiKey)
+
+	resp, err := f.client.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	var td twelveDataResponse
+	if err := json.NewDecoder(resp.Body).Decode(&td); err != nil {
+		return err
+	}
+	if td.Status == "error" {
+		return fmt.Errorf("API error for %s (code %d)", s.Symbol, td.Code)
 	}
 
-	// Fetch exchange rate.
-	if err := f.fetchForex(ctx, q); err != nil {
-		slog.Error("fetch forex", "error", err)
+	rows := make([]priceRow, len(td.Values))
+	for i, v := range td.Values {
+		rows[i] = priceRow{stockID: s.ID, v: v}
 	}
-
+	saved, err := f.saveRows(ctx, q, rows)
+	if err != nil {
+		return err
+	}
+	slog.Debug("backfill prices saved", "symbol", s.Symbol, "days", saved[s.ID])
 	return nil
 }
 
-func (f *Fetcher) fetchMarket(ctx context.Context, q *db.Queries, market string) error {
-	start := time.Now()
-
-	stocks, err := q.ListStocksByMarket(ctx, db.ListStocksByMarketParams{
+// fetchMarketBatch fetches prices for every stock in a market. Used for daily
+// updates. For resumable backfill use fetchStocksBatch directly
+// with a pre-filtered list of stocks from ListStocksWithoutHistory.
+func (f *Fetcher) fetchMarketBatch(ctx context.Context, q *db.Queries, market string, outputSize int) error {
+	stocks, err := q.ListAllStocksByMarket(ctx, db.ListAllStocksByMarketParams{
 		Market: market, Column2: market,
 	})
 	if err != nil {
 		return err
 	}
+	return f.fetchStocksBatch(ctx, q, market, LimitStocks(stocks), outputSize)
+}
+
+// Symbols per time_series request. Twelve Data accepts up to 120 symbols in one
+// batch request at 1 credit each. Backfill batches are smaller because each
+// symbol returns up to 5,000 rows, and a 120-symbol response would be huge.
+const (
+	dailyBatchSize    = 120
+	backfillBatchSize = 20
+)
+
+// fetchStocksBatch fetches prices for the given list of stocks in batches.
+// Each batch waits for credits from takeCredits, so a pause only happens when
+// the minute's budget is spent.
+//
+// A fetch_log row is written per batch (not just at the end) so that partial
+// progress is visible after a crash/restart and the admin UI can show that a
+// backfill is in flight.
+func (f *Fetcher) fetchStocksBatch(ctx context.Context, q *db.Queries, market string, stocks []db.Stock, outputSize int) error {
 	if len(stocks) == 0 {
 		return nil
 	}
 
-	// Free tier: 8 API credits/min. Each symbol in a batch = 1 credit.
-	// Use batch of 8 symbols, then wait 60s to stay within limits.
-	batchSize := 8
+	runStart := time.Now()
 	updated := 0
+	symbolsOK := 0
+	symbolsSkipped := 0
 	var lastErr error
+
+	mode := "daily"
+	batchSize := dailyBatchSize
+	if outputSize > 1 {
+		mode = "backfill"
+		batchSize = backfillBatchSize
+	}
+	totalBatches := (len(stocks) + batchSize - 1) / batchSize
+	slog.Info("price fetch starting",
+		"market", market,
+		"mode", mode,
+		"stocks", len(stocks),
+		"batches", totalBatches,
+		"batch_size", batchSize,
+		"outputsize", outputSize,
+	)
 
 	for i := 0; i < len(stocks); i += batchSize {
 		end := i + batchSize
@@ -84,153 +192,258 @@ func (f *Fetcher) fetchMarket(ctx context.Context, q *db.Queries, market string)
 			end = len(stocks)
 		}
 		batch := stocks[i:end]
+		batchNum := i/batchSize + 1
 
-		// Build comma-separated symbol list.
 		symbols := make([]string, len(batch))
-		symbolToStock := make(map[string]db.Stock)
 		for j, s := range batch {
-			apiSymbol := s.Symbol
-			if market == "asx" {
-				apiSymbol = s.Symbol + ":ASX"
-			}
-			symbols[j] = apiSymbol
-			symbolToStock[apiSymbol] = s
+			symbols[j] = s.Symbol
+		}
+		slog.Info("price batch start",
+			"market", market,
+			"batch", fmt.Sprintf("%d/%d", batchNum, totalBatches),
+			"symbols", strings.Join(symbols, ","),
+		)
+
+		if err := takeCredits(ctx, len(batch)); err != nil {
+			slog.Warn("price fetch cancelled", "market", market, "completed", i, "total", len(stocks))
+			return err
 		}
 
-		url := fmt.Sprintf("https://api.twelvedata.com/time_series?symbol=%s&interval=1day&outputsize=1&apikey=%s",
-			strings.Join(symbols, ","), f.apiKey)
+		batchStart := time.Now()
+		batchUpdated, ok, skipped, err := f.fetchOneBatch(ctx, q, batch, outputSize)
+		if isOutOfCredits(err) {
+			// Something else on the same key (such as a dev server) used the
+			// quota. Wait out the window and try once more.
+			slog.Warn("price batch out of credits, retrying",
+				"market", market, "batch", fmt.Sprintf("%d/%d", batchNum, totalBatches))
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(creditWindow):
+			}
+			if err := takeCredits(ctx, len(batch)); err != nil {
+				return err
+			}
+			batchUpdated, ok, skipped, err = f.fetchOneBatch(ctx, q, batch, outputSize)
+		}
+		updated += batchUpdated
+		symbolsOK += ok
+		symbolsSkipped += skipped
+		batchMs := time.Since(batchStart).Milliseconds()
 
-		resp, err := f.client.Get(url)
 		if err != nil {
 			lastErr = err
-			slog.Error("twelve data request", "error", err)
-			continue
-		}
-
-		var body map[string]json.RawMessage
-		if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
-			resp.Body.Close()
-			lastErr = err
-			continue
-		}
-		resp.Body.Close()
-
-		// Single symbol: response is the object directly (keys: meta, values, status).
-		// Batch: response is keyed by symbol, each value is {meta, values, status}.
-		// Detect by checking if "meta" key exists (single) or not (batch).
-		if _, isSingle := body["meta"]; isSingle {
-			sym := symbols[0]
-			var td twelveDataResponse
-			raw, _ := json.Marshal(body)
-			json.Unmarshal(raw, &td)
-			if td.Status == "error" {
-				slog.Warn("twelve data error", "symbol", sym, "status", td.Status)
-			} else if len(td.Values) > 0 {
-				if s, ok := symbolToStock[sym]; ok {
-					if savePrice(ctx, q, s.ID, td.Values[0]) {
-						updated++
-					}
-				}
-			}
+			slog.Error("price batch failed",
+				"market", market,
+				"batch", fmt.Sprintf("%d/%d", batchNum, totalBatches),
+				"duration_ms", batchMs,
+				"error", err,
+			)
 		} else {
-			for sym, raw := range body {
-				var td twelveDataResponse
-				json.Unmarshal(raw, &td)
-				if td.Status == "error" || len(td.Values) == 0 {
-					slog.Debug("twelve data skip", "symbol", sym, "status", td.Status)
-					continue
-				}
-				if s, ok := symbolToStock[sym]; ok {
-					if savePrice(ctx, q, s.ID, td.Values[0]) {
-						updated++
-					}
-				}
-			}
+			slog.Info("price batch done",
+				"market", market,
+				"batch", fmt.Sprintf("%d/%d", batchNum, totalBatches),
+				"rows_saved", batchUpdated,
+				"symbols_ok", ok,
+				"symbols_skipped", skipped,
+				"duration_ms", batchMs,
+				"total_rows_so_far", updated,
+			)
 		}
 
-		// Free tier: 8 credits/min. Each symbol = 1 credit. Wait 61s between batches.
-		if end < len(stocks) {
-			slog.Info("rate limit pause", "market", market, "progress", fmt.Sprintf("%d/%d", end, len(stocks)))
-			time.Sleep(61 * time.Second)
-		}
+		// Log each batch so that partial progress survives a restart.
+		writeFetchLog(ctx, q, market, err, int64(batchUpdated), batchMs)
 	}
 
-	duration := time.Since(start).Milliseconds()
-	status := "success"
-	var errMsg *string
-	if lastErr != nil {
-		status = "partial"
-		s := lastErr.Error()
-		errMsg = &s
-	}
-
-	q.InsertFetchLog(ctx, db.InsertFetchLogParams{
-		Market:        market,
-		Status:        status,
-		StocksUpdated: int64(updated),
-		ErrorMsg:      nullString(errMsg),
-		DurationMs:    nullInt64(duration),
-	})
-
-	slog.Info("price fetch complete", "market", market, "updated", updated, "duration_ms", duration)
+	slog.Info("price fetch complete",
+		"market", market,
+		"mode", mode,
+		"stocks", len(stocks),
+		"rows_saved", updated,
+		"symbols_ok", symbolsOK,
+		"symbols_skipped", symbolsSkipped,
+		"duration_ms", time.Since(runStart).Milliseconds(),
+	)
 	return lastErr
 }
 
-func (f *Fetcher) fetchForex(ctx context.Context, q *db.Queries) error {
-	url := fmt.Sprintf("https://api.twelvedata.com/exchange_rate?symbol=AUD/USD&apikey=%s", f.apiKey)
+// fetchOneBatch runs a single Twelve Data request for a batch of symbols,
+// saves any returned rows, and returns (rowsSaved, symbolsOK, symbolsSkipped, error).
+// A non-nil error means the request or decode failed entirely; per-symbol API
+// errors inside the response body are logged and counted as skipped but do not
+// produce an error.
+func (f *Fetcher) fetchOneBatch(ctx context.Context, q *db.Queries, batch []db.Stock, outputSize int) (int, int, int, error) {
+	symbols := make([]string, len(batch))
+	symbolToStock := make(map[string]db.Stock)
+	for j, s := range batch {
+		symbols[j] = s.Symbol
+		symbolToStock[s.Symbol] = s
+	}
+
+	url := fmt.Sprintf("https://api.twelvedata.com/time_series?symbol=%s&interval=1day&outputsize=%d&apikey=%s",
+		strings.Join(symbols, ","), outputSize, f.apiKey)
+
 	resp, err := f.client.Get(url)
 	if err != nil {
-		return err
+		return 0, 0, 0, err
 	}
 	defer resp.Body.Close()
 
-	// exchange_rate endpoint returns: {"symbol":"AUD/USD","rate":"0.63050","timestamp":...}
-	var result struct {
-		Symbol    string `json:"symbol"`
-		Rate      string `json:"rate"`
-		Timestamp int64  `json:"timestamp"`
+	var body map[string]json.RawMessage
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		return 0, 0, 0, err
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return err
-	}
-	if result.Rate == "" {
-		return fmt.Errorf("no forex rate returned for AUD/USD")
+	if _, isSingle := body["meta"]; !isSingle {
+		if err := requestError(body); err != nil {
+			return 0, 0, 0, err
+		}
 	}
 
-	closeFloat, err := strconv.ParseFloat(result.Rate, 64)
-	if err != nil {
-		return fmt.Errorf("invalid forex rate %q: %w", result.Rate, err)
+	// A one-symbol request returns the series itself, not a map of series.
+	results := make(map[string]twelveDataResponse, len(batch))
+	if _, isSingle := body["meta"]; isSingle {
+		var td twelveDataResponse
+		raw, _ := json.Marshal(body)
+		json.Unmarshal(raw, &td)
+		results[symbols[0]] = td
+	} else {
+		for sym, raw := range body {
+			var td twelveDataResponse
+			json.Unmarshal(raw, &td)
+			results[sym] = td
+		}
 	}
 
-	date := time.Now().UTC().Format("2006-01-02")
+	skipped := 0
+	var attempted []db.Stock
+	var groups [][]priceRow
+	for sym, td := range results {
+		s, found := symbolToStock[sym]
+		if !found {
+			continue
+		}
+		if td.Status == "error" || len(td.Values) == 0 {
+			slog.Warn("price symbol skipped", "symbol", sym, "status", td.Status, "code", td.Code, "values", len(td.Values))
+			skipped++
+			continue
+		}
+		rows := make([]priceRow, len(td.Values))
+		for i, v := range td.Values {
+			rows[i] = priceRow{stockID: s.ID, v: v}
+		}
+		attempted = append(attempted, s)
+		groups = append(groups, rows)
+	}
 
-	rateInt := int64(math.Round(closeFloat * 1000000))
-	q.UpsertExchangeRate(ctx, db.UpsertExchangeRateParams{
-		Date:       date,
-		RateAudUsd: rateInt,
-	})
+	// One transaction per stock for a backfill (up to 5,000 rows each, which
+	// keeps each write lock short), one for the whole batch for a daily update.
+	if outputSize == 1 {
+		var all []priceRow
+		for _, g := range groups {
+			all = append(all, g...)
+		}
+		groups = [][]priceRow{all}
+	}
+	saved := make(map[int64]int)
+	for _, g := range groups {
+		n, err := f.saveRows(ctx, q, g)
+		if err != nil {
+			return 0, 0, skipped, err
+		}
+		for id, c := range n {
+			saved[id] += c
+		}
+	}
 
-	q.InsertFetchLog(ctx, db.InsertFetchLogParams{
-		Market:        "forex",
-		Status:        "success",
-		StocksUpdated: 1,
-		DurationMs:    nullInt64(0),
-	})
-
-	slog.Info("forex rate updated", "date", date, "rate", closeFloat)
-	return nil
+	updated, ok := 0, 0
+	for _, s := range attempted {
+		if rows := saved[s.ID]; rows > 0 {
+			updated += rows
+			ok++
+			slog.Debug("price symbol saved", "symbol", s.Symbol, "rows", rows)
+		} else {
+			skipped++
+			slog.Warn("price symbol empty", "symbol", s.Symbol)
+		}
+	}
+	return updated, ok, skipped, nil
 }
 
-// FetchMarketOnly fetches prices for a single market.
+// priceRow is one bar for a stock, as decoded from Twelve Data's JSON.
+type priceRow struct {
+	stockID int64
+	v       map[string]any
+}
+
+// saveRows upserts rows in a single transaction and returns how many were
+// saved per stock. Without a transaction SQLite commits (and syncs the WAL)
+// on every row, which makes a 5,000-row backfill crawl and holds up web
+// requests on the single connection.
+func (f *Fetcher) saveRows(ctx context.Context, q *db.Queries, rows []priceRow) (map[int64]int, error) {
+	saved := make(map[int64]int)
+	if len(rows) == 0 {
+		return saved, nil
+	}
+	tx, err := f.rawDB.BeginTx(ctx, nil)
+	if err != nil {
+		return saved, err
+	}
+	defer tx.Rollback()
+
+	txq := q.WithTx(tx)
+	for _, r := range rows {
+		if savePrice(ctx, txq, r.stockID, r.v) {
+			saved[r.stockID]++
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return make(map[int64]int), err
+	}
+	return saved, nil
+}
+
+// requestError returns an error if a batch response body is a whole-request
+// error, such as {"code":429,"message":"...","status":"error"}, rather than a
+// map of symbol to result.
+func requestError(body map[string]json.RawMessage) error {
+	if _, ok := body["code"]; !ok {
+		return nil
+	}
+	var e struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	}
+	raw, _ := json.Marshal(body)
+	json.Unmarshal(raw, &e)
+	return fmt.Errorf("twelve data error %d: %s", e.Code, e.Message)
+}
+
+// isOutOfCredits reports whether err is Twelve Data's per-minute credit limit.
+func isOutOfCredits(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "twelve data error 429")
+}
+
+func writeFetchLog(ctx context.Context, q *db.Queries, market string, err error, updated, durationMs int64) {
+	status := "success"
+	var errMsg *string
+	if err != nil {
+		status = "partial"
+		s := err.Error()
+		errMsg = &s
+	}
+	q.InsertFetchLog(ctx, db.InsertFetchLogParams{
+		Market:        market,
+		Status:        status,
+		StocksUpdated: updated,
+		ErrorMsg:      nullString(errMsg),
+		DurationMs:    nullInt64(durationMs),
+	})
+}
+
+// FetchMarketOnly fetches the latest prices for a single market (daily update).
 func (f *Fetcher) FetchMarketOnly(q *db.Queries, mkt string) {
 	ctx := context.Background()
-	f.fetchMarket(ctx, q, mkt)
-}
-
-// FetchForexOnly fetches the AUD/USD exchange rate.
-func (f *Fetcher) FetchForexOnly(q *db.Queries) {
-	ctx := context.Background()
-	f.fetchForex(ctx, q)
+	f.fetchMarketBatch(ctx, q, mkt, 1)
 }
 
 func savePrice(ctx context.Context, q *db.Queries, stockID int64, v map[string]any) bool {

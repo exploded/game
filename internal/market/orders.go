@@ -200,4 +200,3 @@ func fillLimitOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrde
 
 	return nil
 }
-

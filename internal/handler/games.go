@@ -209,9 +209,9 @@ func (h *Handler) GameCreate(w http.ResponseWriter, r *http.Request) {
 
 	// Auto-join the creator.
 	_, _ = h.q.JoinGame(r.Context(), db.JoinGameParams{
-		GameID:      game.ID,
-		UserID:      user.ID,
-		CashBalance: game.StartingBalance,
+		GameID:         game.ID,
+		UserID:         user.ID,
+		CashBalance:    game.StartingBalance,
 		PortfolioValue: game.StartingBalance,
 	})
 
@@ -255,12 +255,12 @@ func (h *Handler) GameDetail(w http.ResponseWriter, r *http.Request) {
 		Item:  game,
 		Items: participants,
 		Extra: map[string]any{
-			"Participant":  participant,
-			"Count":        count,
-			"IsCreator":    isCreator,
-			"IsJoined":     isJoined,
-			"CanJoin":      canJoin,
-			"Creator":      creator,
+			"Participant": participant,
+			"Count":       count,
+			"IsCreator":   isCreator,
+			"IsJoined":    isJoined,
+			"CanJoin":     canJoin,
+			"Creator":     creator,
 		},
 	})
 }

@@ -4,7 +4,6 @@
 <div class="page-header">
     <h1>Benchmark Comparison</h1>
     <div class="page-header-actions">
-        <a href="/games/{{.Item.ID}}" class="btn btn-sm">&larr; Game</a>
         <a href="/games/{{.Item.ID}}/analytics" class="btn btn-sm">Analytics</a>
     </div>
 </div>
@@ -34,8 +33,8 @@
     <canvas id="benchmark-chart" height="300"></canvas>
 </section>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-<script>
+<script src="{{asset "js/chart-4.5.1.umd.min.js"}}"></script>
+<script nonce="{{.Nonce}}">
 (function() {
     const snapshots = [{{range .Extra.Snapshots}}{date:"{{.Date}}",val:{{.TotalValue}}},{{end}}];
     if (!snapshots.length) return;

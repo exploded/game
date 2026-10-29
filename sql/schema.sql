@@ -29,7 +29,8 @@ CREATE TABLE IF NOT EXISTS users (
     avatar_id   INTEGER REFERENCES avatars(id),
     created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
     last_login  TEXT    NOT NULL DEFAULT (datetime('now')),
-    deleted_at  TEXT                                        -- NULL = active, set = soft-deleted
+    deleted_at  TEXT,                                       -- NULL = active, set = soft-deleted
+    last_game_id INTEGER REFERENCES games(id) ON DELETE SET NULL -- the game the game bar last showed
 );
 
 --------------------------------------------------------------------------------
@@ -130,7 +131,6 @@ CREATE TABLE IF NOT EXISTS stock_prices (
     created_at TEXT    NOT NULL DEFAULT (datetime('now')),
     UNIQUE(stock_id, date)
 );
-CREATE INDEX IF NOT EXISTS idx_prices_stock_date ON stock_prices(stock_id, date DESC);
 CREATE INDEX IF NOT EXISTS idx_prices_date       ON stock_prices(date);
 
 --------------------------------------------------------------------------------
@@ -380,3 +380,127 @@ CREATE TABLE IF NOT EXISTS referral_bonuses (
 );
 CREATE INDEX IF NOT EXISTS idx_referral_bonuses_referrer ON referral_bonuses(referrer_id);
 CREATE INDEX IF NOT EXISTS idx_referral_bonuses_game ON referral_bonuses(game_id);
+
+--------------------------------------------------------------------------------
+-- Stock Profiles (from Twelve Data /profile + /statistics endpoints)
+--------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS stock_profiles (
+    stock_id              INTEGER PRIMARY KEY REFERENCES stocks(id) ON DELETE CASCADE,
+    -- Profile fields
+    exchange              TEXT    NOT NULL DEFAULT '',
+    industry              TEXT    NOT NULL DEFAULT '',
+    description           TEXT    NOT NULL DEFAULT '',
+    type                  TEXT    NOT NULL DEFAULT '',  -- e.g. 'Common Stock'
+    ceo                   TEXT    NOT NULL DEFAULT '',
+    employees             INTEGER NOT NULL DEFAULT 0,
+    website               TEXT    NOT NULL DEFAULT '',
+    address               TEXT    NOT NULL DEFAULT '',
+    city                  TEXT    NOT NULL DEFAULT '',
+    state                 TEXT    NOT NULL DEFAULT '',
+    country               TEXT    NOT NULL DEFAULT '',
+    phone                 TEXT    NOT NULL DEFAULT '',
+    -- Valuation metrics (ratios * 100)
+    market_cap            INTEGER NOT NULL DEFAULT 0,   -- raw dollars
+    enterprise_value      INTEGER NOT NULL DEFAULT 0,   -- raw dollars
+    trailing_pe           INTEGER NOT NULL DEFAULT 0,   -- * 100
+    forward_pe            INTEGER NOT NULL DEFAULT 0,   -- * 100
+    peg_ratio             INTEGER NOT NULL DEFAULT 0,   -- * 100
+    price_to_book         INTEGER NOT NULL DEFAULT 0,   -- * 100
+    price_to_sales        INTEGER NOT NULL DEFAULT 0,   -- * 100
+    ev_to_revenue         INTEGER NOT NULL DEFAULT 0,   -- * 100
+    ev_to_ebitda          INTEGER NOT NULL DEFAULT 0,   -- * 100
+    -- Income statement
+    revenue               INTEGER NOT NULL DEFAULT 0,   -- raw dollars
+    revenue_per_share     INTEGER NOT NULL DEFAULT 0,   -- * 100 (cents)
+    quarterly_rev_growth  INTEGER NOT NULL DEFAULT 0,   -- * 10000 (bps, e.g. 15.7% = 1570)
+    gross_profit          INTEGER NOT NULL DEFAULT 0,   -- raw dollars
+    ebitda                INTEGER NOT NULL DEFAULT 0,   -- raw dollars
+    net_income            INTEGER NOT NULL DEFAULT 0,   -- raw dollars
+    diluted_eps           INTEGER NOT NULL DEFAULT 0,   -- * 100 (cents)
+    quarterly_earn_growth INTEGER NOT NULL DEFAULT 0,   -- * 10000 (bps)
+    -- Balance sheet
+    total_cash            INTEGER NOT NULL DEFAULT 0,   -- raw dollars
+    cash_per_share        INTEGER NOT NULL DEFAULT 0,   -- * 100 (cents)
+    total_debt            INTEGER NOT NULL DEFAULT 0,   -- raw dollars
+    debt_to_equity        INTEGER NOT NULL DEFAULT 0,   -- * 100
+    current_ratio         INTEGER NOT NULL DEFAULT 0,   -- * 100
+    book_value_per_share  INTEGER NOT NULL DEFAULT 0,   -- * 100 (cents)
+    -- Cash flow
+    operating_cash_flow   INTEGER NOT NULL DEFAULT 0,   -- raw dollars
+    free_cash_flow        INTEGER NOT NULL DEFAULT 0,   -- raw dollars
+    -- Margins & returns (* 10000 = bps, e.g. 48.16% = 4816)
+    gross_margin          INTEGER NOT NULL DEFAULT 0,
+    operating_margin      INTEGER NOT NULL DEFAULT 0,
+    profit_margin         INTEGER NOT NULL DEFAULT 0,
+    return_on_equity      INTEGER NOT NULL DEFAULT 0,
+    return_on_assets      INTEGER NOT NULL DEFAULT 0,
+    -- Stock statistics
+    shares_outstanding    INTEGER NOT NULL DEFAULT 0,
+    float_shares          INTEGER NOT NULL DEFAULT 0,
+    avg_10_volume         INTEGER NOT NULL DEFAULT 0,
+    avg_90_volume         INTEGER NOT NULL DEFAULT 0,
+    shares_short          INTEGER NOT NULL DEFAULT 0,
+    short_ratio           INTEGER NOT NULL DEFAULT 0,   -- * 100
+    short_pct_outstanding INTEGER NOT NULL DEFAULT 0,   -- * 10000
+    pct_held_insiders     INTEGER NOT NULL DEFAULT 0,   -- * 10000
+    pct_held_institutions INTEGER NOT NULL DEFAULT 0,   -- * 10000
+    -- Price summary
+    week_52_high          INTEGER NOT NULL DEFAULT 0,   -- cents
+    week_52_low           INTEGER NOT NULL DEFAULT 0,   -- cents
+    week_52_change        INTEGER NOT NULL DEFAULT 0,   -- * 10000
+    beta                  INTEGER NOT NULL DEFAULT 0,   -- * 100
+    day_50_ma             INTEGER NOT NULL DEFAULT 0,   -- cents
+    day_200_ma            INTEGER NOT NULL DEFAULT 0,   -- cents
+    -- Dividends & splits
+    forward_div_rate      INTEGER NOT NULL DEFAULT 0,   -- * 100 (cents)
+    forward_div_yield     INTEGER NOT NULL DEFAULT 0,   -- * 10000
+    trailing_div_rate     INTEGER NOT NULL DEFAULT 0,   -- * 100 (cents)
+    trailing_div_yield    INTEGER NOT NULL DEFAULT 0,   -- * 10000
+    avg_div_yield_5y      INTEGER NOT NULL DEFAULT 0,   -- * 100
+    payout_ratio          INTEGER NOT NULL DEFAULT 0,   -- * 10000
+    dividend_frequency    TEXT    NOT NULL DEFAULT '',
+    dividend_date         TEXT    NOT NULL DEFAULT '',
+    ex_dividend_date      TEXT    NOT NULL DEFAULT '',
+    last_split_factor     TEXT    NOT NULL DEFAULT '',
+    last_split_date       TEXT    NOT NULL DEFAULT '',
+    -- Fiscal dates
+    fiscal_year_ends      TEXT    NOT NULL DEFAULT '',
+    most_recent_quarter   TEXT    NOT NULL DEFAULT '',
+    -- Supplementary fields
+    logo                  TEXT    NOT NULL DEFAULT '',  -- URL to company logo
+    ipo_date              TEXT    NOT NULL DEFAULT '',  -- IPO date YYYY-MM-DD
+    peers                 TEXT    NOT NULL DEFAULT '',  -- comma-separated peer tickers
+    --
+    updated_at            TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+--------------------------------------------------------------------------------
+-- Stock News (TickerTick API — replaced on each refresh)
+--------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS stock_news (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    stock_id     INTEGER NOT NULL REFERENCES stocks(id) ON DELETE CASCADE,
+    headline     TEXT    NOT NULL,
+    summary      TEXT    NOT NULL DEFAULT '',
+    source       TEXT    NOT NULL DEFAULT '',
+    url          TEXT    NOT NULL,
+    published_at INTEGER NOT NULL,              -- unix timestamp
+    created_at   TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_stock_news_stock ON stock_news(stock_id, published_at DESC);
+
+--------------------------------------------------------------------------------
+-- Analyst Recommendations
+--------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS stock_recommendations (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    stock_id    INTEGER NOT NULL REFERENCES stocks(id) ON DELETE CASCADE,
+    period      TEXT    NOT NULL,              -- YYYY-MM-DD (month of the recommendation)
+    strong_buy  INTEGER NOT NULL DEFAULT 0,
+    buy         INTEGER NOT NULL DEFAULT 0,
+    hold        INTEGER NOT NULL DEFAULT 0,
+    sell        INTEGER NOT NULL DEFAULT 0,
+    strong_sell INTEGER NOT NULL DEFAULT 0,
+    UNIQUE(stock_id, period)
+);
+CREATE INDEX IF NOT EXISTS idx_stock_recs_stock ON stock_recommendations(stock_id, period DESC);

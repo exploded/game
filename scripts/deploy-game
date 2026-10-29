@@ -36,20 +36,46 @@ rm -f "$DEPLOY_DIR/game"
 cp "$DEPLOY_SRC/game" "$DEPLOY_DIR/game"
 chmod +x "$DEPLOY_DIR/game"
 
-echo "[deploy] Updating web assets..."
-cp -r "$DEPLOY_SRC/sql/"       "$DEPLOY_DIR/"
-cp -r "$DEPLOY_SRC/templates/" "$DEPLOY_DIR/"
-cp -r "$DEPLOY_SRC/static/"   "$DEPLOY_DIR/"
+# Templates, static files and the schema are embedded in the binary now. Remove
+# the copies earlier deploys left, so nobody edits them expecting a change.
+rm -rf "$DEPLOY_DIR/sql" "$DEPLOY_DIR/templates" "$DEPLOY_DIR/static"
+
 chown -R "$SERVICE_USER:$SERVICE_GROUP" "$DEPLOY_DIR"
+
+# Provisioning can't enable the unit before the binary exists, so do it here.
+echo "[deploy] Enabling service on boot..."
+systemctl enable game
 
 echo "[deploy] Starting service..."
 systemctl start game
 
 echo "[deploy] Verifying service is active..."
-sleep 2
+for i in 1 2 3 4 5; do
+    if systemctl is-active --quiet game; then
+        break
+    fi
+    sleep 1
+done
 if ! systemctl is-active --quiet game; then
     echo "[deploy] ERROR: Service failed to start. Status:"
     systemctl status game --no-pager --lines=30
+    exit 1
+fi
+
+# is-active only means the process is running. /health also proves it is
+# listening and can reach the database.
+PORT=$(grep -E '^PORT=' "$DEPLOY_DIR/.env" 2>/dev/null | cut -d= -f2 | tr -d '[:space:]')
+PORT="${PORT:-8888}"
+echo "[deploy] Checking http://127.0.0.1:$PORT/health..."
+for i in $(seq 1 10); do
+    if curl -fsS --max-time 3 "http://127.0.0.1:$PORT/health" > /dev/null 2>&1; then
+        break
+    fi
+    sleep 1
+done
+if ! curl -fsS --max-time 3 "http://127.0.0.1:$PORT/health" > /dev/null; then
+    echo "[deploy] ERROR: /health did not return 200. Recent logs:"
+    journalctl -u game --no-pager --lines=30
     exit 1
 fi
 

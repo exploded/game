@@ -38,11 +38,11 @@ func (h *Handler) TradeAnalytics(w http.ResponseWriter, r *http.Request) {
 
 	// Compute analytics from transactions.
 	type StockTrade struct {
-		Symbol     string
-		TotalBuy   int64 // total cost in base currency
-		TotalSell  int64 // total proceeds in base currency
-		QtyBought  int64
-		QtySold    int64
+		Symbol    string
+		TotalBuy  int64 // total cost in base currency
+		TotalSell int64 // total proceeds in base currency
+		QtyBought int64
+		QtySold   int64
 	}
 
 	stocks := make(map[int64]*StockTrade)
@@ -161,9 +161,9 @@ func (h *Handler) SectorBreakdown(w http.ResponseWriter, r *http.Request) {
 	// Build gain/loss data (Feature 13).
 	type HoldingPnL struct {
 		db.ListHoldingsRow
-		PnL       int64
-		PnLPct    string
-		LatestPx  int64
+		PnL      int64
+		PnLPct   string
+		LatestPx int64
 	}
 	var holdingsPnL []HoldingPnL
 	for _, h_ := range holdings {

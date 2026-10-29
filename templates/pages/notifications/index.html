@@ -26,7 +26,7 @@
         <button hx-post="/notifications/{{.ID}}/read"
                 hx-target="#notif-{{.ID}}"
                 hx-swap="outerHTML"
-                hx-disabled-elt="this"
+                hx-disable="this"
                 class="btn btn-sm">Mark Read</button>
         {{end}}
     </div>

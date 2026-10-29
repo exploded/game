@@ -21,6 +21,12 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+
+      - name: Vet
+        run: go vet ./...
+
       - name: Run tests
         run: go test -v ./...
 
@@ -44,6 +50,8 @@ jobs:
       - name: Build Linux binary
         run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o game ./cmd/server/
 
+      # Templates, static files and the schema are embedded in the binary,
+      # so the bundle is just the binary and the deploy script.
       - name: Copy files to server
         uses: appleboy/scp-action@917f8b81dfc1ccd331fef9e2d61bdc6c8be94634 # v0.1.7
         with:
@@ -51,7 +59,7 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || '22' }}
-          source: "game,sql/,templates/,static/,scripts/deploy-game"
+          source: "game,scripts/deploy-game"
           target: "/tmp/game-deploy"
           overwrite: true
 

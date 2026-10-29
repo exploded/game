@@ -95,20 +95,10 @@
 
         {{if .Extra.IsJoined}}
         <div class="participant-actions" style="flex-wrap:wrap">
-            {{if or (eq .Item.Status "active") (eq .Item.Status "pending")}}
-            <a href="/games/{{.Item.ID}}/portfolio" class="btn btn-primary">My Portfolio</a>
-            {{end}}
             {{if eq .Item.Status "active"}}
-            <a href="/games/{{.Item.ID}}/stocks" class="btn btn-primary">Browse Stocks</a>
-            <a href="/games/{{.Item.ID}}/orders" class="btn btn-sm">Limit Orders</a>
-            <a href="/games/{{.Item.ID}}/watchlist" class="btn btn-sm">Watchlist</a>
+            <a href="/games/{{.Item.ID}}/stocks" class="btn btn-primary">Trade stocks</a>
             {{end}}
-            <a href="/games/{{.Item.ID}}/analytics" class="btn btn-sm">Analytics</a>
-            <a href="/games/{{.Item.ID}}/sectors" class="btn btn-sm">Sectors</a>
-            <a href="/games/{{.Item.ID}}/chat" class="btn btn-sm">Chat</a>
             <a href="/games/{{.Item.ID}}/activity" class="btn btn-sm">Activity</a>
-        </div>
-        <div class="participant-actions" style="margin-top:0.5rem">
             <a href="/games/{{.Item.ID}}/export/transactions" class="btn btn-sm">Export Transactions CSV</a>
             <a href="/games/{{.Item.ID}}/export/snapshots" class="btn btn-sm">Export Snapshots CSV</a>
         </div>
@@ -120,7 +110,7 @@
             <form method="POST" action="/games/{{.Item.ID}}/invite" style="display:inline">
                 <button type="submit" class="btn btn-sm">Generate Invite Link</button>
             </form>
-            <form method="POST" action="/games/{{.Item.ID}}/cancel" onsubmit="return confirm('Cancel this game?')" style="display:inline">
+            <form method="POST" action="/games/{{.Item.ID}}/cancel" data-confirm="Cancel this game?" style="display:inline">
                 <button type="submit" class="btn btn-danger btn-sm">Cancel Game</button>
             </form>
             {{end}}

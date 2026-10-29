@@ -125,8 +125,8 @@ func (h *Handler) AdminStockSplit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	stockID := stock.ID
-	ratioNum, _ := strconv.ParseInt(r.FormValue("ratio_num"), 10, 64)   // e.g. 2 for 2:1
-	ratioDen, _ := strconv.ParseInt(r.FormValue("ratio_den"), 10, 64)   // e.g. 1 for 2:1
+	ratioNum, _ := strconv.ParseInt(r.FormValue("ratio_num"), 10, 64) // e.g. 2 for 2:1
+	ratioDen, _ := strconv.ParseInt(r.FormValue("ratio_den"), 10, 64) // e.g. 1 for 2:1
 	if ratioNum <= 0 || ratioDen <= 0 {
 		setFlashCookie(w, "Split ratio must be positive (e.g. 2:1)", "error")
 		http.Redirect(w, r, "/admin", http.StatusSeeOther)

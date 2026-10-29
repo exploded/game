@@ -77,6 +77,9 @@ main.container { flex: 1; padding-top: 24px; padding-bottom: 32px; }
     letter-spacing: -0.3px;
 }
 .nav-brand:hover { color: var(--color-primary-link); }
+.nav-price-status { font-size: 11px; color: var(--color-text-muted); margin-left: 12px; }
+.price-status.updating { color: var(--color-warning, #f0ad4e); }
+.price-status.updated { color: var(--color-success, #5cb85c); }
 .nav-links { display: flex; align-items: center; gap: 24px; height: 100%; }
 .nav-links a {
     color: var(--color-text-muted);
@@ -1002,10 +1005,78 @@ td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-
 }
 
 /* ============================================================
+   Game Bar — which game you're in, under the nav
+   ============================================================ */
+.game-bar { background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
+.game-bar-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-top: 10px; }
+.game-bar-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.game-bar-name { font-size: 15px; font-weight: 700; color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.game-bar-name:hover { color: var(--color-primary-link); }
+.game-bar-stats { display: flex; gap: 20px; font-size: 13px; }
+.game-bar-label { color: var(--color-text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 4px; }
+.game-switcher { position: relative; }
+.game-switcher summary { cursor: pointer; font-size: 12px; color: var(--color-primary-link); list-style: none; }
+.game-switcher summary::-webkit-details-marker { display: none; }
+.game-switcher summary::after { content: " \25BE"; }
+.game-switcher ul {
+    position: absolute; top: calc(100% + 6px); left: 0; z-index: 900;
+    list-style: none; min-width: 220px; padding: 6px 0;
+    background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: var(--radius);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+.game-switcher li a { display: block; padding: 6px 14px; color: var(--color-text); white-space: nowrap; }
+.game-switcher li a:hover { background: var(--color-surface-hover); }
+.game-tabs { display: flex; gap: 20px; overflow-x: auto; scrollbar-width: none; margin-top: 6px; }
+.game-tabs::-webkit-scrollbar { display: none; }
+.game-tabs a {
+    padding: 8px 0; white-space: nowrap; font-size: 13px; font-weight: 500;
+    color: var(--color-text-muted); border-bottom: 2px solid transparent;
+}
+.game-tabs a:hover { color: var(--color-text); }
+.game-tabs a.active { color: var(--color-text); border-bottom-color: var(--color-primary); }
+
+/* Dashboard: back to the game you last opened */
+.continue-card {
+    display: flex; align-items: center; gap: 12px; margin: 16px 0 8px; padding: 14px 18px;
+    background: var(--color-surface); border: 1px solid var(--color-primary-dark); border-radius: var(--radius);
+    color: var(--color-text);
+}
+.continue-card:hover { border-color: var(--color-primary); color: var(--color-text); }
+.continue-label { color: var(--color-text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+.continue-name { font-size: 15px; font-weight: 700; }
+
+/* ============================================================
+   Stock page — chart beside the order ticket
+   ============================================================ */
+.stock-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; margin-bottom: 20px; }
+.stock-main .chart-container { margin-bottom: 0; }
+.ticket {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 16px;
+}
+.ticket-game { font-size: 12px; color: var(--color-text-muted); margin-bottom: 10px; }
+.ticket-game strong { color: var(--color-text); }
+.ticket-position { display: flex; gap: 20px; margin-bottom: 14px; }
+.ticket-position .mono { font-size: 14px; font-weight: 600; }
+.ticket-sides { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-bottom: 14px; border: 1px solid var(--color-border); border-radius: var(--radius); overflow: hidden; }
+.ticket-sides input { position: absolute; opacity: 0; pointer-events: none; }
+.ticket-sides label { text-align: center; padding: 8px 0; font-weight: 600; cursor: pointer; color: var(--color-text-muted); background: var(--color-bg); }
+.ticket-sides label:hover { color: var(--color-text); }
+.ticket-sides input:focus-visible + label { outline: 2px solid var(--color-primary); outline-offset: -2px; }
+#side-buy:checked + label { background: var(--color-success); color: #000; }
+#side-sell:checked + label { background: var(--color-danger); color: #fff; }
+.ticket-sides input:disabled + label { opacity: 0.4; cursor: not-allowed; }
+.ticket .form-group { margin-bottom: 12px; }
+
+/* ============================================================
    Responsive
    ============================================================ */
 @media (max-width: 768px) {
     .nav-toggle { display: flex; }
+    .stock-layout { grid-template-columns: 1fr; }
+    .game-bar-stats { gap: 14px; }
     .nav { overflow: visible; }
     .nav-links {
         display: none;

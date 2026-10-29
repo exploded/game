@@ -3,9 +3,9 @@ package main
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"log"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/exploded/game"
 	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/db"
 	"github.com/exploded/game/internal/handler"
@@ -55,6 +56,17 @@ func main() {
 	}
 	production := os.Getenv("PROD") == "1"
 
+	// Production only needs to be reachable by Caddy on the same box. Dev
+	// listens on every interface so a phone on the LAN can reach it.
+	bind := os.Getenv("BIND_ADDR")
+	if bind == "" && production {
+		bind = "127.0.0.1"
+	}
+
+	// Stopped by SIGINT/SIGTERM: shuts down the HTTP server and the scheduler.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	// Load timezone for game date comparisons.
 	tz := os.Getenv("TIMEZONE")
 	if tz == "" {
@@ -66,7 +78,7 @@ func main() {
 	}
 
 	// Open database.
-	rawDB, err := handler.OpenDB("game.db", "sql/schema.sql")
+	rawDB, err := handler.OpenDB("game.db", game.Schema)
 	if err != nil {
 		log.Fatalf("database: %v", err)
 	}
@@ -78,8 +90,12 @@ func main() {
 	handler.SeedAchievements(context.Background(), queries)
 	handler.SeedAvatars(context.Background(), queries)
 
-	// Load templates.
-	pages, err := handler.LoadTemplates("templates")
+	// Templates and static files are embedded in the binary (see assets.go).
+	static, err := handler.NewStatic(game.Static())
+	if err != nil {
+		log.Fatalf("static: %v", err)
+	}
+	pages, err := handler.LoadTemplates(game.Templates(), static)
 	if err != nil {
 		log.Fatalf("templates: %v", err)
 	}
@@ -93,14 +109,7 @@ func main() {
 	}
 
 	// Start background scheduler.
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go scheduler.Start(ctx, queries, loc)
-
-	// In dev mode, start fake live price feed (ticks every 30 seconds).
-	if !production {
-		go market.StartFakeLiveFeed(ctx, queries, 30*time.Second)
-	}
+	go scheduler.Start(ctx, queries, rawDB, loc)
 
 	handler.SecurityHeadersProd = production
 
@@ -116,13 +125,15 @@ func main() {
 	chatLimiter := handler.NewRateLimiter(30, time.Minute)
 
 	// Static assets (directory listing disabled).
-	staticFS := handler.NewNoListFileServer("static")
-	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(staticFS)))
+	r.Handle("/static/*", static)
 
 	// Serve favicon.ico from root (browsers request /favicon.ico automatically).
 	r.Get("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "static/favicon.ico")
+		static.ServeFile(w, r, "favicon.ico")
 	})
+
+	// Health check for the uptime monitor, outside the auth groups.
+	r.Get("/health", h.Health)
 
 	// Public routes.
 	r.Get("/login", func(w http.ResponseWriter, r *http.Request) {
@@ -161,42 +172,61 @@ func main() {
 		r.Get("/games", h.GamesList)
 		r.Get("/games/new", h.GameNew)
 		r.Post("/games", h.GameCreate)
-		r.Get("/games/{id}", h.GameDetail)
-		r.Post("/games/{id}/join", h.GameJoin)
-		r.Post("/games/{id}/cancel", h.GameCancel)
+		// Everything inside one game. GameContext adds the game bar.
+		r.Route("/games/{id}", func(r chi.Router) {
+			r.Use(h.GameContext)
 
-		// Portfolio
-		r.Get("/games/{id}/portfolio", h.Portfolio)
-		r.Get("/games/{id}/history", h.TransactionHistory)
-		r.Post("/games/{id}/visibility", h.ToggleVisibility)
+			r.Get("/", h.GameDetail)
+			r.Post("/join", h.GameJoin)
+			r.Post("/cancel", h.GameCancel)
 
-		// Stocks & Trading
-		r.Get("/games/{id}/stocks", h.StocksBrowse)
-		r.Get("/games/{id}/stocks/{sid}", h.StockDetail)
-		r.Get("/games/{id}/search", h.StockSearch)
-		r.Get("/games/{id}/trade/{sid}", h.TradeForm)
-		r.Post("/games/{id}/trade/{sid}", h.TradeExecute)
+			// Portfolio
+			r.Get("/portfolio", h.Portfolio)
+			r.Get("/history", h.TransactionHistory)
+			r.Post("/visibility", h.ToggleVisibility)
 
-		// Leaderboard
-		r.Get("/games/{id}/leaderboard", h.Leaderboard)
+			// Stocks & Trading
+			r.Get("/stocks", h.StocksBrowse)
+			r.Get("/stocks/{sid}", h.StockDetail)
+			r.Get("/stocks/{sid}/price", h.StockPrice)
+			r.Get("/search", h.StockSearch)
+			r.Get("/trade/{sid}", h.TradeForm)
+			r.Post("/trade/{sid}", h.TradeExecute)
 
-		// Limit Orders (Feature 1)
-		r.Get("/games/{id}/orders", h.LimitOrdersList)
-		r.Post("/games/{id}/orders/{sid}", h.LimitOrderCreate)
-		r.Post("/games/{id}/orders/{oid}/cancel", h.LimitOrderCancel)
+			// Leaderboard
+			r.Get("/leaderboard", h.Leaderboard)
 
-		// Watchlist (Feature 2)
-		r.Get("/games/{id}/watchlist", h.WatchlistPage)
-		r.Post("/games/{id}/watchlist/{sid}", h.WatchlistAdd)
-		r.Delete("/games/{id}/watchlist/{sid}", h.WatchlistRemove)
+			// Limit Orders (Feature 1)
+			r.Get("/orders", h.LimitOrdersList)
+			r.Post("/orders/{sid}", h.LimitOrderCreate)
+			r.Post("/orders/{oid}/cancel", h.LimitOrderCancel)
 
-		// Invite Links (Feature 6)
-		r.Post("/games/{id}/invite", h.InviteCreate)
+			// Watchlist (Feature 2)
+			r.Get("/watchlist", h.WatchlistPage)
+			r.Post("/watchlist/{sid}", h.WatchlistAdd)
+			r.Delete("/watchlist/{sid}", h.WatchlistRemove)
+
+			// Invite Links (Feature 6)
+			r.Post("/invite", h.InviteCreate)
+
+			// Chat (Feature 7)
+			r.Get("/chat", h.ChatPage)
+			r.With(chatLimiter.Middleware).Post("/chat", h.ChatSend)
+
+			// Activity Feed (Feature 10)
+			r.Get("/activity", h.ActivityFeed)
+
+			// Analytics (Features 9, 12, 13, 14, 15)
+			r.Get("/analytics", h.TradeAnalytics)
+			r.Get("/sectors", h.SectorBreakdown)
+			r.Get("/compare", h.PortfolioComparison)
+			r.Get("/benchmark", h.BenchmarkComparison)
+
+			// Export CSV (Feature 23)
+			r.Get("/export/transactions", h.ExportTransactionsCSV)
+			r.Get("/export/snapshots", h.ExportSnapshotsCSV)
+		})
 		r.Get("/invite/{code}", h.InviteJoin)
-
-		// Chat (Feature 7)
-		r.Get("/games/{id}/chat", h.ChatPage)
-		r.With(chatLimiter.Middleware).Post("/games/{id}/chat", h.ChatSend)
 
 		// Lobby Chat
 		r.Get("/lobby", h.LobbyPage)
@@ -206,25 +236,13 @@ func main() {
 		r.Get("/profile", h.ProfilePage)
 		r.Post("/profile/avatar", h.ProfileUpdateAvatar)
 
-		// Activity Feed (Feature 10)
-		r.Get("/games/{id}/activity", h.ActivityFeed)
-
-		// Analytics (Features 9, 12, 13, 14, 15)
-		r.Get("/games/{id}/analytics", h.TradeAnalytics)
-		r.Get("/games/{id}/sectors", h.SectorBreakdown)
-		r.Get("/games/{id}/compare", h.PortfolioComparison)
-		r.Get("/games/{id}/benchmark", h.BenchmarkComparison)
-
-		// Export CSV (Feature 23)
-		r.Get("/games/{id}/export/transactions", h.ExportTransactionsCSV)
-		r.Get("/games/{id}/export/snapshots", h.ExportSnapshotsCSV)
-
 		// Achievements (Feature 8)
 		r.Get("/achievements", h.AchievementsPage)
 
 		// Notifications (Feature 19)
 		r.Get("/notifications", h.NotificationsPage)
 		r.Get("/notifications/count", h.NotificationCount)
+		r.Get("/api/price-status", h.PriceStatus)
 		r.Post("/notifications/{nid}/read", h.NotificationMarkRead)
 		r.Post("/notifications/read-all", h.NotificationMarkAllRead)
 
@@ -251,7 +269,7 @@ func main() {
 			r.Post("/users/{id}/admin", h.AdminToggle)
 			r.Get("/prices", h.AdminPrices)
 			r.Post("/prices/fetch", h.AdminFetchPrices)
-			r.Post("/prices/fake", h.AdminSeedFakePrices)
+			r.Post("/news/refresh", h.AdminFetchNews)
 			r.Get("/prices/health", h.AdminPriceHealth)
 			r.Get("/activity", h.AdminUserActivity)
 			r.Post("/dividend", h.AdminDividend)
@@ -262,25 +280,26 @@ func main() {
 	})
 
 	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%s", port),
-		Handler:      r,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		Addr:              net.JoinHostPort(bind, port),
+		Handler:           r,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second, // CSV exports can take a while
+		IdleTimeout:       120 * time.Second,
 	}
 
 	// Graceful shutdown on SIGINT/SIGTERM.
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
-		<-quit
+		<-ctx.Done()
 		slog.Info("shutting down server")
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer shutdownCancel()
-		srv.Shutdown(shutdownCtx)
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			slog.Error("server shutdown", "error", err)
+		}
 	}()
 
-	slog.Info("server starting", "port", port, "production", production)
+	slog.Info("server starting", "addr", srv.Addr, "production", production)
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("server: %v", err)
 	}

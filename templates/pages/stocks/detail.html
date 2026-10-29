@@ -2,26 +2,27 @@
 
 {{define "content"}}
 <div class="page-header">
-    <h1>{{.Item.Symbol}} - {{.Item.Name}}</h1>
+    <div style="display:flex; align-items:center; gap:12px;">
+        {{if .Extra.Profile.Logo}}<img src="{{.Extra.Profile.Logo}}" alt="" referrerpolicy="no-referrer" style="width:44px; height:44px; border-radius:8px; background:#fff; padding:3px; object-fit:contain; flex-shrink:0;">{{end}}
+        <h1 style="margin:0;">{{.Item.Symbol}} - {{.Item.Name}}</h1>
+    </div>
     <div class="page-header-actions">
         <a href="/games/{{.Extra.Game.ID}}/stocks" class="btn btn-sm">&larr; Stocks</a>
-        <a href="/games/{{.Extra.Game.ID}}/trade/{{.Item.ID}}" class="btn btn-primary btn-sm">Trade</a>
-        <button hx-post="/games/{{.Extra.Game.ID}}/watchlist/{{.Item.ID}}" hx-swap="outerHTML" hx-disabled-elt="this" class="btn btn-sm">Watch</button>
+        <button hx-post="/games/{{.Extra.Game.ID}}/watchlist/{{.Item.ID}}" hx-swap="outerHTML" hx-disable="this" class="btn btn-sm">Watch</button>
     </div>
 </div>
 
-{{if .Items}}
-<div class="price-stats" id="price-stats">
-    <div class="price-current" id="ps-price">--</div>
-    <div class="price-change" id="ps-change">--</div>
-    <div class="price-range">
-        <span class="text-muted">Day Range</span>
-        <span id="ps-range">--</span>
+<div class="stock-layout">
+    <div class="stock-main">
+        {{if .Items}}
+        {{template "price-stats" .}}
+        <div class="chart-container" id="chart-container"></div>
+        {{else}}
+        <p class="text-muted">No price data available for this stock yet. Prices are fetched daily after market close.</p>
+        {{end}}
     </div>
+    {{template "ticket" .}}
 </div>
-
-<div class="chart-container" id="chart-container"></div>
-{{end}}
 
 <div class="info-grid" id="info-grid">
     <div class="info-item">
@@ -62,13 +63,380 @@
     {{end}}
 </div>
 
-{{if not .Items}}
-<p class="text-muted" style="margin-top:1.5rem">No price data available for this stock yet. Prices are fetched daily after market close.</p>
+{{- $p := .Extra.Profile -}}
+{{if $p.StockID}}
+
+<h2 style="margin-top:2rem">Company Overview</h2>
+<div class="info-grid">
+    {{if $p.Industry}}<div class="info-item">
+        <span class="info-label">Industry</span>
+        <span class="info-value">{{$p.Industry}}</span>
+    </div>{{end}}
+    {{if $p.Exchange}}<div class="info-item">
+        <span class="info-label">Exchange</span>
+        <span class="info-value">{{$p.Exchange}}</span>
+    </div>{{end}}
+    {{if $p.Type}}<div class="info-item">
+        <span class="info-label">Type</span>
+        <span class="info-value">{{$p.Type}}</span>
+    </div>{{end}}
+    {{if $p.Ceo}}<div class="info-item">
+        <span class="info-label">CEO</span>
+        <span class="info-value">{{$p.Ceo}}</span>
+    </div>{{end}}
+    {{if $p.Employees}}<div class="info-item">
+        <span class="info-label">Employees</span>
+        <span class="info-value">{{commas $p.Employees}}</span>
+    </div>{{end}}
+    {{if $p.Website}}<div class="info-item">
+        <span class="info-label">Website</span>
+        <span class="info-value"><a href="{{$p.Website}}" target="_blank" rel="noopener">{{$p.Website}}</a></span>
+    </div>{{end}}
+    {{if $p.City}}<div class="info-item">
+        <span class="info-label">Location</span>
+        <span class="info-value">{{$p.City}}{{if $p.State}}, {{$p.State}}{{end}}, {{$p.Country}}</span>
+    </div>{{end}}
+    {{if $p.Phone}}<div class="info-item">
+        <span class="info-label">Phone</span>
+        <span class="info-value">{{$p.Phone}}</span>
+    </div>{{end}}
+    {{if $p.IpoDate}}<div class="info-item">
+        <span class="info-label">IPO Date</span>
+        <span class="info-value">{{$p.IpoDate}}</span>
+    </div>{{end}}
+    {{if $p.FiscalYearEnds}}<div class="info-item">
+        <span class="info-label">Fiscal Year Ends</span>
+        <span class="info-value">{{$p.FiscalYearEnds}}</span>
+    </div>{{end}}
+    {{if $p.MostRecentQuarter}}<div class="info-item">
+        <span class="info-label">Most Recent Quarter</span>
+        <span class="info-value">{{$p.MostRecentQuarter}}</span>
+    </div>{{end}}
+</div>
+
+{{if $p.Description}}
+<div style="margin-top:1rem; color:#9ca3af; line-height:1.6; max-width:72ch;">
+    {{$p.Description}}
+</div>
 {{end}}
 
+<h2 style="margin-top:2rem">Valuation</h2>
+<div class="info-grid">
+    {{if $p.MarketCap}}<div class="info-item">
+        <span class="info-label">Market Cap</span>
+        <span class="info-value">{{bigMoney $p.MarketCap}}</span>
+    </div>{{end}}
+    {{if $p.EnterpriseValue}}<div class="info-item">
+        <span class="info-label">Enterprise Value</span>
+        <span class="info-value">{{bigMoney $p.EnterpriseValue}}</span>
+    </div>{{end}}
+    {{if $p.TrailingPe}}<div class="info-item">
+        <span class="info-label">P/E (Trailing)</span>
+        <span class="info-value">{{ratio100 $p.TrailingPe}}</span>
+    </div>{{end}}
+    {{if $p.ForwardPe}}<div class="info-item">
+        <span class="info-label">P/E (Forward)</span>
+        <span class="info-value">{{ratio100 $p.ForwardPe}}</span>
+    </div>{{end}}
+    {{if $p.PegRatio}}<div class="info-item">
+        <span class="info-label">PEG Ratio</span>
+        <span class="info-value">{{ratio100 $p.PegRatio}}</span>
+    </div>{{end}}
+    {{if $p.PriceToBook}}<div class="info-item">
+        <span class="info-label">Price / Book</span>
+        <span class="info-value">{{ratio100 $p.PriceToBook}}</span>
+    </div>{{end}}
+    {{if $p.PriceToSales}}<div class="info-item">
+        <span class="info-label">Price / Sales</span>
+        <span class="info-value">{{ratio100 $p.PriceToSales}}</span>
+    </div>{{end}}
+    {{if $p.EvToRevenue}}<div class="info-item">
+        <span class="info-label">EV / Revenue</span>
+        <span class="info-value">{{ratio100 $p.EvToRevenue}}</span>
+    </div>{{end}}
+    {{if $p.EvToEbitda}}<div class="info-item">
+        <span class="info-label">EV / EBITDA</span>
+        <span class="info-value">{{ratio100 $p.EvToEbitda}}</span>
+    </div>{{end}}
+</div>
+
+<h2 style="margin-top:2rem">Income Statement</h2>
+<div class="info-grid">
+    {{if $p.Revenue}}<div class="info-item">
+        <span class="info-label">Revenue (TTM)</span>
+        <span class="info-value">{{bigMoney $p.Revenue}}</span>
+    </div>{{end}}
+    {{if $p.RevenuePerShare}}<div class="info-item">
+        <span class="info-label">Revenue / Share</span>
+        <span class="info-value">{{cents $p.RevenuePerShare}}</span>
+    </div>{{end}}
+    {{if $p.QuarterlyRevGrowth}}<div class="info-item">
+        <span class="info-label">Quarterly Rev Growth</span>
+        <span class="info-value">{{bps $p.QuarterlyRevGrowth}}</span>
+    </div>{{end}}
+    {{if $p.GrossProfit}}<div class="info-item">
+        <span class="info-label">Gross Profit (TTM)</span>
+        <span class="info-value">{{bigMoney $p.GrossProfit}}</span>
+    </div>{{end}}
+    {{if $p.Ebitda}}<div class="info-item">
+        <span class="info-label">EBITDA</span>
+        <span class="info-value">{{bigMoney $p.Ebitda}}</span>
+    </div>{{end}}
+    {{if $p.NetIncome}}<div class="info-item">
+        <span class="info-label">Net Income (TTM)</span>
+        <span class="info-value">{{bigMoney $p.NetIncome}}</span>
+    </div>{{end}}
+    {{if $p.DilutedEps}}<div class="info-item">
+        <span class="info-label">EPS (Diluted)</span>
+        <span class="info-value">{{cents $p.DilutedEps}}</span>
+    </div>{{end}}
+    {{if $p.QuarterlyEarnGrowth}}<div class="info-item">
+        <span class="info-label">Quarterly Earnings Growth</span>
+        <span class="info-value">{{bps $p.QuarterlyEarnGrowth}}</span>
+    </div>{{end}}
+</div>
+
+<h2 style="margin-top:2rem">Margins &amp; Returns</h2>
+<div class="info-grid">
+    {{if $p.GrossMargin}}<div class="info-item">
+        <span class="info-label">Gross Margin</span>
+        <span class="info-value">{{bps $p.GrossMargin}}</span>
+    </div>{{end}}
+    {{if $p.OperatingMargin}}<div class="info-item">
+        <span class="info-label">Operating Margin</span>
+        <span class="info-value">{{bps $p.OperatingMargin}}</span>
+    </div>{{end}}
+    {{if $p.ProfitMargin}}<div class="info-item">
+        <span class="info-label">Profit Margin</span>
+        <span class="info-value">{{bps $p.ProfitMargin}}</span>
+    </div>{{end}}
+    {{if $p.ReturnOnEquity}}<div class="info-item">
+        <span class="info-label">Return on Equity</span>
+        <span class="info-value">{{bps $p.ReturnOnEquity}}</span>
+    </div>{{end}}
+    {{if $p.ReturnOnAssets}}<div class="info-item">
+        <span class="info-label">Return on Assets</span>
+        <span class="info-value">{{bps $p.ReturnOnAssets}}</span>
+    </div>{{end}}
+</div>
+
+<h2 style="margin-top:2rem">Balance Sheet</h2>
+<div class="info-grid">
+    {{if $p.TotalCash}}<div class="info-item">
+        <span class="info-label">Total Cash</span>
+        <span class="info-value">{{bigMoney $p.TotalCash}}</span>
+    </div>{{end}}
+    {{if $p.CashPerShare}}<div class="info-item">
+        <span class="info-label">Cash / Share</span>
+        <span class="info-value">{{cents $p.CashPerShare}}</span>
+    </div>{{end}}
+    {{if $p.TotalDebt}}<div class="info-item">
+        <span class="info-label">Total Debt</span>
+        <span class="info-value">{{bigMoney $p.TotalDebt}}</span>
+    </div>{{end}}
+    {{if $p.DebtToEquity}}<div class="info-item">
+        <span class="info-label">Debt / Equity</span>
+        <span class="info-value">{{ratio100 $p.DebtToEquity}}</span>
+    </div>{{end}}
+    {{if $p.CurrentRatio}}<div class="info-item">
+        <span class="info-label">Current Ratio</span>
+        <span class="info-value">{{ratio100 $p.CurrentRatio}}</span>
+    </div>{{end}}
+    {{if $p.BookValuePerShare}}<div class="info-item">
+        <span class="info-label">Book Value / Share</span>
+        <span class="info-value">{{cents $p.BookValuePerShare}}</span>
+    </div>{{end}}
+</div>
+
+<h2 style="margin-top:2rem">Cash Flow</h2>
+<div class="info-grid">
+    {{if $p.OperatingCashFlow}}<div class="info-item">
+        <span class="info-label">Operating Cash Flow</span>
+        <span class="info-value">{{bigMoney $p.OperatingCashFlow}}</span>
+    </div>{{end}}
+    {{if $p.FreeCashFlow}}<div class="info-item">
+        <span class="info-label">Free Cash Flow</span>
+        <span class="info-value">{{bigMoney $p.FreeCashFlow}}</span>
+    </div>{{end}}
+</div>
+
+<h2 style="margin-top:2rem">Stock Statistics</h2>
+<div class="info-grid">
+    {{if $p.SharesOutstanding}}<div class="info-item">
+        <span class="info-label">Shares Outstanding</span>
+        <span class="info-value">{{commas $p.SharesOutstanding}}</span>
+    </div>{{end}}
+    {{if $p.FloatShares}}<div class="info-item">
+        <span class="info-label">Float</span>
+        <span class="info-value">{{commas $p.FloatShares}}</span>
+    </div>{{end}}
+    {{if $p.Avg10Volume}}<div class="info-item">
+        <span class="info-label">Avg Volume (10d)</span>
+        <span class="info-value">{{commas $p.Avg10Volume}}</span>
+    </div>{{end}}
+    {{if $p.Avg90Volume}}<div class="info-item">
+        <span class="info-label">Avg Volume (90d)</span>
+        <span class="info-value">{{commas $p.Avg90Volume}}</span>
+    </div>{{end}}
+    {{if $p.SharesShort}}<div class="info-item">
+        <span class="info-label">Shares Short</span>
+        <span class="info-value">{{commas $p.SharesShort}}</span>
+    </div>{{end}}
+    {{if $p.ShortRatio}}<div class="info-item">
+        <span class="info-label">Short Ratio</span>
+        <span class="info-value">{{ratio100 $p.ShortRatio}}</span>
+    </div>{{end}}
+    {{if $p.ShortPctOutstanding}}<div class="info-item">
+        <span class="info-label">Short % of Outstanding</span>
+        <span class="info-value">{{bps $p.ShortPctOutstanding}}</span>
+    </div>{{end}}
+    {{if $p.PctHeldInsiders}}<div class="info-item">
+        <span class="info-label">Held by Insiders</span>
+        <span class="info-value">{{bps $p.PctHeldInsiders}}</span>
+    </div>{{end}}
+    {{if $p.PctHeldInstitutions}}<div class="info-item">
+        <span class="info-label">Held by Institutions</span>
+        <span class="info-value">{{bps $p.PctHeldInstitutions}}</span>
+    </div>{{end}}
+</div>
+
+<h2 style="margin-top:2rem">Price Summary</h2>
+<div class="info-grid">
+    {{if $p.Week52High}}<div class="info-item">
+        <span class="info-label">52-Week High</span>
+        <span class="info-value">{{cents $p.Week52High}}</span>
+    </div>{{end}}
+    {{if $p.Week52Low}}<div class="info-item">
+        <span class="info-label">52-Week Low</span>
+        <span class="info-value">{{cents $p.Week52Low}}</span>
+    </div>{{end}}
+    {{if $p.Week52Change}}<div class="info-item">
+        <span class="info-label">52-Week Change</span>
+        <span class="info-value">{{bps $p.Week52Change}}</span>
+    </div>{{end}}
+    {{if $p.Beta}}<div class="info-item">
+        <span class="info-label">Beta</span>
+        <span class="info-value">{{ratio100 $p.Beta}}</span>
+    </div>{{end}}
+    {{if $p.Day50Ma}}<div class="info-item">
+        <span class="info-label">50-Day Return</span>
+        <span class="info-value">{{pct100 $p.Day50Ma}}</span>
+    </div>{{end}}
+    {{if $p.Day200Ma}}<div class="info-item">
+        <span class="info-label">200-Day Return</span>
+        <span class="info-value">{{pct100 $p.Day200Ma}}</span>
+    </div>{{end}}
+</div>
+
+<h2 style="margin-top:2rem">Dividends &amp; Splits</h2>
+<div class="info-grid">
+    {{if $p.ForwardDivRate}}<div class="info-item">
+        <span class="info-label">Forward Div Rate</span>
+        <span class="info-value">{{cents $p.ForwardDivRate}}</span>
+    </div>{{end}}
+    {{if $p.ForwardDivYield}}<div class="info-item">
+        <span class="info-label">Forward Div Yield</span>
+        <span class="info-value">{{bps $p.ForwardDivYield}}</span>
+    </div>{{end}}
+    {{if $p.TrailingDivRate}}<div class="info-item">
+        <span class="info-label">Trailing Div Rate</span>
+        <span class="info-value">{{cents $p.TrailingDivRate}}</span>
+    </div>{{end}}
+    {{if $p.TrailingDivYield}}<div class="info-item">
+        <span class="info-label">Trailing Div Yield</span>
+        <span class="info-value">{{bps $p.TrailingDivYield}}</span>
+    </div>{{end}}
+    {{if $p.AvgDivYield5y}}<div class="info-item">
+        <span class="info-label">5-Year Avg Yield</span>
+        <span class="info-value">{{ratio100 $p.AvgDivYield5y}}%</span>
+    </div>{{end}}
+    {{if $p.PayoutRatio}}<div class="info-item">
+        <span class="info-label">Payout Ratio</span>
+        <span class="info-value">{{bps $p.PayoutRatio}}</span>
+    </div>{{end}}
+    {{if $p.DividendFrequency}}<div class="info-item">
+        <span class="info-label">Dividend Frequency</span>
+        <span class="info-value">{{$p.DividendFrequency}}</span>
+    </div>{{end}}
+    {{if $p.DividendDate}}<div class="info-item">
+        <span class="info-label">Dividend Date</span>
+        <span class="info-value">{{$p.DividendDate}}</span>
+    </div>{{end}}
+    {{if $p.ExDividendDate}}<div class="info-item">
+        <span class="info-label">Ex-Dividend Date</span>
+        <span class="info-value">{{$p.ExDividendDate}}</span>
+    </div>{{end}}
+    {{if $p.LastSplitFactor}}<div class="info-item">
+        <span class="info-label">Last Split</span>
+        <span class="info-value">{{$p.LastSplitFactor}}</span>
+    </div>{{end}}
+    {{if $p.LastSplitDate}}<div class="info-item">
+        <span class="info-label">Last Split Date</span>
+        <span class="info-value">{{$p.LastSplitDate}}</span>
+    </div>{{end}}
+</div>
+
+{{if .Extra.Peers}}
+<h2 style="margin-top:2rem">Peers</h2>
+<div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+    {{range .Extra.Peers}}
+    {{if .StockID}}
+    <a href="/games/{{$.Extra.Game.ID}}/stocks/{{.StockID}}" class="btn btn-sm">{{.Symbol}}</a>
+    {{else}}
+    <span class="btn btn-sm" style="opacity:0.5; cursor:default;">{{.Symbol}}</span>
+    {{end}}
+    {{end}}
+</div>
+{{end}}
+
+{{if .Extra.Recommendations}}
+<h2 style="margin-top:2rem">Analyst Ratings</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Period</th>
+            <th style="text-align:right">Strong Buy</th>
+            <th style="text-align:right">Buy</th>
+            <th style="text-align:right">Hold</th>
+            <th style="text-align:right">Sell</th>
+            <th style="text-align:right">Strong Sell</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .Extra.Recommendations}}
+        <tr>
+            <td>{{.Period}}</td>
+            <td style="text-align:right; color:#22c55e">{{.StrongBuy}}</td>
+            <td style="text-align:right; color:#4ade80">{{.Buy}}</td>
+            <td style="text-align:right; color:#9ca3af">{{.Hold}}</td>
+            <td style="text-align:right; color:#f87171">{{.Sell}}</td>
+            <td style="text-align:right; color:#ef4444">{{.StrongSell}}</td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+{{end}}
+
+{{if .Extra.News}}
+<h2 style="margin-top:2rem">Recent News</h2>
+<ul style="list-style:none; padding:0; margin:0;">
+    {{range .Extra.News}}
+    <li style="padding:0.75rem 0; border-bottom:1px solid #2a2d3a;">
+        <a href="{{.Url}}" target="_blank" rel="noopener noreferrer" style="color:#e5e7eb; font-weight:500;">{{.Headline}}</a>
+        <div style="color:#9ca3af; font-size:0.8rem; margin-top:0.25rem;">
+            {{.Source}} &middot; {{unixDate .PublishedAt}}
+        </div>
+        {{if .Summary}}<div style="color:#9ca3af; font-size:0.85rem; margin-top:0.35rem; line-height:1.45; max-width:80ch;">{{.Summary}}</div>{{end}}
+    </li>
+    {{end}}
+</ul>
+{{end}}
+{{end}}
+
+
 {{if .Items}}
-<script src="https://unpkg.com/lightweight-charts@4/dist/lightweight-charts.standalone.production.js"></script>
-<script>
+<script src="{{asset "js/lightweight-charts-4.2.3.standalone.production.js"}}"></script>
+<script nonce="{{.Nonce}}">
 (function() {
     const raw = [
         {{range .Items}}
@@ -93,27 +461,11 @@
         color: d.c >= d.o ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)',
     }));
 
-    // Price stats bar.
-    const last = raw[raw.length - 1];
-    const prev = raw.length > 1 ? raw[raw.length - 2] : last;
-    const lastClose = last.c / 100;
-    const prevClose = prev.c / 100;
-    const change = lastClose - prevClose;
-    const changePct = prevClose !== 0 ? (change / prevClose * 100) : 0;
-    const isUp = change >= 0;
-    const sign = isUp ? '+' : '';
-
-    document.getElementById('ps-price').textContent = '$' + lastClose.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-    const changeEl = document.getElementById('ps-change');
-    changeEl.textContent = sign + '$' + change.toFixed(2) + ' (' + sign + changePct.toFixed(2) + '%)';
-    changeEl.className = 'price-change ' + (isUp ? 'text-green' : 'text-red');
-    document.getElementById('ps-range').textContent =
-        '$' + (last.l/100).toFixed(2) + ' \u2014 $' + (last.h/100).toFixed(2);
-
     // 30-day stats.
-    const highs = raw.map(d => d.h / 100);
-    const lows = raw.map(d => d.l / 100);
-    const vols = raw.map(d => d.v);
+    const recent = raw.slice(-22); // ~30 calendar days = ~22 trading days
+    const highs = recent.map(d => d.h / 100);
+    const lows = recent.map(d => d.l / 100);
+    const vols = recent.map(d => d.v);
     document.getElementById('stat-high').textContent = '$' + Math.max(...highs).toFixed(2);
     document.getElementById('stat-low').textContent = '$' + Math.min(...lows).toFixed(2);
     const avgVol = vols.reduce((a,b) => a+b, 0) / vols.length;
@@ -178,6 +530,15 @@
     // Fit content.
     chart.timeScale().fitContent();
 
+    // The price header refreshes itself while the market is open (see
+    // _price_stats.html); move today's candle to match.
+    document.body.addEventListener('htmx:after:swap', function() {
+        const d = document.getElementById('price-stats')?.dataset;
+        if (!d || !d.date || d.date < ohlc[ohlc.length - 1].time) return;
+        candleSeries.update({time: d.date, open: d.o / 100, high: d.h / 100, low: d.l / 100, close: d.c / 100});
+        document.dispatchEvent(new CustomEvent('price:update', {detail: {close: parseInt(d.c, 10)}}));
+    });
+
     // Responsive.
     const ro = new ResizeObserver(() => {
         chart.applyOptions({ width: container.clientWidth });
@@ -185,6 +546,115 @@
     ro.observe(container);
 })();
 </script>
-<p class="text-muted" style="font-size:0.75rem; margin-top:0.5rem;">Market data provided by Twelve Data. Prices may be delayed.</p>
+<p class="text-muted" style="font-size:0.75rem; margin-top:0.5rem;">Prices by Twelve Data.{{if .Extra.News}} News by TickerTick.{{end}} Prices may be delayed.</p>
+{{end}}
+
+{{if and .Extra.Trade (eq .Extra.Game.Status "active") .Extra.LatestPrice.ID}}
+{{- $t := .Extra.Trade}}
+<script nonce="{{.Nonce}}">
+(function() {
+    // All money in cents. exchangeRate is AUD/USD * 1,000,000.
+    let marketCents = {{.Extra.LatestPrice.Close}};
+    const cashCents = {{$t.Participant.CashBalance}};
+    const held = {{$t.Holding.Quantity}};
+    const feeCents = {{.Extra.Game.TradeFee}};
+    const allowShort = {{if .Extra.Game.AllowShort}}true{{else}}false{{end}};
+    const stockCurrency = "{{.Item.Currency}}";
+    const baseCurrency = "{{.Extra.Game.BaseCurrency}}";
+    const exchangeRate = {{$t.ExchangeRate}};
+
+    const form = document.getElementById("ticket-form");
+    const qty = document.getElementById("qty");
+    const slider = document.getElementById("qty-slider");
+    const maxLabel = document.getElementById("qty-max");
+    const btn = document.getElementById("ticket-btn");
+    const orderType = document.getElementById("order-type");
+    const limitFields = document.getElementById("limit-fields");
+    const limitPrice = document.getElementById("limit-price");
+
+    function toBase(cents) {
+        if (stockCurrency === baseCurrency) return cents;
+        if (stockCurrency === "AUD" && baseCurrency === "USD") return Math.round(cents * exchangeRate / 1000000);
+        if (stockCurrency === "USD" && baseCurrency === "AUD") return Math.round(cents * 1000000 / exchangeRate);
+        return cents;
+    }
+
+    function fmt(cents) {
+        const abs = Math.abs(cents);
+        const s = "$" + Math.floor(abs / 100).toLocaleString("en-US") + "." + String(abs % 100).padStart(2, "0");
+        return cents < 0 ? "-" + s : s;
+    }
+
+    function side() { return form.elements.side.value; }
+    function isLimit() { return !!orderType && orderType.value === "limit"; }
+    function price() {
+        return isLimit() ? Math.round((parseFloat(limitPrice.value) || 0) * 100) : marketCents;
+    }
+
+    // The most you can buy with your cash, or sell from what you hold. In a
+    // short-selling game a market sell can go past your holding by as much
+    // as your cash would buy.
+    function maxShares() {
+        const per = toBase(price());
+        const affordable = per > 0 ? Math.max(0, Math.floor((cashCents - feeCents) / per)) : 0;
+        if (side() === "buy") return affordable;
+        if (allowShort && !isLimit()) return Math.max(0, held) + affordable;
+        return Math.max(0, held);
+    }
+
+    function update() {
+        const max = maxShares();
+        qty.max = max;
+        slider.max = max;
+        maxLabel.textContent = max.toLocaleString();
+        let n = parseInt(qty.value, 10) || 0;
+        n = Math.min(Math.max(n, 0), max);
+        qty.value = n;
+        slider.value = n;
+
+        const buying = side() === "buy";
+        const native = n * price();
+        const base = toBase(native);
+        const total = n > 0 ? (buying ? base + feeCents : Math.max(0, base - feeCents)) : 0;
+        const after = cashCents + (buying ? -total : total);
+
+        const word = buying ? "Cost" : "Proceeds";
+        document.getElementById("est-native-label").textContent = word + " (" + stockCurrency + ")";
+        document.getElementById("est-native").textContent = fmt(native);
+        const convLabel = document.getElementById("est-converted-label");
+        if (convLabel) {
+            convLabel.textContent = word + " (" + baseCurrency + ")";
+            document.getElementById("est-converted").textContent = fmt(base);
+        }
+        document.getElementById("est-total-label").textContent = (buying ? "Total" : "Net proceeds") + " (" + baseCurrency + ")";
+        document.getElementById("est-total").textContent = fmt(total);
+        const rem = document.getElementById("est-remaining");
+        rem.textContent = fmt(after);
+        rem.className = after < 0 ? "text-red" : "";
+
+        if (limitFields) limitFields.hidden = !isLimit();
+        if (limitPrice) limitPrice.required = isLimit();
+
+        const shares = n.toLocaleString() + " share" + (n === 1 ? "" : "s");
+        btn.textContent = (isLimit() ? "Place limit " + side() + ": " : (buying ? "Buy " : "Sell ")) + shares;
+        btn.className = "btn " + (buying ? "btn-primary" : "btn-danger");
+        btn.disabled = n <= 0 || after < 0 || (isLimit() && price() <= 0);
+    }
+
+    qty.addEventListener("input", function() { slider.value = qty.value; update(); });
+    slider.addEventListener("input", function() { qty.value = slider.value; update(); });
+    form.addEventListener("change", update);
+    if (limitPrice) limitPrice.addEventListener("input", update);
+    form.addEventListener("submit", function(e) {
+        if (btn.disabled) e.preventDefault();
+    });
+    // The price header refreshes while the market is open; keep the estimate current.
+    document.addEventListener("price:update", function(e) {
+        marketCents = e.detail.close;
+        update();
+    });
+    update();
+})();
+</script>
 {{end}}
 {{end}}

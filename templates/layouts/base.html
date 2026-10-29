@@ -14,12 +14,18 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/app.css">
+    <link rel="stylesheet" href="{{asset "css/app.css"}}">
     <meta name="csrf-token" content="{{.CSRFToken}}">
-    <script src="/static/js/htmx.min.js"></script>
+    <!-- htmx 4. The config must come before the script. noSwap keeps error
+         responses (4xx/5xx) out of the page, as htmx 2 did; app.js toasts them. -->
+    <meta name="htmx-config" content='{"noSwap": [204, 304, "4xx", "5xx"]}'>
+    <script src="{{asset "js/htmx.min.js"}}"></script>
 </head>
-<body hx-headers='{"X-CSRF-Token": "{{.CSRFToken}}"}'>
+<!-- :inherited is required in htmx 4, or the CSRF header never reaches the
+     forms and buttons inside and every htmx POST is rejected. -->
+<body hx-headers:inherited='{"X-CSRF-Token": "{{.CSRFToken}}"}'>
     {{template "nav" .}}
+    {{with .GameBar}}{{template "gamebar" .}}{{end}}
 
     {{if .Flash}}
     <div class="flash flash-{{.Flash.Type}}">
@@ -46,6 +52,6 @@
     </footer>
 
     <div id="toast-container"></div>
-    <script src="/static/js/app.js"></script>
+    <script src="{{asset "js/app.js"}}"></script>
 </body>
 </html>{{end}}

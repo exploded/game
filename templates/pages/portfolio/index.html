@@ -4,7 +4,6 @@
 <div class="page-header">
     <h1>Portfolio</h1>
     <div class="page-header-actions">
-        <a href="/games/{{.Item.ID}}" class="btn btn-sm">&larr; Game</a>
         <a href="/games/{{.Item.ID}}/stocks" class="btn btn-primary btn-sm">Browse Stocks</a>
     </div>
 </div>
@@ -64,7 +63,7 @@
                 <td>{{cents .AvgCost}}</td>
                 <td>{{cents .CurrentValue}}</td>
                 <td>{{.Market | upper}}</td>
-                <td><a href="/games/{{$.Item.ID}}/trade/{{.StockID}}" class="btn btn-primary btn-sm">Trade</a></td>
+                <td><a href="/games/{{$.Item.ID}}/stocks/{{.StockID}}" class="btn btn-primary btn-sm">Trade</a></td>
             </tr>
             {{end}}
         </tbody>
@@ -75,8 +74,8 @@
 </section>
 
 {{if .Extra.Snapshots}}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-<script>
+<script src="{{asset "js/chart-4.5.1.umd.min.js"}}"></script>
+<script nonce="{{.Nonce}}">
 const snapshots = [
     {{range .Extra.Snapshots}}
     {date: "{{.Date}}", value: {{.TotalValue}}},
