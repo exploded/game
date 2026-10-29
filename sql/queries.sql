@@ -600,9 +600,10 @@ UPDATE limit_orders SET status = 'filled', filled_at = datetime('now') WHERE id 
 -- name: CancelLimitOrder :exec
 UPDATE limit_orders SET status = 'cancelled' WHERE id = ?;
 
--- name: ExpireOldLimitOrders :exec
+-- name: ExpireOldLimitOrders :many
 UPDATE limit_orders SET status = 'expired'
-WHERE status = 'open' AND expires_at IS NOT NULL AND expires_at < sqlc.arg(today);
+WHERE status = 'open' AND expires_at IS NOT NULL AND expires_at < sqlc.arg(today)
+RETURNING participant_id, stock_id, type, quantity, limit_price;
 
 -- name: CountOpenOrders :one
 SELECT COUNT(*) FROM limit_orders WHERE participant_id = ? AND status = 'open';
@@ -752,6 +753,30 @@ DELETE FROM game_starting_stocks WHERE game_id = ?;
 -- name: CreateNotification :exec
 INSERT INTO notifications (user_id, game_id, type, title, message)
 VALUES (?, ?, ?, ?, ?);
+
+-- name: ListUnemailedNotifications :many
+SELECT n.id, n.user_id, n.game_id, n.type, n.title, n.message,
+       COALESCE(g.name, '') AS game_name
+FROM notifications n
+LEFT JOIN games g ON g.id = n.game_id
+WHERE n.emailed = 0
+ORDER BY n.user_id, n.id
+LIMIT 500;
+
+-- name: MarkNotificationEmailed :exec
+UPDATE notifications SET emailed = 1 WHERE id = ?;
+
+-- name: ClaimGameEmail :execrows
+INSERT OR IGNORE INTO game_emails (game_id, kind) VALUES (?, ?);
+
+-- name: ListActiveGamesStartedSince :many
+SELECT * FROM games WHERE status = 'active' AND start_date >= ?;
+
+-- name: ListActiveGamesEndingOn :many
+SELECT * FROM games WHERE status = 'active' AND end_date = ?;
+
+-- name: ListFinishedGamesEndedSince :many
+SELECT * FROM games WHERE status = 'finished' AND end_date >= ?;
 
 -- name: ListUnreadNotifications :many
 SELECT * FROM notifications

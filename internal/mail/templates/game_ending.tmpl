@@ -1,0 +1,9 @@
+{{define "subject"}}{{.D.GameName}} ends {{if .D.Tomorrow}}tomorrow{{else}}on {{.D.EndDate}}{{end}}{{end}}
+
+{{define "text"}}{{.D.GameName}} ends {{if .D.Tomorrow}}tomorrow, {{.D.EndDate}}{{else}}on {{.D.EndDate}}{{end}}. You're {{.D.You.Place}} of {{.D.You.Players}}, with {{.D.You.Value}} ({{.D.You.Return}}).
+
+{{if eq .D.You.Rank 1}}You're in the lead. Hold on to it{{else}}There's still time to climb{{end}}: {{.BaseURL}}{{.D.URL}}{{end}}
+
+{{define "html"}}<p style="margin:0 0 16px;"><strong>{{.D.GameName}}</strong> ends {{if .D.Tomorrow}}<strong>tomorrow</strong>, {{.D.EndDate}}{{else}}on <strong>{{.D.EndDate}}</strong>{{end}}.</p>
+<p style="margin:0 0 24px;">You're <strong>{{.D.You.Place}} of {{.D.You.Players}}</strong>, with {{.D.You.Value}} ({{.D.You.Return}}). {{if eq .D.You.Rank 1}}You're in the lead. Hold on to it.{{else}}There's still time to climb.{{end}}</p>
+<p style="margin:0;"><a href="{{.BaseURL}}{{.D.URL}}" style="display:inline-block;background:#007994;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:6px;">See the leaderboard</a></p>{{end}}

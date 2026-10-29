@@ -1,0 +1,9 @@
+{{define "subject"}}{{.D.GameName}} has started{{end}}
+
+{{define "text"}}{{.D.GameName}} has started. You have {{.D.Starting}} of virtual cash to invest, and the game ends on {{.D.EndDate}}.
+
+{{.D.You.Players}} players are in. Make your first trades: {{.BaseURL}}{{.D.URL}}{{end}}
+
+{{define "html"}}<p style="margin:0 0 16px;"><strong>{{.D.GameName}}</strong> has started. You have <strong>{{.D.Starting}}</strong> of virtual cash to invest, and the game ends on <strong>{{.D.EndDate}}</strong>.</p>
+<p style="margin:0 0 24px;">{{.D.You.Players}} players are in.</p>
+<p style="margin:0;"><a href="{{.BaseURL}}{{.D.URL}}" style="display:inline-block;background:#007994;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:6px;">Make your first trades</a></p>{{end}}

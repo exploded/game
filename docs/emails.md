@@ -56,26 +56,29 @@ worked out but aren't written yet.
 
 | # | Email | Trigger | Status |
 |---|---|---|---|
-| T1 | Order filled | A limit order, or a market order queued after hours, fills | Planned |
-| T2 | Order expired | A limit order reaches its expiry date unfilled | Planned |
-| T3 | Dividend paid | Admin runs a dividend on a stock you hold | Planned |
-| T4 | Stock split | Admin runs a split on a stock you hold | Planned |
+| T1 | Order filled | A limit order, or a market order queued after hours, fills | Built |
+| T2 | Order cancelled or expired | An order can't fill (no cash, game over) or passes its expiry date | Built |
+| T3 | Dividend paid | Admin runs a dividend on a stock you hold | Built |
+| T4 | Stock split | Admin runs a split on a stock you hold | Built |
 
-- When several orders fill in one scheduler run, send one email listing them
-  all, not one email each.
+- These follow the in-app notifications. Each minute, `internal/notify` emails
+  any new ones, one email per person and category, so five orders filling at
+  the open make one email. Achievements stay in-app only.
 
 ### Games
 
 | # | Email | Trigger | Status |
 |---|---|---|---|
-| G1 | Game started | A game you joined moves from pending to active | Planned |
-| G2 | Game ending soon | 3 days and 1 day before a game you're in ends | Planned |
-| G3 | Final results | A game you're in finishes: your rank, return and the top 3 | Planned |
-| G4 | Next round ready | A recurring game you were in starts its next round | Planned |
-| G5 | Friend joined | Someone joins a game through your invite link | Planned |
+| G1 | Game started | A game you joined moves from pending to active | Built |
+| G2 | Game ending soon | 3 days and 1 day before a game you're in ends | Built |
+| G3 | Final results | A game you're in finishes: your rank, return and the top 3 | Built |
+| G4 | Next round ready | A recurring game you created starts its next round | Built |
+| G5 | Referral bonus | Someone joins a game through your invite link | Built |
 
 - G2 and G3 matter most to Rob: they bring people back before a game ends.
-- At most one game email per game per day, apart from G3.
+- G1 to G3 go out after 8 am in `TIMEZONE`, once per game (the `game_emails`
+  table records each). Games that started or finished before this shipped
+  don't get them.
 
 ### Weekly summary
 

@@ -385,9 +385,19 @@ CREATE TABLE IF NOT EXISTS notifications (
     title      TEXT    NOT NULL,
     message    TEXT    NOT NULL,
     is_read    INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+    created_at TEXT    NOT NULL DEFAULT (datetime('now')),
+    emailed    INTEGER NOT NULL DEFAULT 0                -- 1 once internal/notify has handled it
 );
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_emailed ON notifications(emailed) WHERE emailed = 0;
+
+-- Game emails already sent, so each goes once per game.
+CREATE TABLE IF NOT EXISTS game_emails (
+    game_id INTEGER NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+    kind    TEXT    NOT NULL,                          -- 'started' | 'ending_3' | 'ending_1' | 'results'
+    sent_at TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (game_id, kind)
+);
 
 --------------------------------------------------------------------------------
 -- Contact Messages

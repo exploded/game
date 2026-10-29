@@ -124,14 +124,15 @@ func main() {
 	h.SetMailer(mailer)
 	go mailer.Run(ctx)
 
+	// Start background scheduler.
+	go scheduler.Start(ctx, queries, rawDB, loc, mailer)
+
 	// Generate CSRF secret.
 	csrfSecret, err := auth.GenerateCSRFSecret()
 	if err != nil {
 		log.Fatalf("csrf secret: %v", err)
 	}
 
-	// Start background scheduler.
-	go scheduler.Start(ctx, queries, rawDB, loc)
 
 	handler.SecurityHeadersProd = production
 

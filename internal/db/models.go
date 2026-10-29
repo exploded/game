@@ -111,6 +111,12 @@ type Game struct {
 	UpdatedAt            string
 }
 
+type GameEmail struct {
+	GameID int64
+	Kind   string
+	SentAt string
+}
+
 type GameInvite struct {
 	ID        int64
 	GameID    int64
@@ -203,6 +209,7 @@ type Notification struct {
 	Message   string
 	IsRead    int64
 	CreatedAt string
+	Emailed   int64
 }
 
 type Participant struct {

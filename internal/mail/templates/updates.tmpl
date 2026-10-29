@@ -1,0 +1,15 @@
+{{/* In-app notifications batched into one email per category. */}}
+{{define "subject"}}{{if eq (len .D.Updates) 1}}{{with index .D.Updates 0}}{{.Title}}{{if .GameName}}: {{.GameName}}{{end}}{{end}}{{else}}{{len .D.Updates}} updates from StockGame{{end}}{{end}}
+
+{{define "text"}}{{range .D.Updates}}{{.Title}}{{if .GameName}} ({{.GameName}}){{end}}
+{{.Message}}
+{{if .URL}}{{$.BaseURL}}{{.URL}}
+{{end}}
+{{end}}{{end}}
+
+{{define "html"}}{{range .D.Updates}}<div style="margin:0 0 16px;padding:12px 16px;background:#f6f8fa;border-radius:6px;">
+  <p style="margin:0 0 4px;font-weight:600;">{{.Title}}{{if .GameName}} <span style="font-weight:400;color:#6b7385;">&middot; {{.GameName}}</span>{{end}}</p>
+  <p style="margin:0;">{{.Message}}</p>
+  {{if .URL}}<p style="margin:6px 0 0;"><a href="{{$.BaseURL}}{{.URL}}" style="color:#007994;">Open the game</a></p>{{end}}
+</div>
+{{end}}{{end}}

@@ -38,9 +38,12 @@ func QueuesMarketOrder(stockMarket string) bool {
 // ProcessLimitOrders fills open limit orders whose price condition is met, and
 // queued market orders once the market has opened.
 func ProcessLimitOrders(ctx context.Context, q *db.Queries) {
-	// Expire old orders first.
+	// Expire old orders first, and tell their owners.
 	today := time.Now().UTC().Format("2006-01-02")
-	_ = q.ExpireOldLimitOrders(ctx, sql.NullString{String: today, Valid: true})
+	expired, _ := q.ExpireOldLimitOrders(ctx, sql.NullString{String: today, Valid: true})
+	for _, o := range expired {
+		notifyExpired(ctx, q, o)
+	}
 
 	// A queued market order fills at the first price of the session: the
 	// market must be open and the stock's newest price dated today.
@@ -230,6 +233,25 @@ func fillLimitOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrde
 	})
 
 	return nil
+}
+
+// notifyExpired tells the player their limit order expired unfilled.
+func notifyExpired(ctx context.Context, q *db.Queries, o db.ExpireOldLimitOrdersRow) {
+	participant, err := q.GetParticipant(ctx, o.ParticipantID)
+	if err != nil {
+		return
+	}
+	stock, err := q.GetStock(ctx, o.StockID)
+	if err != nil {
+		return
+	}
+	_ = q.CreateNotification(ctx, db.CreateNotificationParams{
+		UserID:  participant.UserID,
+		GameID:  nint64(participant.GameID),
+		Type:    "order_expired",
+		Title:   "Limit Order Expired",
+		Message: "Your " + o.Type + " order for " + itoa(o.Quantity) + " shares of " + stock.Symbol + " at " + fmtCentsSimple(o.LimitPrice) + " expired without filling.",
+	})
 }
 
 // cancelOrder cancels an order that can't fill and tells the player why.

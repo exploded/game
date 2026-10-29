@@ -93,6 +93,7 @@ var addedColumns = []struct{ table, column, ddl string }{
 	{"stock_profiles", "peers", "TEXT NOT NULL DEFAULT ''"},
 	{"users", "last_game_id", "INTEGER DEFAULT NULL REFERENCES games(id) ON DELETE SET NULL"},
 	{"limit_orders", "kind", "TEXT NOT NULL DEFAULT 'limit'"},
+	{"notifications", "emailed", "INTEGER NOT NULL DEFAULT 0"},
 }
 
 // onceMigrations run exactly once per database, in order. Each is recorded in
@@ -107,6 +108,8 @@ var onceMigrations = []struct{ name, stmt string }{
 	// TickerTick matched ASX codes to unrelated US companies. ASX news is no
 	// longer fetched, so clear what it stored.
 	{"clear-asx-news", "DELETE FROM stock_news WHERE stock_id IN (SELECT id FROM stocks WHERE market = 'asx')"},
+	// Notifications from before email existed mustn't all be emailed at once.
+	{"mark-old-notifications-emailed", "UPDATE notifications SET emailed = 1"},
 }
 
 func runMigrations(db *sql.DB) error {

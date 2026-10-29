@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"github.com/exploded/game/internal/db"
+	"github.com/exploded/game/internal/mail"
 	"github.com/exploded/game/internal/market"
+	"github.com/exploded/game/internal/notify"
 )
 
 var pricesChanged atomic.Bool
@@ -30,7 +32,7 @@ func IsFetchInProgress() bool   { return fetchInProgress.Load() }
 
 // Start launches the background scheduler that runs every minute.
 // loc is the timezone used for game date comparisons (start/end dates).
-func Start(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location) {
+func Start(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, m *mail.Mailer) {
 	// Kick off historical backfill in the background if no prices exist yet.
 	// Runs once at startup, independent of the hour gate used for daily updates.
 	go startupBackfill(ctx, q, rawDB)
@@ -49,12 +51,12 @@ func Start(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location
 			slog.Info("scheduler stopped")
 			return
 		case <-ticker.C:
-			run(ctx, q, rawDB, loc)
+			run(ctx, q, rawDB, loc, m)
 		}
 	}
 }
 
-func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location) {
+func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, m *mail.Mailer) {
 	now := time.Now()
 	today := now.In(loc).Format("2006-01-02")
 
@@ -93,7 +95,10 @@ func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location) 
 		maybeFetchNews(ctx, q, rawDB)
 	}
 
-	// 7. Clean expired sessions and sign-in requests.
+	// 7. Email order fills, game results and the like.
+	notify.Run(ctx, q, m, now, loc)
+
+	// 8. Clean expired sessions and sign-in requests.
 	q.DeleteExpiredSessions(ctx)
 	q.DeleteOldLoginRequests(ctx)
 }

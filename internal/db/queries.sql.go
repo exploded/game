@@ -79,6 +79,23 @@ func (q *Queries) CancelLimitOrder(ctx context.Context, id int64) error {
 	return err
 }
 
+const claimGameEmail = `-- name: ClaimGameEmail :execrows
+INSERT OR IGNORE INTO game_emails (game_id, kind) VALUES (?, ?)
+`
+
+type ClaimGameEmailParams struct {
+	GameID int64
+	Kind   string
+}
+
+func (q *Queries) ClaimGameEmail(ctx context.Context, arg ClaimGameEmailParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, claimGameEmail, arg.GameID, arg.Kind)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const clearUserAvatar = `-- name: ClearUserAvatar :exec
 UPDATE users SET avatar_id = NULL WHERE id = ?
 `
@@ -827,14 +844,47 @@ func (q *Queries) DeleteUserSessions(ctx context.Context, userID int64) error {
 	return err
 }
 
-const expireOldLimitOrders = `-- name: ExpireOldLimitOrders :exec
+const expireOldLimitOrders = `-- name: ExpireOldLimitOrders :many
 UPDATE limit_orders SET status = 'expired'
 WHERE status = 'open' AND expires_at IS NOT NULL AND expires_at < ?1
+RETURNING participant_id, stock_id, type, quantity, limit_price
 `
 
-func (q *Queries) ExpireOldLimitOrders(ctx context.Context, today sql.NullString) error {
-	_, err := q.db.ExecContext(ctx, expireOldLimitOrders, today)
-	return err
+type ExpireOldLimitOrdersRow struct {
+	ParticipantID int64
+	StockID       int64
+	Type          string
+	Quantity      int64
+	LimitPrice    int64
+}
+
+func (q *Queries) ExpireOldLimitOrders(ctx context.Context, today sql.NullString) ([]ExpireOldLimitOrdersRow, error) {
+	rows, err := q.db.QueryContext(ctx, expireOldLimitOrders, today)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ExpireOldLimitOrdersRow
+	for rows.Next() {
+		var i ExpireOldLimitOrdersRow
+		if err := rows.Scan(
+			&i.ParticipantID,
+			&i.StockID,
+			&i.Type,
+			&i.Quantity,
+			&i.LimitPrice,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const fillLimitOrder = `-- name: FillLimitOrder :exec
@@ -1875,6 +1925,120 @@ func (q *Queries) ListActiveGames(ctx context.Context) ([]Game, error) {
 	return items, nil
 }
 
+const listActiveGamesEndingOn = `-- name: ListActiveGamesEndingOn :many
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, is_public, portfolio_visibility, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, created_at, updated_at FROM games WHERE status = 'active' AND end_date = ?
+`
+
+func (q *Queries) ListActiveGamesEndingOn(ctx context.Context, endDate string) ([]Game, error) {
+	rows, err := q.db.QueryContext(ctx, listActiveGamesEndingOn, endDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Game
+	for rows.Next() {
+		var i Game
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedBy,
+			&i.Name,
+			&i.Description,
+			&i.Status,
+			&i.Markets,
+			&i.StartingBalance,
+			&i.BaseCurrency,
+			&i.MaxParticipants,
+			&i.StartDate,
+			&i.EndDate,
+			&i.AllowShort,
+			&i.TradeFee,
+			&i.ReferralBonusPct,
+			&i.RecurringInterval,
+			&i.ParentGameID,
+			&i.TemplateID,
+			&i.IsPublic,
+			&i.PortfolioVisibility,
+			&i.CreditInterestRate,
+			&i.LeverageInterestRate,
+			&i.MinStockPrice,
+			&i.MaxStockPrice,
+			&i.MarginTrading,
+			&i.LimitOrders,
+			&i.StopLoss,
+			&i.FractionalShares,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listActiveGamesStartedSince = `-- name: ListActiveGamesStartedSince :many
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, is_public, portfolio_visibility, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, created_at, updated_at FROM games WHERE status = 'active' AND start_date >= ?
+`
+
+func (q *Queries) ListActiveGamesStartedSince(ctx context.Context, startDate string) ([]Game, error) {
+	rows, err := q.db.QueryContext(ctx, listActiveGamesStartedSince, startDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Game
+	for rows.Next() {
+		var i Game
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedBy,
+			&i.Name,
+			&i.Description,
+			&i.Status,
+			&i.Markets,
+			&i.StartingBalance,
+			&i.BaseCurrency,
+			&i.MaxParticipants,
+			&i.StartDate,
+			&i.EndDate,
+			&i.AllowShort,
+			&i.TradeFee,
+			&i.ReferralBonusPct,
+			&i.RecurringInterval,
+			&i.ParentGameID,
+			&i.TemplateID,
+			&i.IsPublic,
+			&i.PortfolioVisibility,
+			&i.CreditInterestRate,
+			&i.LeverageInterestRate,
+			&i.MinStockPrice,
+			&i.MaxStockPrice,
+			&i.MarginTrading,
+			&i.LimitOrders,
+			&i.StopLoss,
+			&i.FractionalShares,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listActiveParticipants = `-- name: ListActiveParticipants :many
 
 SELECT p.id, p.game_id, p.user_id, p.cash_balance, p.portfolio_value, p.is_public, p.joined_at, g.base_currency
@@ -2551,6 +2715,63 @@ func (q *Queries) ListFinishedGames(ctx context.Context, arg ListFinishedGamesPa
 	return items, nil
 }
 
+const listFinishedGamesEndedSince = `-- name: ListFinishedGamesEndedSince :many
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, is_public, portfolio_visibility, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, created_at, updated_at FROM games WHERE status = 'finished' AND end_date >= ?
+`
+
+func (q *Queries) ListFinishedGamesEndedSince(ctx context.Context, endDate string) ([]Game, error) {
+	rows, err := q.db.QueryContext(ctx, listFinishedGamesEndedSince, endDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Game
+	for rows.Next() {
+		var i Game
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedBy,
+			&i.Name,
+			&i.Description,
+			&i.Status,
+			&i.Markets,
+			&i.StartingBalance,
+			&i.BaseCurrency,
+			&i.MaxParticipants,
+			&i.StartDate,
+			&i.EndDate,
+			&i.AllowShort,
+			&i.TradeFee,
+			&i.ReferralBonusPct,
+			&i.RecurringInterval,
+			&i.ParentGameID,
+			&i.TemplateID,
+			&i.IsPublic,
+			&i.PortfolioVisibility,
+			&i.CreditInterestRate,
+			&i.LeverageInterestRate,
+			&i.MinStockPrice,
+			&i.MaxStockPrice,
+			&i.MarginTrading,
+			&i.LimitOrders,
+			&i.StopLoss,
+			&i.FractionalShares,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listFinishedRecurringGames = `-- name: ListFinishedRecurringGames :many
 
 SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, is_public, portfolio_visibility, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, created_at, updated_at FROM games
@@ -3048,7 +3269,7 @@ func (q *Queries) ListMostActiveUsers(ctx context.Context) ([]ListMostActiveUser
 }
 
 const listNotifications = `-- name: ListNotifications :many
-SELECT id, user_id, game_id, type, title, message, is_read, created_at FROM notifications
+SELECT id, user_id, game_id, type, title, message, is_read, created_at, emailed FROM notifications
 WHERE user_id = ?
 ORDER BY created_at DESC
 LIMIT ? OFFSET ?
@@ -3078,6 +3299,7 @@ func (q *Queries) ListNotifications(ctx context.Context, arg ListNotificationsPa
 			&i.Message,
 			&i.IsRead,
 			&i.CreatedAt,
+			&i.Emailed,
 		); err != nil {
 			return nil, err
 		}
@@ -3831,8 +4053,59 @@ func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsPara
 	return items, nil
 }
 
+const listUnemailedNotifications = `-- name: ListUnemailedNotifications :many
+SELECT n.id, n.user_id, n.game_id, n.type, n.title, n.message,
+       COALESCE(g.name, '') AS game_name
+FROM notifications n
+LEFT JOIN games g ON g.id = n.game_id
+WHERE n.emailed = 0
+ORDER BY n.user_id, n.id
+LIMIT 500
+`
+
+type ListUnemailedNotificationsRow struct {
+	ID       int64
+	UserID   int64
+	GameID   sql.NullInt64
+	Type     string
+	Title    string
+	Message  string
+	GameName string
+}
+
+func (q *Queries) ListUnemailedNotifications(ctx context.Context) ([]ListUnemailedNotificationsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listUnemailedNotifications)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUnemailedNotificationsRow
+	for rows.Next() {
+		var i ListUnemailedNotificationsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.GameID,
+			&i.Type,
+			&i.Title,
+			&i.Message,
+			&i.GameName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUnreadNotifications = `-- name: ListUnreadNotifications :many
-SELECT id, user_id, game_id, type, title, message, is_read, created_at FROM notifications
+SELECT id, user_id, game_id, type, title, message, is_read, created_at, emailed FROM notifications
 WHERE user_id = ? AND is_read = 0
 ORDER BY created_at DESC
 LIMIT 20
@@ -3856,6 +4129,7 @@ func (q *Queries) ListUnreadNotifications(ctx context.Context, userID int64) ([]
 			&i.Message,
 			&i.IsRead,
 			&i.CreatedAt,
+			&i.Emailed,
 		); err != nil {
 			return nil, err
 		}
@@ -4218,6 +4492,15 @@ WHERE id = ?
 
 func (q *Queries) MarkEmailSent(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, markEmailSent, id)
+	return err
+}
+
+const markNotificationEmailed = `-- name: MarkNotificationEmailed :exec
+UPDATE notifications SET emailed = 1 WHERE id = ?
+`
+
+func (q *Queries) MarkNotificationEmailed(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, markNotificationEmailed, id)
 	return err
 }
 

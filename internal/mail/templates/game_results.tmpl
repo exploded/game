@@ -1,0 +1,20 @@
+{{define "subject"}}{{if eq .D.You.Rank 1}}You won {{.D.GameName}}!{{else}}{{.D.GameName}} results: you came {{.D.You.Place}} of {{.D.You.Players}}{{end}}{{end}}
+
+{{define "text"}}{{.D.GameName}} has finished. {{if eq .D.You.Rank 1}}You won!{{else}}You came {{.D.You.Place}} of {{.D.You.Players}}.{{end}} You finished with {{.D.You.Value}} ({{.D.You.Return}}).
+
+Top players:
+{{range .D.Top}}{{.Rank}}. {{.Name}}: {{.Value}} ({{.Return}})
+{{end}}
+Full leaderboard: {{.BaseURL}}{{.D.URL}}
+Join another game: {{.BaseURL}}/games{{end}}
+
+{{define "html"}}<p style="margin:0 0 16px;"><strong>{{.D.GameName}}</strong> has finished. {{if eq .D.You.Rank 1}}<strong>You won!</strong>{{else}}You came <strong>{{.D.You.Place}} of {{.D.You.Players}}</strong>.{{end}} You finished with {{.D.You.Value}} ({{.D.You.Return}}).</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 24px;border-collapse:collapse;">
+  {{range .D.Top}}<tr>
+    <td style="padding:8px 0;border-bottom:1px solid #e3e7ee;width:32px;font-weight:700;">{{.Rank}}</td>
+    <td style="padding:8px 0;border-bottom:1px solid #e3e7ee;">{{.Name}}</td>
+    <td style="padding:8px 0;border-bottom:1px solid #e3e7ee;text-align:right;">{{.Value}} <span style="color:#6b7385;">({{.Return}})</span></td>
+  </tr>{{end}}
+</table>
+<p style="margin:0;"><a href="{{.BaseURL}}{{.D.URL}}" style="display:inline-block;background:#007994;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:6px;">See the full leaderboard</a>
+&nbsp; <a href="{{.BaseURL}}/games" style="color:#007994;">Join another game</a></p>{{end}}
