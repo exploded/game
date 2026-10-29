@@ -133,7 +133,6 @@ func main() {
 		log.Fatalf("csrf secret: %v", err)
 	}
 
-
 	handler.SecurityHeadersProd = production
 
 	r := chi.NewRouter()
