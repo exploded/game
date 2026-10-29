@@ -20,20 +20,27 @@ var (
 	paraSep = regexp.MustCompile(`\n\s*\n`)
 )
 
-// NewNewsletter splits body into HTML paragraphs, escaping it and turning
-// web addresses into links.
+// NewNewsletter builds a newsletter from what an admin typed.
 func NewNewsletter(subject, body string) Newsletter {
 	body = strings.ReplaceAll(strings.TrimSpace(body), "\r\n", "\n")
-	n := Newsletter{Subject: strings.TrimSpace(subject), Body: body}
-	for _, para := range paraSep.Split(body, -1) {
+	return Newsletter{Subject: strings.TrimSpace(subject), Body: body, Paragraphs: Paragraphs(body)}
+}
+
+// Paragraphs turns plain text into HTML paragraphs: it escapes the text,
+// splits it at blank lines, keeps single line breaks and turns web addresses
+// into links. The question pages use it too.
+func Paragraphs(text string) []template.HTML {
+	text = strings.ReplaceAll(strings.TrimSpace(text), "\r\n", "\n")
+	var out []template.HTML
+	for _, para := range paraSep.Split(text, -1) {
 		if para = strings.TrimSpace(para); para == "" {
 			continue
 		}
 		escaped := html.EscapeString(para)
 		linked := urlRE.ReplaceAllStringFunc(escaped, func(u string) string {
-			return `<a href="` + u + `" style="color:#007994;">` + u + `</a>`
+			return `<a href="` + u + `" style="color:#007994;" rel="nofollow noopener">` + u + `</a>`
 		})
-		n.Paragraphs = append(n.Paragraphs, template.HTML(strings.ReplaceAll(linked, "\n", "<br>")))
+		out = append(out, template.HTML(strings.ReplaceAll(linked, "\n", "<br>")))
 	}
-	return n
+	return out
 }

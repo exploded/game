@@ -573,3 +573,26 @@ CREATE TABLE IF NOT EXISTS stock_recommendations (
     UNIQUE(stock_id, period)
 );
 CREATE INDEX IF NOT EXISTS idx_stock_recs_stock ON stock_recommendations(stock_id, period DESC);
+
+--------------------------------------------------------------------------------
+-- Ask a Question: members ask, vote, and Rob (an admin) answers.
+--------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS questions (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title       TEXT    NOT NULL,
+    body        TEXT    NOT NULL DEFAULT '',
+    answer      TEXT    NOT NULL DEFAULT '',            -- '' until answered
+    answered_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    answered_at TEXT,
+    hidden      INTEGER NOT NULL DEFAULT 0,             -- 1 = removed by an admin
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_questions_created ON questions(hidden, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS question_votes (
+    question_id INTEGER NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (question_id, user_id)
+);

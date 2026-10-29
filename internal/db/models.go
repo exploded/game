@@ -250,6 +250,24 @@ type PriceFetchLog struct {
 	CreatedAt     string
 }
 
+type Question struct {
+	ID         int64
+	UserID     int64
+	Title      string
+	Body       string
+	Answer     string
+	AnsweredBy sql.NullInt64
+	AnsweredAt sql.NullString
+	Hidden     int64
+	CreatedAt  string
+}
+
+type QuestionVote struct {
+	QuestionID int64
+	UserID     int64
+	CreatedAt  string
+}
+
 type ReferralBonuse struct {
 	ID          int64
 	InviteID    int64

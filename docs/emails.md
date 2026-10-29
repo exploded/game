@@ -94,10 +94,11 @@ worked out but aren't written yet.
 
 | # | Email | Trigger | Status |
 |---|---|---|---|
-| C1 | Your question was answered | Rob (or an admin) answers your question | Planned |
+| C1 | Your question was answered | An admin answers a question you asked or voted for | Built |
 | C2 | New course | A course is published | Planned |
 
-- These depend on the Ask a Question and Courses features.
+- C1 goes to the asker and everyone who voted, once: editing the answer
+  doesn't resend it. C2 waits for the Courses feature.
 
 ### News from Rob (marketing)
 

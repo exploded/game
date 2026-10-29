@@ -74,6 +74,12 @@ Public feed of recent trades and joins in a game. Shows player name, action (buy
 - **Routes:** `/games/{id}/activity`
 - **Files:** `internal/handler/activity.go`, `templates/pages/activity/index.html`
 
+### 11a. Ask a Question
+A permanent, site-wide section where members ask questions and vote for the ones they want answered. Sorted by votes or newest, filtered by answered or not. Admins (Rob) answer, which emails the asker and everyone who voted (Community email). Askers can delete a question until it's answered; admins can remove any question.
+
+- **Routes:** `/questions`, `/questions/{qid}`, `/questions/{qid}/vote`, `/questions/{qid}/answer` (admin), `/questions/{qid}/hide` (admin), `/questions/{qid}/delete`
+- **Files:** `internal/handler/questions.go`, `templates/pages/questions/`
+
 ---
 
 ## Analytics & Insights
@@ -146,6 +152,22 @@ Browse finished and cancelled games with pagination. Accessible from the nav bar
 
 - **Routes:** `/history`
 - **Files:** `internal/handler/history.go`, `templates/pages/history/index.html`
+
+---
+
+## Accounts & Email
+
+### Email sign-in
+No passwords and no Google account. `/login` emails a link and a 6-digit code that work once for 15 minutes; an unknown address creates the account, and `/welcome` asks for a display name and opt-in to news from Rob.
+
+- **Routes:** `/login`, `/login/check`, `/login/code`, `/login/verify`, `/welcome`
+- **Files:** `internal/handler/login.go`, `internal/auth/session.go`, `templates/pages/auth/`
+
+### Email
+Every email goes through an outbox (`email_outbox`) and Amazon SES. People choose categories on Settings, and every non-account email has a one-click unsubscribe link. Trade and game emails come from `internal/notify`, which the scheduler runs each minute. Admins send newsletters from `/admin/email`. `docs/emails.md` lists every email.
+
+- **Routes:** `/settings/email`, `/email/unsubscribe`, `/admin/email`
+- **Files:** `internal/mail/`, `internal/notify/`, `internal/handler/email.go`, `internal/handler/admin_email.go`
 
 ---
 

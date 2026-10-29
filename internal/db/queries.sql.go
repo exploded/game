@@ -22,6 +22,20 @@ func (q *Queries) AddLoginAttempt(ctx context.Context, id string) (int64, error)
 	return attempts, err
 }
 
+const addQuestionVote = `-- name: AddQuestionVote :exec
+INSERT OR IGNORE INTO question_votes (question_id, user_id) VALUES (?, ?)
+`
+
+type AddQuestionVoteParams struct {
+	QuestionID int64
+	UserID     int64
+}
+
+func (q *Queries) AddQuestionVote(ctx context.Context, arg AddQuestionVoteParams) error {
+	_, err := q.db.ExecContext(ctx, addQuestionVote, arg.QuestionID, arg.UserID)
+	return err
+}
+
 const addStartingStock = `-- name: AddStartingStock :exec
 
 INSERT OR REPLACE INTO game_starting_stocks (game_id, stock_id, quantity)
@@ -67,6 +81,23 @@ WHERE status = 'pending' AND start_date <= ?
 
 func (q *Queries) AdvancePendingGames(ctx context.Context, startDate string) error {
 	_, err := q.db.ExecContext(ctx, advancePendingGames, startDate)
+	return err
+}
+
+const answerQuestion = `-- name: AnswerQuestion :exec
+UPDATE questions SET answer = ?, answered_by = ?,
+    answered_at = COALESCE(answered_at, datetime('now'))
+WHERE id = ?
+`
+
+type AnswerQuestionParams struct {
+	Answer     string
+	AnsweredBy sql.NullInt64
+	ID         int64
+}
+
+func (q *Queries) AnswerQuestion(ctx context.Context, arg AnswerQuestionParams) error {
+	_, err := q.db.ExecContext(ctx, answerQuestion, arg.Answer, arg.AnsweredBy, arg.ID)
 	return err
 }
 
@@ -178,6 +209,18 @@ WHERE email = ? AND created_at > datetime('now', '-1 hour')
 
 func (q *Queries) CountRecentLoginRequests(ctx context.Context, email string) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countRecentLoginRequests, email)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countRecentQuestions = `-- name: CountRecentQuestions :one
+SELECT COUNT(*) FROM questions
+WHERE user_id = ? AND created_at > datetime('now', '-1 day')
+`
+
+func (q *Queries) CountRecentQuestions(ctx context.Context, userID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countRecentQuestions, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -716,6 +759,28 @@ func (q *Queries) CreateNotification(ctx context.Context, arg CreateNotification
 	return err
 }
 
+const createQuestion = `-- name: CreateQuestion :one
+
+INSERT INTO questions (user_id, title, body) VALUES (?, ?, ?)
+RETURNING id
+`
+
+type CreateQuestionParams struct {
+	UserID int64
+	Title  string
+	Body   string
+}
+
+// =============================================================================
+// Ask a Question
+// =============================================================================
+func (q *Queries) CreateQuestion(ctx context.Context, arg CreateQuestionParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, createQuestion, arg.UserID, arg.Title, arg.Body)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const createSession = `-- name: CreateSession :one
 
 INSERT INTO sessions (id, user_id, expires_at)
@@ -827,6 +892,23 @@ DELETE FROM login_requests WHERE created_at < datetime('now', '-1 day')
 func (q *Queries) DeleteOldLoginRequests(ctx context.Context) error {
 	_, err := q.db.ExecContext(ctx, deleteOldLoginRequests)
 	return err
+}
+
+const deleteOwnQuestion = `-- name: DeleteOwnQuestion :execrows
+DELETE FROM questions WHERE id = ? AND user_id = ? AND answer = ''
+`
+
+type DeleteOwnQuestionParams struct {
+	ID     int64
+	UserID int64
+}
+
+func (q *Queries) DeleteOwnQuestion(ctx context.Context, arg DeleteOwnQuestionParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteOwnQuestion, arg.ID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const deleteSession = `-- name: DeleteSession :exec
@@ -1306,6 +1388,56 @@ func (q *Queries) GetPriceOnDate(ctx context.Context, arg GetPriceOnDateParams) 
 	return i, err
 }
 
+const getQuestion = `-- name: GetQuestion :one
+SELECT q.id, q.user_id, q.title, q.body, q.answer, q.answered_at, q.created_at,
+       u.name AS user_name,
+       COALESCE(a.name, '') AS answered_by_name,
+       (SELECT COUNT(*) FROM question_votes v WHERE v.question_id = q.id) AS votes,
+       EXISTS (SELECT 1 FROM question_votes v WHERE v.question_id = q.id AND v.user_id = ?1) AS voted
+FROM questions q
+JOIN users u ON u.id = q.user_id
+LEFT JOIN users a ON a.id = q.answered_by
+WHERE q.id = ?2 AND q.hidden = 0
+`
+
+type GetQuestionParams struct {
+	Viewer int64
+	ID     int64
+}
+
+type GetQuestionRow struct {
+	ID             int64
+	UserID         int64
+	Title          string
+	Body           string
+	Answer         string
+	AnsweredAt     sql.NullString
+	CreatedAt      string
+	UserName       string
+	AnsweredByName string
+	Votes          int64
+	Voted          bool
+}
+
+func (q *Queries) GetQuestion(ctx context.Context, arg GetQuestionParams) (GetQuestionRow, error) {
+	row := q.db.QueryRowContext(ctx, getQuestion, arg.Viewer, arg.ID)
+	var i GetQuestionRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Title,
+		&i.Body,
+		&i.Answer,
+		&i.AnsweredAt,
+		&i.CreatedAt,
+		&i.UserName,
+		&i.AnsweredByName,
+		&i.Votes,
+		&i.Voted,
+	)
+	return i, err
+}
+
 const getSession = `-- name: GetSession :one
 SELECT id, user_id, expires_at, created_at FROM sessions
 WHERE id = ? AND expires_at > datetime('now')
@@ -1603,6 +1735,15 @@ func (q *Queries) HasAchievement(ctx context.Context, arg HasAchievementParams) 
 	var count int64
 	err := row.Scan(&count)
 	return count, err
+}
+
+const hideQuestion = `-- name: HideQuestion :exec
+UPDATE questions SET hidden = 1 WHERE id = ?
+`
+
+func (q *Queries) HideQuestion(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, hideQuestion, id)
+	return err
 }
 
 const incrementInviteUse = `-- name: IncrementInviteUse :exec
@@ -3630,6 +3771,106 @@ func (q *Queries) ListPublicParticipantsByGame(ctx context.Context, gameID int64
 	return items, nil
 }
 
+const listQuestionFollowers = `-- name: ListQuestionFollowers :many
+SELECT user_id FROM questions WHERE id = ?1
+UNION
+SELECT user_id FROM question_votes WHERE question_id = ?1
+`
+
+// People to tell when a question is answered: the asker and everyone who
+// voted for it.
+func (q *Queries) ListQuestionFollowers(ctx context.Context, id int64) ([]int64, error) {
+	rows, err := q.db.QueryContext(ctx, listQuestionFollowers, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int64
+	for rows.Next() {
+		var user_id int64
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listQuestions = `-- name: ListQuestions :many
+SELECT q.id, q.user_id, q.title, q.body, q.answer, q.answered_at, q.created_at,
+       u.name AS user_name,
+       (SELECT COUNT(*) FROM question_votes v WHERE v.question_id = q.id) AS votes,
+       EXISTS (SELECT 1 FROM question_votes v WHERE v.question_id = q.id AND v.user_id = ?1) AS voted
+FROM questions q
+JOIN users u ON u.id = q.user_id
+WHERE q.hidden = 0
+  AND (CAST(?2 AS TEXT) = 'all'
+       OR (?2 = 'answered' AND q.answer != '')
+       OR (?2 = 'open' AND q.answer = ''))
+ORDER BY votes DESC, q.created_at DESC
+LIMIT 100
+`
+
+type ListQuestionsParams struct {
+	Viewer int64
+	Show   string
+}
+
+type ListQuestionsRow struct {
+	ID         int64
+	UserID     int64
+	Title      string
+	Body       string
+	Answer     string
+	AnsweredAt sql.NullString
+	CreatedAt  string
+	UserName   string
+	Votes      int64
+	Voted      bool
+}
+
+// Most votes first; the handler re-sorts for newest first. Show is 'all',
+// 'answered' or 'open'.
+func (q *Queries) ListQuestions(ctx context.Context, arg ListQuestionsParams) ([]ListQuestionsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listQuestions, arg.Viewer, arg.Show)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListQuestionsRow
+	for rows.Next() {
+		var i ListQuestionsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Title,
+			&i.Body,
+			&i.Answer,
+			&i.AnsweredAt,
+			&i.CreatedAt,
+			&i.UserName,
+			&i.Votes,
+			&i.Voted,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listReferralBonuses = `-- name: ListReferralBonuses :many
 SELECT rb.id, rb.invite_id, rb.referrer_id, rb.referred_id, rb.game_id, rb.bonus_amount, rb.created_at, u.name AS referred_name
 FROM referral_bonuses rb
@@ -4673,6 +4914,20 @@ type RemoveFromWatchlistParams struct {
 
 func (q *Queries) RemoveFromWatchlist(ctx context.Context, arg RemoveFromWatchlistParams) error {
 	_, err := q.db.ExecContext(ctx, removeFromWatchlist, arg.ParticipantID, arg.StockID)
+	return err
+}
+
+const removeQuestionVote = `-- name: RemoveQuestionVote :exec
+DELETE FROM question_votes WHERE question_id = ? AND user_id = ?
+`
+
+type RemoveQuestionVoteParams struct {
+	QuestionID int64
+	UserID     int64
+}
+
+func (q *Queries) RemoveQuestionVote(ctx context.Context, arg RemoveQuestionVoteParams) error {
+	_, err := q.db.ExecContext(ctx, removeQuestionVote, arg.QuestionID, arg.UserID)
 	return err
 }
 

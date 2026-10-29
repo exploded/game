@@ -1,0 +1,17 @@
+{{/* D is handler.answeredEmail. */}}
+{{define "subject"}}{{if .D.Asker}}Your question was answered{{else}}A question you voted for was answered{{end}}: {{.D.Title}}{{end}}
+
+{{define "text"}}{{if .D.Asker}}{{.D.AnsweredBy}} answered your question{{else}}{{.D.AnsweredBy}} answered a question you voted for{{end}}:
+
+"{{.D.Title}}"
+
+{{.D.Answer}}
+
+See it on StockGame: {{.BaseURL}}{{.D.URL}}{{end}}
+
+{{define "html"}}<p style="margin:0 0 16px;">{{if .D.Asker}}{{.D.AnsweredBy}} answered your question{{else}}{{.D.AnsweredBy}} answered a question you voted for{{end}}:</p>
+<p style="margin:0 0 16px;font-weight:600;">{{.D.Title}}</p>
+<div style="margin:0 0 24px;padding:12px 16px;border-left:3px solid #007994;background:#f6f8fa;">
+{{range paragraphs .D.Answer}}<p style="margin:0 0 12px;">{{.}}</p>{{end}}
+</div>
+<p style="margin:0;"><a href="{{.BaseURL}}{{.D.URL}}" style="display:inline-block;background:#007994;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:6px;">See it on StockGame</a></p>{{end}}

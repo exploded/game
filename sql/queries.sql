@@ -1025,3 +1025,66 @@ SELECT COUNT(*) FROM referral_bonuses WHERE referrer_id = ? AND game_id = ?;
 
 -- name: TotalReferralBonus :one
 SELECT COALESCE(SUM(bonus_amount), 0) FROM referral_bonuses WHERE referrer_id = ? AND game_id = ?;
+
+-- =============================================================================
+-- Ask a Question
+-- =============================================================================
+
+-- name: CreateQuestion :one
+INSERT INTO questions (user_id, title, body) VALUES (?, ?, ?)
+RETURNING id;
+
+-- name: CountRecentQuestions :one
+SELECT COUNT(*) FROM questions
+WHERE user_id = ? AND created_at > datetime('now', '-1 day');
+
+-- Most votes first; the handler re-sorts for newest first. Show is 'all',
+-- 'answered' or 'open'.
+-- name: ListQuestions :many
+SELECT q.id, q.user_id, q.title, q.body, q.answer, q.answered_at, q.created_at,
+       u.name AS user_name,
+       (SELECT COUNT(*) FROM question_votes v WHERE v.question_id = q.id) AS votes,
+       EXISTS (SELECT 1 FROM question_votes v WHERE v.question_id = q.id AND v.user_id = sqlc.arg(viewer)) AS voted
+FROM questions q
+JOIN users u ON u.id = q.user_id
+WHERE q.hidden = 0
+  AND (CAST(sqlc.arg(show) AS TEXT) = 'all'
+       OR (sqlc.arg(show) = 'answered' AND q.answer != '')
+       OR (sqlc.arg(show) = 'open' AND q.answer = ''))
+ORDER BY votes DESC, q.created_at DESC
+LIMIT 100;
+
+-- name: GetQuestion :one
+SELECT q.id, q.user_id, q.title, q.body, q.answer, q.answered_at, q.created_at,
+       u.name AS user_name,
+       COALESCE(a.name, '') AS answered_by_name,
+       (SELECT COUNT(*) FROM question_votes v WHERE v.question_id = q.id) AS votes,
+       EXISTS (SELECT 1 FROM question_votes v WHERE v.question_id = q.id AND v.user_id = sqlc.arg(viewer)) AS voted
+FROM questions q
+JOIN users u ON u.id = q.user_id
+LEFT JOIN users a ON a.id = q.answered_by
+WHERE q.id = sqlc.arg(id) AND q.hidden = 0;
+
+-- name: AddQuestionVote :exec
+INSERT OR IGNORE INTO question_votes (question_id, user_id) VALUES (?, ?);
+
+-- name: RemoveQuestionVote :exec
+DELETE FROM question_votes WHERE question_id = ? AND user_id = ?;
+
+-- name: AnswerQuestion :exec
+UPDATE questions SET answer = ?, answered_by = ?,
+    answered_at = COALESCE(answered_at, datetime('now'))
+WHERE id = ?;
+
+-- name: HideQuestion :exec
+UPDATE questions SET hidden = 1 WHERE id = ?;
+
+-- name: DeleteOwnQuestion :execrows
+DELETE FROM questions WHERE id = ? AND user_id = ? AND answer = '';
+
+-- People to tell when a question is answered: the asker and everyone who
+-- voted for it.
+-- name: ListQuestionFollowers :many
+SELECT user_id FROM questions WHERE id = sqlc.arg(id)
+UNION
+SELECT user_id FROM question_votes WHERE question_id = sqlc.arg(id);

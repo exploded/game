@@ -61,11 +61,12 @@ func New(q *db.Queries, sender Sender, cfg Config) (*Mailer, error) {
 		html:   map[string]*htmltemplate.Template{},
 		wake:   make(chan struct{}, 1),
 	}
-	textBase, err := texttemplate.ParseFS(templateFS, "templates/_layout.tmpl")
+	funcs := map[string]any{"paragraphs": Paragraphs}
+	textBase, err := texttemplate.New("").Funcs(funcs).ParseFS(templateFS, "templates/_layout.tmpl")
 	if err != nil {
 		return nil, err
 	}
-	htmlBase, err := htmltemplate.ParseFS(templateFS, "templates/_layout.tmpl")
+	htmlBase, err := htmltemplate.New("").Funcs(funcs).ParseFS(templateFS, "templates/_layout.tmpl")
 	if err != nil {
 		return nil, err
 	}

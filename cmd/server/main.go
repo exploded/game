@@ -270,6 +270,15 @@ func main() {
 		})
 		r.Get("/invite/{code}", h.InviteJoin)
 
+		// Ask a Question
+		r.Get("/questions", h.QuestionsPage)
+		r.Post("/questions", h.QuestionCreate)
+		r.Get("/questions/{qid}", h.QuestionPage)
+		r.Post("/questions/{qid}/vote", h.QuestionVote)
+		r.Post("/questions/{qid}/delete", h.QuestionDelete)
+		r.With(auth.RequireAdmin).Post("/questions/{qid}/answer", h.QuestionAnswer)
+		r.With(auth.RequireAdmin).Post("/questions/{qid}/hide", h.QuestionHide)
+
 		// Lobby Chat
 		r.Get("/lobby", h.LobbyPage)
 		r.With(chatLimiter.Middleware).Post("/lobby", h.LobbySend)
