@@ -1,0 +1,37 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Courses</h1>
+    <a href="/admin" class="btn btn-sm">&larr; Admin</a>
+</div>
+
+<p style="margin-bottom:16px">Upload each video to YouTube (as unlisted), Vimeo or Bunny Stream, then paste its link into a lesson. New courses start as drafts that only admins can see.</p>
+
+<div class="settings-card">
+    <form method="POST" action="/admin/courses" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+        <div class="form-group" style="flex:1;min-width:220px;margin:0">
+            <label for="title">New course title</label>
+            <input type="text" id="title" name="title" maxlength="120" required placeholder="For example: Investing 101">
+        </div>
+        <button type="submit" class="btn btn-primary">Create course</button>
+    </form>
+</div>
+
+{{if .Items}}
+<div class="table-wrap">
+<table>
+    <thead><tr><th>Course</th><th class="num">Lessons</th><th>Status</th></tr></thead>
+    <tbody>
+    {{range .Items}}
+    <tr>
+        <td><a href="/admin/courses/{{.ID}}">{{.Title}}</a></td>
+        <td class="num">{{.Lessons}}</td>
+        <td>{{if .Published}}<span style="color:var(--color-success)">Published</span>{{else}}Draft{{end}}</td>
+    </tr>
+    {{end}}
+    </tbody>
+</table>
+</div>
+{{end}}
+{{end}}

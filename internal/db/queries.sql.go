@@ -136,6 +136,20 @@ func (q *Queries) ClearUserAvatar(ctx context.Context, id int64) error {
 	return err
 }
 
+const completeLesson = `-- name: CompleteLesson :exec
+INSERT OR IGNORE INTO lesson_progress (user_id, lesson_id) VALUES (?, ?)
+`
+
+type CompleteLessonParams struct {
+	UserID   int64
+	LessonID int64
+}
+
+func (q *Queries) CompleteLesson(ctx context.Context, arg CompleteLessonParams) error {
+	_, err := q.db.ExecContext(ctx, completeLesson, arg.UserID, arg.LessonID)
+	return err
+}
+
 const countContactMessages = `-- name: CountContactMessages :one
 SELECT COUNT(*) FROM contact_messages
 `
@@ -374,6 +388,24 @@ func (q *Queries) CreateContactMessage(ctx context.Context, arg CreateContactMes
 	return err
 }
 
+const createCourse = `-- name: CreateCourse :one
+INSERT INTO courses (slug, title, summary) VALUES (?, ?, ?)
+RETURNING id
+`
+
+type CreateCourseParams struct {
+	Slug    string
+	Title   string
+	Summary string
+}
+
+func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, createCourse, arg.Slug, arg.Title, arg.Summary)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const createGame = `-- name: CreateGame :one
 
 INSERT INTO games (created_by, name, description, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, recurring_interval, referral_bonus_pct, is_public, portfolio_visibility, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares)
@@ -563,6 +595,33 @@ func (q *Queries) CreateInvite(ctx context.Context, arg CreateInviteParams) (Gam
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const createLesson = `-- name: CreateLesson :exec
+INSERT INTO lessons (course_id, title, description, video_url, embed_url, minutes, sort_order)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6,
+        (SELECT COALESCE(MAX(l.sort_order), 0) + 1 FROM lessons l WHERE l.course_id = ?1))
+`
+
+type CreateLessonParams struct {
+	CourseID    int64
+	Title       string
+	Description string
+	VideoUrl    string
+	EmbedUrl    string
+	Minutes     int64
+}
+
+func (q *Queries) CreateLesson(ctx context.Context, arg CreateLessonParams) error {
+	_, err := q.db.ExecContext(ctx, createLesson,
+		arg.CourseID,
+		arg.Title,
+		arg.Description,
+		arg.VideoUrl,
+		arg.EmbedUrl,
+		arg.Minutes,
+	)
+	return err
 }
 
 const createLimitOrder = `-- name: CreateLimitOrder :one
@@ -844,6 +903,15 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const deleteCourse = `-- name: DeleteCourse :exec
+DELETE FROM courses WHERE id = ?
+`
+
+func (q *Queries) DeleteCourse(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteCourse, id)
+	return err
+}
+
 const deleteExpiredSessions = `-- name: DeleteExpiredSessions :exec
 DELETE FROM sessions WHERE expires_at <= datetime('now')
 `
@@ -873,6 +941,15 @@ type DeleteHoldingParams struct {
 
 func (q *Queries) DeleteHolding(ctx context.Context, arg DeleteHoldingParams) error {
 	_, err := q.db.ExecContext(ctx, deleteHolding, arg.ParticipantID, arg.StockID)
+	return err
+}
+
+const deleteLesson = `-- name: DeleteLesson :exec
+DELETE FROM lessons WHERE id = ?
+`
+
+func (q *Queries) DeleteLesson(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteLesson, id)
 	return err
 }
 
@@ -1041,6 +1118,46 @@ func (q *Queries) GetAvatar(ctx context.Context, id int64) (Avatar, error) {
 		&i.Category,
 		&i.AchievementKey,
 		&i.SortOrder,
+	)
+	return i, err
+}
+
+const getCourse = `-- name: GetCourse :one
+SELECT id, slug, title, summary, published, published_at, sort_order, created_at FROM courses WHERE id = ?
+`
+
+func (q *Queries) GetCourse(ctx context.Context, id int64) (Course, error) {
+	row := q.db.QueryRowContext(ctx, getCourse, id)
+	var i Course
+	err := row.Scan(
+		&i.ID,
+		&i.Slug,
+		&i.Title,
+		&i.Summary,
+		&i.Published,
+		&i.PublishedAt,
+		&i.SortOrder,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getCourseBySlug = `-- name: GetCourseBySlug :one
+SELECT id, slug, title, summary, published, published_at, sort_order, created_at FROM courses WHERE slug = ?
+`
+
+func (q *Queries) GetCourseBySlug(ctx context.Context, slug string) (Course, error) {
+	row := q.db.QueryRowContext(ctx, getCourseBySlug, slug)
+	var i Course
+	err := row.Scan(
+		&i.ID,
+		&i.Slug,
+		&i.Title,
+		&i.Summary,
+		&i.Published,
+		&i.PublishedAt,
+		&i.SortOrder,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -1240,6 +1357,27 @@ func (q *Queries) GetLatestPriceDate(ctx context.Context, market string) (interf
 	var latest_date interface{}
 	err := row.Scan(&latest_date)
 	return latest_date, err
+}
+
+const getLesson = `-- name: GetLesson :one
+SELECT id, course_id, title, description, video_url, embed_url, minutes, sort_order, created_at FROM lessons WHERE id = ?
+`
+
+func (q *Queries) GetLesson(ctx context.Context, id int64) (Lesson, error) {
+	row := q.db.QueryRowContext(ctx, getLesson, id)
+	var i Lesson
+	err := row.Scan(
+		&i.ID,
+		&i.CourseID,
+		&i.Title,
+		&i.Description,
+		&i.VideoUrl,
+		&i.EmbedUrl,
+		&i.Minutes,
+		&i.SortOrder,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const getLimitOrder = `-- name: GetLimitOrder :one
@@ -2255,6 +2393,33 @@ func (q *Queries) ListActiveParticipants(ctx context.Context) ([]ListActiveParti
 	return items, nil
 }
 
+const listActiveUserIDs = `-- name: ListActiveUserIDs :many
+SELECT id FROM users WHERE deleted_at IS NULL ORDER BY id
+`
+
+func (q *Queries) ListActiveUserIDs(ctx context.Context) ([]int64, error) {
+	rows, err := q.db.QueryContext(ctx, listActiveUserIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listActivityFeed = `-- name: ListActivityFeed :many
 SELECT af.id, af.game_id, af.user_id, af."action", af.detail, af.is_public, af.created_at, u.name AS user_name, u.picture_url AS user_picture
 FROM activity_feed af
@@ -2359,6 +2524,57 @@ func (q *Queries) ListAllActiveHoldings(ctx context.Context) ([]ListAllActiveHol
 			&i.Market,
 			&i.Currency,
 			&i.GameID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listAllCourses = `-- name: ListAllCourses :many
+SELECT c.id, c.slug, c.title, c.summary, c.published, c.published_at, c.sort_order, c.created_at, (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id) AS lessons
+FROM courses c
+ORDER BY c.sort_order, c.id
+`
+
+type ListAllCoursesRow struct {
+	ID          int64
+	Slug        string
+	Title       string
+	Summary     string
+	Published   int64
+	PublishedAt sql.NullString
+	SortOrder   int64
+	CreatedAt   string
+	Lessons     int64
+}
+
+func (q *Queries) ListAllCourses(ctx context.Context) ([]ListAllCoursesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listAllCourses)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAllCoursesRow
+	for rows.Next() {
+		var i ListAllCoursesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Slug,
+			&i.Title,
+			&i.Summary,
+			&i.Published,
+			&i.PublishedAt,
+			&i.SortOrder,
+			&i.CreatedAt,
+			&i.Lessons,
 		); err != nil {
 			return nil, err
 		}
@@ -3317,6 +3533,66 @@ func (q *Queries) ListLatestPrices(ctx context.Context, stockID int64) ([]StockP
 	return items, nil
 }
 
+const listLessons = `-- name: ListLessons :many
+SELECT l.id, l.course_id, l.title, l.description, l.video_url, l.embed_url, l.minutes, l.sort_order, l.created_at,
+       EXISTS (SELECT 1 FROM lesson_progress p WHERE p.lesson_id = l.id AND p.user_id = ?1) AS completed
+FROM lessons l
+WHERE l.course_id = ?2
+ORDER BY l.sort_order, l.id
+`
+
+type ListLessonsParams struct {
+	Viewer   int64
+	CourseID int64
+}
+
+type ListLessonsRow struct {
+	ID          int64
+	CourseID    int64
+	Title       string
+	Description string
+	VideoUrl    string
+	EmbedUrl    string
+	Minutes     int64
+	SortOrder   int64
+	CreatedAt   string
+	Completed   bool
+}
+
+func (q *Queries) ListLessons(ctx context.Context, arg ListLessonsParams) ([]ListLessonsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listLessons, arg.Viewer, arg.CourseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListLessonsRow
+	for rows.Next() {
+		var i ListLessonsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CourseID,
+			&i.Title,
+			&i.Description,
+			&i.VideoUrl,
+			&i.EmbedUrl,
+			&i.Minutes,
+			&i.SortOrder,
+			&i.CreatedAt,
+			&i.Completed,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listLobbyMessages = `-- name: ListLobbyMessages :many
 SELECT lm.id, lm.user_id, lm.message, lm.created_at, u.name AS user_name, u.picture_url AS user_picture,
     COALESCE(a.image_path, '') AS avatar_path
@@ -3757,6 +4033,62 @@ func (q *Queries) ListPublicParticipantsByGame(ctx context.Context, gameID int64
 			&i.JoinedAt,
 			&i.UserName,
 			&i.UserPicture,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPublishedCourses = `-- name: ListPublishedCourses :many
+
+SELECT c.id, c.slug, c.title, c.summary,
+       (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id) AS lessons,
+       (SELECT COALESCE(SUM(l.minutes), 0) FROM lessons l WHERE l.course_id = c.id) AS minutes,
+       (SELECT COUNT(*) FROM lessons l JOIN lesson_progress p ON p.lesson_id = l.id
+        WHERE l.course_id = c.id AND p.user_id = ?1) AS completed
+FROM courses c
+WHERE c.published = 1
+ORDER BY c.sort_order, c.id
+`
+
+type ListPublishedCoursesRow struct {
+	ID        int64
+	Slug      string
+	Title     string
+	Summary   string
+	Lessons   int64
+	Minutes   interface{}
+	Completed int64
+}
+
+// =============================================================================
+// Courses
+// =============================================================================
+func (q *Queries) ListPublishedCourses(ctx context.Context, viewer int64) ([]ListPublishedCoursesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listPublishedCourses, viewer)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPublishedCoursesRow
+	for rows.Next() {
+		var i ListPublishedCoursesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Slug,
+			&i.Title,
+			&i.Summary,
+			&i.Lessons,
+			&i.Minutes,
+			&i.Completed,
 		); err != nil {
 			return nil, err
 		}
@@ -4999,6 +5331,22 @@ func (q *Queries) SetAdmin(ctx context.Context, arg SetAdminParams) error {
 	return err
 }
 
+const setCoursePublished = `-- name: SetCoursePublished :exec
+UPDATE courses SET published = ?1,
+    published_at = CASE WHEN ?1 = 1 THEN COALESCE(published_at, datetime('now')) ELSE published_at END
+WHERE id = ?2
+`
+
+type SetCoursePublishedParams struct {
+	Published int64
+	ID        int64
+}
+
+func (q *Queries) SetCoursePublished(ctx context.Context, arg SetCoursePublishedParams) error {
+	_, err := q.db.ExecContext(ctx, setCoursePublished, arg.Published, arg.ID)
+	return err
+}
+
 const setEmailPref = `-- name: SetEmailPref :exec
 INSERT INTO email_prefs (user_id, category, enabled, updated_at)
 VALUES (?, ?, ?, datetime('now'))
@@ -5072,6 +5420,20 @@ func (q *Queries) TouchLastLogin(ctx context.Context, id int64) error {
 	return err
 }
 
+const uncompleteLesson = `-- name: UncompleteLesson :exec
+DELETE FROM lesson_progress WHERE user_id = ? AND lesson_id = ?
+`
+
+type UncompleteLessonParams struct {
+	UserID   int64
+	LessonID int64
+}
+
+func (q *Queries) UncompleteLesson(ctx context.Context, arg UncompleteLessonParams) error {
+	_, err := q.db.ExecContext(ctx, uncompleteLesson, arg.UserID, arg.LessonID)
+	return err
+}
+
 const updateCashBalance = `-- name: UpdateCashBalance :exec
 UPDATE participants SET cash_balance = ? WHERE id = ?
 `
@@ -5083,6 +5445,27 @@ type UpdateCashBalanceParams struct {
 
 func (q *Queries) UpdateCashBalance(ctx context.Context, arg UpdateCashBalanceParams) error {
 	_, err := q.db.ExecContext(ctx, updateCashBalance, arg.CashBalance, arg.ID)
+	return err
+}
+
+const updateCourse = `-- name: UpdateCourse :exec
+UPDATE courses SET title = ?, summary = ?, sort_order = ? WHERE id = ?
+`
+
+type UpdateCourseParams struct {
+	Title     string
+	Summary   string
+	SortOrder int64
+	ID        int64
+}
+
+func (q *Queries) UpdateCourse(ctx context.Context, arg UpdateCourseParams) error {
+	_, err := q.db.ExecContext(ctx, updateCourse,
+		arg.Title,
+		arg.Summary,
+		arg.SortOrder,
+		arg.ID,
+	)
 	return err
 }
 
@@ -5175,6 +5558,34 @@ type UpdateHoldingValueParams struct {
 
 func (q *Queries) UpdateHoldingValue(ctx context.Context, arg UpdateHoldingValueParams) error {
 	_, err := q.db.ExecContext(ctx, updateHoldingValue, arg.CurrentValue, arg.ID)
+	return err
+}
+
+const updateLesson = `-- name: UpdateLesson :exec
+UPDATE lessons SET title = ?, description = ?, video_url = ?, embed_url = ?, minutes = ?, sort_order = ?
+WHERE id = ?
+`
+
+type UpdateLessonParams struct {
+	Title       string
+	Description string
+	VideoUrl    string
+	EmbedUrl    string
+	Minutes     int64
+	SortOrder   int64
+	ID          int64
+}
+
+func (q *Queries) UpdateLesson(ctx context.Context, arg UpdateLessonParams) error {
+	_, err := q.db.ExecContext(ctx, updateLesson,
+		arg.Title,
+		arg.Description,
+		arg.VideoUrl,
+		arg.EmbedUrl,
+		arg.Minutes,
+		arg.SortOrder,
+		arg.ID,
+	)
 	return err
 }
 

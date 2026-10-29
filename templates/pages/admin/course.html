@@ -1,0 +1,103 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>{{.Item.Title}}</h1>
+    <a href="/admin/courses" class="btn btn-sm">&larr; Courses</a>
+</div>
+
+<div class="settings-card">
+    <h2>{{if .Item.Published}}Published{{else}}Draft{{end}}</h2>
+    <p style="margin-bottom:12px">Members see it at <a href="/courses/{{.Item.Slug}}">/courses/{{.Item.Slug}}</a>{{if not .Item.Published}} once it&rsquo;s published. You can preview it there now{{end}}.</p>
+    <form method="POST" action="/admin/courses/{{.Item.ID}}/publish">
+        {{if .Item.Published}}
+        <input type="hidden" name="publish" value="0">
+        <button type="submit" class="btn btn-sm btn-secondary">Unpublish</button>
+        {{else}}
+        <input type="hidden" name="publish" value="1">
+        {{if not .Item.PublishedAt.Valid}}
+        <label class="checkbox-label" style="padding-top:0;margin-bottom:12px">
+            <input type="checkbox" name="email" value="1">
+            <span>Email members who get Community email about the new course</span>
+        </label>
+        {{end}}
+        <button type="submit" class="btn btn-primary">Publish</button>
+        {{end}}
+    </form>
+</div>
+
+<div class="settings-card">
+    <h2>Details</h2>
+    <form method="POST" action="/admin/courses/{{.Item.ID}}">
+        <div class="form-group">
+            <label for="ctitle">Title</label>
+            <input type="text" id="ctitle" name="title" value="{{.Item.Title}}" maxlength="120" required>
+        </div>
+        <div class="form-group">
+            <label for="summary">Summary</label>
+            <textarea id="summary" name="summary" rows="3">{{.Item.Summary}}</textarea>
+        </div>
+        <div class="form-group" style="max-width:200px">
+            <label for="corder">Order on the courses page</label>
+            <input type="number" id="corder" name="sort_order" value="{{.Item.SortOrder}}">
+        </div>
+        <button type="submit" class="btn btn-sm">Save details</button>
+    </form>
+</div>
+
+<h2 style="margin:24px 0 12px">Lessons</h2>
+{{range .Items}}
+<details class="settings-card">
+    <summary style="cursor:pointer"><strong>{{.SortOrder}}. {{.Title}}</strong>{{if .Minutes}} <span class="text-muted">&middot; {{.Minutes}} min</span>{{end}}</summary>
+    <form method="POST" action="/admin/lessons/{{.ID}}" style="margin-top:12px">
+        {{template "lesson-fields" .}}
+        <button type="submit" class="btn btn-sm">Save lesson</button>
+    </form>
+    <form method="POST" action="/admin/lessons/{{.ID}}/delete" data-confirm="Delete this lesson?" style="margin-top:8px">
+        <button type="submit" class="btn btn-sm btn-danger">Delete lesson</button>
+    </form>
+</details>
+{{else}}
+<p class="text-muted" style="margin-bottom:12px">No lessons yet.</p>
+{{end}}
+
+<div class="settings-card">
+    <h2>Add a lesson</h2>
+    <form method="POST" action="/admin/courses/{{.Item.ID}}/lessons">
+        {{template "lesson-fields" dict}}
+        <button type="submit" class="btn btn-primary">Add lesson</button>
+    </form>
+</div>
+
+<form method="POST" action="/admin/courses/{{.Item.ID}}/delete" data-confirm="Delete this course and all its lessons? Members lose their progress." style="margin-top:24px">
+    <button type="submit" class="btn btn-sm btn-danger">Delete course</button>
+</form>
+{{end}}
+
+{{/* The lesson form fields. . is a lesson row, or an empty dict for a new lesson. */}}
+{{define "lesson-fields"}}
+<div class="form-group">
+    <label>Title</label>
+    <input type="text" name="title" value="{{.Title}}" maxlength="120" required>
+</div>
+<div class="form-group">
+    <label>Video link</label>
+    <input type="url" name="video_url" value="{{.VideoUrl}}" required placeholder="https://youtu.be/... or https://vimeo.com/...">
+</div>
+<div class="form-group">
+    <label>Description (optional)</label>
+    <textarea name="description" rows="3">{{.Description}}</textarea>
+</div>
+<div class="form-row">
+    <div class="form-group">
+        <label>Length (minutes)</label>
+        <input type="number" name="minutes" value="{{.Minutes}}" min="0" max="600">
+    </div>
+    {{if .ID}}
+    <div class="form-group">
+        <label>Order</label>
+        <input type="number" name="sort_order" value="{{.SortOrder}}">
+    </div>
+    {{end}}
+</div>
+{{end}}

@@ -46,6 +46,17 @@ type ContactMessage struct {
 	CreatedAt string
 }
 
+type Course struct {
+	ID          int64
+	Slug        string
+	Title       string
+	Summary     string
+	Published   int64
+	PublishedAt sql.NullString
+	SortOrder   int64
+	CreatedAt   string
+}
+
 type EmailBroadcast struct {
 	ID         int64
 	Subject    string
@@ -175,6 +186,24 @@ type Holding struct {
 	AvgCost       int64
 	CurrentValue  int64
 	UpdatedAt     string
+}
+
+type Lesson struct {
+	ID          int64
+	CourseID    int64
+	Title       string
+	Description string
+	VideoUrl    string
+	EmbedUrl    string
+	Minutes     int64
+	SortOrder   int64
+	CreatedAt   string
+}
+
+type LessonProgress struct {
+	UserID      int64
+	LessonID    int64
+	CompletedAt string
 }
 
 type LimitOrder struct {

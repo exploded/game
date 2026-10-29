@@ -66,6 +66,7 @@ func SecurityHeaders(next http.Handler) http.Handler {
 				"img-src 'self' https://*.googleusercontent.com https://api.twelvedata.com; "+
 				"script-src 'self' 'nonce-"+nonce+"' https://static.cloudflareinsights.com; "+
 				"connect-src 'self'; "+
+				"frame-src "+videoFrameSrc+"; "+
 				"base-uri 'self'; "+
 				"form-action 'self'; "+
 				"frame-ancestors 'none'")

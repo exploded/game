@@ -1,0 +1,24 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>{{.Item.Title}}</h1>
+    <a href="/courses" class="btn btn-sm">&larr; All courses</a>
+</div>
+
+{{if not .Item.Published}}<div class="flash flash-info" style="margin:0 0 16px">Draft: only admins can see this course.</div>{{end}}
+{{range paragraphs .Item.Summary}}<p style="margin-bottom:12px">{{.}}</p>{{end}}
+<p class="text-muted" style="margin-bottom:16px">{{index .Extra "Done"}} of {{len .Items}} lessons done</p>
+
+{{range $i, $l := .Items}}
+<a href="/courses/{{$.Item.Slug}}/{{$l.ID}}" class="settings-card" style="display:flex;gap:16px;align-items:center;color:inherit;text-decoration:none">
+    <span style="flex-shrink:0;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;{{if $l.Completed}}background:var(--color-success);color:#fff{{else}}background:var(--color-surface-2){{end}}">{{if $l.Completed}}&#10003;{{else}}{{add $i 1}}{{end}}</span>
+    <span style="min-width:0">
+        <strong>{{$l.Title}}</strong>
+        {{if $l.Minutes}}<span class="text-muted" style="font-size:12px"> &middot; {{$l.Minutes}} min</span>{{end}}
+    </span>
+</a>
+{{else}}
+<p class="text-muted">No lessons yet.</p>
+{{end}}
+{{end}}

@@ -32,6 +32,7 @@ The CSP in `internal/handler/security.go` uses a per-request nonce for scripts. 
 - Scripts are self-hosted under `static/js/` with the version in the filename. No CDN script URLs.
 - Inline `style="..."` attributes are fine (`'unsafe-inline'` stays in `style-src`).
 - External images and fonts must be listed in `img-src` / `font-src`.
+- Embedded players are limited to `videoFrameSrc` in `internal/handler/video.go` (YouTube, Vimeo, Bunny Stream). Add a provider there and in `embedURL` together.
 
 A wrong CSP silently breaks pages in production.
 

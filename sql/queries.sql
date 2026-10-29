@@ -1088,3 +1088,74 @@ DELETE FROM questions WHERE id = ? AND user_id = ? AND answer = '';
 SELECT user_id FROM questions WHERE id = sqlc.arg(id)
 UNION
 SELECT user_id FROM question_votes WHERE question_id = sqlc.arg(id);
+
+-- =============================================================================
+-- Courses
+-- =============================================================================
+
+-- name: ListPublishedCourses :many
+SELECT c.id, c.slug, c.title, c.summary,
+       (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id) AS lessons,
+       (SELECT COALESCE(SUM(l.minutes), 0) FROM lessons l WHERE l.course_id = c.id) AS minutes,
+       (SELECT COUNT(*) FROM lessons l JOIN lesson_progress p ON p.lesson_id = l.id
+        WHERE l.course_id = c.id AND p.user_id = sqlc.arg(viewer)) AS completed
+FROM courses c
+WHERE c.published = 1
+ORDER BY c.sort_order, c.id;
+
+-- name: ListAllCourses :many
+SELECT c.*, (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id) AS lessons
+FROM courses c
+ORDER BY c.sort_order, c.id;
+
+-- name: GetCourse :one
+SELECT * FROM courses WHERE id = ?;
+
+-- name: GetCourseBySlug :one
+SELECT * FROM courses WHERE slug = ?;
+
+-- name: CreateCourse :one
+INSERT INTO courses (slug, title, summary) VALUES (?, ?, ?)
+RETURNING id;
+
+-- name: UpdateCourse :exec
+UPDATE courses SET title = ?, summary = ?, sort_order = ? WHERE id = ?;
+
+-- name: SetCoursePublished :exec
+UPDATE courses SET published = sqlc.arg(published),
+    published_at = CASE WHEN sqlc.arg(published) = 1 THEN COALESCE(published_at, datetime('now')) ELSE published_at END
+WHERE id = sqlc.arg(id);
+
+-- name: DeleteCourse :exec
+DELETE FROM courses WHERE id = ?;
+
+-- name: ListLessons :many
+SELECT l.*,
+       EXISTS (SELECT 1 FROM lesson_progress p WHERE p.lesson_id = l.id AND p.user_id = sqlc.arg(viewer)) AS completed
+FROM lessons l
+WHERE l.course_id = sqlc.arg(course_id)
+ORDER BY l.sort_order, l.id;
+
+-- name: GetLesson :one
+SELECT * FROM lessons WHERE id = ?;
+
+-- name: CreateLesson :exec
+INSERT INTO lessons (course_id, title, description, video_url, embed_url, minutes, sort_order)
+VALUES (sqlc.arg(course_id), sqlc.arg(title), sqlc.arg(description), sqlc.arg(video_url), sqlc.arg(embed_url), sqlc.arg(minutes),
+        (SELECT COALESCE(MAX(l.sort_order), 0) + 1 FROM lessons l WHERE l.course_id = sqlc.arg(course_id)));
+
+-- name: UpdateLesson :exec
+UPDATE lessons SET title = ?, description = ?, video_url = ?, embed_url = ?, minutes = ?, sort_order = ?
+WHERE id = ?;
+
+-- name: DeleteLesson :exec
+DELETE FROM lessons WHERE id = ?;
+
+-- name: CompleteLesson :exec
+INSERT OR IGNORE INTO lesson_progress (user_id, lesson_id) VALUES (?, ?);
+
+-- name: UncompleteLesson :exec
+DELETE FROM lesson_progress WHERE user_id = ? AND lesson_id = ?;
+
+-- name: ListActiveUserIDs :many
+SELECT id FROM users WHERE deleted_at IS NULL ORDER BY id;

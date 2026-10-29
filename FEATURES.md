@@ -80,6 +80,12 @@ A permanent, site-wide section where members ask questions and vote for the ones
 - **Routes:** `/questions`, `/questions/{qid}`, `/questions/{qid}/vote`, `/questions/{qid}/answer` (admin), `/questions/{qid}/hide` (admin), `/questions/{qid}/delete`
 - **Files:** `internal/handler/questions.go`, `templates/pages/questions/`
 
+### 11b. Courses
+Pre-recorded video lessons for signed-in members. Videos are hosted on YouTube (unlisted), Vimeo or Bunny Stream and embedded; the CSP's `frame-src` allows only those players. Members see their progress and mark lessons done. Admins build courses as drafts on `/admin/courses`, preview them, and publish; the first publish can email members (Community email).
+
+- **Routes:** `/courses`, `/courses/{slug}`, `/courses/{slug}/{lid}`, `/admin/courses`, `/admin/courses/{cid}`, `/admin/lessons/{lid}`
+- **Files:** `internal/handler/courses.go`, `internal/handler/video.go`, `templates/pages/courses/`, `templates/pages/admin/course*.html`
+
 ---
 
 ## Analytics & Insights

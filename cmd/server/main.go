@@ -279,6 +279,12 @@ func main() {
 		r.With(auth.RequireAdmin).Post("/questions/{qid}/answer", h.QuestionAnswer)
 		r.With(auth.RequireAdmin).Post("/questions/{qid}/hide", h.QuestionHide)
 
+		// Courses
+		r.Get("/courses", h.CoursesPage)
+		r.Get("/courses/{slug}", h.CoursePage)
+		r.Get("/courses/{slug}/{lid}", h.LessonPage)
+		r.Post("/courses/{slug}/{lid}/complete", h.LessonComplete)
+
 		// Lobby Chat
 		r.Get("/lobby", h.LobbyPage)
 		r.With(chatLimiter.Middleware).Post("/lobby", h.LobbySend)
@@ -329,6 +335,15 @@ func main() {
 			r.Post("/stock-split", h.AdminStockSplit)
 			r.Get("/messages", h.AdminContactMessages)
 			r.Get("/email", h.AdminEmail)
+			r.Get("/courses", h.AdminCourses)
+			r.Post("/courses", h.AdminCourseCreate)
+			r.Get("/courses/{cid}", h.AdminCourse)
+			r.Post("/courses/{cid}", h.AdminCourseUpdate)
+			r.Post("/courses/{cid}/publish", h.AdminCoursePublish)
+			r.Post("/courses/{cid}/delete", h.AdminCourseDelete)
+			r.Post("/courses/{cid}/lessons", h.AdminLessonCreate)
+			r.Post("/lessons/{lid}", h.AdminLessonUpdate)
+			r.Post("/lessons/{lid}/delete", h.AdminLessonDelete)
 			r.Post("/email", h.AdminEmailSend)
 			r.Post("/messages/{mid}/read", h.AdminMarkMessageRead)
 		})

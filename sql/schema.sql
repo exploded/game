@@ -596,3 +596,38 @@ CREATE TABLE IF NOT EXISTS question_votes (
     created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (question_id, user_id)
 );
+
+--------------------------------------------------------------------------------
+-- Courses: pre-recorded video lessons. Videos are hosted on YouTube, Vimeo or
+-- Bunny Stream and embedded; the server never serves video.
+--------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS courses (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug         TEXT    NOT NULL UNIQUE,               -- the URL: /courses/{slug}
+    title        TEXT    NOT NULL,
+    summary      TEXT    NOT NULL DEFAULT '',
+    published    INTEGER NOT NULL DEFAULT 0,            -- 0 = draft, only admins see it
+    published_at TEXT,                                  -- first publish; set once
+    sort_order   INTEGER NOT NULL DEFAULT 0,
+    created_at   TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS lessons (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    course_id   INTEGER NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+    title       TEXT    NOT NULL,
+    description TEXT    NOT NULL DEFAULT '',
+    video_url   TEXT    NOT NULL,                       -- as pasted by the admin
+    embed_url   TEXT    NOT NULL,                       -- the player URL built from it (handler/video.go)
+    minutes     INTEGER NOT NULL DEFAULT 0,
+    sort_order  INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_lessons_course ON lessons(course_id, sort_order);
+
+CREATE TABLE IF NOT EXISTS lesson_progress (
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    lesson_id    INTEGER NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
+    completed_at TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (user_id, lesson_id)
+);

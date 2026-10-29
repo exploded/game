@@ -95,10 +95,13 @@ worked out but aren't written yet.
 | # | Email | Trigger | Status |
 |---|---|---|---|
 | C1 | Your question was answered | An admin answers a question you asked or voted for | Built |
-| C2 | New course | A course is published | Planned |
+| C2 | New course | An admin publishes a course for the first time and ticks the email box | Built |
 
 - C1 goes to the asker and everyone who voted, once: editing the answer
-  doesn't resend it. C2 waits for the Courses feature.
+  doesn't resend it.
+- C2 is optional on first publish only. It counts as Community email while
+  courses are free. If Rob starts charging for courses, a new-course email
+  promotes something for sale, so it must move to News (opt-in).
 
 ### News from Rob (marketing)
 
