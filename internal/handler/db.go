@@ -110,12 +110,11 @@ var onceMigrations = []struct{ name, stmt string }{
 	{"clear-asx-news", "DELETE FROM stock_news WHERE stock_id IN (SELECT id FROM stocks WHERE market = 'asx')"},
 	// Notifications from before email existed mustn't all be emailed at once.
 	{"mark-old-notifications-emailed", "UPDATE notifications SET emailed = 1"},
+	// Not in schema.sql, which runs before addedColumns adds emailed.
+	{"idx-notifications-emailed", "CREATE INDEX IF NOT EXISTS idx_notifications_emailed ON notifications(emailed) WHERE emailed = 0"},
 }
 
 func runMigrations(db *sql.DB) error {
-	if err := rebuildUsersTable(db); err != nil {
-		return err
-	}
 	for _, c := range addedColumns {
 		var n int
 		if err := db.QueryRow(
@@ -130,6 +129,10 @@ func runMigrations(db *sql.DB) error {
 			return fmt.Errorf("adding %s.%s: %w", c.table, c.column, err)
 		}
 		slog.Info("added column", "table", c.table, "column", c.column)
+	}
+	// After addedColumns, so the old users table has every column it copies.
+	if err := rebuildUsersTable(db); err != nil {
+		return err
 	}
 
 	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS schema_migrations (

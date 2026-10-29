@@ -399,7 +399,8 @@ CREATE TABLE IF NOT EXISTS notifications (
     emailed    INTEGER NOT NULL DEFAULT 0                -- 1 once internal/notify has handled it
 );
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_notifications_emailed ON notifications(emailed) WHERE emailed = 0;
+-- idx_notifications_emailed is created in onceMigrations (internal/handler/db.go):
+-- an index here can't name a column that addedColumns adds to older databases.
 
 -- Game emails already sent, so each goes once per game.
 CREATE TABLE IF NOT EXISTS game_emails (

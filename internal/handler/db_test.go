@@ -2,6 +2,7 @@ package handler
 
 import (
 	"database/sql"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -16,6 +17,44 @@ func openTestDB(t *testing.T) *sql.DB {
 	}
 	t.Cleanup(func() { d.Close() })
 	return d
+}
+
+// TestOpenDBUpgradesDeployedSchema opens a database made by the schema that
+// was last deployed (testdata/schema-2026-08-23.sql, from d9e0098). Every
+// other test starts from an empty database, so none caught schema.sql
+// indexing a column that only the migrations add, which stopped production
+// starting on 2026-10-30. Refresh the testdata file after each deploy.
+func TestOpenDBUpgradesDeployedSchema(t *testing.T) {
+	old, err := os.ReadFile("testdata/schema-2026-08-23.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "test.db")
+	raw, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, q := range []string{
+		string(old),
+		"INSERT INTO users (id, google_id, email, name) VALUES (3, 'g3', 'Ann@Example.com', 'Ann')",
+		"INSERT INTO notifications (user_id, type, title, message) VALUES (3, 'order_filled', 'Filled', 'Bought 10 AAPL')",
+	} {
+		if _, err := raw.Exec(q); err != nil {
+			t.Fatalf("old database: %v", err)
+		}
+	}
+	raw.Close()
+
+	d := openTestDBAt(t, path)
+	var email, token string
+	if err := d.QueryRow("SELECT email, email_token FROM users WHERE id = 3").Scan(&email, &token); err != nil || email != "ann@example.com" || token == "" {
+		t.Errorf("user 3 = (%q, %q, %v), want the lower-cased email and a token", email, token, err)
+	}
+	var emailed int
+	d.QueryRow("SELECT emailed FROM notifications").Scan(&emailed)
+	if emailed != 1 {
+		t.Error("an old notification would be emailed")
+	}
 }
 
 // TestOpenDBAppliesPragmas guards against the DSN using mattn/go-sqlite3
