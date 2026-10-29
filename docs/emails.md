@@ -135,15 +135,17 @@ link for their category.
 
 ## Setup before go-live
 
-1. **IAM user for StockGame.** Create an IAM user with only
-   `ses:SendRawEmail` on the `mchugh.au` identity, and put its keys in the
-   server's `.env` as `SES_ACCESS_KEY_ID` and `SES_SECRET_ACCESS_KEY`. Set
-   `SES_REGION=ap-southeast-2` and `MAIL_FROM`, plus `NEWS_SENDER` and
-   `NEWS_REPLY_TO` once Rob confirms them.
-2. **Check SES production access.** A sandboxed SES account can only send to
-   verified addresses. clearsky already mails the public, so this is probably
-   done, but check the SES console.
-3. **Suppression list.** Turn on the SES account-level suppression list for
+1. **IAM user for StockGame.** Done on 2026-10-30: the IAM user
+   `stockgame-ses` has the policy `stockgame-ses-send`, which allows
+   `ses:SendEmail` and `ses:SendRawEmail` only from `stockgame@mchugh.au`.
+   If `MAIL_FROM` changes, update that policy too. Put the user's keys in the
+   server's `.env` as `SES_ACCESS_KEY_ID` and `SES_SECRET_ACCESS_KEY`, and set
+   `BASE_URL`, `SES_REGION=ap-southeast-2` and `MAIL_FROM`, plus `NEWS_SENDER`
+   and `NEWS_REPLY_TO` once Rob confirms them.
+2. **SES production access.** On, checked 2026-10-30: 50,000 emails a day,
+   14 a second. `mchugh.au` is verified, with DKIM and the MAIL FROM domain
+   `ses.mchugh.au`.
+3. **Suppression list.** The account-level suppression list is on for
    bounces and complaints, so we never retry a dead address.
 4. **Later, for marketing volume.** Send newsletters from a separate
    configuration set (or subdomain such as `news.mchugh.au`) so a complaint
