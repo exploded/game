@@ -3201,14 +3201,16 @@ func (q *Queries) ListFinishedGamesEndedSince(ctx context.Context, endDate strin
 
 const listFinishedRecurringGames = `-- name: ListFinishedRecurringGames :many
 
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, is_public, portfolio_visibility, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, created_at, updated_at FROM games
-WHERE status = 'finished' AND recurring_interval IS NOT NULL
-ORDER BY end_date DESC
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, is_public, portfolio_visibility, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, created_at, updated_at FROM games g
+WHERE g.status = 'finished' AND g.recurring_interval IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM games c WHERE c.parent_game_id = g.id)
+ORDER BY g.end_date DESC
 `
 
 // =============================================================================
 // Recurring Games (Feature 17)
 // =============================================================================
+// Finished recurring games whose next round doesn't exist yet.
 func (q *Queries) ListFinishedRecurringGames(ctx context.Context) ([]Game, error) {
 	rows, err := q.db.QueryContext(ctx, listFinishedRecurringGames)
 	if err != nil {
@@ -5364,6 +5366,20 @@ type SetEmailPrefParams struct {
 
 func (q *Queries) SetEmailPref(ctx context.Context, arg SetEmailPrefParams) error {
 	_, err := q.db.ExecContext(ctx, setEmailPref, arg.UserID, arg.Category, arg.Enabled)
+	return err
+}
+
+const setGameParent = `-- name: SetGameParent :exec
+UPDATE games SET parent_game_id = ? WHERE id = ?
+`
+
+type SetGameParentParams struct {
+	ParentGameID sql.NullInt64
+	ID           int64
+}
+
+func (q *Queries) SetGameParent(ctx context.Context, arg SetGameParentParams) error {
+	_, err := q.db.ExecContext(ctx, setGameParent, arg.ParentGameID, arg.ID)
 	return err
 }
 

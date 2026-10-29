@@ -26,7 +26,8 @@ type CategoryInfo struct {
 var Optional = []CategoryInfo{
 	{Trades, "Trades", "When an order fills or expires, and dividends or splits on stocks you hold.", true},
 	{Games, "Games", "When a game you're in starts, is about to end, and the final results.", true},
-	{Digest, "Weekly summary", "A Monday email with how each of your games went last week.", true},
+	// Digest joins this list when the weekly summary (D1 in docs/emails.md)
+	// is built: {Digest, "Weekly summary", "A Monday email with how each of your games went last week.", true},
 	{Community, "Community", "Answers to your questions and new courses.", true},
 	{News, "News from Rob", "Tips, courses and announcements. Sent only if you opt in.", false},
 }

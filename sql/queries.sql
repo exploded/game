@@ -894,10 +894,15 @@ ORDER BY total_value DESC;
 -- Recurring Games (Feature 17)
 -- =============================================================================
 
+-- Finished recurring games whose next round doesn't exist yet.
 -- name: ListFinishedRecurringGames :many
-SELECT * FROM games
-WHERE status = 'finished' AND recurring_interval IS NOT NULL
-ORDER BY end_date DESC;
+SELECT * FROM games g
+WHERE g.status = 'finished' AND g.recurring_interval IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM games c WHERE c.parent_game_id = g.id)
+ORDER BY g.end_date DESC;
+
+-- name: SetGameParent :exec
+UPDATE games SET parent_game_id = ? WHERE id = ?;
 
 -- =============================================================================
 -- CSV Export Helpers (Feature 23)

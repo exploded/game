@@ -45,35 +45,42 @@ func ProcessRecurringGames(ctx context.Context, q *db.Queries) {
 		}
 		newEnd := newStart.Add(duration)
 
-		// Check if a child game already exists for this parent.
-		// Simple check: look for a game with the same parent_game_id that's not cancelled.
-		// For now, just create one. The recurring_interval on the new game
-		// ensures it also recurs.
+		// The next round copies every setting. It recurs in turn, and its
+		// parent_game_id stops this game producing another round.
 		newGame, err := q.CreateGame(ctx, db.CreateGameParams{
-			CreatedBy:         game.CreatedBy,
-			Name:              game.Name,
-			Description:       game.Description,
-			Markets:           game.Markets,
-			StartingBalance:   game.StartingBalance,
-			BaseCurrency:      game.BaseCurrency,
-			MaxParticipants:   game.MaxParticipants,
-			StartDate:         newStart.Format("2006-01-02"),
-			EndDate:           newEnd.Format("2006-01-02"),
-			AllowShort:        game.AllowShort,
-			TradeFee:          game.TradeFee,
-			RecurringInterval: game.RecurringInterval,
-			ReferralBonusPct:  game.ReferralBonusPct,
+			CreatedBy:            game.CreatedBy,
+			Name:                 game.Name,
+			Description:          game.Description,
+			Markets:              game.Markets,
+			StartingBalance:      game.StartingBalance,
+			BaseCurrency:         game.BaseCurrency,
+			MaxParticipants:      game.MaxParticipants,
+			StartDate:            newStart.Format("2006-01-02"),
+			EndDate:              newEnd.Format("2006-01-02"),
+			AllowShort:           game.AllowShort,
+			TradeFee:             game.TradeFee,
+			RecurringInterval:    game.RecurringInterval,
+			ReferralBonusPct:     game.ReferralBonusPct,
+			IsPublic:             game.IsPublic,
+			PortfolioVisibility:  game.PortfolioVisibility,
+			CreditInterestRate:   game.CreditInterestRate,
+			LeverageInterestRate: game.LeverageInterestRate,
+			MinStockPrice:        game.MinStockPrice,
+			MaxStockPrice:        game.MaxStockPrice,
+			MarginTrading:        game.MarginTrading,
+			LimitOrders:          game.LimitOrders,
+			StopLoss:             game.StopLoss,
+			FractionalShares:     game.FractionalShares,
 		})
 		if err != nil {
 			slog.Error("create recurring game", "parentID", game.ID, "error", err)
 			continue
 		}
-
-		// Clear recurring on the old game so it doesn't spawn more.
-		// We do this by setting it to null via raw SQL since there's no query for it.
-		// Instead, just log it. The ListFinishedRecurringGames will only get
-		// games that are 'finished', so once the old game stays finished and a new
-		// game exists, we need to avoid duplicates. Let's use parent_game_id.
+		if err := q.SetGameParent(ctx, db.SetGameParentParams{
+			ParentGameID: sql.NullInt64{Int64: game.ID, Valid: true}, ID: newGame.ID,
+		}); err != nil {
+			slog.Error("set recurring game parent", "parentID", game.ID, "newID", newGame.ID, "error", err)
+		}
 		slog.Info("created recurring game", "parentID", game.ID, "newID", newGame.ID, "start", newStart.Format("2006-01-02"))
 
 		// Auto-join the creator.

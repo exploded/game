@@ -30,7 +30,7 @@ header, which Gmail and Apple Mail show as an Unsubscribe button).
 | Account | `account` | On | No. Needed to sign in. |
 | Trades | `trades` | On | Yes |
 | Games | `games` | On | Yes |
-| Weekly summary | `digest` | On | Yes |
+| Weekly summary | `digest` | On | Yes. Hidden in Settings until D1 is built. |
 | Community | `community` | On | Yes |
 | News from Rob | `news` | **Off** | Yes. Opt-in only. |
 
