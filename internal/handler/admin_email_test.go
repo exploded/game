@@ -80,7 +80,9 @@ func TestNewsletterTestThenSend(t *testing.T) {
 		t.Errorf("page doesn't count 1 subscriber:\n%s", w.Body)
 	}
 
-	sendNewsletter(srv, "test")
+	if w := sendNewsletter(srv, "test"); !strings.Contains(w.Body.String(), "Test sent to admin@x.com") || !strings.Contains(w.Body.String(), "Courses are coming.") {
+		t.Errorf("after the test, the page doesn't confirm it or lost the draft:\n%s", w.Body)
+	}
 	if got := recipients(t, d); len(got) != 1 || got[0] != "admin@x.com [Test] Big news" {
 		t.Fatalf("after the test: %v, want one test to the admin", got)
 	}

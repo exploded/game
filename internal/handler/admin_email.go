@@ -16,10 +16,10 @@ import (
 // AdminEmail is where an admin writes a newsletter to everyone who opted in
 // to News from Rob.
 func (h *Handler) AdminEmail(w http.ResponseWriter, r *http.Request) {
-	h.renderAdminEmail(w, r, "", "", nil)
+	h.renderAdminEmail(w, r, "", "", nil, nil)
 }
 
-func (h *Handler) renderAdminEmail(w http.ResponseWriter, r *http.Request, subject, body string, errs map[string]string) {
+func (h *Handler) renderAdminEmail(w http.ResponseWriter, r *http.Request, subject, body string, errs map[string]string, flash *Flash) {
 	subs, err := h.q.ListNewsSubscribers(r.Context())
 	if err != nil {
 		h.serverError(w, "list news subscribers", err)
@@ -32,6 +32,7 @@ func (h *Handler) renderAdminEmail(w http.ResponseWriter, r *http.Request, subje
 	}
 	h.render(w, r, "admin/email", "", PageData{
 		Title:  "Email",
+		Flash:  flash,
 		Items:  sent,
 		Errors: errs,
 		Extra: map[string]any{
@@ -60,7 +61,7 @@ func (h *Handler) AdminEmailSend(w http.ResponseWriter, r *http.Request) {
 		errs["form"] = "Set NEWS_SENDER in .env first. The Spam Act needs every marketing email to say who sent it."
 	}
 	if len(errs) > 0 {
-		h.renderAdminEmail(w, r, subject, body, errs)
+		h.renderAdminEmail(w, r, subject, body, errs, nil)
 		return
 	}
 	letter := mail.NewNewsletter(subject, body)
@@ -70,8 +71,10 @@ func (h *Handler) AdminEmailSend(w http.ResponseWriter, r *http.Request) {
 			h.serverError(w, "queue test newsletter", err)
 			return
 		}
-		setFlashCookie(w, "Test sent to "+user.Email+". Check it, then send it to everyone.", "success")
-		h.renderAdminEmail(w, r, subject, body, nil)
+		// Rendered rather than redirected, so the form keeps what was typed.
+		h.renderAdminEmail(w, r, subject, body, nil, &Flash{
+			Type: "success", Message: "Test sent to " + user.Email + ". Check it, then send it to everyone.",
+		})
 		return
 	}
 
