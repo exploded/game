@@ -11,14 +11,14 @@
                     <summary>Switch</summary>
                     <ul>
                         {{range .Others}}
-                        <li><a href="/games/{{.ID}}{{if eq .Status "active"}}/portfolio{{end}}">{{.Name}}</a></li>
+                        <li><a href="/games/{{.ID}}">{{.Name}}</a></li>
                         {{end}}
                     </ul>
                 </details>
                 {{end}}
             </div>
-            {{/* The portfolio page shows these in its summary card. */}}
-            {{if ne .Tab "portfolio"}}{{with .Participant}}
+            {{/* A player's home page shows these in its summary card. */}}
+            {{if ne .Tab "home"}}{{with .Participant}}
             <div class="game-bar-stats">
                 <span><span class="game-bar-label">Cash</span> <span class="mono">{{cents .CashBalance}}</span></span>
                 <span><span class="game-bar-label">Value</span> <span class="mono">{{cents .PortfolioValue}}</span></span>
@@ -28,9 +28,12 @@
             {{end}}{{end}}
         </div>
         <nav class="game-tabs" aria-label="Game">
-            <a href="/games/{{$g.ID}}"{{if eq .Tab "overview"}} class="active"{{end}}>Overview</a>
             {{if .Participant}}
-            <a href="/games/{{$g.ID}}/portfolio"{{if eq .Tab "portfolio"}} class="active"{{end}}>Portfolio</a>
+            <a href="/games/{{$g.ID}}"{{if or (eq .Tab "home") (eq .Tab "portfolio")}} class="active"{{end}}>Portfolio</a>
+            {{else}}
+            <a href="/games/{{$g.ID}}"{{if eq .Tab "home"}} class="active"{{end}}>Overview</a>
+            {{end}}
+            {{if .Participant}}
             {{if eq $g.Status "active"}}
             <a href="/games/{{$g.ID}}/stocks"{{if eq .Tab "stocks"}} class="active"{{end}}>Stocks</a>
             <a href="/games/{{$g.ID}}/orders"{{if eq .Tab "orders"}} class="active"{{end}}>Orders</a>
@@ -41,6 +44,7 @@
             {{if .Participant}}
             <a href="/games/{{$g.ID}}/analytics"{{if eq .Tab "analytics"}} class="active"{{end}}>Analytics</a>
             <a href="/games/{{$g.ID}}/chat"{{if eq .Tab "chat"}} class="active"{{end}}>Chat</a>
+            <a href="/games/{{$g.ID}}/rules"{{if eq .Tab "rules"}} class="active"{{end}}>Rules</a>
             {{end}}
         </nav>
     </div>
@@ -50,7 +54,7 @@
 bottom of the screen instead, in thumb reach. Desktop never shows it. */}}
 {{if .Participant}}
 <nav class="game-dock" aria-label="Game">
-    <a href="/games/{{$g.ID}}/portfolio"{{if eq .Tab "portfolio"}} class="active"{{end}}>
+    <a href="/games/{{$g.ID}}"{{if or (eq .Tab "home") (eq .Tab "portfolio")}} class="active"{{end}}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
         <span>Portfolio</span>
     </a>
@@ -69,16 +73,16 @@ bottom of the screen instead, in thumb reach. Desktop never shows it. */}}
         <span>Ranks</span>
     </a>
     <details class="dock-more" data-dismiss>
-        <summary{{if or (eq .Tab "overview") (eq .Tab "watchlist") (eq .Tab "analytics") (eq .Tab "chat")}} class="active"{{end}}>
+        <summary{{if or (eq .Tab "rules") (eq .Tab "watchlist") (eq .Tab "analytics") (eq .Tab "chat")}} class="active"{{end}}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
             <span>More</span>
         </summary>
         <div class="dock-sheet">
-            <a href="/games/{{$g.ID}}">Game overview</a>
             {{if eq $g.Status "active"}}<a href="/games/{{$g.ID}}/watchlist">Watchlist</a>{{end}}
             <a href="/games/{{$g.ID}}/history">Trade history</a>
             <a href="/games/{{$g.ID}}/analytics">Analytics</a>
             <a href="/games/{{$g.ID}}/chat">Chat</a>
+            <a href="/games/{{$g.ID}}/rules">Game rules</a>
         </div>
     </details>
 </nav>

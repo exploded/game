@@ -1076,6 +1076,22 @@ td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-
 .hero-split { display: flex; gap: 32px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--color-border); }
 .hero-split .mono { font-size: 15px; font-weight: 600; }
 .perf-chart { position: relative; height: 260px; }
+.game-rules-link { margin-top: 24px; font-size: 13px; }
+
+/* Your leaderboard spot, above the portfolio summary. */
+.rank-strip {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding: 10px 16px;
+    background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius);
+    color: var(--color-text);
+}
+.rank-strip:hover { color: var(--color-text); border-color: var(--color-primary); }
+.rank-place { font-size: 22px; font-weight: 700; color: var(--color-primary); }
+.rank-text { display: flex; flex-direction: column; font-size: 13px; line-height: 1.35; min-width: 0; }
+.rank-more { margin-left: auto; font-size: 13px; color: var(--color-primary-link); white-space: nowrap; }
+
+/* Today and Total in the holdings table: the % pill, then the amount. */
+.rtable .c-move { white-space: nowrap; }
+.rtable .c-amt { display: block; margin-top: 2px; font-size: 12px; color: var(--color-text-muted); font-family: var(--font-mono); }
 
 /* rtable: a normal table on desktop; see the phone rules below. */
 .rtable .c-sub { display: block; color: var(--color-text-muted); font-size: 12px; }
@@ -1219,6 +1235,7 @@ td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-
     .rtable a.stretch { color: var(--color-text); }
     .rtable a.stretch::after { content: ""; position: absolute; inset: 0; }
     .rtable td[colspan] { order: 0; }
+    .rtable .c-amt { display: inline; margin: 0; }
 
     /* Portfolio */
     .portfolio-hero { padding: 16px; margin-bottom: 20px; }

@@ -66,15 +66,19 @@ func (h *Handler) GameContext(next http.Handler) http.Handler {
 	})
 }
 
-// gameTab maps a /games/{id}/... path to the tab it belongs under.
+// gameTab maps a /games/{id}/... path to the tab it belongs under. The
+// game's home page is the portfolio for players and the rules for anyone
+// else; the game bar knows which.
 func gameTab(path string) string {
 	parts := strings.SplitN(strings.Trim(path, "/"), "/", 4) // games, id, section, rest
 	if len(parts) < 3 {
-		return "overview"
+		return "home"
 	}
 	switch parts[2] {
 	case "portfolio", "history":
 		return "portfolio"
+	case "rules":
+		return "rules"
 	case "stocks", "search", "trade":
 		return "stocks"
 	case "orders":

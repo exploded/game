@@ -219,6 +219,7 @@ func main() {
 			r.Use(h.GameContext)
 
 			r.Get("/", h.GameDetail)
+			r.Get("/rules", h.GameRules)
 			r.Post("/join", h.GameJoin)
 			r.Post("/cancel", h.GameCancel)
 

@@ -7,7 +7,7 @@
 </div>
 
 {{with .Extra.CurrentGame}}
-<a href="/games/{{.ID}}{{if eq .Status "active"}}/portfolio{{end}}" class="continue-card">
+<a href="/games/{{.ID}}" class="continue-card">
     <span class="continue-label">Continue playing</span>
     <span class="continue-name">{{.Name}}</span>
     <span class="badge badge-{{.Status}}">{{.Status}}</span>

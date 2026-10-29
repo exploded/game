@@ -6,7 +6,7 @@
     <span class="badge badge-{{.Item.Status}}">{{.Item.Status}}</span>
 </div>
 
-<div class="detail-grid">
+<div>
     <div class="detail-main">
         {{if .Item.Description}}
         <p class="game-description">{{.Item.Description}}</p>
@@ -95,12 +95,7 @@
 
         {{if .Extra.IsJoined}}
         <div class="participant-actions" style="flex-wrap:wrap">
-            {{if eq .Item.Status "active"}}
-            <a href="/games/{{.Item.ID}}/stocks" class="btn btn-primary">Trade stocks</a>
-            {{end}}
             <a href="/games/{{.Item.ID}}/activity" class="btn btn-sm">Activity</a>
-            <a href="/games/{{.Item.ID}}/export/transactions" class="btn btn-sm">Export Transactions CSV</a>
-            <a href="/games/{{.Item.ID}}/export/snapshots" class="btn btn-sm">Export Snapshots CSV</a>
         </div>
         {{end}}
 
@@ -115,32 +110,6 @@
             </form>
             {{end}}
         </div>
-        {{end}}
-    </div>
-
-    <div class="detail-sidebar">
-        <h2>Leaderboard</h2>
-        {{if .Items}}
-        <table class="leaderboard-table">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Player</th>
-                    <th>Portfolio Value</th>
-                </tr>
-            </thead>
-            <tbody>
-                {{range $i, $p := .Items}}
-                <tr>
-                    <td>{{add $i 1}}</td>
-                    <td>{{$p.UserName}}</td>
-                    <td>{{cents $p.PortfolioValue}}</td>
-                </tr>
-                {{end}}
-            </tbody>
-        </table>
-        {{else}}
-        <p class="text-muted">No participants yet.</p>
         {{end}}
     </div>
 </div>

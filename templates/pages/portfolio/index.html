@@ -1,21 +1,24 @@
 {{template "base" .}}
 
 {{define "content"}}
-<div class="page-header">
-    <h1>Portfolio</h1>
-    <div class="page-header-actions">
-        <a href="/games/{{.Item.ID}}/stocks" class="btn btn-primary btn-sm">Browse Stocks</a>
-    </div>
-</div>
-
 {{- $pt := .Extra.Participant -}}
-{{- $pl := subtract $pt.PortfolioValue .Item.StartingBalance -}}
+{{with .Extra.Standing}}{{if gt .Of 1}}
+<a href="/games/{{$.Item.ID}}/leaderboard" class="rank-strip">
+    <span class="rank-place">{{.Place}}</span>
+    <span class="rank-text">
+        <span>of {{.Of}} players</span>
+        <span class="text-muted">{{if .Ahead}}{{cents .Gap}} behind {{.Ahead}}{{else}}You're in the lead{{end}}</span>
+    </span>
+    <span class="rank-more">Leaderboard &rsaquo;</span>
+</a>
+{{end}}{{end}}
+
 <div class="portfolio-hero">
     <span class="stat-label">Total value</span>
     <div class="hero-value mono">{{cents $pt.PortfolioValue}}</div>
     <div class="hero-change">
-        <span class="pill {{if gt $pl 0}}pill-up{{else if lt $pl 0}}pill-down{{end}}">{{cents $pl}} ({{pct $pt.PortfolioValue .Item.StartingBalance}}%)</span>
-        <span class="text-muted">since the start</span>
+        {{with .Extra.Today}}<span><span class="pill {{.Class}}">{{.Text}} ({{.Pct}})</span> <span class="text-muted">today</span></span>{{end}}
+        {{with .Extra.Total}}<span><span class="pill {{.Class}}">{{.Text}} ({{.Pct}})</span> <span class="text-muted">since the start</span></span>{{end}}
     </div>
     <div class="hero-split">
         <div><span class="stat-label">Cash</span><span class="mono">{{cents $pt.CashBalance}}</span></div>
@@ -23,45 +26,45 @@
     </div>
 </div>
 
-{{if .Extra.Snapshots}}
-<section class="section">
-    <h2>Performance</h2>
-    <div class="perf-chart"><canvas id="portfolio-chart"></canvas></div>
-</section>
-{{end}}
-
 <section class="section">
     <div class="section-header">
         <h2>Holdings</h2>
-        <a href="/games/{{.Item.ID}}/history" class="btn btn-sm">History</a>
+        <div class="page-header-actions">
+            <a href="/games/{{.Item.ID}}/history" class="btn btn-sm">History</a>
+            {{if eq .Item.Status "active"}}<a href="/games/{{.Item.ID}}/stocks" class="btn btn-primary btn-sm">Buy stocks</a>{{end}}
+        </div>
     </div>
     {{if .Items}}
-    {{/* rtable: a table on desktop, one tappable card per row on a phone. */}}
+    {{/* rtable: a table on desktop, one tappable card per row on a phone.
+    Today and Total are in the stock's own currency. */}}
     <table class="rtable">
         <thead>
             <tr>
                 <th>Stock</th>
                 <th class="num">Value</th>
-                <th class="num">Gain</th>
+                <th class="num">Today</th>
+                <th class="num">Total</th>
                 <th class="num">Qty</th>
-                <th class="num">Avg cost</th>
-                <th>Market</th>
+                <th class="num">Price</th>
+                <th class="num hide-sm">Avg cost</th>
+                <th class="hide-sm">Market</th>
                 <th class="hide-sm"></th>
             </tr>
         </thead>
         <tbody>
             {{range .Items}}
-            {{- $cost := multiply .Quantity .AvgCost -}}
             <tr>
                 <td class="c-main">
                     <a href="/games/{{$.Item.ID}}/stocks/{{.StockID}}" class="stretch"><strong>{{.Symbol}}</strong></a>
                     <span class="c-sub">{{.StockName}}</span>
                 </td>
                 <td class="c-end num">{{cents .CurrentValue}} <span class="text-muted c-cur">{{.Currency}}</span></td>
-                <td class="num c-pill">{{if $cost}}<span class="pill {{if gt .CurrentValue $cost}}pill-up{{else if lt .CurrentValue $cost}}pill-down{{end}}">{{pct .CurrentValue $cost}}%</span>{{end}}</td>
+                <td class="num c-move" data-label="Today">{{with .Today}}{{if .Base}}<span class="pill {{.Class}}">{{.Pct}}</span> <span class="c-amt">{{.Text}}</span>{{end}}{{end}}</td>
+                <td class="num c-move" data-label="Total">{{with .Total}}{{if .Base}}<span class="pill {{.Class}}">{{.Pct}}</span> <span class="c-amt">{{.Text}}</span>{{end}}{{end}}</td>
                 <td class="num" data-label="Qty">{{.Quantity}}</td>
-                <td class="num" data-label="Avg">{{cents .AvgCost}}</td>
-                <td data-label="">{{marketLabel .Symbol .Market}}</td>
+                <td class="num" data-label="Price">{{if .Price}}{{cents .Price}}{{end}}</td>
+                <td class="num hide-sm">{{cents .AvgCost}}</td>
+                <td class="hide-sm">{{marketLabel .Symbol .Market}}</td>
                 <td class="hide-sm"><a href="/games/{{$.Item.ID}}/stocks/{{.StockID}}" class="btn btn-primary btn-sm">Trade</a></td>
             </tr>
             {{end}}
@@ -70,10 +73,19 @@
     {{else}}
     <div class="empty-state">
         <p>No holdings yet.</p>
-        <a href="/games/{{.Item.ID}}/stocks" class="btn btn-primary">Browse stocks</a>
+        {{if eq .Item.Status "active"}}<a href="/games/{{.Item.ID}}/stocks" class="btn btn-primary">Browse stocks</a>{{end}}
     </div>
     {{end}}
 </section>
+
+{{if .Extra.Snapshots}}
+<section class="section">
+    <h2>Performance</h2>
+    <div class="perf-chart"><canvas id="portfolio-chart"></canvas></div>
+</section>
+{{end}}
+
+<p class="text-muted game-rules-link"><a href="/games/{{.Item.ID}}/rules">Game rules and settings &rsaquo;</a></p>
 
 {{if .Extra.Snapshots}}
 <script src="{{asset "js/chart-4.5.1.umd.min.js"}}"></script>

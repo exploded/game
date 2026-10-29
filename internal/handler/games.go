@@ -219,7 +219,18 @@ func (h *Handler) GameCreate(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/games/%d", game.ID), http.StatusSeeOther)
 }
 
+// GameDetail is a game's home page. Players get their portfolio; everyone
+// else gets the game's rules and a Join button.
 func (h *Handler) GameDetail(w http.ResponseWriter, r *http.Request) {
+	h.gamePage(w, r, true)
+}
+
+// GameRules shows a game's rules and settings.
+func (h *Handler) GameRules(w http.ResponseWriter, r *http.Request) {
+	h.gamePage(w, r, false)
+}
+
+func (h *Handler) gamePage(w http.ResponseWriter, r *http.Request, portfolioIfJoined bool) {
 	user := auth.UserFromContext(r.Context())
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
@@ -233,13 +244,16 @@ func (h *Handler) GameDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	participants, _ := h.q.ListPublicParticipantsByGame(r.Context(), game.ID)
-	count, _ := h.q.CountParticipants(r.Context(), game.ID)
 	participant, _ := h.q.GetParticipantByGameAndUser(r.Context(), db.GetParticipantByGameAndUserParams{
 		GameID: game.ID,
 		UserID: user.ID,
 	})
+	if portfolioIfJoined && participant.ID != 0 {
+		h.portfolio(w, r, game, participant)
+		return
+	}
 
+	count, _ := h.q.CountParticipants(r.Context(), game.ID)
 	creator, _ := h.q.GetUser(r.Context(), game.CreatedBy)
 
 	isCreator := game.CreatedBy == user.ID
@@ -253,7 +267,6 @@ func (h *Handler) GameDetail(w http.ResponseWriter, r *http.Request) {
 	h.render(w, r, "games/detail", "", PageData{
 		Title: game.Name,
 		Item:  game,
-		Items: participants,
 		Extra: map[string]any{
 			"Participant": participant,
 			"Count":       count,

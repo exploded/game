@@ -15,8 +15,9 @@ import (
 
 func TestGameTab(t *testing.T) {
 	for path, want := range map[string]string{
-		"/games/7":                "overview",
-		"/games/7/":               "overview",
+		"/games/7":                "home",
+		"/games/7/":               "home",
+		"/games/7/rules":          "rules",
 		"/games/7/portfolio":      "portfolio",
 		"/games/7/history":        "portfolio",
 		"/games/7/stocks":         "stocks",
@@ -75,6 +76,8 @@ func gameServer(t *testing.T) (http.Handler, *db.Queries) {
 	r.Route("/games/{id}", func(r chi.Router) {
 		r.Use(h.GameContext)
 		r.Get("/", h.GameDetail)
+		r.Get("/rules", h.GameRules)
+		r.Get("/portfolio", h.Portfolio)
 		r.Get("/stocks/{sid}", h.StockDetail)
 		r.Get("/trade/{sid}", h.TradeForm)
 		r.Post("/trade/{sid}", h.TradeExecute)
@@ -82,17 +85,125 @@ func gameServer(t *testing.T) (http.Handler, *db.Queries) {
 	return r, q
 }
 
-// TestGameOverview checks the subrouter's "/" matches /games/1, and that
-// the bar marks Overview.
-func TestGameOverview(t *testing.T) {
+func getPage(t *testing.T, srv http.Handler, path, user string) string {
+	t.Helper()
+	req := httptest.NewRequest("GET", path, nil)
+	if user != "" {
+		req.Header.Set("X-User", user)
+	}
+	w := httptest.NewRecorder()
+	srv.ServeHTTP(w, req)
+	if w.Code != 200 {
+		t.Fatalf("GET %s: status %d: %s", path, w.Code, w.Body.String())
+	}
+	return w.Body.String()
+}
+
+// TestGameHomeIsPortfolio checks a player's game page leads with their
+// holdings: today's and total moves for each stock, and their rank.
+func TestGameHomeIsPortfolio(t *testing.T) {
+	srv, q := gameServer(t)
+	p, _ := q.GetParticipantByGameAndUser(t.Context(), db.GetParticipantByGameAndUserParams{GameID: 1, UserID: 1})
+	// 10 ACME bought at $9.00, closed at $10.00 then $10.50.
+	if err := q.UpsertHolding(t.Context(), db.UpsertHoldingParams{
+		ParticipantID: p.ID, StockID: 1, Quantity: 10, AvgCost: 900, CurrentValue: 10500,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := q.JoinGame(t.Context(), db.JoinGameParams{GameID: 1, UserID: 2, CashBalance: 100000000, PortfolioValue: 100100000}); err != nil {
+		t.Fatal(err)
+	}
+	if err := q.UpsertPrice(t.Context(), db.UpsertPriceParams{StockID: 1, Date: "2026-10-27", Open: 1000, High: 1000, Low: 1000, Close: 1000}); err != nil {
+		t.Fatal(err)
+	}
+
+	body := getPage(t, srv, "/games/1", "")
+	for _, want := range []string{
+		`href="/games/1" class="active">Portfolio`,
+		`<span class="rank-place">2nd</span>`,
+		`$1,000.00 behind Bob`,
+		`<span class="pill pill-up">&#43;5.00%</span> <span class="c-amt">&#43;$5.00</span>`,   // today
+		`<span class="pill pill-up">&#43;16.67%</span> <span class="c-amt">&#43;$15.00</span>`, // since bought
+		`&#43;$5.00 (0.00%)</span> <span class="text-muted">today`,                             // whole portfolio
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("page is missing %q", want)
+		}
+	}
+	for _, unwanted := range []string{"Starting Balance", "export/transactions"} {
+		if strings.Contains(body, unwanted) {
+			t.Errorf("page still has %q", unwanted)
+		}
+	}
+}
+
+func TestGameHomeIsRulesForNonPlayers(t *testing.T) {
+	srv, _ := gameServer(t)
+	body := getPage(t, srv, "/games/1", "2")
+	if !strings.Contains(body, `href="/games/1" class="active">Overview`) {
+		t.Error("Overview tab isn't active for a non-player")
+	}
+	if !strings.Contains(body, "Starting Balance") || !strings.Contains(body, "Join Game") {
+		t.Error("non-player isn't shown the rules and a Join button")
+	}
+}
+
+func TestRulesPage(t *testing.T) {
+	srv, _ := gameServer(t)
+	body := getPage(t, srv, "/games/1/rules", "")
+	if !strings.Contains(body, `href="/games/1/rules" class="active">Rules`) || !strings.Contains(body, "Starting Balance") {
+		t.Error("rules page doesn't show the rules under the Rules tab")
+	}
+}
+
+func TestPortfolioRedirectsHome(t *testing.T) {
 	srv, _ := gameServer(t)
 	w := httptest.NewRecorder()
-	srv.ServeHTTP(w, httptest.NewRequest("GET", "/games/1", nil))
-	if w.Code != 200 {
-		t.Fatalf("status %d: %s", w.Code, w.Body.String())
+	srv.ServeHTTP(w, httptest.NewRequest("GET", "/games/1/portfolio", nil))
+	if w.Code != http.StatusMovedPermanently || w.Header().Get("Location") != "/games/1" {
+		t.Fatalf("got %d to %q, want 301 to /games/1", w.Code, w.Header().Get("Location"))
 	}
-	if !strings.Contains(w.Body.String(), `href="/games/1" class="active">Overview`) {
-		t.Error("Overview tab isn't active on the game page")
+}
+
+func TestRankPlayer(t *testing.T) {
+	board := []db.ListPublicParticipantsByGameRow{
+		{ID: 1, PortfolioValue: 300, UserName: "Ann"},
+		{ID: 2, PortfolioValue: 200, UserName: "Ben"},
+		{ID: 3, PortfolioValue: 100, UserName: "Cat"},
+	}
+	for _, tc := range []struct {
+		p    db.Participant
+		want standing
+	}{
+		{db.Participant{ID: 1, PortfolioValue: 300}, standing{Rank: 1, Of: 3}},
+		{db.Participant{ID: 3, PortfolioValue: 100}, standing{Rank: 3, Of: 3, Ahead: "Ben", Gap: 100}},
+		// Private players aren't on the board but still get a spot.
+		{db.Participant{ID: 9, PortfolioValue: 250}, standing{Rank: 2, Of: 4, Ahead: "Ann", Gap: 50}},
+	} {
+		if got := rankPlayer(tc.p, board); got != tc.want {
+			t.Errorf("rankPlayer(%d) = %+v, want %+v", tc.p.ID, got, tc.want)
+		}
+	}
+	for rank, want := range map[int]string{1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 11: "11th", 12: "12th", 13: "13th", 21: "21st", 112: "112th"} {
+		if got := (standing{Rank: rank}).Place(); got != want {
+			t.Errorf("Place(%d) = %q, want %q", rank, got, want)
+		}
+	}
+}
+
+func TestChangePct(t *testing.T) {
+	for _, tc := range []struct {
+		c    change
+		want string
+	}{
+		{change{50, 1000}, "+5.00%"},
+		{change{-50, 1000}, "-5.00%"},
+		{change{-1, 1000000}, "0.00%"}, // not "-0.00%"
+		{change{5, 0}, ""},
+	} {
+		if got := tc.c.Pct(); got != tc.want {
+			t.Errorf("%+v.Pct() = %q, want %q", tc.c, got, tc.want)
+		}
 	}
 }
 
