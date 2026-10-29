@@ -546,7 +546,7 @@
     ro.observe(container);
 })();
 </script>
-<p class="text-muted" style="font-size:0.75rem; margin-top:0.5rem;">Prices by Twelve Data.{{if .Extra.News}} News by TickerTick.{{end}} Prices may be delayed.</p>
+<p class="text-muted" style="font-size:0.75rem; margin-top:0.5rem;"><a href="https://twelvedata.com" target="_blank" rel="noopener">Data provided by Twelve Data</a>.{{if .Extra.News}} News by TickerTick.{{end}} Prices may be delayed.</p>
 {{end}}
 
 {{if and .Extra.Trade (eq .Extra.Game.Status "active") .Extra.LatestPrice.ID}}
