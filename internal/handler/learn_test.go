@@ -92,7 +92,7 @@ func TestLearnPagesRender(t *testing.T) {
 		user, path string
 		want       []string
 	}{
-		{"", "/learn", []string{"Learn with Rob", "Salary sacrifice explained", "Super tip", "Superannuation", "LIVE", "General advice only", "Sign in"}},
+		{"", "/learn", []string{"Learn with Rob", "Salary sacrifice explained", "Super tip", "Superannuation", "LIVE", "general in nature only", "Sign in"}},
 		{"", "/learn?q=retirement", []string{"Retirement income"}},
 		{"2", "/learn", []string{"Rob is live"}},
 		{"", "/learn/topics/super", []string{"Superannuation", "3 videos", "Is super worth it?"}},

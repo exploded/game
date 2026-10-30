@@ -53,7 +53,7 @@ All settings come from `.env` (or the environment, which takes priority):
 | `ANTHROPIC_API_KEY` | Claude API key. Sorts videos and questions into topics. Without it, admins tick topics by hand. |
 | `CLAUDE_MODEL` | Model for sorting. Default `claude-opus-5-5`. |
 | `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET` | TikTok app with Login Kit and the Display API (`user.info.basic`, `video.list`). Its redirect URI is `BASE_URL/admin/learn/tiktok/callback`. Rob then clicks **Connect TikTok** on `/admin/learn`. |
-| `LEARN_DISCLAIMER` | Replaces the general advice warning under every Learn page with Rob's licensee wording. |
+| `LEARN_DISCLAIMER` | Replaces the general advice warning under every Learn page. The default is Rob's licensee wording. |
 | `MONITOR_URL`, `MONITOR_API_KEY` | Ship warnings and errors to monitor.mchugh.au |
 
 ## Deploy

@@ -31,16 +31,14 @@ var robSocials = []social{
 	{"X", "https://x.com/consortiumpw", "x"},
 }
 
-// learnDisclaimer is the general advice warning under every Learn page.
-// LEARN_DISCLAIMER replaces it with Rob's licensee wording.
+// learnDisclaimer is the general advice warning under every Learn page:
+// Rob's licensee's wording, word for word. LEARN_DISCLAIMER replaces it.
 func learnDisclaimer() string {
 	if d := os.Getenv("LEARN_DISCLAIMER"); d != "" {
 		return d
 	}
-	return "General advice only. These videos and answers don't take into account your objectives, " +
-		"financial situation or needs. Consider whether the information is right for you, and read " +
-		"the relevant product disclosure statement, before acting on it. Past performance is not a " +
-		"reliable indicator of future performance."
+	return "The information provided in this article is general in nature only and does not " +
+		"constitute personal financial advice."
 }
 
 // learnPage fills in what every Learn page shows: the tab, the warning, and

@@ -69,9 +69,9 @@ reminders need an account.
   API), pass TikTok's app review, set `TIKTOK_CLIENT_KEY` and
   `TIKTOK_CLIENT_SECRET`, then Rob clicks **Connect TikTok**. Reconnect
   before the year is up; the admin page warns 30 days ahead.
-- [ ] **From Rob:** his licensee's general advice wording
-  (`LEARN_DISCLAIMER`), his podcast link, and whether the topic list
-  suits him (`/admin/learn/topics`).
+- [ ] **From Rob:** his podcast link (he's organising it), and whether the
+  topic list suits him (`/admin/learn/topics`). His general advice wording is
+  in (2026-10-30).
 - [ ] **Later:** Facebook and Instagram sync and Facebook live detection
   through Meta's Graph API (needs Rob's Page connected to a Meta app). TikTok
   LIVE has no API, so TikTok streams stay manual. Web push notifications.
@@ -133,9 +133,8 @@ Highest impact for the effort first.
 
 ## Follow-ups from the terms review (2026-10-29)
 
-- [ ] **Check who runs StockGame.** Section 2 of the terms
-  (`templates/pages/legal/terms.html`) names Local IT Help as the operator.
-  Check with Rob whether it should name him instead.
+- [x] **Check who runs StockGame.** Rob says Consortium Private Wealth; the
+  terms name it (2026-10-30).
 - [ ] **Admin tool to remove chat messages.** Section 9 of the terms says we can
   remove chat messages, but there's no way to do it yet. Add a delete or hide
   action to `internal/handler/chat.go` for admins. Part of Moderation above.

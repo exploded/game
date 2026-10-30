@@ -87,7 +87,7 @@ A public hub at `/learn` with tabs Watch, Live, Ask Rob and Courses. Built phone
 - **Live:** YouTube streams are picked up from the sync and checked every 2 minutes; TikTok, Facebook and Instagram streams are added by an admin, or started with "I'm live now". A "Rob is live" banner shows site-wide. Visitors can add a stream to their calendar (.ics); members can ask to be reminded. Live streams email: L1 when a stream is booked, L2 to reminder users when it starts.
 - **Live Q&A queue:** a stream's page lists the most-voted open questions, refreshing every 20 seconds while live. Rob taps **Answered** as he answers each one.
 - **Admin:** `/admin/learn` (sources, sync, paste a link, the video list), `/admin/learn/videos/{vid}` (topics, pin, hide), `/admin/learn/topics`, `/admin/learn/live`.
-- Every Learn page ends with a general advice warning (`LEARN_DISCLAIMER`).
+- Every Learn page ends with Rob's licensee's general advice warning (`learnDisclaimer` in `learn.go`; `LEARN_DISCLAIMER` overrides it).
 - **Files:** `internal/media/` (sync, classifier, live emails), `internal/handler/learn.go`, `internal/handler/admin_learn.go`, `internal/handler/video.go`, `templates/pages/learn/`, `templates/pages/admin/learn*.html`
 
 ### 11b. Courses
