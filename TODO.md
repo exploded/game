@@ -30,7 +30,7 @@ Built on 2026-10-29 and merged into `master` on 2026-10-30. Not deployed yet.
 - [ ] **Go live.** Needs an SES IAM user and `SES_ACCESS_KEY_ID`,
   `SES_SECRET_ACCESS_KEY`, `SES_REGION` and `MAIL_FROM` in the server `.env`.
   Without them nobody can sign in. Remove `GOOGLE_CLIENT_*` from the `.env`.
-- [ ] **Newsletter details from Rob (2026-10-30)** go in the server `.env`:
+- [x] **Newsletter details from Rob (2026-10-30)** are in the server `.env`:
   `NEWS_SENDER="Consortium Private Wealth, 24A Darlot Street, Horsham VIC 3400"`
   and `MAIL_REPLY_TO=info@consortiumpw.com.au` (was `NEWS_REPLY_TO`), and
   `MAIL_FROM=The Wealth Lab <hello@thewealthlab.au>`.
