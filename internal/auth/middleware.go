@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/exploded/game/internal/db"
 )
@@ -36,6 +37,7 @@ func RequireAuth(queries *db.Queries, next http.Handler) http.Handler {
 			http.Redirect(w, r, loginURL(r), http.StatusTemporaryRedirect)
 			return
 		}
+		touchLastSeen(r.Context(), queries, &user)
 
 		ctx := context.WithValue(r.Context(), userKey, &user)
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -83,9 +85,26 @@ func OptionalAuth(queries *db.Queries, next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
+		touchLastSeen(r.Context(), queries, &user)
 		ctx := context.WithValue(r.Context(), userKey, &user)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+// lastSeenEvery is how stale users.last_seen gets before a request updates
+// it, so browsing doesn't write to the database on every page.
+const lastSeenEvery = time.Hour
+
+// touchLastSeen records that user made a signed-in request, if last_seen is
+// missing or older than lastSeenEvery.
+func touchLastSeen(ctx context.Context, queries *db.Queries, user *db.User) {
+	if user.LastSeen.Valid {
+		seen, err := time.Parse(time.DateTime, user.LastSeen.String)
+		if err == nil && time.Since(seen) < lastSeenEvery {
+			return
+		}
+	}
+	_ = queries.TouchLastSeen(ctx, user.ID)
 }
 
 // UserFromContext extracts the authenticated user from context.

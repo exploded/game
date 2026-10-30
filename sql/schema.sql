@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS users (
     avatar_id   INTEGER REFERENCES avatars(id),
     created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
     last_login  TEXT    NOT NULL DEFAULT (datetime('now')),
+    last_seen   TEXT,                                       -- last signed-in request, updated at most hourly; NULL = none since 30 Oct 2026
     deleted_at  TEXT,                                       -- NULL = active, set = soft-deleted
     last_game_id INTEGER REFERENCES games(id) ON DELETE SET NULL, -- the game the game bar last showed
     email_token TEXT    NOT NULL UNIQUE                     -- random; identifies the user in unsubscribe links

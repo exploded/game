@@ -103,6 +103,7 @@ var addedColumns = []struct{ table, column, ddl string }{
 	{"holdings", "cost_basis", "INTEGER NOT NULL DEFAULT 0"},
 	{"games", "after_hours_trading", "INTEGER NOT NULL DEFAULT 1"},
 	{"game_invites", "email", "TEXT DEFAULT NULL"},
+	{"users", "last_seen", "TEXT DEFAULT NULL"},
 }
 
 // onceMigrations run exactly once per database, in order. Each is recorded in
@@ -300,14 +301,15 @@ func rebuildUsersTable(db *sql.DB) error {
 			avatar_id   INTEGER REFERENCES avatars(id),
 			created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
 			last_login  TEXT    NOT NULL DEFAULT (datetime('now')),
+			last_seen   TEXT,
 			deleted_at  TEXT,
 			last_game_id INTEGER REFERENCES games(id) ON DELETE SET NULL,
 			email_token TEXT    NOT NULL UNIQUE
 		)`,
 		`INSERT INTO users_new (id, email, name, picture_url, is_admin, avatar_id,
-			created_at, last_login, deleted_at, last_game_id, email_token)
+			created_at, last_login, last_seen, deleted_at, last_game_id, email_token)
 		 SELECT id, lower(email), name, picture_url, is_admin, avatar_id,
-			created_at, last_login, deleted_at, last_game_id, lower(hex(randomblob(16)))
+			created_at, last_login, last_seen, deleted_at, last_game_id, lower(hex(randomblob(16)))
 		 FROM users`,
 		`DROP TABLE users`,
 		`ALTER TABLE users_new RENAME TO users`,

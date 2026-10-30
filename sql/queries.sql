@@ -10,6 +10,9 @@ RETURNING *;
 -- name: TouchLastLogin :exec
 UPDATE users SET last_login = datetime('now') WHERE id = ?;
 
+-- name: TouchLastSeen :exec
+UPDATE users SET last_seen = datetime('now') WHERE id = ?;
+
 -- name: UpdateUserName :exec
 UPDATE users SET name = ? WHERE id = ?;
 

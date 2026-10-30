@@ -531,6 +531,7 @@ type User struct {
 	AvatarID   sql.NullInt64
 	CreatedAt  string
 	LastLogin  string
+	LastSeen   sql.NullString
 	DeletedAt  sql.NullString
 	LastGameID sql.NullInt64
 	EmailToken string

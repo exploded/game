@@ -1057,7 +1057,7 @@ const createUser = `-- name: CreateUser :one
 
 INSERT INTO users (email, name, email_token)
 VALUES (?, ?, ?)
-RETURNING id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, deleted_at, last_game_id, email_token
+RETURNING id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token
 `
 
 type CreateUserParams struct {
@@ -1081,6 +1081,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.AvatarID,
 		&i.CreatedAt,
 		&i.LastLogin,
+		&i.LastSeen,
 		&i.DeletedAt,
 		&i.LastGameID,
 		&i.EmailToken,
@@ -2200,7 +2201,7 @@ func (q *Queries) GetTopicBySlug(ctx context.Context, slug string) (Topic, error
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, deleted_at, last_game_id, email_token FROM users WHERE id = ?
+SELECT id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token FROM users WHERE id = ?
 `
 
 func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
@@ -2215,6 +2216,7 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 		&i.AvatarID,
 		&i.CreatedAt,
 		&i.LastLogin,
+		&i.LastSeen,
 		&i.DeletedAt,
 		&i.LastGameID,
 		&i.EmailToken,
@@ -2237,7 +2239,7 @@ func (q *Queries) GetUserAvatarPath(ctx context.Context, id int64) (string, erro
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, deleted_at, last_game_id, email_token FROM users WHERE email = ?
+SELECT id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token FROM users WHERE email = ?
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -2252,6 +2254,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.AvatarID,
 		&i.CreatedAt,
 		&i.LastLogin,
+		&i.LastSeen,
 		&i.DeletedAt,
 		&i.LastGameID,
 		&i.EmailToken,
@@ -2260,7 +2263,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 }
 
 const getUserByEmailToken = `-- name: GetUserByEmailToken :one
-SELECT id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, deleted_at, last_game_id, email_token FROM users WHERE email_token = ? AND deleted_at IS NULL
+SELECT id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token FROM users WHERE email_token = ? AND deleted_at IS NULL
 `
 
 func (q *Queries) GetUserByEmailToken(ctx context.Context, emailToken string) (User, error) {
@@ -2275,6 +2278,7 @@ func (q *Queries) GetUserByEmailToken(ctx context.Context, emailToken string) (U
 		&i.AvatarID,
 		&i.CreatedAt,
 		&i.LastLogin,
+		&i.LastSeen,
 		&i.DeletedAt,
 		&i.LastGameID,
 		&i.EmailToken,
@@ -6582,7 +6586,7 @@ func (q *Queries) ListUserParticipations(ctx context.Context, userID int64) ([]L
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, deleted_at, last_game_id, email_token FROM users ORDER BY created_at DESC
+SELECT id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token FROM users ORDER BY created_at DESC
 `
 
 func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
@@ -6603,6 +6607,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.AvatarID,
 			&i.CreatedAt,
 			&i.LastLogin,
+			&i.LastSeen,
 			&i.DeletedAt,
 			&i.LastGameID,
 			&i.EmailToken,
@@ -7383,6 +7388,15 @@ UPDATE users SET last_login = datetime('now') WHERE id = ?
 
 func (q *Queries) TouchLastLogin(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, touchLastLogin, id)
+	return err
+}
+
+const touchLastSeen = `-- name: TouchLastSeen :exec
+UPDATE users SET last_seen = datetime('now') WHERE id = ?
+`
+
+func (q *Queries) TouchLastSeen(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, touchLastSeen, id)
 	return err
 }
 

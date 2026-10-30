@@ -13,6 +13,8 @@
             <th>Email</th>
             <th>Admin</th>
             <th>Joined</th>
+            <th>Last Login</th>
+            <th>Last Seen</th>
             <th></th>
         </tr>
     </thead>
@@ -23,6 +25,8 @@
             <td>{{.Email}}</td>
             <td>{{if .IsAdmin}}<span class="badge badge-active">Admin</span>{{else}}-{{end}}</td>
             <td>{{.CreatedAt}}</td>
+            <td>{{.LastLogin}}</td>
+            <td>{{if .LastSeen.Valid}}{{.LastSeen.String}}{{else}}-{{end}}</td>
             <td>
                 <form method="POST" action="/admin/users/{{.ID}}/admin" style="display:inline">
                     <button type="submit" class="btn btn-sm">{{if .IsAdmin}}Remove Admin{{else}}Make Admin{{end}}</button>
