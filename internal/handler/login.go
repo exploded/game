@@ -55,6 +55,16 @@ func (h *Handler) LoginPage(w http.ResponseWriter, r *http.Request) {
 	h.render(w, r, "auth/login", "", PageData{Title: "Sign in"})
 }
 
+// Home is the site root. A signed-in user goes to the dashboard; anyone else
+// gets the sign-in page here, so the address stays thewealthlab.au.
+func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
+	if auth.UserFromContext(r.Context()) != nil {
+		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+		return
+	}
+	h.LoginPage(w, r)
+}
+
 // takeNext returns the page saved by LoginPage, or fallback, and forgets it.
 func takeNext(w http.ResponseWriter, r *http.Request, fallback string) string {
 	c, err := r.Cookie(nextCookie)

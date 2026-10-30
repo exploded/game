@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/db"
 	"github.com/exploded/game/internal/mail"
 	"github.com/go-chi/chi/v5"
@@ -200,5 +201,25 @@ func TestOneClickUnsubscribe(t *testing.T) {
 		if !strings.Contains(w.Body.String(), "This link doesn") {
 			t.Errorf("POST %s didn't say the link is invalid", path)
 		}
+	}
+}
+
+// The site root shows the sign-in page to a visitor, without a redirect, and
+// sends a signed-in user to the dashboard.
+func TestHome(t *testing.T) {
+	d := openTestDB(t)
+	h := New(db.New(d), d, loadTestTemplates(t), false, time.UTC)
+
+	w := httptest.NewRecorder()
+	h.Home(w, httptest.NewRequest("GET", "/", nil))
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `action="/login"`) {
+		t.Errorf("signed out: GET / = %d, want 200 with the sign-in form", w.Code)
+	}
+
+	w = httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/", nil)
+	h.Home(w, req.WithContext(auth.WithUser(req.Context(), &db.User{ID: 1})))
+	if w.Code != http.StatusSeeOther || w.Header().Get("Location") != "/dashboard" {
+		t.Errorf("signed in: GET / = %d to %q, want 303 to /dashboard", w.Code, w.Header().Get("Location"))
 	}
 }

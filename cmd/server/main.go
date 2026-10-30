@@ -199,11 +199,13 @@ func main() {
 	r.Get("/email/unsubscribe", h.UnsubscribePage)
 	r.Post("/email/unsubscribe", h.Unsubscribe)
 
-	// Public pages (with optional auth for pre-filling contact form).
+	// Public pages (with optional auth for pre-filling the contact form, and
+	// for / to send a signed-in user to the dashboard).
 	r.Group(func(r chi.Router) {
 		r.Use(func(next http.Handler) http.Handler {
 			return auth.OptionalAuth(queries, next)
 		})
+		r.Get("/", h.Home)
 		r.Get("/privacy", h.PrivacyPage)
 		r.Get("/terms", h.TermsPage)
 		r.Get("/about", h.AboutPage)
@@ -244,9 +246,6 @@ func main() {
 		})
 		r.Use(auth.CSRFProtect(csrfSecret))
 
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, "/dashboard", http.StatusTemporaryRedirect)
-		})
 		r.Get("/dashboard", h.Dashboard)
 		r.Get("/welcome", h.WelcomePage)
 		r.Post("/welcome", h.WelcomeSubmit)
