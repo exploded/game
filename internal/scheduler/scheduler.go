@@ -138,7 +138,7 @@ func startupBackfill(ctx context.Context, q *db.Queries, rawDB *sql.DB) {
 	}
 	missing = market.LimitStocks(missing)
 	if len(missing) == 0 {
-		return // every stock already has at least one price row
+		return // every stock has had its history fetched
 	}
 	slog.Info("S&P 500 backfill needed, starting in background", "missing", len(missing))
 	fetcher := market.NewFetcher(q, rawDB)

@@ -42,11 +42,12 @@ type twelveDataResponse struct {
 // FetchAll fetches end-of-day prices for S&P 500 stocks.
 //
 // Behaviour:
-//   - If ANY stocks in the market have no price history yet (first run OR an
-//     interrupted previous backfill), it backfills just those stocks with full
-//     history (outputsize=5000). This makes backfills resumable across restarts.
-//   - Once every stock has at least one price row, it switches to fetching the
-//     latest day only (outputsize=1).
+//   - If ANY stocks in the market haven't had their history fetched yet (first
+//     run, a new stock, OR an interrupted previous backfill), it backfills just
+//     those stocks with full history (outputsize=5000). This makes backfills
+//     resumable across restarts.
+//   - Once every stock has its history, it switches to fetching the latest
+//     day only (outputsize=1).
 func (f *Fetcher) FetchAll(q *db.Queries) error {
 	ctx := context.Background()
 
@@ -361,6 +362,13 @@ func (f *Fetcher) fetchOneBatch(ctx context.Context, q *db.Queries, batch []db.S
 			updated += rows
 			ok++
 			slog.Debug("price symbol saved", "symbol", s.Symbol, "rows", rows)
+			if outputSize > 1 {
+				// The whole history is in, however short, so the backfill
+				// can leave this stock alone (ListStocksWithoutHistory).
+				if err := q.MarkHistoryFetched(ctx, s.ID); err != nil {
+					slog.Warn("marking history fetched", "symbol", s.Symbol, "error", err)
+				}
+			}
 		} else {
 			skipped++
 			slog.Warn("price symbol empty", "symbol", s.Symbol)

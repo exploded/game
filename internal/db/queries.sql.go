@@ -2045,7 +2045,7 @@ func (q *Queries) GetSession(ctx context.Context, id string) (Session, error) {
 }
 
 const getStock = `-- name: GetStock :one
-SELECT id, symbol, name, market, sector, currency, is_active, created_at FROM stocks WHERE id = ?
+SELECT id, symbol, name, market, sector, currency, is_active, created_at, history_fetched_at FROM stocks WHERE id = ?
 `
 
 func (q *Queries) GetStock(ctx context.Context, id int64) (Stock, error) {
@@ -2060,12 +2060,13 @@ func (q *Queries) GetStock(ctx context.Context, id int64) (Stock, error) {
 		&i.Currency,
 		&i.IsActive,
 		&i.CreatedAt,
+		&i.HistoryFetchedAt,
 	)
 	return i, err
 }
 
 const getStockBySymbol = `-- name: GetStockBySymbol :one
-SELECT id, symbol, name, market, sector, currency, is_active, created_at FROM stocks WHERE symbol = ? AND market = ?
+SELECT id, symbol, name, market, sector, currency, is_active, created_at, history_fetched_at FROM stocks WHERE symbol = ? AND market = ?
 `
 
 type GetStockBySymbolParams struct {
@@ -2085,6 +2086,7 @@ func (q *Queries) GetStockBySymbol(ctx context.Context, arg GetStockBySymbolPara
 		&i.Currency,
 		&i.IsActive,
 		&i.CreatedAt,
+		&i.HistoryFetchedAt,
 	)
 	return i, err
 }
@@ -3273,7 +3275,7 @@ func (q *Queries) ListAllOpenOrders(ctx context.Context) ([]ListAllOpenOrdersRow
 }
 
 const listAllStocksByMarket = `-- name: ListAllStocksByMarket :many
-SELECT id, symbol, name, market, sector, currency, is_active, created_at FROM stocks
+SELECT id, symbol, name, market, sector, currency, is_active, created_at, history_fetched_at FROM stocks
 WHERE is_active = 1 AND (market = ? OR ? = 'both')
 ORDER BY symbol ASC
 `
@@ -3301,6 +3303,7 @@ func (q *Queries) ListAllStocksByMarket(ctx context.Context, arg ListAllStocksBy
 			&i.Currency,
 			&i.IsActive,
 			&i.CreatedAt,
+			&i.HistoryFetchedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -5947,7 +5950,7 @@ func (q *Queries) ListStockVideos(ctx context.Context, stockID int64) ([]Video, 
 }
 
 const listStocksByMarket = `-- name: ListStocksByMarket :many
-SELECT id, symbol, name, market, sector, currency, is_active, created_at FROM stocks
+SELECT id, symbol, name, market, sector, currency, is_active, created_at, history_fetched_at FROM stocks
 WHERE is_active = 1 AND (market = ? OR ? = 'both')
   AND id IN (SELECT DISTINCT stock_id FROM stock_prices)
 ORDER BY symbol ASC
@@ -5976,6 +5979,7 @@ func (q *Queries) ListStocksByMarket(ctx context.Context, arg ListStocksByMarket
 			&i.Currency,
 			&i.IsActive,
 			&i.CreatedAt,
+			&i.HistoryFetchedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -5991,7 +5995,7 @@ func (q *Queries) ListStocksByMarket(ctx context.Context, arg ListStocksByMarket
 }
 
 const listStocksMissingPrices = `-- name: ListStocksMissingPrices :many
-SELECT s.id, s.symbol, s.name, s.market, s.sector, s.currency, s.is_active, s.created_at FROM stocks s
+SELECT s.id, s.symbol, s.name, s.market, s.sector, s.currency, s.is_active, s.created_at, s.history_fetched_at FROM stocks s
 WHERE s.is_active = 1
 AND s.id NOT IN (
     SELECT sp.stock_id FROM stock_prices sp WHERE sp.date = ?1
@@ -6018,6 +6022,7 @@ func (q *Queries) ListStocksMissingPrices(ctx context.Context, targetDate string
 			&i.Currency,
 			&i.IsActive,
 			&i.CreatedAt,
+			&i.HistoryFetchedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -6033,7 +6038,7 @@ func (q *Queries) ListStocksMissingPrices(ctx context.Context, targetDate string
 }
 
 const listStocksNeedingProfile = `-- name: ListStocksNeedingProfile :many
-SELECT s.id, s.symbol, s.name, s.market, s.sector, s.currency, s.is_active, s.created_at FROM stocks s
+SELECT s.id, s.symbol, s.name, s.market, s.sector, s.currency, s.is_active, s.created_at, s.history_fetched_at FROM stocks s
 LEFT JOIN stock_profiles p ON p.stock_id = s.id
 WHERE s.is_active = 1 AND s.market = ?
   AND (p.stock_id IS NULL OR p.updated_at < ?)
@@ -6064,6 +6069,7 @@ func (q *Queries) ListStocksNeedingProfile(ctx context.Context, arg ListStocksNe
 			&i.Currency,
 			&i.IsActive,
 			&i.CreatedAt,
+			&i.HistoryFetchedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -6079,18 +6085,20 @@ func (q *Queries) ListStocksNeedingProfile(ctx context.Context, arg ListStocksNe
 }
 
 const listStocksWithoutHistory = `-- name: ListStocksWithoutHistory :many
-SELECT id, symbol, name, market, sector, currency, is_active, created_at FROM stocks
-WHERE is_active = 1 AND market = ?
+SELECT id, symbol, name, market, sector, currency, is_active, created_at, history_fetched_at FROM stocks
+WHERE is_active = 1 AND market = ? AND history_fetched_at IS NULL
   AND id NOT IN (
     SELECT stock_id FROM stock_prices GROUP BY stock_id HAVING COUNT(*) >= 30
   )
 ORDER BY symbol ASC
 `
 
-// Stocks in a market with fewer than 30 rows in stock_prices: never backfilled,
-// or only holding the odd row from intraday quotes or a daily fetch that ran
-// before the backfill finished. Used to resume an interrupted backfill without
-// re-fetching stocks we already have.
+// Stocks in a market the backfill hasn't fetched yet: fewer than 30 rows in
+// stock_prices (never backfilled, or only the odd row from intraday quotes or
+// a daily fetch that ran first) and no history_fetched_at. Used to resume an
+// interrupted backfill without re-fetching stocks we already have. A recent
+// listing has fewer than 30 days to fetch, so history_fetched_at stops it
+// being fetched again on every start.
 func (q *Queries) ListStocksWithoutHistory(ctx context.Context, market string) ([]Stock, error) {
 	rows, err := q.db.QueryContext(ctx, listStocksWithoutHistory, market)
 	if err != nil {
@@ -6109,6 +6117,7 @@ func (q *Queries) ListStocksWithoutHistory(ctx context.Context, market string) (
 			&i.Currency,
 			&i.IsActive,
 			&i.CreatedAt,
+			&i.HistoryFetchedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -7104,6 +7113,15 @@ func (q *Queries) MarkEmailSent(ctx context.Context, id int64) error {
 	return err
 }
 
+const markHistoryFetched = `-- name: MarkHistoryFetched :exec
+UPDATE stocks SET history_fetched_at = datetime('now') WHERE id = ?
+`
+
+func (q *Queries) MarkHistoryFetched(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, markHistoryFetched, id)
+	return err
+}
+
 const markLiveAnnounced = `-- name: MarkLiveAnnounced :exec
 UPDATE live_events SET announced = 1 WHERE id = ?
 `
@@ -7331,7 +7349,7 @@ func (q *Queries) SaveOAuthToken(ctx context.Context, arg SaveOAuthTokenParams) 
 }
 
 const searchStocks = `-- name: SearchStocks :many
-SELECT id, symbol, name, market, sector, currency, is_active, created_at FROM stocks
+SELECT id, symbol, name, market, sector, currency, is_active, created_at, history_fetched_at FROM stocks
 WHERE is_active = 1
   AND (market = ? OR ? = 'both')
   AND (symbol LIKE ? OR name LIKE ?)
@@ -7370,6 +7388,7 @@ func (q *Queries) SearchStocks(ctx context.Context, arg SearchStocksParams) ([]S
 			&i.Currency,
 			&i.IsActive,
 			&i.CreatedAt,
+			&i.HistoryFetchedAt,
 		); err != nil {
 			return nil, err
 		}

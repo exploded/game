@@ -378,14 +378,15 @@ type Session struct {
 }
 
 type Stock struct {
-	ID        int64
-	Symbol    string
-	Name      string
-	Market    string
-	Sector    string
-	Currency  string
-	IsActive  int64
-	CreatedAt string
+	ID               int64
+	Symbol           string
+	Name             string
+	Market           string
+	Sector           string
+	Currency         string
+	IsActive         int64
+	CreatedAt        string
+	HistoryFetchedAt sql.NullString
 }
 
 type StockNews struct {

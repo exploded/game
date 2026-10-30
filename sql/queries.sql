@@ -300,16 +300,21 @@ WHERE is_active = 1 AND (market = ? OR ? = 'both')
 ORDER BY symbol ASC;
 
 -- name: ListStocksWithoutHistory :many
--- Stocks in a market with fewer than 30 rows in stock_prices: never backfilled,
--- or only holding the odd row from intraday quotes or a daily fetch that ran
--- before the backfill finished. Used to resume an interrupted backfill without
--- re-fetching stocks we already have.
+-- Stocks in a market the backfill hasn't fetched yet: fewer than 30 rows in
+-- stock_prices (never backfilled, or only the odd row from intraday quotes or
+-- a daily fetch that ran first) and no history_fetched_at. Used to resume an
+-- interrupted backfill without re-fetching stocks we already have. A recent
+-- listing has fewer than 30 days to fetch, so history_fetched_at stops it
+-- being fetched again on every start.
 SELECT * FROM stocks
-WHERE is_active = 1 AND market = ?
+WHERE is_active = 1 AND market = ? AND history_fetched_at IS NULL
   AND id NOT IN (
     SELECT stock_id FROM stock_prices GROUP BY stock_id HAVING COUNT(*) >= 30
   )
 ORDER BY symbol ASC;
+
+-- name: MarkHistoryFetched :exec
+UPDATE stocks SET history_fetched_at = datetime('now') WHERE id = ?;
 
 -- name: CountStocks :one
 SELECT COUNT(*) FROM stocks WHERE is_active = 1;

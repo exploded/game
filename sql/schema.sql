@@ -172,6 +172,7 @@ CREATE TABLE IF NOT EXISTS stocks (
     currency   TEXT    NOT NULL DEFAULT 'AUD',  -- 'AUD' or 'USD'
     is_active  INTEGER NOT NULL DEFAULT 1,
     created_at TEXT    NOT NULL DEFAULT (datetime('now')),
+    history_fetched_at TEXT DEFAULT NULL,       -- when the backfill saved its full history
     UNIQUE(symbol, market)
 );
 CREATE INDEX IF NOT EXISTS idx_stocks_market ON stocks(market, is_active);
