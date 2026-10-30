@@ -1,39 +1,105 @@
 package handler
 
 import (
-	"context"
+	"cmp"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strconv"
-	"time"
 
 	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/db"
-	"github.com/exploded/game/internal/market"
-	"github.com/exploded/game/internal/scheduler"
 )
 
 func (h *Handler) AdminDashboard(w http.ResponseWriter, r *http.Request) {
 	users, _ := h.q.ListUsers(r.Context())
 	stockCount, _ := h.q.CountStocks(r.Context())
-	logs, _ := h.q.ListFetchLogs(r.Context())
 
 	h.render(w, r, "admin/index", "", PageData{
 		Title: "Admin",
 		Extra: map[string]any{
 			"UserCount":  len(users),
 			"StockCount": stockCount,
-			"FetchLogs":  logs,
 		},
 	})
 }
 
+// userSorts are the orders /admin/users offers, by ?sort=. The query returns
+// newest first, which is the default.
+var userSorts = map[string]func(a, b db.ListUsersWithActivityRow) int{
+	"seen":   func(a, b db.ListUsersWithActivityRow) int { return cmp.Compare(b.LastSeen.String, a.LastSeen.String) },
+	"trades": func(a, b db.ListUsersWithActivityRow) int { return cmp.Compare(b.TradeCount, a.TradeCount) },
+}
+
+// AdminUsers lists every user with how much they play, and buttons to make
+// them an admin or block them.
 func (h *Handler) AdminUsers(w http.ResponseWriter, r *http.Request) {
-	users, _ := h.q.ListUsers(r.Context())
+	users, err := h.q.ListUsersWithActivity(r.Context())
+	if err != nil {
+		h.serverError(w, "list users", err)
+		return
+	}
+	sort := r.URL.Query().Get("sort")
+	if by, ok := userSorts[sort]; ok {
+		slices.SortStableFunc(users, by)
+	} else {
+		sort = "joined"
+	}
+	blocked := 0
+	for _, u := range users {
+		if u.BlockedAt.Valid {
+			blocked++
+		}
+	}
 	h.render(w, r, "admin/users", "", PageData{
 		Title: "Users",
 		Items: users,
+		Extra: map[string]any{"Sort": sort, "Blocked": blocked},
 	})
+}
+
+// AdminBlockToggle blocks or unblocks a user. A blocked user is signed out
+// everywhere, can't sign in again and gets no email.
+func (h *Handler) AdminBlockToggle(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	user, err := h.q.GetUser(ctx, id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	back := "/admin/users"
+	if s := r.FormValue("sort"); userSorts[s] != nil {
+		back += "?sort=" + s
+	}
+	switch {
+	case user.BlockedAt.Valid:
+		if err := h.q.UnblockUser(ctx, id); err != nil {
+			h.serverError(w, "unblock user", err)
+			return
+		}
+		setFlashCookie(w, "Unblocked "+user.Name+". They can sign in again.", "success")
+	case id == auth.UserFromContext(ctx).ID:
+		setFlashCookie(w, "You can't block yourself", "error")
+	case user.IsAdmin == 1:
+		setFlashCookie(w, user.Name+" is an admin. Remove their admin first.", "error")
+	default:
+		if err := h.q.BlockUser(ctx, id); err != nil {
+			h.serverError(w, "block user", err)
+			return
+		}
+		if err := h.q.DeleteUserSessions(ctx, id); err != nil {
+			h.serverError(w, "sign out blocked user", err)
+			return
+		}
+		slog.Info("blocked user", "user", id, "by", auth.UserFromContext(ctx).ID)
+		setFlashCookie(w, "Blocked "+user.Name+". They're signed out and can't sign in.", "success")
+	}
+	http.Redirect(w, r, back, http.StatusSeeOther)
 }
 
 func (h *Handler) AdminToggle(w http.ResponseWriter, r *http.Request) {
@@ -62,79 +128,6 @@ func (h *Handler) AdminToggle(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = h.q.SetAdmin(r.Context(), db.SetAdminParams{IsAdmin: newVal, ID: id})
 	http.Redirect(w, r, "/admin/users", http.StatusSeeOther)
-}
-
-func (h *Handler) AdminPrices(w http.ResponseWriter, r *http.Request) {
-	logs, _ := h.q.ListFetchLogs(r.Context())
-	stockCount, _ := h.q.CountStocks(r.Context())
-
-	h.render(w, r, "admin/prices", "", PageData{
-		Title: "Price Management",
-		Items: logs,
-		Extra: map[string]any{
-			"StockCount": stockCount,
-		},
-	})
-}
-
-// AdminPriceHealth shows price data gaps and missing data (Feature 21).
-func (h *Handler) AdminPriceHealth(w http.ResponseWriter, r *http.Request) {
-	today := time.Now().UTC().Format("2006-01-02")
-	missingCount, _ := h.q.CountStocksMissingPrices(r.Context(), today)
-	missingStocks, _ := h.q.ListStocksMissingPrices(r.Context(), today)
-	oldestDate, _ := h.q.GetOldestPriceDate(r.Context())
-	stockCount, _ := h.q.CountStocks(r.Context())
-
-	h.render(w, r, "admin/pricehealth", "", PageData{
-		Title: "Price Data Health",
-		Extra: map[string]any{
-			"Today":         today,
-			"MissingCount":  missingCount,
-			"MissingStocks": missingStocks,
-			"OldestDate":    oldestDate,
-			"StockCount":    stockCount,
-		},
-	})
-}
-
-// AdminUserActivity shows user engagement metrics (Feature 22).
-func (h *Handler) AdminUserActivity(w http.ResponseWriter, r *http.Request) {
-	activeUsers, _ := h.q.ListMostActiveUsers(r.Context())
-	userCount := len(activeUsers)
-
-	h.render(w, r, "admin/activity", "", PageData{
-		Title: "User Activity",
-		Items: activeUsers,
-		Extra: map[string]any{
-			"UserCount": userCount,
-		},
-	})
-}
-
-func (h *Handler) AdminFetchPrices(w http.ResponseWriter, r *http.Request) {
-	fetcher := market.NewFetcher(h.q, h.rawDB)
-	go func() {
-		if err := fetcher.FetchAll(h.q); err != nil {
-			slog.Error("manual price fetch", "error", err)
-		}
-		scheduler.SignalPricesChanged()
-	}()
-	setFlashCookie(w, "Price fetch started in background", "success")
-	http.Redirect(w, r, "/admin/prices", http.StatusSeeOther)
-}
-
-// AdminFetchNews triggers a TickerTick news refresh for S&P 500 stocks. Runs
-// in the background — takes ~90 min due to rate limiting (10 req/min).
-func (h *Handler) AdminFetchNews(w http.ResponseWriter, r *http.Request) {
-	fetcher := market.NewFetcher(h.q, h.rawDB)
-	go func() {
-		ctx := context.Background()
-		if err := fetcher.FetchTickerTickNews(ctx, h.q, market.TickerTickMarket); err != nil {
-			slog.Error("manual tickertick news refresh", "error", err)
-		}
-	}()
-	setFlashCookie(w, "News refresh started in background (~90 min)", "success")
-	http.Redirect(w, r, "/admin/prices", http.StatusSeeOther)
 }
 
 func (h *Handler) AdminContactMessages(w http.ResponseWriter, r *http.Request) {

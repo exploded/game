@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS users (
     last_seen   TEXT,                                       -- last signed-in request, updated at most hourly; NULL = none since 30 Oct 2026
     deleted_at  TEXT,                                       -- NULL = active, set = soft-deleted
     last_game_id INTEGER REFERENCES games(id) ON DELETE SET NULL, -- the game the game bar last showed
-    email_token TEXT    NOT NULL UNIQUE                     -- random; identifies the user in unsubscribe links
+    email_token TEXT    NOT NULL UNIQUE,                    -- random; identifies the user in unsubscribe links
+    blocked_at  TEXT                                        -- NULL = can sign in; set = an admin blocked them
 );
 
 --------------------------------------------------------------------------------
@@ -276,10 +277,13 @@ CREATE TABLE IF NOT EXISTS price_fetch_log (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     market         TEXT    NOT NULL,             -- 'asx', 'sp500', or 'forex'
     status         TEXT    NOT NULL,             -- 'success' | 'partial' | 'error'
-    stocks_updated INTEGER NOT NULL DEFAULT 0,
+    stocks_updated INTEGER NOT NULL DEFAULT 0,   -- price rows saved
     error_msg      TEXT,
     duration_ms    INTEGER,
-    created_at     TEXT    NOT NULL DEFAULT (datetime('now'))
+    created_at     TEXT    NOT NULL DEFAULT (datetime('now')),
+    mode            TEXT    NOT NULL DEFAULT 'daily', -- 'daily' | 'backfill'; one row per run
+    symbols_ok      INTEGER NOT NULL DEFAULT 0,
+    symbols_skipped INTEGER NOT NULL DEFAULT 0
 );
 
 --------------------------------------------------------------------------------

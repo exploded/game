@@ -63,10 +63,29 @@ func TestBackfillOnceForRecentListing(t *testing.T) {
 	if err != nil || len(missing) != 1 {
 		t.Fatalf("before the backfill: %d missing (%v), want 1", len(missing), err)
 	}
-	if _, ok, _, err := f.fetchOneBatch(ctx, q, missing, 5000); err != nil || ok != 1 {
-		t.Fatalf("backfill: %d ok, %v", ok, err)
+	if err := f.Backfill(ctx, q); err != nil {
+		t.Fatalf("backfill: %v", err)
 	}
 	if missing, _ := q.ListStocksWithoutHistory(ctx, "sp500"); len(missing) != 0 {
 		t.Errorf("after backfilling 21 days, %s still counts as missing", missing[0].Symbol)
+	}
+
+	// The run is logged once, as a backfill, so it can't pass for the daily
+	// fetch. A second start has nothing to do and logs nothing.
+	if err := f.Backfill(ctx, q); err != nil {
+		t.Fatalf("second backfill: %v", err)
+	}
+	runs, err := q.ListFetchLogs(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(runs) != 1 {
+		t.Fatalf("got %d fetch log rows, want 1: %+v", len(runs), runs)
+	}
+	if r := runs[0]; r.Mode != "backfill" || r.Status != "success" || r.SymbolsOk != 1 || r.StocksUpdated != 21 {
+		t.Errorf("logged %+v, want a successful backfill of 1 stock, 21 rows", r)
+	}
+	if _, err := q.GetLastDailyFetch(ctx, "sp500"); err == nil {
+		t.Error("the backfill counts as a daily fetch")
 	}
 }

@@ -192,6 +192,15 @@ func (q *Queries) AnswerQuestion(ctx context.Context, arg AnswerQuestionParams) 
 	return err
 }
 
+const blockUser = `-- name: BlockUser :exec
+UPDATE users SET blocked_at = datetime('now') WHERE id = ? AND blocked_at IS NULL
+`
+
+func (q *Queries) BlockUser(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, blockUser, id)
+	return err
+}
+
 const cancelLimitOrder = `-- name: CancelLimitOrder :exec
 UPDATE limit_orders SET status = 'cancelled' WHERE id = ?
 `
@@ -322,7 +331,9 @@ func (q *Queries) CountInvitesSentToday(ctx context.Context, createdBy int64) (i
 }
 
 const countLobbyMessages = `-- name: CountLobbyMessages :one
-SELECT COUNT(*) FROM lobby_messages
+SELECT COUNT(*) FROM lobby_messages lm
+JOIN users u ON u.id = lm.user_id
+WHERE u.blocked_at IS NULL
 `
 
 func (q *Queries) CountLobbyMessages(ctx context.Context) (int64, error) {
@@ -333,7 +344,9 @@ func (q *Queries) CountLobbyMessages(ctx context.Context) (int64, error) {
 }
 
 const countMessages = `-- name: CountMessages :one
-SELECT COUNT(*) FROM game_messages WHERE game_id = ?
+SELECT COUNT(*) FROM game_messages gm
+JOIN users u ON u.id = gm.user_id
+WHERE gm.game_id = ? AND u.blocked_at IS NULL
 `
 
 func (q *Queries) CountMessages(ctx context.Context, gameID int64) (int64, error) {
@@ -417,9 +430,11 @@ func (q *Queries) CountStockProfiles(ctx context.Context) (int64, error) {
 }
 
 const countStockProfilesWithLogo = `-- name: CountStockProfilesWithLogo :one
-SELECT COUNT(*) FROM stock_profiles WHERE logo != ''
+SELECT COUNT(*) FROM stock_profiles WHERE logo LIKE 'https://api.twelvedata.com/%'
 `
 
+// Logos pages can show: the CSP allows only Twelve Data's (logoURL in
+// internal/handler/screener.go).
 func (q *Queries) CountStockProfilesWithLogo(ctx context.Context) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countStockProfilesWithLogo)
 	var count int64
@@ -433,25 +448,6 @@ SELECT COUNT(*) FROM stocks WHERE is_active = 1
 
 func (q *Queries) CountStocks(ctx context.Context) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countStocks)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countStocksMissingPrices = `-- name: CountStocksMissingPrices :one
-
-SELECT COUNT(*) FROM stocks s
-WHERE s.is_active = 1
-AND s.id NOT IN (
-    SELECT sp.stock_id FROM stock_prices sp WHERE sp.date = ?1
-)
-`
-
-// =============================================================================
-// Admin - Price Health (Feature 21)
-// =============================================================================
-func (q *Queries) CountStocksMissingPrices(ctx context.Context, targetDate string) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countStocksMissingPrices, targetDate)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -1074,7 +1070,7 @@ const createUser = `-- name: CreateUser :one
 
 INSERT INTO users (email, name, email_token)
 VALUES (?, ?, ?)
-RETURNING id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token
+RETURNING id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at
 `
 
 type CreateUserParams struct {
@@ -1102,6 +1098,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.DeletedAt,
 		&i.LastGameID,
 		&i.EmailToken,
+		&i.BlockedAt,
 	)
 	return i, err
 }
@@ -1604,6 +1601,30 @@ func (q *Queries) GetInviteByCode(ctx context.Context, code string) (GameInvite,
 	return i, err
 }
 
+const getLastDailyFetch = `-- name: GetLastDailyFetch :one
+SELECT id, market, status, stocks_updated, error_msg, duration_ms, created_at, mode, symbols_ok, symbols_skipped FROM price_fetch_log
+WHERE market = ? AND mode = 'daily'
+ORDER BY created_at DESC, id DESC LIMIT 1
+`
+
+func (q *Queries) GetLastDailyFetch(ctx context.Context, market string) (PriceFetchLog, error) {
+	row := q.db.QueryRowContext(ctx, getLastDailyFetch, market)
+	var i PriceFetchLog
+	err := row.Scan(
+		&i.ID,
+		&i.Market,
+		&i.Status,
+		&i.StocksUpdated,
+		&i.ErrorMsg,
+		&i.DurationMs,
+		&i.CreatedAt,
+		&i.Mode,
+		&i.SymbolsOk,
+		&i.SymbolsSkipped,
+	)
+	return i, err
+}
+
 const getLatestExchangeRate = `-- name: GetLatestExchangeRate :one
 SELECT id, date, rate_aud_usd, created_at FROM exchange_rates ORDER BY date DESC LIMIT 1
 `
@@ -1615,27 +1636,6 @@ func (q *Queries) GetLatestExchangeRate(ctx context.Context) (ExchangeRate, erro
 		&i.ID,
 		&i.Date,
 		&i.RateAudUsd,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
-const getLatestFetchLog = `-- name: GetLatestFetchLog :one
-SELECT id, market, status, stocks_updated, error_msg, duration_ms, created_at FROM price_fetch_log
-WHERE market = ?
-ORDER BY created_at DESC LIMIT 1
-`
-
-func (q *Queries) GetLatestFetchLog(ctx context.Context, market string) (PriceFetchLog, error) {
-	row := q.db.QueryRowContext(ctx, getLatestFetchLog, market)
-	var i PriceFetchLog
-	err := row.Scan(
-		&i.ID,
-		&i.Market,
-		&i.Status,
-		&i.StocksUpdated,
-		&i.ErrorMsg,
-		&i.DurationMs,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -1865,17 +1865,6 @@ func (q *Queries) GetOAuthToken(ctx context.Context, provider string) (OauthToke
 		&i.UpdatedAt,
 	)
 	return i, err
-}
-
-const getOldestPriceDate = `-- name: GetOldestPriceDate :one
-SELECT CAST(COALESCE(MIN(date), '') AS TEXT) AS oldest_date FROM stock_prices
-`
-
-func (q *Queries) GetOldestPriceDate(ctx context.Context) (string, error) {
-	row := q.db.QueryRowContext(ctx, getOldestPriceDate)
-	var oldest_date string
-	err := row.Scan(&oldest_date)
-	return oldest_date, err
 }
 
 const getParticipant = `-- name: GetParticipant :one
@@ -2245,7 +2234,7 @@ func (q *Queries) GetTopicBySlug(ctx context.Context, slug string) (Topic, error
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token FROM users WHERE id = ?
+SELECT id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at FROM users WHERE id = ?
 `
 
 func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
@@ -2264,6 +2253,7 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 		&i.DeletedAt,
 		&i.LastGameID,
 		&i.EmailToken,
+		&i.BlockedAt,
 	)
 	return i, err
 }
@@ -2283,7 +2273,7 @@ func (q *Queries) GetUserAvatarPath(ctx context.Context, id int64) (string, erro
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token FROM users WHERE email = ?
+SELECT id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at FROM users WHERE email = ?
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -2302,12 +2292,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.DeletedAt,
 		&i.LastGameID,
 		&i.EmailToken,
+		&i.BlockedAt,
 	)
 	return i, err
 }
 
 const getUserByEmailToken = `-- name: GetUserByEmailToken :one
-SELECT id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token FROM users WHERE email_token = ? AND deleted_at IS NULL
+SELECT id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at FROM users WHERE email_token = ? AND deleted_at IS NULL
 `
 
 func (q *Queries) GetUserByEmailToken(ctx context.Context, emailToken string) (User, error) {
@@ -2326,6 +2317,7 @@ func (q *Queries) GetUserByEmailToken(ctx context.Context, emailToken string) (U
 		&i.DeletedAt,
 		&i.LastGameID,
 		&i.EmailToken,
+		&i.BlockedAt,
 	)
 	return i, err
 }
@@ -2510,26 +2502,33 @@ func (q *Queries) InsertActivity(ctx context.Context, arg InsertActivityParams) 
 
 const insertFetchLog = `-- name: InsertFetchLog :exec
 
-INSERT INTO price_fetch_log (market, status, stocks_updated, error_msg, duration_ms)
-VALUES (?, ?, ?, ?, ?)
+INSERT INTO price_fetch_log (market, mode, status, stocks_updated, symbols_ok, symbols_skipped, error_msg, duration_ms)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type InsertFetchLogParams struct {
-	Market        string
-	Status        string
-	StocksUpdated int64
-	ErrorMsg      sql.NullString
-	DurationMs    sql.NullInt64
+	Market         string
+	Mode           string
+	Status         string
+	StocksUpdated  int64
+	SymbolsOk      int64
+	SymbolsSkipped int64
+	ErrorMsg       sql.NullString
+	DurationMs     sql.NullInt64
 }
 
 // =============================================================================
 // Price Fetch Log
 // =============================================================================
+// One row per daily fetch or backfill run.
 func (q *Queries) InsertFetchLog(ctx context.Context, arg InsertFetchLogParams) error {
 	_, err := q.db.ExecContext(ctx, insertFetchLog,
 		arg.Market,
+		arg.Mode,
 		arg.Status,
 		arg.StocksUpdated,
+		arg.SymbolsOk,
+		arg.SymbolsSkipped,
 		arg.ErrorMsg,
 		arg.DurationMs,
 	)
@@ -3708,8 +3707,8 @@ func (q *Queries) ListFeaturedVideos(ctx context.Context) ([]Video, error) {
 }
 
 const listFetchLogs = `-- name: ListFetchLogs :many
-SELECT id, market, status, stocks_updated, error_msg, duration_ms, created_at FROM price_fetch_log
-ORDER BY created_at DESC LIMIT 50
+SELECT id, market, status, stocks_updated, error_msg, duration_ms, created_at, mode, symbols_ok, symbols_skipped FROM price_fetch_log
+ORDER BY created_at DESC, id DESC LIMIT 30
 `
 
 func (q *Queries) ListFetchLogs(ctx context.Context) ([]PriceFetchLog, error) {
@@ -3729,6 +3728,9 @@ func (q *Queries) ListFetchLogs(ctx context.Context) ([]PriceFetchLog, error) {
 			&i.ErrorMsg,
 			&i.DurationMs,
 			&i.CreatedAt,
+			&i.Mode,
+			&i.SymbolsOk,
+			&i.SymbolsSkipped,
 		); err != nil {
 			return nil, err
 		}
@@ -4638,6 +4640,7 @@ SELECT lm.id, lm.user_id, lm.message, lm.created_at, u.name AS user_name, u.pict
 FROM lobby_messages lm
 JOIN users u ON u.id = lm.user_id
 LEFT JOIN avatars a ON a.id = u.avatar_id
+WHERE u.blocked_at IS NULL
 ORDER BY lm.created_at DESC
 LIMIT ? OFFSET ?
 `
@@ -4692,7 +4695,7 @@ const listMessages = `-- name: ListMessages :many
 SELECT gm.id, gm.game_id, gm.user_id, gm.message, gm.created_at, u.name AS user_name, u.picture_url AS user_picture
 FROM game_messages gm
 JOIN users u ON u.id = gm.user_id
-WHERE gm.game_id = ?
+WHERE gm.game_id = ? AND u.blocked_at IS NULL
 ORDER BY gm.created_at DESC
 LIMIT ? OFFSET ?
 `
@@ -4730,56 +4733,6 @@ func (q *Queries) ListMessages(ctx context.Context, arg ListMessagesParams) ([]L
 			&i.CreatedAt,
 			&i.UserName,
 			&i.UserPicture,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listMostActiveUsers = `-- name: ListMostActiveUsers :many
-SELECT u.id, u.name, u.email, u.picture_url, u.last_login,
-    (SELECT COUNT(*) FROM transactions t JOIN participants p ON p.id = t.participant_id WHERE p.user_id = u.id) AS trade_count,
-    (SELECT COUNT(*) FROM participants p2 WHERE p2.user_id = u.id) AS game_count
-FROM users u
-ORDER BY trade_count DESC
-LIMIT 50
-`
-
-type ListMostActiveUsersRow struct {
-	ID         int64
-	Name       string
-	Email      string
-	PictureUrl sql.NullString
-	LastLogin  string
-	TradeCount int64
-	GameCount  int64
-}
-
-func (q *Queries) ListMostActiveUsers(ctx context.Context) ([]ListMostActiveUsersRow, error) {
-	rows, err := q.db.QueryContext(ctx, listMostActiveUsers)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListMostActiveUsersRow
-	for rows.Next() {
-		var i ListMostActiveUsersRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Email,
-			&i.PictureUrl,
-			&i.LastLogin,
-			&i.TradeCount,
-			&i.GameCount,
 		); err != nil {
 			return nil, err
 		}
@@ -4997,7 +4950,7 @@ const listParticipantsByGame = `-- name: ListParticipantsByGame :many
 SELECT p.id, p.game_id, p.user_id, p.cash_balance, p.portfolio_value, p.is_public, p.joined_at, u.name AS user_name, u.picture_url AS user_picture
 FROM participants p
 JOIN users u ON u.id = p.user_id
-WHERE p.game_id = ?
+WHERE p.game_id = ? AND u.blocked_at IS NULL
 ORDER BY p.portfolio_value DESC
 `
 
@@ -5013,6 +4966,8 @@ type ListParticipantsByGameRow struct {
 	UserPicture    sql.NullString
 }
 
+// Blocked players are left out of standings, as their chat is from
+// ListMessages and ListLobbyMessages.
 func (q *Queries) ListParticipantsByGame(ctx context.Context, gameID int64) ([]ListParticipantsByGameRow, error) {
 	rows, err := q.db.QueryContext(ctx, listParticipantsByGame, gameID)
 	if err != nil {
@@ -5172,7 +5127,7 @@ const listPublicParticipantsByGame = `-- name: ListPublicParticipantsByGame :man
 SELECT p.id, p.game_id, p.user_id, p.cash_balance, p.portfolio_value, p.is_public, p.joined_at, u.name AS user_name, u.picture_url AS user_picture
 FROM participants p
 JOIN users u ON u.id = p.user_id
-WHERE p.game_id = ? AND p.is_public = 1
+WHERE p.game_id = ? AND p.is_public = 1 AND u.blocked_at IS NULL
 ORDER BY p.portfolio_value DESC
 `
 
@@ -5767,6 +5722,55 @@ func (q *Queries) ListStartingStocks(ctx context.Context, gameID int64) ([]ListS
 	return items, nil
 }
 
+const listStockLastDates = `-- name: ListStockLastDates :many
+
+SELECT s.id, s.symbol, s.name,
+       CAST(COALESCE((SELECT MAX(p.date) FROM stock_prices p WHERE p.stock_id = s.id), '') AS TEXT) AS last_date
+FROM stocks s
+WHERE s.is_active = 1 AND s.market = ?
+ORDER BY s.symbol
+`
+
+type ListStockLastDatesRow struct {
+	ID       int64
+	Symbol   string
+	Name     string
+	LastDate string
+}
+
+// =============================================================================
+// Admin - Prices
+// =============================================================================
+// Each active stock in a market with the date of its newest bar (” for
+// none), for /admin/prices. One index lookup per stock.
+func (q *Queries) ListStockLastDates(ctx context.Context, market string) ([]ListStockLastDatesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listStockLastDates, market)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListStockLastDatesRow
+	for rows.Next() {
+		var i ListStockLastDatesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Symbol,
+			&i.Name,
+			&i.LastDate,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listStockNews = `-- name: ListStockNews :many
 SELECT id, stock_id, headline, summary, source, url, published_at, created_at FROM stock_news WHERE stock_id = ?
 ORDER BY published_at DESC LIMIT ?
@@ -5963,49 +5967,6 @@ type ListStocksByMarketParams struct {
 
 func (q *Queries) ListStocksByMarket(ctx context.Context, arg ListStocksByMarketParams) ([]Stock, error) {
 	rows, err := q.db.QueryContext(ctx, listStocksByMarket, arg.Market, arg.Column2)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Stock
-	for rows.Next() {
-		var i Stock
-		if err := rows.Scan(
-			&i.ID,
-			&i.Symbol,
-			&i.Name,
-			&i.Market,
-			&i.Sector,
-			&i.Currency,
-			&i.IsActive,
-			&i.CreatedAt,
-			&i.HistoryFetchedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listStocksMissingPrices = `-- name: ListStocksMissingPrices :many
-SELECT s.id, s.symbol, s.name, s.market, s.sector, s.currency, s.is_active, s.created_at, s.history_fetched_at FROM stocks s
-WHERE s.is_active = 1
-AND s.id NOT IN (
-    SELECT sp.stock_id FROM stock_prices sp WHERE sp.date = ?1
-)
-ORDER BY s.market, s.symbol
-LIMIT 100
-`
-
-func (q *Queries) ListStocksMissingPrices(ctx context.Context, targetDate string) ([]Stock, error) {
-	rows, err := q.db.QueryContext(ctx, listStocksMissingPrices, targetDate)
 	if err != nil {
 		return nil, err
 	}
@@ -6835,7 +6796,7 @@ func (q *Queries) ListUserParticipations(ctx context.Context, userID int64) ([]L
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token FROM users ORDER BY created_at DESC
+SELECT id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at FROM users ORDER BY created_at DESC
 `
 
 func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
@@ -6860,6 +6821,68 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.DeletedAt,
 			&i.LastGameID,
 			&i.EmailToken,
+			&i.BlockedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUsersWithActivity = `-- name: ListUsersWithActivity :many
+SELECT u.id, u.name, u.email, u.picture_url, u.avatar_id, u.is_admin,
+    u.created_at, u.last_seen, u.deleted_at, u.blocked_at,
+    (SELECT COUNT(*) FROM participants p WHERE p.user_id = u.id) AS game_count,
+    (SELECT COUNT(*) FROM transactions t JOIN participants p ON p.id = t.participant_id WHERE p.user_id = u.id) AS trade_count
+FROM users u
+ORDER BY u.created_at DESC, u.id DESC
+`
+
+type ListUsersWithActivityRow struct {
+	ID         int64
+	Name       string
+	Email      string
+	PictureUrl sql.NullString
+	AvatarID   sql.NullInt64
+	IsAdmin    int64
+	CreatedAt  string
+	LastSeen   sql.NullString
+	DeletedAt  sql.NullString
+	BlockedAt  sql.NullString
+	GameCount  int64
+	TradeCount int64
+}
+
+// Every user with how much they've played, for /admin/users.
+func (q *Queries) ListUsersWithActivity(ctx context.Context) ([]ListUsersWithActivityRow, error) {
+	rows, err := q.db.QueryContext(ctx, listUsersWithActivity)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUsersWithActivityRow
+	for rows.Next() {
+		var i ListUsersWithActivityRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Email,
+			&i.PictureUrl,
+			&i.AvatarID,
+			&i.IsAdmin,
+			&i.CreatedAt,
+			&i.LastSeen,
+			&i.DeletedAt,
+			&i.BlockedAt,
+			&i.GameCount,
+			&i.TradeCount,
 		); err != nil {
 			return nil, err
 		}
@@ -7656,6 +7679,15 @@ UPDATE users SET last_seen = datetime('now') WHERE id = ?
 
 func (q *Queries) TouchLastSeen(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, touchLastSeen, id)
+	return err
+}
+
+const unblockUser = `-- name: UnblockUser :exec
+UPDATE users SET blocked_at = NULL WHERE id = ?
+`
+
+func (q *Queries) UnblockUser(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, unblockUser, id)
 	return err
 }
 

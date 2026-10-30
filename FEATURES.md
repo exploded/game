@@ -183,17 +183,17 @@ Every email goes through an outbox (`email_outbox`) and Amazon SES. People choos
 
 ## Admin & Data
 
-### 21. Price Data Health Dashboard
-Admin page showing price data gaps: how many stocks are missing prices for today, which specific stocks, oldest price data date, and total active stock count.
+### 21. Prices status
+One admin page saying whether prices are up to date: the US market open or closed and the last quote, how many stocks have prices for the latest trading day (and a table of those behind), the AUD/USD rate, how fresh company profiles are, and the last 30 daily fetches and backfills (one `price_fetch_log` row per run). Quote, profile, rate and news errors go to monitor. Everything runs on schedule; there are no fetch buttons.
 
-- **Routes:** `/admin/prices/health`
-- **Files:** Updated `internal/handler/admin.go`, `templates/pages/admin/pricehealth.html`
+- **Routes:** `/admin/prices`
+- **Files:** `internal/handler/admin_prices.go`, `templates/pages/admin/prices.html`
 
-### 22. User Activity Metrics
-Admin page showing user engagement: most active users ranked by trade count, with game count and last login. Helps identify power users and inactive accounts.
+### 22. Users and activity
+One admin page listing every user with their games, trades, join date and when they were last seen, sorted newest, last seen or most trades. Each user has buttons to make them an admin or block them. A blocked user (`users.blocked_at`) is signed out everywhere, can't sign in again and gets no email. They're left off leaderboards, ranks and the game emails' standings, and their game chat and lobby messages are hidden; unblocking brings it all back. Admins can't be blocked until their admin is removed. `/admin/activity` now redirects here.
 
-- **Routes:** `/admin/activity`
-- **Files:** Updated `internal/handler/admin.go`, `templates/pages/admin/activity.html`
+- **Routes:** `/admin/users`, `POST /admin/users/{id}/admin`, `POST /admin/users/{id}/block`
+- **Files:** `internal/handler/admin.go`, `templates/pages/admin/users.html`
 
 ### 23. Export to CSV
 Download transaction history or portfolio snapshots as CSV files. Available from the game detail page for any game the user has joined.

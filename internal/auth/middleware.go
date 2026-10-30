@@ -33,7 +33,7 @@ func RequireAuth(queries *db.Queries, next http.Handler) http.Handler {
 		}
 
 		user, err := queries.GetUser(r.Context(), session.UserID)
-		if err != nil {
+		if err != nil || user.BlockedAt.Valid {
 			http.Redirect(w, r, loginURL(r), http.StatusTemporaryRedirect)
 			return
 		}
@@ -81,7 +81,7 @@ func OptionalAuth(queries *db.Queries, next http.Handler) http.Handler {
 			return
 		}
 		user, err := queries.GetUser(r.Context(), session.UserID)
-		if err != nil {
+		if err != nil || user.BlockedAt.Valid {
 			next.ServeHTTP(w, r)
 			return
 		}

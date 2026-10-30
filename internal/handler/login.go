@@ -34,6 +34,7 @@ const (
 	maxLoginsPerHour = 5
 	loginCookie      = "login_req"
 	nextCookie       = "login_next" // the page to return to after signing in
+	blockedMsg       = "This account is blocked. If you think that's a mistake, contact us."
 )
 
 // loginEmail is the data for the login email template.
@@ -91,6 +92,10 @@ func (h *Handler) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	if n >= maxLoginsPerHour {
 		h.loginError(w, r, entered, "We've sent several sign-in emails to that address in the last hour. Use the newest one, or try again later.")
+		return
+	}
+	if user, err := h.q.GetUserByEmail(r.Context(), email); err == nil && user.BlockedAt.Valid {
+		h.loginError(w, r, entered, blockedMsg)
 		return
 	}
 
@@ -251,6 +256,12 @@ func (h *Handler) finishLogin(w http.ResponseWriter, r *http.Request, req db.Log
 	}
 	if err != nil {
 		h.serverError(w, "find or create user", err)
+		return
+	}
+	// Blocked after the email went out.
+	if user.BlockedAt.Valid {
+		setFlashCookie(w, blockedMsg, "error")
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 

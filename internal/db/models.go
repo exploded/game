@@ -328,13 +328,16 @@ type PortfolioSnapshot struct {
 }
 
 type PriceFetchLog struct {
-	ID            int64
-	Market        string
-	Status        string
-	StocksUpdated int64
-	ErrorMsg      sql.NullString
-	DurationMs    sql.NullInt64
-	CreatedAt     string
+	ID             int64
+	Market         string
+	Status         string
+	StocksUpdated  int64
+	ErrorMsg       sql.NullString
+	DurationMs     sql.NullInt64
+	CreatedAt      string
+	Mode           string
+	SymbolsOk      int64
+	SymbolsSkipped int64
 }
 
 type Question struct {
@@ -543,6 +546,7 @@ type User struct {
 	DeletedAt  sql.NullString
 	LastGameID sql.NullInt64
 	EmailToken string
+	BlockedAt  sql.NullString
 }
 
 type UserAchievement struct {

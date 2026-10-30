@@ -6,31 +6,58 @@
     <a href="/admin" class="btn btn-sm">&larr; Admin</a>
 </div>
 
-<table>
+<p class="text-muted" style="margin-bottom:12px">{{len .Items}} users{{if .Extra.Blocked}}, {{.Extra.Blocked}} blocked{{end}}. A blocked user is signed out, can't sign in again and gets no email.</p>
+
+<nav class="chips" aria-label="Sort by">
+    <a href="/admin/users" class="chip{{if eq .Extra.Sort "joined"}} chip-on{{end}}">Newest</a>
+    <a href="/admin/users?sort=seen" class="chip{{if eq .Extra.Sort "seen"}} chip-on{{end}}">Last seen</a>
+    <a href="/admin/users?sort=trades" class="chip{{if eq .Extra.Sort "trades"}} chip-on{{end}}">Most trades</a>
+</nav>
+
+<table class="rtable">
     <thead>
         <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Admin</th>
+            <th>User</th>
+            <th>Games</th>
+            <th>Trades</th>
             <th>Joined</th>
-            <th>Last Login</th>
-            <th>Last Seen</th>
+            <th>Last seen</th>
             <th></th>
         </tr>
     </thead>
     <tbody>
         {{range .Items}}
         <tr>
-            <td>{{.Name}}</td>
-            <td>{{.Email}}</td>
-            <td>{{if .IsAdmin}}<span class="badge badge-active">Admin</span>{{else}}-{{end}}</td>
-            <td>{{.CreatedAt}}</td>
-            <td>{{.LastLogin}}</td>
-            <td>{{if .LastSeen.Valid}}{{.LastSeen.String}}{{else}}-{{end}}</td>
-            <td>
-                <form method="POST" action="/admin/users/{{.ID}}/admin" style="display:inline">
-                    <button type="submit" class="btn btn-sm">{{if .IsAdmin}}Remove Admin{{else}}Make Admin{{end}}</button>
+            <td class="c-main">
+                <div style="display:flex;align-items:center;gap:0.5rem">
+                    <img src="{{avatarURL .PictureUrl .AvatarID}}" alt="" class="avatar-sm">
+                    <div style="min-width:0">
+                        <strong>{{.Name}}</strong>
+                        {{if .IsAdmin}}<span class="badge badge-active">Admin</span>{{end}}
+                        {{if .BlockedAt.Valid}}<span class="badge badge-cancelled">Blocked {{day .BlockedAt}}</span>{{end}}
+                        {{if .DeletedAt.Valid}}<span class="badge badge-finished">Deleted</span>{{end}}
+                        <span class="c-sub">{{.Email}}</span>
+                    </div>
+                </div>
+            </td>
+            <td data-label="Games">{{.GameCount}}</td>
+            <td data-label="Trades">{{.TradeCount}}</td>
+            <td data-label="Joined">{{day .CreatedAt}}</td>
+            <td data-label="Last seen">{{if .LastSeen.Valid}}{{when .LastSeen}}{{else}}-{{end}}</td>
+            <td class="c-action" style="white-space:nowrap">
+                {{if not .DeletedAt.Valid}}
+                <form method="POST" action="/admin/users/{{.ID}}/admin">
+                    <button type="submit" class="btn btn-sm">{{if .IsAdmin}}Remove admin{{else}}Make admin{{end}}</button>
                 </form>
+                <form method="POST" action="/admin/users/{{.ID}}/block">
+                    <input type="hidden" name="sort" value="{{$.Extra.Sort}}">
+                    {{if .BlockedAt.Valid}}
+                    <button type="submit" class="btn btn-sm">Unblock</button>
+                    {{else}}
+                    <button type="submit" class="btn btn-sm btn-danger" data-confirm="Block {{.Name}}? They'll be signed out and won't be able to sign in.">Block</button>
+                    {{end}}
+                </form>
+                {{end}}
             </td>
         </tr>
         {{end}}

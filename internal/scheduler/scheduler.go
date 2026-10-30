@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log/slog"
 	"os"
 	"sync/atomic"
@@ -19,6 +20,7 @@ var pricesChanged atomic.Bool
 var quotesRunning atomic.Bool
 var profilesRunning atomic.Bool
 var ratesRunning atomic.Bool
+var newsRunning atomic.Bool
 
 // quoteEveryMinutes is how often intraday quotes run during the US session.
 // Each run costs 1 credit per S&P 500 stock (about 520), close to the
@@ -113,10 +115,8 @@ func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, 
 	q.DeleteOldLoginRequests(ctx)
 }
 
-// startupBackfill runs FetchAll once at server startup if any sp500 stock is
-// still missing price history. Uses ListStocksWithoutHistory (same query as
-// FetchAll's backfill branch) so it correctly detects partial state from an
-// interrupted previous run, not just a completely empty prices table.
+// startupBackfill fetches the history of any S&P 500 stock that hasn't had it
+// yet (market.Backfill), which also resumes an interrupted backfill.
 // Then it fills in missing or stale company profiles, unless the US session is
 // open: a full refresh takes most of the quota for nearly an hour, so during
 // the session it's left to the 23:00 UTC run.
@@ -131,37 +131,48 @@ func startupBackfill(ctx context.Context, q *db.Queries, rawDB *sql.DB) {
 		}
 	}()
 
-	missing, err := q.ListStocksWithoutHistory(ctx, "sp500")
-	if err != nil {
-		slog.Error("startup backfill: list missing", "error", err)
-		return
-	}
-	missing = market.LimitStocks(missing)
-	if len(missing) == 0 {
-		return // every stock has had its history fetched
-	}
-	slog.Info("S&P 500 backfill needed, starting in background", "missing", len(missing))
-	fetcher := market.NewFetcher(q, rawDB)
-	if err := fetcher.FetchAll(q); err != nil {
+	if err := market.NewFetcher(q, rawDB).Backfill(ctx, q); err != nil {
 		slog.Error("startup backfill", "error", err)
 	}
 	SignalPricesChanged()
 }
 
-func maybeFetchPrices(ctx context.Context, q *db.Queries, rawDB *sql.DB, now time.Time) {
-	hour := now.Hour()
-	today := now.Format("2006-01-02")
+// dailyRetry is how long after a daily fetch that saved nothing it's tried
+// again, so an outage doesn't spend a whole fetch's credits every minute.
+const dailyRetry = 15 * time.Minute
 
-	// S&P 500: fetch after 22:00 UTC (market closes ~21:00 UTC).
-	if hour >= 22 {
-		log, err := q.GetLatestFetchLog(ctx, "sp500")
-		if err != nil || !isSameDay(log.CreatedAt, today) {
-			slog.Info("fetching S&P 500 prices")
-			fetcher := market.NewFetcher(q, rawDB)
-			fetcher.FetchMarketOnly(q, "sp500")
-			SignalPricesChanged()
-		}
+// dailyFetchDue says whether the daily S&P 500 fetch should run at now
+// (UTC): from 22:00 (the market closes at 20:00 or 21:00 UTC) until a daily
+// run that day has saved prices. last is the newest daily run, if found. A
+// backfill doesn't count: its rows have mode 'backfill'.
+func dailyFetchDue(last db.PriceFetchLog, found bool, now time.Time) bool {
+	if now.Hour() < 22 {
+		return false
 	}
+	if !found || !isSameDay(last.CreatedAt, now.Format(time.DateOnly)) {
+		return true
+	}
+	if last.SymbolsOk > 0 {
+		return false
+	}
+	at, err := time.Parse(time.DateTime, last.CreatedAt)
+	return err != nil || now.Sub(at) >= dailyRetry
+}
+
+// maybeFetchPrices runs the daily fetch when it's due. It runs in the
+// scheduler's loop, so the next minute's check waits until it's logged.
+func maybeFetchPrices(ctx context.Context, q *db.Queries, rawDB *sql.DB, now time.Time) {
+	last, err := q.GetLastDailyFetch(ctx, "sp500")
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		slog.Error("checking daily fetch", "error", err)
+		return
+	}
+	if !dailyFetchDue(last, err == nil, now) {
+		return
+	}
+	slog.Info("fetching S&P 500 prices")
+	market.NewFetcher(q, rawDB).FetchMarketOnly(q, "sp500")
+	SignalPricesChanged()
 }
 
 // maybeFetchQuotes fetches intraday quotes every quoteEveryMinutes during the
@@ -235,8 +246,13 @@ func refreshProfiles(ctx context.Context, q *db.Queries, rawDB *sql.DB) {
 // Runs in a background goroutine since the full cycle takes ~90 minutes
 // due to rate limiting (10 req/min).
 func maybeFetchNews(ctx context.Context, q *db.Queries, rawDB *sql.DB) {
+	if !newsRunning.CompareAndSwap(false, true) {
+		slog.Warn("previous TickerTick news refresh still running, skipping")
+		return
+	}
 	slog.Info("starting scheduled TickerTick news refresh")
 	go func() {
+		defer newsRunning.Store(false)
 		fetcher := market.NewFetcher(q, rawDB)
 		if err := fetcher.FetchTickerTickNews(ctx, q, market.TickerTickMarket); err != nil {
 			slog.Error("scheduled tickertick news refresh", "error", err)

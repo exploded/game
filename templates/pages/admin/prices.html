@@ -1,55 +1,83 @@
 {{template "base" .}}
 
 {{define "content"}}
+{{with .Item}}
 <div class="page-header">
-    <h1>Price Management</h1>
-    <div class="page-header-actions">
-        <a href="/admin" class="btn btn-sm">&larr; Admin</a>
-        <form method="POST" action="/admin/prices/fetch" style="display:inline">
-            <button type="submit" class="btn btn-primary">Fetch Prices Now</button>
-        </form>
-        <form method="POST" action="/admin/news/refresh" style="display:inline">
-            <button type="submit" class="btn" title="Refreshes S&amp;P 500 stock news from TickerTick (~90 min)">Refresh News</button>
-        </form>
-    </div>
+    <h1>Prices</h1>
+    <a href="/admin" class="btn btn-sm">&larr; Admin</a>
 </div>
 
 <div class="info-grid">
     <div class="stat-card">
-        <span class="stat-label">Active Stocks</span>
-        <span class="stat-value">{{.Extra.StockCount}}</span>
+        <span class="stat-label">US market</span>
+        <span class="stat-value">{{if .MarketOpen}}Open{{else}}Closed{{end}}</span>
+        <span class="stat-sub">{{if .LastQuote}}Last quote {{.LastQuote}}{{else}}No quote since the server started{{end}}</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Up to date</span>
+        <span class="stat-value {{if .Behind}}text-red{{else}}text-green{{end}}">{{.UpToDate}} of {{.Stocks}}</span>
+        <span class="stat-sub">{{if .LatestDay}}Have prices for {{longDate .LatestDay}}{{else}}No prices yet{{end}}</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">AUD/USD</span>
+        <span class="stat-value">{{if .Rate}}{{.Rate}}{{else}}<span class="text-red">None</span>{{end}}</span>
+        <span class="stat-sub">{{if .Rate}}{{longDate .RateDate}}{{else}}Trades in USD stocks are refused{{end}}</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Company profiles</span>
+        <span class="stat-value">{{.Profiles}} of {{.Stocks}}</span>
+        <span class="stat-sub">refreshed this week, {{.Logos}} with logos</span>
     </div>
 </div>
 
+<p class="text-muted" style="margin:16px 0">Quotes run every 2 minutes while the US market is open, and the daily fetch after 22:00 UTC. Errors from quotes, profiles, exchange rates and news go to <a href="https://monitor.mchugh.au" rel="noopener">monitor</a>.</p>
+
+{{if .Behind}}
 <section class="section">
-    <h2>Fetch Log</h2>
-    {{if .Items}}
+    <h2>Behind ({{len .Behind}})</h2>
+    <p class="text-muted">These stocks have no prices for {{longDate .LatestDay}}. A stock that stays here may be delisted, renamed or mistyped.</p>
     <table>
         <thead>
-            <tr>
-                <th>Time</th>
-                <th>Market</th>
-                <th>Status</th>
-                <th>Stocks Updated</th>
-                <th>Duration</th>
-                <th>Error</th>
-            </tr>
+            <tr><th>Symbol</th><th>Name</th><th>Newest prices</th></tr>
         </thead>
         <tbody>
-            {{range .Items}}
+            {{range .Behind}}
             <tr>
-                <td>{{.CreatedAt}}</td>
-                <td>{{.Market | upper}}</td>
+                <td><strong>{{.Symbol}}</strong></td>
+                <td>{{.Name}}</td>
+                <td>{{if .LastDate}}{{longDate .LastDate}}{{else}}<span class="text-red">None</span>{{end}}</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</section>
+{{end}}
+
+<section class="section">
+    <h2>Daily fetches and backfills</h2>
+    {{if .Runs}}
+    <table>
+        <thead>
+            <tr><th>Finished</th><th>Run</th><th>Status</th><th class="num">Stocks</th><th class="num">Skipped</th><th class="num">Rows</th><th class="num">Took</th><th>Error</th></tr>
+        </thead>
+        <tbody>
+            {{range .Runs}}
+            <tr>
+                <td>{{when .CreatedAt}}</td>
+                <td>{{title .Mode}}</td>
                 <td><span class="badge badge-{{if eq .Status "success"}}active{{else if eq .Status "partial"}}pending{{else}}cancelled{{end}}">{{.Status}}</span></td>
-                <td>{{.StocksUpdated}}</td>
-                <td>{{if .DurationMs.Valid}}{{.DurationMs.Int64}}ms{{else}}-{{end}}</td>
-                <td>{{if .ErrorMsg.Valid}}<span class="text-red">{{.ErrorMsg.String}}</span>{{else}}-{{end}}</td>
+                <td class="num">{{.SymbolsOk}}</td>
+                <td class="num">{{.SymbolsSkipped}}</td>
+                <td class="num">{{.StocksUpdated}}</td>
+                <td class="num" style="white-space:nowrap">{{.Took}}</td>
+                <td>{{if .ErrorMsg.Valid}}<span class="text-red">{{.ErrorMsg.String}}</span>{{end}}</td>
             </tr>
             {{end}}
         </tbody>
     </table>
     {{else}}
-    <p class="text-muted">No fetch logs yet. Click "Fetch Prices Now" to get started.</p>
+    <p class="text-muted">None yet. The daily fetch runs after 22:00 UTC on weekdays.</p>
     {{end}}
 </section>
+{{end}}
 {{end}}

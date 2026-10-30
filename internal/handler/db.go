@@ -105,6 +105,10 @@ var addedColumns = []struct{ table, column, ddl string }{
 	{"game_invites", "email", "TEXT DEFAULT NULL"},
 	{"users", "last_seen", "TEXT DEFAULT NULL"},
 	{"stocks", "history_fetched_at", "TEXT DEFAULT NULL"},
+	{"price_fetch_log", "mode", "TEXT NOT NULL DEFAULT 'daily'"},
+	{"price_fetch_log", "symbols_ok", "INTEGER NOT NULL DEFAULT 0"},
+	{"price_fetch_log", "symbols_skipped", "INTEGER NOT NULL DEFAULT 0"},
+	{"users", "blocked_at", "TEXT DEFAULT NULL"},
 }
 
 // onceMigrations run exactly once per database, in order. Each is recorded in
@@ -180,6 +184,33 @@ var onceMigrations = []struct{ name, stmt string }{
 		WHERE status = 'open' AND participant_id IN (
 			SELECT p.id FROM participants p JOIN games g ON g.id = p.game_id
 			WHERE g.status IN ('finished', 'cancelled'))`},
+	// The fetch log had a row per batch; now it has one per run, with its
+	// mode. The old rows can't be read as runs.
+	{"fetch-log-per-run", "DELETE FROM price_fetch_log"},
+	// ASX stocks went on 30 October 2026: there's no ASX data licence, so they
+	// had no prices. The two finished March test games traded them, so those
+	// games go first, with everything that cascades from them. A running game
+	// that still holds one keeps it, and so does the stock.
+	{"drop-asx-games", `DELETE FROM games WHERE status IN ('finished', 'cancelled') AND id IN (
+		SELECT p.game_id FROM participants p WHERE p.id IN (
+			SELECT participant_id FROM transactions WHERE stock_id IN (SELECT id FROM stocks WHERE market = 'asx')
+			UNION SELECT participant_id FROM holdings WHERE stock_id IN (SELECT id FROM stocks WHERE market = 'asx')
+			UNION SELECT participant_id FROM limit_orders WHERE stock_id IN (SELECT id FROM stocks WHERE market = 'asx')))`},
+	{"drop-asx-watchlist", "DELETE FROM watchlist WHERE stock_id IN (SELECT id FROM stocks WHERE market = 'asx')"},
+	{"drop-asx-starting-stocks", "DELETE FROM game_starting_stocks WHERE stock_id IN (SELECT id FROM stocks WHERE market = 'asx')"},
+	{"drop-asx-stocks", `DELETE FROM stocks WHERE market = 'asx'
+		AND id NOT IN (SELECT stock_id FROM transactions)
+		AND id NOT IN (SELECT stock_id FROM holdings)
+		AND id NOT IN (SELECT stock_id FROM limit_orders)`},
+	// The fake price feed (see real-exchange-rates) also walked every stock's
+	// row for the day every 30 seconds until midnight UTC, rounding down each
+	// time. It made the weekend rows, dragged cheap stocks to its $1.00 floor
+	// (Ford closed at $1.00 on 29 October) and pulled down every close after
+	// the nightly fetch. The February–March rows were seeded test data. The
+	// daily fetch only rewrites the latest day, so drop the lot and let the
+	// backfill reload each stock's full history from Twelve Data.
+	{"real-stock-prices", "DELETE FROM stock_prices WHERE stock_id IN (SELECT id FROM stocks WHERE market = 'sp500')"},
+	{"real-stock-prices-refetch", "UPDATE stocks SET history_fetched_at = NULL WHERE market = 'sp500'"},
 }
 
 func runMigrations(db *sql.DB) error {
@@ -326,12 +357,13 @@ func rebuildUsersTable(db *sql.DB) error {
 			last_seen   TEXT,
 			deleted_at  TEXT,
 			last_game_id INTEGER REFERENCES games(id) ON DELETE SET NULL,
-			email_token TEXT    NOT NULL UNIQUE
+			email_token TEXT    NOT NULL UNIQUE,
+			blocked_at  TEXT
 		)`,
 		`INSERT INTO users_new (id, email, name, picture_url, is_admin, avatar_id,
-			created_at, last_login, last_seen, deleted_at, last_game_id, email_token)
+			created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at)
 		 SELECT id, lower(email), name, picture_url, is_admin, avatar_id,
-			created_at, last_login, last_seen, deleted_at, last_game_id, lower(hex(randomblob(16)))
+			created_at, last_login, last_seen, deleted_at, last_game_id, lower(hex(randomblob(16))), blocked_at
 		 FROM users`,
 		`DROP TABLE users`,
 		`ALTER TABLE users_new RENAME TO users`,

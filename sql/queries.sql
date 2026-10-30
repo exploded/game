@@ -34,6 +34,21 @@ UPDATE users SET last_game_id = ? WHERE id = ?;
 -- name: ListUsers :many
 SELECT * FROM users ORDER BY created_at DESC;
 
+-- Every user with how much they've played, for /admin/users.
+-- name: ListUsersWithActivity :many
+SELECT u.id, u.name, u.email, u.picture_url, u.avatar_id, u.is_admin,
+    u.created_at, u.last_seen, u.deleted_at, u.blocked_at,
+    (SELECT COUNT(*) FROM participants p WHERE p.user_id = u.id) AS game_count,
+    (SELECT COUNT(*) FROM transactions t JOIN participants p ON p.id = t.participant_id WHERE p.user_id = u.id) AS trade_count
+FROM users u
+ORDER BY u.created_at DESC, u.id DESC;
+
+-- name: BlockUser :exec
+UPDATE users SET blocked_at = datetime('now') WHERE id = ? AND blocked_at IS NULL;
+
+-- name: UnblockUser :exec
+UPDATE users SET blocked_at = NULL WHERE id = ?;
+
 -- name: SoftDeleteUser :exec
 UPDATE users SET
     name = 'Deleted User',
@@ -242,18 +257,20 @@ SELECT * FROM participants WHERE id = ?;
 -- name: GetParticipantByGameAndUser :one
 SELECT * FROM participants WHERE game_id = ? AND user_id = ?;
 
+-- Blocked players are left out of standings, as their chat is from
+-- ListMessages and ListLobbyMessages.
 -- name: ListParticipantsByGame :many
 SELECT p.*, u.name AS user_name, u.picture_url AS user_picture
 FROM participants p
 JOIN users u ON u.id = p.user_id
-WHERE p.game_id = ?
+WHERE p.game_id = ? AND u.blocked_at IS NULL
 ORDER BY p.portfolio_value DESC;
 
 -- name: ListPublicParticipantsByGame :many
 SELECT p.*, u.name AS user_name, u.picture_url AS user_picture
 FROM participants p
 JOIN users u ON u.id = p.user_id
-WHERE p.game_id = ? AND p.is_public = 1
+WHERE p.game_id = ? AND p.is_public = 1 AND u.blocked_at IS NULL
 ORDER BY p.portfolio_value DESC;
 
 -- name: UpdateCashBalance :exec
@@ -412,7 +429,9 @@ DELETE FROM stock_picks WHERE stock_id = ?;
 SELECT COUNT(*) FROM stock_profiles;
 
 -- name: CountStockProfilesWithLogo :one
-SELECT COUNT(*) FROM stock_profiles WHERE logo != '';
+-- Logos pages can show: the CSP allows only Twelve Data's (logoURL in
+-- internal/handler/screener.go).
+SELECT COUNT(*) FROM stock_profiles WHERE logo LIKE 'https://api.twelvedata.com/%';
 
 -- name: ListStocksNeedingProfile :many
 -- Active stocks with no profile row, or one last refreshed before the cutoff.
@@ -642,17 +661,18 @@ ORDER BY date ASC;
 -- =============================================================================
 
 -- name: InsertFetchLog :exec
-INSERT INTO price_fetch_log (market, status, stocks_updated, error_msg, duration_ms)
-VALUES (?, ?, ?, ?, ?);
+-- One row per daily fetch or backfill run.
+INSERT INTO price_fetch_log (market, mode, status, stocks_updated, symbols_ok, symbols_skipped, error_msg, duration_ms)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 
--- name: GetLatestFetchLog :one
+-- name: GetLastDailyFetch :one
 SELECT * FROM price_fetch_log
-WHERE market = ?
-ORDER BY created_at DESC LIMIT 1;
+WHERE market = ? AND mode = 'daily'
+ORDER BY created_at DESC, id DESC LIMIT 1;
 
 -- name: ListFetchLogs :many
 SELECT * FROM price_fetch_log
-ORDER BY created_at DESC LIMIT 50;
+ORDER BY created_at DESC, id DESC LIMIT 30;
 
 -- =============================================================================
 -- Active Participants (for revaluation)
@@ -806,12 +826,14 @@ RETURNING *;
 SELECT gm.*, u.name AS user_name, u.picture_url AS user_picture
 FROM game_messages gm
 JOIN users u ON u.id = gm.user_id
-WHERE gm.game_id = ?
+WHERE gm.game_id = ? AND u.blocked_at IS NULL
 ORDER BY gm.created_at DESC
 LIMIT ? OFFSET ?;
 
 -- name: CountMessages :one
-SELECT COUNT(*) FROM game_messages WHERE game_id = ?;
+SELECT COUNT(*) FROM game_messages gm
+JOIN users u ON u.id = gm.user_id
+WHERE gm.game_id = ? AND u.blocked_at IS NULL;
 
 -- =============================================================================
 -- Achievements (Feature 8)
@@ -941,27 +963,17 @@ LIMIT ? OFFSET ?;
 
 
 -- =============================================================================
--- Admin - Price Health (Feature 21)
+-- Admin - Prices
 -- =============================================================================
 
--- name: CountStocksMissingPrices :one
-SELECT COUNT(*) FROM stocks s
-WHERE s.is_active = 1
-AND s.id NOT IN (
-    SELECT sp.stock_id FROM stock_prices sp WHERE sp.date = sqlc.arg(target_date)
-);
-
--- name: ListStocksMissingPrices :many
-SELECT s.* FROM stocks s
-WHERE s.is_active = 1
-AND s.id NOT IN (
-    SELECT sp.stock_id FROM stock_prices sp WHERE sp.date = sqlc.arg(target_date)
-)
-ORDER BY s.market, s.symbol
-LIMIT 100;
-
--- name: GetOldestPriceDate :one
-SELECT CAST(COALESCE(MIN(date), '') AS TEXT) AS oldest_date FROM stock_prices;
+-- name: ListStockLastDates :many
+-- Each active stock in a market with the date of its newest bar ('' for
+-- none), for /admin/prices. One index lookup per stock.
+SELECT s.id, s.symbol, s.name,
+       CAST(COALESCE((SELECT MAX(p.date) FROM stock_prices p WHERE p.stock_id = s.id), '') AS TEXT) AS last_date
+FROM stocks s
+WHERE s.is_active = 1 AND s.market = ?
+ORDER BY s.symbol;
 
 -- =============================================================================
 -- Admin - User Activity (Feature 22)
@@ -971,14 +983,6 @@ SELECT CAST(COALESCE(MIN(date), '') AS TEXT) AS oldest_date FROM stock_prices;
 SELECT COUNT(*) FROM transactions t
 JOIN participants p ON p.id = t.participant_id
 WHERE p.user_id = ?;
-
--- name: ListMostActiveUsers :many
-SELECT u.id, u.name, u.email, u.picture_url, u.last_login,
-    (SELECT COUNT(*) FROM transactions t JOIN participants p ON p.id = t.participant_id WHERE p.user_id = u.id) AS trade_count,
-    (SELECT COUNT(*) FROM participants p2 WHERE p2.user_id = u.id) AS game_count
-FROM users u
-ORDER BY trade_count DESC
-LIMIT 50;
 
 -- =============================================================================
 -- Trade Analytics (Feature 15)
@@ -1111,11 +1115,14 @@ SELECT lm.*, u.name AS user_name, u.picture_url AS user_picture,
 FROM lobby_messages lm
 JOIN users u ON u.id = lm.user_id
 LEFT JOIN avatars a ON a.id = u.avatar_id
+WHERE u.blocked_at IS NULL
 ORDER BY lm.created_at DESC
 LIMIT ? OFFSET ?;
 
 -- name: CountLobbyMessages :one
-SELECT COUNT(*) FROM lobby_messages;
+SELECT COUNT(*) FROM lobby_messages lm
+JOIN users u ON u.id = lm.user_id
+WHERE u.blocked_at IS NULL;
 
 -- =============================================================================
 -- Referral Bonuses

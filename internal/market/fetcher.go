@@ -39,29 +39,21 @@ type twelveDataResponse struct {
 	Code   int              `json:"code"`
 }
 
-// FetchAll fetches end-of-day prices for S&P 500 stocks.
-//
-// Behaviour:
-//   - If ANY stocks in the market haven't had their history fetched yet (first
-//     run, a new stock, OR an interrupted previous backfill), it backfills just
-//     those stocks with full history (outputsize=5000). This makes backfills
-//     resumable across restarts.
-//   - Once every stock has its history, it switches to fetching the latest
-//     day only (outputsize=1).
-func (f *Fetcher) FetchAll(q *db.Queries) error {
-	ctx := context.Background()
-
+// Backfill fetches the full history (outputsize=5000) of every S&P 500
+// stock that hasn't had it yet: on the first run, for a new stock, or after
+// an interrupted backfill. It does nothing once every stock has its history,
+// so it's safe to run at every start.
+func (f *Fetcher) Backfill(ctx context.Context, q *db.Queries) error {
 	missing, err := q.ListStocksWithoutHistory(ctx, "sp500")
 	if err != nil {
 		return err
 	}
 	missing = LimitStocks(missing)
-	if len(missing) > 0 {
-		slog.Info("backfilling stocks without price history", "count", len(missing))
-		return f.fetchStocksBatch(ctx, q, "sp500", missing, 5000)
+	if len(missing) == 0 {
+		return nil
 	}
-
-	return f.fetchMarketBatch(ctx, q, "sp500", 1)
+	slog.Info("backfilling stocks without price history", "count", len(missing))
+	return f.fetchStocksBatch(ctx, q, "sp500", missing, 5000)
 }
 
 // LimitStocks keeps only the stocks named in TWELVEDATA_SYMBOLS (comma
@@ -157,10 +149,11 @@ const (
 // Each batch waits for credits from takeCredits, so a pause only happens when
 // the minute's budget is spent.
 //
-// A fetch_log row is written per batch (not just at the end) so that partial
-// progress is visible after a crash/restart and the admin UI can show that a
-// backfill is in flight.
-func (f *Fetcher) fetchStocksBatch(ctx context.Context, q *db.Queries, market string, stocks []db.Stock, outputSize int) error {
+// It writes one price_fetch_log row for the run when it ends, however it
+// ends. The scheduler reads the last daily row to know whether today's
+// daily fetch is done; a backfill's interruption needs no record, because
+// ListStocksWithoutHistory finds what's left.
+func (f *Fetcher) fetchStocksBatch(ctx context.Context, q *db.Queries, market string, stocks []db.Stock, outputSize int) (runErr error) {
 	if len(stocks) == 0 {
 		return nil
 	}
@@ -177,6 +170,13 @@ func (f *Fetcher) fetchStocksBatch(ctx context.Context, q *db.Queries, market st
 		mode = "backfill"
 		batchSize = backfillBatchSize
 	}
+	defer func() {
+		writeFetchLog(context.WithoutCancel(ctx), q, fetchRun{
+			market: market, mode: mode, err: runErr,
+			rows: updated, ok: symbolsOK, skipped: symbolsSkipped,
+			duration: time.Since(runStart),
+		})
+	}()
 	totalBatches := (len(stocks) + batchSize - 1) / batchSize
 	slog.Info("price fetch starting",
 		"market", market,
@@ -251,9 +251,6 @@ func (f *Fetcher) fetchStocksBatch(ctx context.Context, q *db.Queries, market st
 				"total_rows_so_far", updated,
 			)
 		}
-
-		// Log each batch so that partial progress survives a restart.
-		writeFetchLog(ctx, q, market, err, int64(batchUpdated), batchMs)
 	}
 
 	slog.Info("price fetch complete",
@@ -431,21 +428,44 @@ func isOutOfCredits(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "twelve data error 429")
 }
 
-func writeFetchLog(ctx context.Context, q *db.Queries, market string, err error, updated, durationMs int64) {
-	status := "success"
+// fetchRun is what a daily fetch or backfill did, for price_fetch_log.
+type fetchRun struct {
+	market, mode      string
+	err               error // the last error, if any
+	rows, ok, skipped int   // rows saved, symbols saved, symbols skipped
+	duration          time.Duration
+}
+
+// status is "success" when every symbol was saved, "partial" when some
+// were, and "error" when none were.
+func (r fetchRun) status() string {
+	switch {
+	case r.err == nil && r.skipped == 0:
+		return "success"
+	case r.ok > 0:
+		return "partial"
+	}
+	return "error"
+}
+
+func writeFetchLog(ctx context.Context, q *db.Queries, r fetchRun) {
 	var errMsg *string
-	if err != nil {
-		status = "partial"
-		s := err.Error()
+	if r.err != nil {
+		s := r.err.Error()
 		errMsg = &s
 	}
-	q.InsertFetchLog(ctx, db.InsertFetchLogParams{
-		Market:        market,
-		Status:        status,
-		StocksUpdated: updated,
-		ErrorMsg:      nullString(errMsg),
-		DurationMs:    nullInt64(durationMs),
-	})
+	if err := q.InsertFetchLog(ctx, db.InsertFetchLogParams{
+		Market:         r.market,
+		Mode:           r.mode,
+		Status:         r.status(),
+		StocksUpdated:  int64(r.rows),
+		SymbolsOk:      int64(r.ok),
+		SymbolsSkipped: int64(r.skipped),
+		ErrorMsg:       nullString(errMsg),
+		DurationMs:     nullInt64(r.duration.Milliseconds()),
+	}); err != nil {
+		slog.Error("writing price fetch log", "error", err)
+	}
 }
 
 // FetchMarketOnly fetches the latest prices for a single market (daily update).

@@ -260,6 +260,53 @@ func TestClearASXNews(t *testing.T) {
 	}
 }
 
+// TestDropASXStocks: the drop-asx migrations delete the ended games that
+// traded ASX stocks, then every ASX stock nothing still trades. A running
+// game with an ASX holding keeps it, and so does the stock.
+func TestDropASXStocks(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "test.db")
+	d, err := OpenDB(path, game.Schema)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, q := range []string{
+		"DELETE FROM schema_migrations WHERE name LIKE 'drop-asx-%'",
+		"INSERT INTO users (id, email, name, email_token) VALUES (1, 'ann@example.com', 'Ann', 't1')",
+		`INSERT INTO stocks (id, symbol, name, market, currency) VALUES
+			(1, 'AAPL', 'Apple', 'sp500', 'USD'), (2, 'CBA', 'Commonwealth Bank', 'asx', 'AUD'),
+			(3, 'WES', 'Wesfarmers', 'asx', 'AUD'), (4, 'TLS', 'Telstra', 'asx', 'AUD')`,
+		`INSERT INTO games (id, created_by, name, status, start_date, end_date) VALUES
+			(1, 1, 'Old', 'finished', '2026-03-01', '2026-03-31'),
+			(2, 1, 'Running', 'active', '2026-10-01', '2026-10-31'),
+			(3, 1, 'Other old', 'finished', '2026-04-01', '2026-04-30')`,
+		"INSERT INTO participants (id, game_id, user_id, cash_balance, portfolio_value) VALUES (1, 1, 1, 0, 0), (2, 2, 1, 0, 0), (3, 3, 1, 0, 0)",
+		"INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total, converted_total) VALUES (1, 2, 'buy', 1, 100, 100, 100), (2, 3, 'buy', 1, 100, 100, 100), (3, 1, 'buy', 1, 100, 100, 100)",
+		"INSERT INTO holdings (participant_id, stock_id, quantity, avg_cost) VALUES (1, 2, 1, 100), (2, 3, 1, 100)",
+		"INSERT INTO watchlist (participant_id, stock_id) VALUES (2, 4)",
+	} {
+		if _, err := d.Exec(q); err != nil {
+			t.Fatalf("%s: %v", q, err)
+		}
+	}
+	d.Close()
+
+	d = openTestDBAt(t, path)
+	var gameIDs, symbols string
+	var watched int
+	d.QueryRow("SELECT GROUP_CONCAT(id) FROM (SELECT id FROM games ORDER BY id)").Scan(&gameIDs)
+	d.QueryRow("SELECT GROUP_CONCAT(symbol) FROM (SELECT symbol FROM stocks ORDER BY id)").Scan(&symbols)
+	d.QueryRow("SELECT COUNT(*) FROM watchlist").Scan(&watched)
+	if gameIDs != "2,3" {
+		t.Errorf("games left = %s, want 2,3: only the ended game with ASX trades goes", gameIDs)
+	}
+	if symbols != "AAPL,WES" {
+		t.Errorf("stocks left = %s, want AAPL,WES: WES is still held in a running game", symbols)
+	}
+	if watched != 0 {
+		t.Errorf("%d watchlist rows left, want none", watched)
+	}
+}
+
 // TestCSRFSecretSurvivesRestart: a new secret on every start made every page
 // left open across a restart fail its next POST with "invalid CSRF token".
 func TestCSRFSecretSurvivesRestart(t *testing.T) {

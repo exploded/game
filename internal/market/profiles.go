@@ -18,6 +18,12 @@ import (
 // whole list in one go each week rather than a few stocks every day.
 const profileMaxAge = 6*24*time.Hour + 12*time.Hour
 
+// ProfileCutoff is the updated_at before which a profile is due for a
+// refresh, in stock_profiles' format.
+func ProfileCutoff(now time.Time) string {
+	return now.UTC().Add(-profileMaxAge).Format(time.DateTime)
+}
+
 // RefreshProfiles fetches company details (/profile), metrics (/statistics)
 // and the logo (/logo) for S&P 500 stocks whose profile is missing or older
 // than profileMaxAge. None of these endpoints accept batches, and together
@@ -26,9 +32,8 @@ const profileMaxAge = 6*24*time.Hour + 12*time.Hour
 //
 // A failed endpoint leaves that part of the stored profile as it was.
 func (f *Fetcher) RefreshProfiles(ctx context.Context, q *db.Queries) error {
-	cutoff := time.Now().UTC().Add(-profileMaxAge).Format("2006-01-02 15:04:05")
 	stocks, err := q.ListStocksNeedingProfile(ctx, db.ListStocksNeedingProfileParams{
-		Market: "sp500", UpdatedAt: cutoff,
+		Market: "sp500", UpdatedAt: ProfileCutoff(time.Now()),
 	})
 	if err != nil {
 		return err

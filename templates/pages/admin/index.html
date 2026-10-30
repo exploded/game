@@ -19,10 +19,8 @@
     <div class="admin-links" style="flex-wrap:wrap">
         <a href="/admin/games" class="btn btn-primary">Games</a>
         <a href="/admin/picks" class="btn btn-primary">Rob's Picks</a>
-        <a href="/admin/users" class="btn btn-primary">Manage Users</a>
-        <a href="/admin/prices" class="btn btn-primary">Price Management</a>
-        <a href="/admin/prices/health" class="btn btn-primary">Price Health</a>
-        <a href="/admin/activity" class="btn btn-primary">User Activity</a>
+        <a href="/admin/users" class="btn btn-primary">Users</a>
+        <a href="/admin/prices" class="btn btn-primary">Prices</a>
         <a href="/admin/email" class="btn btn-primary">Email a Newsletter</a>
         <a href="/admin/courses" class="btn btn-primary">Courses</a>
         <a href="/admin/learn" class="btn btn-primary">Learn: videos and live</a>
@@ -65,25 +63,4 @@
         </form>
     </div>
 </div>
-
-{{if .Extra.FetchLogs}}
-<section class="section">
-    <h2>Recent Price Fetches</h2>
-    <table>
-        <thead>
-            <tr><th>Time</th><th>Market</th><th>Status</th><th>Updated</th></tr>
-        </thead>
-        <tbody>
-            {{range .Extra.FetchLogs}}
-            <tr>
-                <td>{{.CreatedAt}}</td>
-                <td>{{.Market | upper}}</td>
-                <td><span class="badge badge-{{if eq .Status "success"}}active{{else}}cancelled{{end}}">{{.Status}}</span></td>
-                <td>{{.StocksUpdated}}</td>
-            </tr>
-            {{end}}
-        </tbody>
-    </table>
-</section>
-{{end}}
 {{end}}

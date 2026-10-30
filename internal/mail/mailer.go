@@ -166,7 +166,7 @@ func (m *Mailer) toUser(ctx context.Context, userID int64, c Category, template 
 	if err != nil {
 		return false, err
 	}
-	if user.DeletedAt.Valid {
+	if user.DeletedAt.Valid || user.BlockedAt.Valid {
 		return false, nil
 	}
 	v := view{BaseURL: m.cfg.BaseURL, Name: user.Name, D: data}
