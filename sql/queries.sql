@@ -812,6 +812,9 @@ INSERT OR IGNORE INTO watchlist (participant_id, stock_id) VALUES (?, ?);
 -- name: RemoveFromWatchlist :exec
 DELETE FROM watchlist WHERE participant_id = ? AND stock_id = ?;
 
+-- name: IsWatching :one
+SELECT COUNT(*) FROM watchlist WHERE participant_id = ? AND stock_id = ?;
+
 -- name: ListWatchlist :many
 SELECT w.*, s.symbol, s.name AS stock_name, s.market, s.sector, s.currency
 FROM watchlist w

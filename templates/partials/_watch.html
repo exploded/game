@@ -1,0 +1,20 @@
+{{/* Add to or remove from the watchlist. Both take dict "Game" "Stock"
+     "Symbol" "Watching", and WatchlistAdd and WatchlistRemove send back the
+     one that was clicked (?style=star picks the star). */}}
+
+{{/* The button in the stock page header. */}}
+{{define "watch-button"}}
+{{if .Watching}}<button hx-delete="/games/{{.Game}}/watchlist/{{.Stock}}" hx-swap="outerHTML" hx-disable="this" class="btn btn-sm btn-watchlist-active">Watching</button>
+{{else}}<button hx-post="/games/{{.Game}}/watchlist/{{.Stock}}" hx-swap="outerHTML" hx-disable="this" class="btn btn-sm">Watch</button>{{end}}
+{{end}}
+
+{{/* The star on each row of the stocks page. */}}
+{{define "watch-star"}}
+{{if .Watching}}<button hx-delete="/games/{{.Game}}/watchlist/{{.Stock}}?style=star" hx-swap="outerHTML" hx-disable="this" class="watch-star on" aria-pressed="true" aria-label="Remove {{.Symbol}} from your watchlist" title="On your watchlist">★</button>
+{{else}}<button hx-post="/games/{{.Game}}/watchlist/{{.Stock}}?style=star" hx-swap="outerHTML" hx-disable="this" class="watch-star" aria-pressed="false" aria-label="Add {{.Symbol}} to your watchlist" title="Add to your watchlist">☆</button>{{end}}
+{{end}}
+
+{{/* What renderWatch sends back: render() passes PageData, so these unwrap
+     .Extra. */}}
+{{define "watch-button-reply"}}{{template "watch-button" .Extra}}{{end}}
+{{define "watch-star-reply"}}{{template "watch-star" .Extra}}{{end}}

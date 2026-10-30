@@ -2762,6 +2762,22 @@ func (q *Queries) IsOnWatchlist(ctx context.Context, arg IsOnWatchlistParams) (i
 	return count, err
 }
 
+const isWatching = `-- name: IsWatching :one
+SELECT COUNT(*) FROM watchlist WHERE participant_id = ? AND stock_id = ?
+`
+
+type IsWatchingParams struct {
+	ParticipantID int64
+	StockID       int64
+}
+
+func (q *Queries) IsWatching(ctx context.Context, arg IsWatchingParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, isWatching, arg.ParticipantID, arg.StockID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const joinGame = `-- name: JoinGame :one
 
 INSERT INTO participants (game_id, user_id, cash_balance, portfolio_value)

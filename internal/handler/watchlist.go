@@ -87,8 +87,7 @@ func (h *Handler) WatchlistAdd(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if isHTMX(r) {
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(fmt.Sprintf(`<button hx-delete="/games/%d/watchlist/%d" hx-swap="outerHTML" hx-disable="this" class="btn btn-sm btn-watchlist-active">Watching</button>`, gameID, stockID)))
+		h.renderWatch(w, r, gameID, stockID, true)
 		return
 	}
 	http.Redirect(w, r, fmt.Sprintf("/games/%d/stocks/%d", gameID, stockID), http.StatusSeeOther)
@@ -121,9 +120,25 @@ func (h *Handler) WatchlistRemove(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if isHTMX(r) {
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(fmt.Sprintf(`<button hx-post="/games/%d/watchlist/%d" hx-swap="outerHTML" hx-disable="this" class="btn btn-sm">Watch</button>`, gameID, stockID)))
+		h.renderWatch(w, r, gameID, stockID, false)
 		return
 	}
 	http.Redirect(w, r, fmt.Sprintf("/games/%d/watchlist", gameID), http.StatusSeeOther)
+}
+
+// renderWatch sends back the watch button that was clicked
+// (partials/_watch.html): the stocks page's star for ?style=star, otherwise
+// the stock page's Watch button.
+func (h *Handler) renderWatch(w http.ResponseWriter, r *http.Request, gameID, stockID int64, watching bool) {
+	frag := "watch-button-reply"
+	if r.URL.Query().Get("style") == "star" {
+		frag = "watch-star-reply"
+	}
+	var symbol string
+	if s, err := h.q.GetStock(r.Context(), stockID); err == nil {
+		symbol = s.Symbol
+	}
+	h.render(w, r, "stocks/browse", frag, PageData{Extra: map[string]any{
+		"Game": gameID, "Stock": stockID, "Symbol": symbol, "Watching": watching,
+	}})
 }

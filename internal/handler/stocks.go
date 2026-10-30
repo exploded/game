@@ -38,7 +38,7 @@ func (h *Handler) StocksBrowse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Verify user is participant.
-	_, err = h.q.GetParticipantByGameAndUser(r.Context(), db.GetParticipantByGameAndUserParams{
+	participant, err := h.q.GetParticipantByGameAndUser(r.Context(), db.GetParticipantByGameAndUserParams{
 		GameID: gameID, UserID: user.ID,
 	})
 	if err != nil {
@@ -59,6 +59,7 @@ func (h *Handler) StocksBrowse(w http.ResponseWriter, r *http.Request) {
 		holders = h.holderCounts(r, gameID)
 	}
 	res := applyFilter(rows, f, sector, search, holders)
+	h.markRows(r.Context(), participant.ID, res.Rows)
 
 	data := PageData{
 		Title: "Stocks - " + game.Name,
@@ -158,6 +159,11 @@ func (h *Handler) StockDetail(w http.ResponseWriter, r *http.Request) {
 
 	// The order ticket shows only for players in the game; anyone can view.
 	trade, _ := h.loadTradeContext(r.Context(), game, stock, latestPrice, auth.UserFromContext(r.Context()).ID)
+	var watching bool
+	if trade != nil {
+		n, _ := h.q.IsWatching(r.Context(), db.IsWatchingParams{ParticipantID: trade.Participant.ID, StockID: stock.ID})
+		watching = n > 0
+	}
 
 	// Rob's videos that talk about this stock (picked by the classifier).
 	robVideos, _ := h.q.ListStockVideos(r.Context(), stock.ID)
@@ -179,6 +185,7 @@ func (h *Handler) StockDetail(w http.ResponseWriter, r *http.Request) {
 			"Recommendations": recs,
 			"Peers":           peers,
 			"Trade":           trade,
+			"Watching":        watching,
 			"RobVideos":       robVideos,
 			"Pick":            pick,
 		},
@@ -274,5 +281,10 @@ func (h *Handler) StockSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	res := applyFilter(rows, "", "", r.URL.Query().Get("q"), nil)
+	if p, err := h.q.GetParticipantByGameAndUser(r.Context(), db.GetParticipantByGameAndUserParams{
+		GameID: gameID, UserID: auth.UserFromContext(r.Context()).ID,
+	}); err == nil {
+		h.markRows(r.Context(), p.ID, res.Rows)
+	}
 	h.render(w, r, "stocks/browse", "stock-rows", PageData{Item: game, Items: res.Rows})
 }

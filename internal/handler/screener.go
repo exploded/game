@@ -23,6 +23,16 @@ type screenRow struct {
 	Spark    string  // polyline points for the last 30 days (sparkPoints)
 	SparkUp  bool    // the last 30 days ended at or above where they started
 	Holders  int64   // players in this game holding it; set for Favourites only
+	Held     int64   // the player's position, negative for a short; set by markRows
+	Watching bool    // on the player's watchlist; set by markRows
+}
+
+// HeldShares is the player's position without its sign.
+func (r screenRow) HeldShares() int64 {
+	if r.Held < 0 {
+		return -r.Held
+	}
+	return r.Held
 }
 
 // Initial stands in for a missing logo.
@@ -310,6 +320,27 @@ func searchRows(rows []screenRow, q string) screenResult {
 		out = out[:searchLimit]
 	}
 	return screenResult{Caption: "Results for “" + q + "”", Rows: out}
+}
+
+// markRows sets Held and Watching for one player. rows must be what
+// applyFilter returned, never the cached rows, which every player shares.
+func (h *Handler) markRows(ctx context.Context, participantID int64, rows []screenRow) {
+	held := map[int64]int64{}
+	if hs, err := h.q.ListHoldings(ctx, participantID); err == nil {
+		for _, x := range hs {
+			held[x.StockID] = x.Quantity
+		}
+	}
+	watching := map[int64]bool{}
+	if ws, err := h.q.ListWatchlist(ctx, participantID); err == nil {
+		for _, x := range ws {
+			watching[x.StockID] = true
+		}
+	}
+	for i := range rows {
+		rows[i].Held = held[rows[i].ID]
+		rows[i].Watching = watching[rows[i].ID]
+	}
 }
 
 // screenSectors lists the sectors in rows, A–Z, for the sector menu.

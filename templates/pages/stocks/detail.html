@@ -12,7 +12,7 @@
     </div>
     <div class="page-header-actions">
         <a href="/games/{{.Extra.Game.ID}}/stocks" class="btn btn-sm hide-sm">&larr; Stocks</a>
-        <button hx-post="/games/{{.Extra.Game.ID}}/watchlist/{{.Item.ID}}" hx-swap="outerHTML" hx-disable="this" class="btn btn-sm">Watch</button>
+        {{if .Extra.Trade}}{{template "watch-button" dict "Game" .Extra.Game.ID "Stock" .Item.ID "Symbol" .Item.Symbol "Watching" .Extra.Watching}}{{end}}
         {{if .Extra.Trade}}<a href="#ticket" class="btn btn-primary btn-sm show-sm">Trade</a>{{end}}
     </div>
 </div>

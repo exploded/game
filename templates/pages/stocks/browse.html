@@ -46,6 +46,7 @@
             <th>30 days</th>
             <th class="num">Price, today</th>
             <th class="hide-sm">Sector</th>
+            <th><span class="sr-only">Watchlist</span></th>
         </tr>
     </thead>
     <tbody>
@@ -64,6 +65,7 @@
             <div class="sc-text">
                 <a href="/games/{{$.Item.ID}}/stocks/{{.ID}}" class="stretch"><strong>{{.Symbol}}</strong></a>
                 <span class="c-sub">{{.Name}}</span>
+                {{if gt .Held 0}}<span class="badge badge-held">You hold {{.Held}}</span>{{else if lt .Held 0}}<span class="badge badge-held">Short {{.HeldShares}}</span>{{end}}
                 {{if and $.Extra.ShowNotes .PickNote}}<span class="c-sub sc-note">{{.PickNote}}</span>{{end}}
                 {{if .Holders}}<span class="c-sub">{{.Holders}} {{if eq .Holders 1}}player{{else}}players{{end}}</span>{{end}}
             </div>
@@ -72,8 +74,9 @@
     <td class="c-spark">{{if .Spark}}<svg class="spark {{if .SparkUp}}spark-up{{else}}spark-down{{end}}" viewBox="0 0 60 20" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{.Spark}}"/></svg>{{end}}</td>
     <td class="c-end num">{{if .Price}}<span class="sc-price">{{if eq .Currency "USD"}}US{{end}}{{cents .Price}}</span>{{with .Today}}{{if .Base}}<span class="pill {{.Class}}">{{.Pct}}</span>{{end}}{{end}}{{else}}<span class="text-muted">N/A</span>{{end}}</td>
     <td class="text-muted hide-sm">{{.Sector}}</td>
+    <td class="c-watch">{{template "watch-star" dict "Game" $.Item.ID "Stock" .ID "Symbol" .Symbol "Watching" .Watching}}</td>
 </tr>
 {{else}}
-<tr><td colspan="4" class="text-muted">No stocks match.</td></tr>
+<tr><td colspan="5" class="text-muted">No stocks match.</td></tr>
 {{end}}
 {{end}}
