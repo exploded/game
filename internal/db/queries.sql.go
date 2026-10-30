@@ -1150,6 +1150,15 @@ func (q *Queries) CreditCash(ctx context.Context, arg CreditCashParams) error {
 	return err
 }
 
+const deleteContactMessage = `-- name: DeleteContactMessage :exec
+DELETE FROM contact_messages WHERE id = ?
+`
+
+func (q *Queries) DeleteContactMessage(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteContactMessage, id)
+	return err
+}
+
 const deleteCourse = `-- name: DeleteCourse :exec
 DELETE FROM courses WHERE id = ?
 `

@@ -41,6 +41,7 @@
     {{end}}
 
     <main class="container">
+        {{with .AdminNav}}{{template "adminnav" .}}{{end}}
         {{template "content" .}}
     </main>
 

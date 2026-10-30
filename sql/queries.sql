@@ -1096,6 +1096,9 @@ SELECT COUNT(*) FROM contact_messages WHERE is_read = 0;
 -- name: MarkContactMessageRead :exec
 UPDATE contact_messages SET is_read = 1 WHERE id = ?;
 
+-- name: DeleteContactMessage :exec
+DELETE FROM contact_messages WHERE id = ?;
+
 -- =============================================================================
 -- User Data Export
 -- =============================================================================

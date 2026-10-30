@@ -211,7 +211,7 @@ func main() {
 		r.Get("/about", h.AboutPage)
 		r.Get("/help", h.HelpPage)
 		r.Get("/contact", h.ContactPage)
-		r.With(contactLimiter.Middleware).Post("/contact", h.ContactSubmit)
+		r.With(crossOrigin.Handler, contactLimiter.Middleware).Post("/contact", h.ContactSubmit)
 	})
 
 	// Learn: Rob's videos, live streams and questions. Anyone can read them;
@@ -399,6 +399,7 @@ func main() {
 			r.Post("/learn/tiktok/disconnect", h.AdminTikTokDisconnect)
 			r.Post("/email", h.AdminEmailSend)
 			r.Post("/messages/{mid}/read", h.AdminMarkMessageRead)
+			r.Post("/messages/{mid}/delete", h.AdminDeleteMessage)
 		})
 	})
 

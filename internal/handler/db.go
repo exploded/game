@@ -211,6 +211,9 @@ var onceMigrations = []struct{ name, stmt string }{
 	// backfill reload each stock's full history from Twelve Data.
 	{"real-stock-prices", "DELETE FROM stock_prices WHERE stock_id IN (SELECT id FROM stocks WHERE market = 'sp500')"},
 	{"real-stock-prices-refetch", "UPDATE stocks SET history_fetched_at = NULL WHERE market = 'sp500'"},
+	// The 13 contact messages sent by 30 October 2026 were all spam (SEO
+	// pitches and one bot), none from a player. Later ones are kept.
+	{"drop-contact-spam", "DELETE FROM contact_messages WHERE id <= 13"},
 }
 
 func runMigrations(db *sql.DB) error {

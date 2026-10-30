@@ -149,3 +149,13 @@ func (h *Handler) AdminMarkMessageRead(w http.ResponseWriter, r *http.Request) {
 	_ = h.q.MarkContactMessageRead(r.Context(), mid)
 	http.Redirect(w, r, "/admin/messages", http.StatusSeeOther)
 }
+
+func (h *Handler) AdminDeleteMessage(w http.ResponseWriter, r *http.Request) {
+	mid, err := strconv.ParseInt(r.PathValue("mid"), 10, 64)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	_ = h.q.DeleteContactMessage(r.Context(), mid)
+	http.Redirect(w, r, "/admin/messages", http.StatusSeeOther)
+}

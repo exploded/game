@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/exploded/game/internal/auth"
@@ -26,6 +27,9 @@ type Handler struct {
 	mailer     *mail.Mailer
 	media      *media.Service
 	screener   screenCache // the stocks page's rows (screener.go)
+
+	contactKeyOnce sync.Once // the contact form's token key (contact_spam.go)
+	contactKeyVal  []byte
 }
 
 func New(q *db.Queries, rawDB *sql.DB, pages PageTemplates, production bool, loc *time.Location) *Handler {
@@ -58,6 +62,14 @@ type PageData struct {
 	Errors    map[string]string
 	GameBar   *gameBar      // set by the GameContext middleware on /games/{id} pages
 	LiveNow   *db.LiveEvent // a stream on now, for the "Rob is live" banner
+	AdminNav  *adminNav     // the admin links, on /admin pages
+}
+
+// adminNav is the row of links at the top of every admin page
+// (partials/_adminnav.html).
+type adminNav struct {
+	Tab    string // the section you're in ("home" on /admin)
+	Unread int64  // contact messages not yet read
 }
 
 type Flash struct {
@@ -120,6 +132,12 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, pageName, fragm
 		if data.LiveNow == nil {
 			data.LiveNow = h.liveNow(r)
 		}
+		if data.User != nil && data.User.IsAdmin == 1 {
+			if tab := adminTab(r.URL.Path); tab != "" {
+				unread, _ := h.q.CountUnreadContactMessages(r.Context())
+				data.AdminNav = &adminNav{Tab: tab, Unread: unread}
+			}
+		}
 	}
 	// Render into a buffer first: a template error halfway through would
 	// otherwise have already sent a 200 and half a page.
@@ -131,6 +149,20 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, pageName, fragm
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	buf.WriteTo(w)
+}
+
+// adminTab is the admin section a path is in ("games" for /admin/games/3),
+// "home" for /admin itself, or "" outside /admin.
+func adminTab(path string) string {
+	rest, ok := strings.CutPrefix(path, "/admin")
+	if !ok || (rest != "" && rest[0] != '/') {
+		return ""
+	}
+	tab, _, _ := strings.Cut(strings.TrimPrefix(rest, "/"), "/")
+	if tab == "" {
+		return "home"
+	}
+	return tab
 }
 
 func triggerToast(w http.ResponseWriter, msg, kind string) {

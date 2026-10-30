@@ -27,12 +27,15 @@
                 <td><a href="mailto:{{.Email}}">{{.Email}}</a></td>
                 <td style="max-width:400px; word-break:break-word;">{{.Message}}</td>
                 <td>{{if eq .IsRead 0}}<span class="badge badge-warning">Unread</span>{{else}}<span class="text-muted">Read</span>{{end}}</td>
-                <td>
+                <td style="white-space:nowrap">
                     {{if eq .IsRead 0}}
                     <form method="POST" action="/admin/messages/{{.ID}}/read" style="display:inline">
                         <button type="submit" class="btn btn-sm">Mark Read</button>
                     </form>
                     {{end}}
+                    <form method="POST" action="/admin/messages/{{.ID}}/delete" style="display:inline">
+                        <button type="submit" class="btn btn-sm btn-danger" data-confirm="Delete the message from {{.Name}}?">Delete</button>
+                    </form>
                 </td>
             </tr>
             {{end}}

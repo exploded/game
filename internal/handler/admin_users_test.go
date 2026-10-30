@@ -63,6 +63,10 @@ func TestAdminUsersListsActivity(t *testing.T) {
 	if !strings.Contains(body, `data-label="Trades">1<`) {
 		t.Errorf("Bob's trade isn't counted:\n%s", body)
 	}
+	if !strings.Contains(body, `href="/admin/users" class="btn btn-primary" aria-current="page">Users`) ||
+		!strings.Contains(body, `href="/admin/learn" class="btn btn-primary">Learn`) {
+		t.Errorf("the admin links are missing, or Users isn't marked current:\n%s", body)
+	}
 }
 
 func TestBlockUser(t *testing.T) {

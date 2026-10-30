@@ -19,3 +19,20 @@ func TestFmtCents(t *testing.T) {
 		}
 	}
 }
+
+func TestAdminTab(t *testing.T) {
+	for path, want := range map[string]string{
+		"/admin":                "home",
+		"/admin/":               "home",
+		"/admin/games":          "games",
+		"/admin/games/3":        "games",
+		"/admin/learn/topics":   "learn",
+		"/administrator":        "",
+		"/games/1":              "",
+		"/learn/questions/1234": "",
+	} {
+		if got := adminTab(path); got != want {
+			t.Errorf("adminTab(%q) = %q, want %q", path, got, want)
+		}
+	}
+}
