@@ -3,22 +3,27 @@
     <div class="login-left">
         <div class="login-overlay"></div>
         <div class="login-hero">
-            <h1 class="login-hero-title">StockGame</h1>
-            <p class="login-hero-tagline">Fantasy Stock Market</p>
+            <h1 class="login-hero-title">The Wealth Lab</h1>
+            <p class="login-hero-tagline">Play &middot; Learn &middot; Ask Rob</p>
             <div class="login-hero-stats">
                 <div class="login-stat">
                     <span class="login-stat-value">$1M</span>
                     <span class="login-stat-label">Starting Capital</span>
                 </div>
                 <div class="login-stat">
-                    <span class="login-stat-value">ASX + S&P</span>
-                    <span class="login-stat-label">Real Markets</span>
+                    <span class="login-stat-value">S&amp;P 500</span>
+                    <span class="login-stat-label">Real Prices</span>
                 </div>
                 <div class="login-stat">
                     <span class="login-stat-value">0%</span>
                     <span class="login-stat-label">Real Risk</span>
                 </div>
             </div>
+            {{/* On a phone this is hidden, and login.html shows it under the form. */}}
+            <figure class="login-team login-team-wide">
+                <img src="{{asset "img/team.jpg"}}" width="1200" height="727" alt="The Consortium Private Wealth team" loading="lazy" decoding="async">
+                <figcaption>Rob Goudie and the team at Consortium Private Wealth</figcaption>
+            </figure>
         </div>
     </div>
 {{end}}

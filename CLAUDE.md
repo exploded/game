@@ -1,7 +1,7 @@
 ## Project: game
 
 **Path:** `C:\Projects\go\game`
-**Purpose:** Fantasy stock market game platform. Users get $1M to invest in ASX 200 and S&P 500 stocks.
+**Purpose:** The Wealth Lab (called StockGame until 2026-10-30): Rob Goudie's investing community for Consortium Private Wealth, which runs it. A monthly fantasy share game (players get $1M to invest in S&P 500 stocks and US-listed Australian companies; ASX is out until its licence is sorted), plus Learn (videos, live streams, Ask Rob). In player-facing text the site is "The Wealth Lab" and the game is "the share game". The repo, service and domain are still `game`.
 
 ### Stack
 - Go 1.26 / Chi router / htmx 4 / SQLite (modernc.org/sqlite) / sqlc / Go html/template

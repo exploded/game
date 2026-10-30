@@ -1,4 +1,4 @@
-# StockGame Features
+# The Wealth Lab Features
 
 ## Trading & Market Mechanics
 

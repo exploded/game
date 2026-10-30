@@ -1,5 +1,5 @@
 /* ============================================================
-   StockGame — FTX-inspired dark trading terminal theme
+   The Wealth Lab — FTX-inspired dark trading terminal theme
    Font: Inter | 13px base | 8px spacing grid
    ============================================================ */
 
@@ -188,8 +188,7 @@ body:has(.login-page) main.container { padding: 0; max-width: none; }
 .login-page {
     display: flex;
     min-height: 100vh;
-    width: 100vw;
-    margin: 0 -24px;
+    width: 100%;
 }
 
 /* Left panel — hero with background */
@@ -283,6 +282,20 @@ body:has(.login-page) main.container { padding: 0; max-width: none; }
     text-transform: uppercase;
     letter-spacing: 0.08em;
 }
+
+/* Rob's team. Under the stats on a wide screen; under the form on a phone,
+   so the form stays near the top. */
+.login-team { margin: 40px auto 0; max-width: 440px; }
+.login-team img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+.login-team figcaption { margin-top: 10px; font-size: 13px; color: var(--color-text-muted); }
+.login-team-phone { display: none; }
 
 /* Right panel — sign-in form */
 .login-right {
@@ -1145,6 +1158,8 @@ td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-
     .login-hero-title { font-size: 32px; }
     .login-hero-stats { gap: 24px; }
     .login-stat-value { font-size: 18px; }
+    .login-team-wide { display: none; }
+    .login-team-phone { display: block; margin-top: 32px; text-align: center; }
 
     /* Readable type and thumb-sized targets. 16px inputs stop iOS
        zooming the page when a field is focused. */

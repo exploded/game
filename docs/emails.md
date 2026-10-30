@@ -1,6 +1,6 @@
 # Email plan
 
-Every email StockGame sends, why it sends it, and who can turn it off. All
+Every email The Wealth Lab sends, why it sends it, and who can turn it off. All
 email goes through Amazon SES.
 
 ## How sending works
@@ -9,7 +9,7 @@ email goes through Amazon SES.
   `email_outbox` table, and a background worker (`internal/mail`) sends it.
   A failed send retries with back-off, so an SES outage doesn't lose mail or
   slow down a request. Sign-in emails wake the worker straight away.
-- **Sender.** `MAIL_FROM` (for example `StockGame <stockgame@mchugh.au>`).
+- **Sender.** `MAIL_FROM` (for example `The Wealth Lab <stockgame@mchugh.au>`).
   `mchugh.au` is already an SES identity. Marketing email from Rob sets
   `Reply-To` to Rob's address so replies reach him.
 - **Dev.** Without SES credentials the worker prints each email to the log

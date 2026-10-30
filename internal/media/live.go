@@ -28,7 +28,7 @@ type liveEmail struct {
 	Title    string
 	When     string // "Thu 6 Nov, 7:00 pm AEDT"
 	Platform string // "YouTube"
-	URL      string // the stream's page on StockGame
+	URL      string // the stream's page on The Wealth Lab
 	WatchURL string // the stream on the platform
 }
 

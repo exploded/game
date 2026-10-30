@@ -85,7 +85,7 @@ func TestEveryTemplateRenders(t *testing.T) {
 		t.Fatalf("sent %d emails, want 3", len(f.sent))
 	}
 	login := f.sent[0]
-	if login.Subject != "Your StockGame sign-in code: 123456" {
+	if login.Subject != "Your Wealth Lab sign-in code: 123456" {
 		t.Errorf("login subject = %q", login.Subject)
 	}
 	for _, body := range []string{login.Text, login.HTML} {

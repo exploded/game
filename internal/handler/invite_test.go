@@ -96,12 +96,12 @@ func openInvite(t *testing.T, srv http.Handler, d *sql.DB, email string) *http.C
 		t.Fatalf("no invite email to %s: %v", email, err)
 	}
 	m := inviteRE.FindStringSubmatch(body)
-	if m == nil || !strings.Contains(body, "Alice invited you to join Spring Cup") {
+	if m == nil || !strings.Contains(body, "Alice invited you to join the Spring Cup share game") {
 		t.Fatalf("invite email:\n%s", body)
 	}
 	w := httptest.NewRecorder()
 	srv.ServeHTTP(w, httptest.NewRequest("GET", "/invite/"+m[1], nil))
-	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Alice invited you to StockGame") || !strings.Contains(w.Body.String(), `value="`+email+`"`) {
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Alice invited you to The Wealth Lab") || !strings.Contains(w.Body.String(), `value="`+email+`"`) {
 		t.Fatalf("invite link: %d\n%s", w.Code, w.Body)
 	}
 	c := cookie(w, inviteCookie)
@@ -171,7 +171,7 @@ func TestInviteRules(t *testing.T) {
 	for _, tc := range []struct{ user, email, want string }{
 		{"1", "not an email", "Enter a valid email"},
 		{"1", "Alice@Example.com", "your own address"},
-		{"1", "bob@example.com", "already plays StockGame"},
+		{"1", "bob@example.com", "already has a Wealth Lab account"},
 		{"1", "friend@example.com", "success|Invite sent to friend@example.com."},
 		{"1", "FRIEND@example.com", "already been invited"},
 	} {

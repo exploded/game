@@ -41,7 +41,7 @@ type SES struct {
 }
 
 // NewSES returns an SES sender. from is a verified identity, and may include
-// a display name ("StockGame <stockgame@mchugh.au>").
+// a display name ("The Wealth Lab <stockgame@mchugh.au>").
 func NewSES(region, accessKey, secretKey, from string) *SES {
 	return &SES{
 		client: sesv2.NewFromConfig(aws.Config{

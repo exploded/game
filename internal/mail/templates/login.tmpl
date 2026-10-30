@@ -1,6 +1,6 @@
-{{define "subject"}}Your StockGame sign-in code: {{.D.Code}}{{end}}
+{{define "subject"}}Your Wealth Lab sign-in code: {{.D.Code}}{{end}}
 
-{{define "text"}}Use this link to sign in to StockGame:
+{{define "text"}}Use this link to sign in to The Wealth Lab:
 
 {{.BaseURL}}/login/verify?t={{.D.Token}}
 
@@ -9,8 +9,8 @@ Or enter this code on the sign-in page: {{.D.Code}}
 The link and code work once and expire in {{.D.Minutes}} minutes. If you
 didn't try to sign in, ignore this email.{{end}}
 
-{{define "html"}}<p style="margin:0 0 20px;">Use this button to sign in to StockGame:</p>
-<p style="margin:0 0 24px;"><a href="{{.BaseURL}}/login/verify?t={{.D.Token}}" style="display:inline-block;background:#007994;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:6px;">Sign in to StockGame</a></p>
+{{define "html"}}<p style="margin:0 0 20px;">Use this button to sign in to The Wealth Lab:</p>
+<p style="margin:0 0 24px;"><a href="{{.BaseURL}}/login/verify?t={{.D.Token}}" style="display:inline-block;background:#007994;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:6px;">Sign in to The Wealth Lab</a></p>
 <p style="margin:0 0 8px;">Or enter this code on the sign-in page:</p>
 <p style="margin:0 0 24px;font-size:28px;font-weight:700;letter-spacing:6px;font-family:Consolas,Menlo,monospace;">{{.D.Code}}</p>
 <p style="margin:0;color:#6b7385;font-size:13px;">The link and code work once and expire in {{.D.Minutes}} minutes. If you didn't try to sign in, ignore this email.</p>{{end}}

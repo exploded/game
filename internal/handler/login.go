@@ -184,7 +184,7 @@ func (h *Handler) LoginCode(w http.ResponseWriter, r *http.Request) {
 		}
 		h.render(w, r, "auth/check", "", PageData{
 			Title:  "Check your email",
-			Errors: map[string]string{"code": "That code isn't right. Check the newest email from StockGame."},
+			Errors: map[string]string{"code": "That code isn't right. Check the newest email from The Wealth Lab."},
 			Extra:  map[string]any{"Email": req.Email},
 		})
 		return

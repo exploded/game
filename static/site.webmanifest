@@ -1,6 +1,6 @@
 {
-  "name": "StockGame",
-  "short_name": "StockGame",
+  "name": "The Wealth Lab",
+  "short_name": "Wealth Lab",
   "icons": [
     {
       "src": "/static/android-chrome-192x192.png",

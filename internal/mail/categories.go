@@ -1,4 +1,4 @@
-// Package mail renders StockGame's emails, queues them in the email_outbox
+// Package mail renders The Wealth Lab's emails, queues them in the email_outbox
 // table and sends them through Amazon SES. docs/emails.md lists every email.
 package mail
 

@@ -1,8 +1,8 @@
-{{define "subject"}}Welcome to StockGame{{end}}
+{{define "subject"}}Welcome to The Wealth Lab{{end}}
 
-{{define "text"}}Welcome to StockGame, the fantasy stock market game.
+{{define "text"}}Welcome to The Wealth Lab, Rob Goudie's investing community.
 
-Here's how it works:
+Start with the share game. Here's how it works:
 
 1. You're in this month's game as soon as you sign in.
 2. You start with $1,000,000 of virtual cash.
@@ -10,9 +10,10 @@ Here's how it works:
 4. The player with the biggest portfolio when the game ends wins.
 
 Find a game: {{.BaseURL}}/games
-How to play: {{.BaseURL}}/help{{end}}
+How to play: {{.BaseURL}}/help
+Watch Rob's videos: {{.BaseURL}}/learn{{end}}
 
-{{define "html"}}<p style="margin:0 0 16px;">Welcome to StockGame, the fantasy stock market game. Here's how it works:</p>
+{{define "html"}}<p style="margin:0 0 16px;">Welcome to The Wealth Lab, Rob Goudie's investing community. Start with the share game. Here's how it works:</p>
 <ol style="margin:0 0 20px;padding-left:20px;">
   <li>You're in this month's game as soon as you sign in.</li>
   <li>You start with $1,000,000 of virtual cash.</li>
@@ -20,4 +21,4 @@ How to play: {{.BaseURL}}/help{{end}}
   <li>The player with the biggest portfolio when the game ends wins.</li>
 </ol>
 <p style="margin:0 0 24px;"><a href="{{.BaseURL}}/games" style="display:inline-block;background:#007994;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:6px;">Find a game</a></p>
-<p style="margin:0;">New to investing? Read <a href="{{.BaseURL}}/help" style="color:#007994;">how to play</a>.</p>{{end}}
+<p style="margin:0;">New to investing? Read <a href="{{.BaseURL}}/help" style="color:#007994;">how to play</a>, or <a href="{{.BaseURL}}/learn" style="color:#007994;">watch Rob's videos</a>.</p>{{end}}

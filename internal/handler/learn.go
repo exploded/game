@@ -366,7 +366,7 @@ func (h *Handler) LearnLiveCalendar(w http.ResponseWriter, r *http.Request) {
 	lines := []string{
 		"BEGIN:VCALENDAR",
 		"VERSION:2.0",
-		"PRODID:-//StockGame//Learn//EN",
+		"PRODID:-//The Wealth Lab//Learn//EN",
 		"METHOD:PUBLISH",
 		"BEGIN:VEVENT",
 		"UID:live-" + strconv.FormatInt(e.ID, 10) + "@" + r.Host,

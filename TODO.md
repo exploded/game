@@ -30,9 +30,12 @@ Built on 2026-10-29 and merged into `master` on 2026-10-30. Not deployed yet.
 - [ ] **Go live.** Needs an SES IAM user and `SES_ACCESS_KEY_ID`,
   `SES_SECRET_ACCESS_KEY`, `SES_REGION` and `MAIL_FROM` in the server `.env`.
   Without them nobody can sign in. Remove `GOOGLE_CLIENT_*` from the `.env`.
-- [ ] **Answer Rob's open questions for email:** sender name and postal address
-  for newsletters (`NEWS_SENDER`), reply-to address (`NEWS_REPLY_TO`). The
-  newsletter page won't send without `NEWS_SENDER`. See `docs/emails.md`.
+- [ ] **Newsletter details from Rob (2026-10-30)** go in the server `.env`:
+  `NEWS_SENDER="Consortium Private Wealth, 24A Darlot Street, Horsham VIC 3400"`
+  and `NEWS_REPLY_TO=info@consortiumpw.com.au`. Also change `MAIL_FROM`'s
+  name to The Wealth Lab.
+- [x] **Landing page team photo.** On the sign-in page: beside the form on a
+  wide screen, under it on a phone (`static/img/team.jpg`, 2026-10-30).
 - [ ] **Weekly summary and "we miss you" emails** (D1 and N2 in
   `docs/emails.md`). The Weekly summary setting is hidden until D1 exists.
 - [ ] **Remove Google leftovers:** `users.picture_url`, the

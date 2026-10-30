@@ -1,13 +1,13 @@
 {{/* D has Title, Summary and URL. */}}
-{{define "subject"}}New on StockGame: {{.D.Title}}{{end}}
+{{define "subject"}}New on The Wealth Lab: {{.D.Title}}{{end}}
 
-{{define "text"}}There's a new course on StockGame: {{.D.Title}}
+{{define "text"}}There's a new course on The Wealth Lab: {{.D.Title}}
 {{with .D.Summary}}
 {{.}}
 {{end}}
 Watch it: {{.BaseURL}}{{.D.URL}}{{end}}
 
-{{define "html"}}<p style="margin:0 0 16px;">There's a new course on StockGame:</p>
+{{define "html"}}<p style="margin:0 0 16px;">There's a new course on The Wealth Lab:</p>
 <p style="margin:0 0 16px;font-size:18px;font-weight:600;">{{.D.Title}}</p>
 {{range paragraphs .D.Summary}}<p style="margin:0 0 16px;">{{.}}</p>{{end}}
 <p style="margin:8px 0 0;"><a href="{{.BaseURL}}{{.D.URL}}" style="display:inline-block;background:#007994;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:6px;">Watch the course</a></p>{{end}}

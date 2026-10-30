@@ -97,7 +97,7 @@ func (h *Handler) InviteSend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err := h.q.GetUserByEmail(ctx, email); err == nil {
-		fail(email + " already plays StockGame, so there's no bonus for inviting them.")
+		fail(email + " already has a Wealth Lab account, so there's no bonus for inviting them.")
 		return
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		h.serverError(w, "invite: find user", err)
@@ -169,7 +169,7 @@ func (h *Handler) InviteLanding(w http.ResponseWriter, r *http.Request) {
 		MaxAge: inviteCookieAge, HttpOnly: true, Secure: auth.IsSecure(r), SameSite: http.SameSiteLaxMode,
 	})
 	h.render(w, r, "auth/login", "", PageData{
-		Title: "Join " + from.Name + " on StockGame",
+		Title: "Join " + from.Name + " on The Wealth Lab",
 		Extra: map[string]any{
 			"Email":     invite.Email.String,
 			"InvitedBy": from.Name,
