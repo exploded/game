@@ -3,7 +3,9 @@ package handler
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -122,6 +124,82 @@ func (h *Handler) gamePage(w http.ResponseWriter, r *http.Request, portfolioIfJo
 	})
 }
 
+// errGameClosed and errGameFull are why joinGame can't add a player.
+var (
+	errGameClosed = errors.New("game not accepting players")
+	errGameFull   = errors.New("game full")
+)
+
+// joinGame adds the user to the game with its starting cash and any
+// starting stocks, and posts it to the game's activity feed.
+func (h *Handler) joinGame(ctx context.Context, game db.Game, userID int64) (db.Participant, error) {
+	if game.Status != "pending" && game.Status != "active" {
+		return db.Participant{}, errGameClosed
+	}
+	if game.MaxParticipants.Valid {
+		if count, _ := h.q.CountParticipants(ctx, game.ID); count >= game.MaxParticipants.Int64 {
+			return db.Participant{}, errGameFull
+		}
+	}
+
+	participant, err := h.q.JoinGame(ctx, db.JoinGameParams{
+		GameID:         game.ID,
+		UserID:         userID,
+		CashBalance:    game.StartingBalance,
+		PortfolioValue: game.StartingBalance,
+	})
+	if err != nil {
+		return db.Participant{}, err
+	}
+
+	// Grant starting stocks if configured.
+	startingStocks, _ := h.q.ListStartingStocks(ctx, game.ID)
+	for _, ss := range startingStocks {
+		_ = h.q.UpsertHolding(ctx, db.UpsertHoldingParams{
+			ParticipantID: participant.ID,
+			StockID:       ss.StockID,
+			Quantity:      ss.Quantity,
+			AvgCost:       0, // given for free
+			CostBasis:     0,
+			CurrentValue:  0, // revaluation will update
+		})
+	}
+
+	_ = h.q.InsertActivity(ctx, db.InsertActivityParams{
+		GameID:   game.ID,
+		UserID:   userID,
+		Action:   "join",
+		Detail:   "joined the game",
+		IsPublic: 1,
+	})
+	return participant, nil
+}
+
+// isCurrentGame reports whether g is this quarter's game, which every
+// player is in without having to join.
+func (h *Handler) isCurrentGame(g db.Game) bool {
+	return g.Quarter.Valid && g.Quarter.String == market.QuarterOf(time.Now().In(h.loc)).Key()
+}
+
+// currentGame is this quarter's game, with the user joined to it. It's
+// false until the scheduler has created the game.
+func (h *Handler) currentGame(ctx context.Context, userID int64) (db.Game, bool) {
+	qtr := market.QuarterOf(time.Now().In(h.loc))
+	g, err := h.q.GetGameByQuarter(ctx, sql.NullString{String: qtr.Key(), Valid: true})
+	if err != nil {
+		return db.Game{}, false
+	}
+	if _, err := h.q.GetParticipantByGameAndUser(ctx, db.GetParticipantByGameAndUserParams{
+		GameID: g.ID, UserID: userID,
+	}); errors.Is(err, sql.ErrNoRows) {
+		if _, err := h.joinGame(ctx, g, userID); err != nil {
+			slog.Error("join current game", "game", g.ID, "user", userID, "error", err)
+		}
+	}
+	return g, true
+}
+
+// GameJoin joins a game that isn't this quarter's, such as the next one.
 func (h *Handler) GameJoin(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -136,52 +214,14 @@ func (h *Handler) GameJoin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if game.Status != "pending" && game.Status != "active" {
+	switch _, err := h.joinGame(r.Context(), game, user.ID); {
+	case errors.Is(err, errGameClosed):
 		setFlashCookie(w, "This game is not accepting participants", "error")
-		http.Redirect(w, r, fmt.Sprintf("/games/%d", id), http.StatusSeeOther)
-		return
-	}
-
-	// Check max participants.
-	if game.MaxParticipants.Valid {
-		count, _ := h.q.CountParticipants(r.Context(), game.ID)
-		if count >= game.MaxParticipants.Int64 {
-			setFlashCookie(w, "Game is full", "error")
-			http.Redirect(w, r, fmt.Sprintf("/games/%d", id), http.StatusSeeOther)
-			return
-		}
-	}
-
-	participant, err := h.q.JoinGame(r.Context(), db.JoinGameParams{
-		GameID:         game.ID,
-		UserID:         user.ID,
-		CashBalance:    game.StartingBalance,
-		PortfolioValue: game.StartingBalance,
-	})
-	if err != nil {
+	case errors.Is(err, errGameFull):
+		setFlashCookie(w, "Game is full", "error")
+	case err != nil:
 		setFlashCookie(w, "Already joined or error", "error")
-	} else {
-		// Grant starting stocks if configured.
-		startingStocks, _ := h.q.ListStartingStocks(r.Context(), game.ID)
-		for _, ss := range startingStocks {
-			_ = h.q.UpsertHolding(r.Context(), db.UpsertHoldingParams{
-				ParticipantID: participant.ID,
-				StockID:       ss.StockID,
-				Quantity:      ss.Quantity,
-				AvgCost:       0, // given for free
-				CurrentValue:  0, // revaluation will update
-			})
-		}
-
-		// Record join in activity feed.
-		_ = h.q.InsertActivity(r.Context(), db.InsertActivityParams{
-			GameID:   game.ID,
-			UserID:   user.ID,
-			Action:   "join",
-			Detail:   "joined the game",
-			IsPublic: 1,
-		})
-
+	default:
 		setFlashCookie(w, "Joined game!", "success")
 	}
 	http.Redirect(w, r, fmt.Sprintf("/games/%d", id), http.StatusSeeOther)

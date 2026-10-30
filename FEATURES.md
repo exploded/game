@@ -15,7 +15,7 @@ Bookmark stocks you're tracking without buying. Add/remove via HTMX toggle butto
 - **Files:** `internal/handler/watchlist.go`, `templates/pages/watchlist/index.html`
 
 ### 3. Short Selling
-When a game has `allow_short` enabled, players can sell shares they don't own to open short positions (negative holdings). Short positions are tracked with negative quantities and revalued like normal holdings.
+When a game has `allow_short` enabled, players can sell shares they don't own to open short positions (negative holdings). Short positions are tracked with negative quantities and revalued like normal holdings. A short's cost is the negative of what the sale raised, so its return is up when the price falls.
 
 - **Files:** Updated `internal/handler/trade.go`, updated `templates/pages/trade/form.html`
 
@@ -26,7 +26,7 @@ Admin can simulate dividend payments for any stock. All participants holding the
 - **Files:** `internal/handler/gameevents.go`, updated `templates/pages/admin/index.html`
 
 ### 5. Stock Splits
-Admin can simulate stock splits (e.g. 2:1, 3:1). All holdings of the stock across active games are adjusted — quantity multiplied and average cost divided by the split ratio. Notifications sent to holders.
+Admin can simulate stock splits (e.g. 2:1, 3:1). All holdings of the stock across active games are adjusted — quantity multiplied by the split ratio, with the total cost unchanged, so the average cost falls to match. Notifications sent to holders.
 
 - **Routes:** `/admin/stock-split` (POST)
 - **Files:** `internal/handler/gameevents.go`, updated `templates/pages/admin/index.html`
@@ -133,7 +133,7 @@ Dashboard showing trade statistics: total trades, buy/sell counts, win rate, tot
 ## Game Enhancements
 
 ### 16. One game per quarter
-There's one game each calendar quarter. It starts at midnight on 1 January, April, July or October and ends at midnight after the quarter's last day, in `TIMEZONE`. Players can't create games. The scheduler creates this quarter's game and the next one, named like "Jan–Mar 2027", each copying the settings of the game before it, so players can join the next game early. Admins change a game's settings at `/admin/games`: name, description, markets, player limit, trade fee, referral bonus, limit orders and short selling. Starting cash and currency are fixed once someone has joined. Finished games are listed on `/games` with their final standings.
+There's one game each calendar quarter. It starts at midnight on 1 January, April, July or October and ends at midnight after the quarter's last day, in `TIMEZONE`. Players can't create games, and they don't join this quarter's game: signing in takes them straight into it with their starting cash. The scheduler creates this quarter's game and the next one, named like "Jan–Mar 2027", each copying the settings of the game before it, so players can join the next game early. Admins change a game's settings at `/admin/games`: name, description, markets, player limit, trade fee, referral bonus, limit orders and short selling. Starting cash and currency are fixed once someone has joined. Finished games are listed on `/games` with their final standings.
 
 - **Schema:** `games.quarter` (`2027-Q1`, unique; NULL for games from before quarters)
 - **Routes:** `/games`, `/admin/games`, `/admin/games/{gid}` (GET/POST), `/admin/games/{gid}/cancel`

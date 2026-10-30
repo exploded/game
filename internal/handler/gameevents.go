@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/exploded/game/internal/db"
+	"github.com/exploded/game/internal/market"
 )
 
 // resolveStockBySearch finds a single stock matching the search term (ticker or name).
@@ -140,14 +141,15 @@ func (h *Handler) AdminStockSplit(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
+		// A split changes the share count, not what was paid for them.
 		newQty := (h_.Quantity * ratioNum) / ratioDen
-		newAvg := (h_.AvgCost * ratioDen) / ratioNum
 
 		_ = h.q.UpsertHolding(r.Context(), db.UpsertHoldingParams{
 			ParticipantID: h_.ParticipantID,
 			StockID:       h_.StockID,
 			Quantity:      newQty,
-			AvgCost:       newAvg,
+			AvgCost:       market.AvgCost(newQty, h_.CostBasis),
+			CostBasis:     h_.CostBasis,
 			CurrentValue:  h_.CurrentValue, // preserve existing; revaluation will update
 		})
 

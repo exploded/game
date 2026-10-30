@@ -187,6 +187,7 @@ type Holding struct {
 	AvgCost       int64
 	CurrentValue  int64
 	UpdatedAt     string
+	CostBasis     int64
 }
 
 type Lesson struct {

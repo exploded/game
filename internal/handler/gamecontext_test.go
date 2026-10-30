@@ -106,7 +106,7 @@ func TestGameHomeIsPortfolio(t *testing.T) {
 	p, _ := q.GetParticipantByGameAndUser(t.Context(), db.GetParticipantByGameAndUserParams{GameID: 1, UserID: 1})
 	// 10 ACME bought at $9.00, closed at $10.00 then $10.50.
 	if err := q.UpsertHolding(t.Context(), db.UpsertHoldingParams{
-		ParticipantID: p.ID, StockID: 1, Quantity: 10, AvgCost: 900, CurrentValue: 10500,
+		ParticipantID: p.ID, StockID: 1, Quantity: 10, AvgCost: 900, CostBasis: 9000, CurrentValue: 10500,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -200,6 +200,8 @@ func TestChangePct(t *testing.T) {
 		{change{-50, 1000}, "-5.00%"},
 		{change{-1, 1000000}, "0.00%"}, // not "-0.00%"
 		{change{5, 0}, ""},
+		{change{1000, -10000}, "+10.00%"}, // a short that's up
+		{change{-1000, -10000}, "-10.00%"},
 	} {
 		if got := tc.c.Pct(); got != tc.want {
 			t.Errorf("%+v.Pct() = %q, want %q", tc.c, got, tc.want)

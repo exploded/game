@@ -8,6 +8,7 @@ import (
 
 	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/db"
+	"github.com/exploded/game/internal/market"
 )
 
 // Portfolio redirects old links: the portfolio is now the game's home page.
@@ -30,12 +31,13 @@ func (c change) Text() string {
 }
 
 // Pct is the change as a percentage of the base: "+1.25%". Changes that
-// round to zero show as "0.00%", never "-0.00%".
+// round to zero show as "0.00%", never "-0.00%". A short's base is
+// negative, so its size is used: the sign follows the gain or loss.
 func (c change) Pct() string {
 	if c.Base == 0 {
 		return ""
 	}
-	p := math.Round(float64(c.Amount)/float64(c.Base)*10000) / 100
+	p := math.Round(float64(c.Amount)/math.Abs(float64(c.Base))*10000) / 100
 	if p == 0 {
 		return "0.00%"
 	}
@@ -57,9 +59,11 @@ func (c change) Class() string {
 // stock's own currency.
 type holdingRow struct {
 	db.ListHoldingsRow
-	Price int64  // the latest close
-	Today change // the latest close against the one before
-	Total change // value against what the shares cost
+	Avg        int64  // average price paid per share
+	Price      int64  // the latest close
+	Today      change // the latest close against the one before
+	Total      change // value against what the shares cost
+	SellQueued bool   // a sale is waiting for the market to open
 }
 
 // standing is where a player sits on the game's leaderboard.
@@ -126,12 +130,23 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 		rate = er.RateAudUsd
 	}
 
+	queuedSells := map[int64]bool{}
+	if orders, err := h.q.ListOpenLimitOrders(ctx, participant.ID); err == nil {
+		for _, o := range orders {
+			if o.Type == "sell" && o.Kind == "market" {
+				queuedSells[o.StockID] = true
+			}
+		}
+	}
+
 	rows := make([]holdingRow, 0, len(holdings))
 	var todayBase int64 // today's move across all holdings, in the game's currency
 	for _, ho := range holdings {
 		row := holdingRow{
 			ListHoldingsRow: ho,
-			Total:           change{ho.CurrentValue - ho.Quantity*ho.AvgCost, ho.Quantity * ho.AvgCost},
+			Avg:             market.AvgCost(ho.Quantity, ho.CostBasis),
+			Total:           change{ho.CurrentValue - ho.CostBasis, ho.CostBasis},
+			SellQueued:      queuedSells[ho.StockID],
 		}
 		if bars, err := h.q.ListLatestPrices(ctx, ho.StockID); err == nil && len(bars) > 0 {
 			row.Price = bars[0].Close

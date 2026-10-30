@@ -304,8 +304,8 @@ func (h *Handler) WelcomeSubmit(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, next, http.StatusSeeOther)
 		return
 	}
-	setFlashCookie(w, "You're all set. Join a game to get your $1,000,000.", "success")
-	http.Redirect(w, r, "/games", http.StatusSeeOther)
+	setFlashCookie(w, "You're all set. You have $1,000,000 to invest.", "success")
+	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 }
 
 // loginCode is a uniformly random 6-digit code.

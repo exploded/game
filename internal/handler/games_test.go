@@ -17,14 +17,14 @@ import (
 
 // quarterServer seeds this quarter's game (id 1, which Alice has joined), the
 // next quarter's (id 2) and a finished game (id 3). Alice (user 1) is an
-// admin.
+// admin; Bob (user 2, X-User: 2) hasn't joined anything.
 func quarterServer(t *testing.T) (http.Handler, *sql.DB) {
 	t.Helper()
 	d := openTestDB(t)
 	this := market.QuarterOf(time.Now().UTC())
 	next := this.Next()
 	for _, stmt := range []string{
-		`INSERT INTO users (id, email, name, email_token, is_admin) VALUES (1, 'a@x', 'Alice', 't1', 1)`,
+		`INSERT INTO users (id, email, name, email_token, is_admin) VALUES (1, 'a@x', 'Alice', 't1', 1), (2, 'b@x', 'Bob', 't2', 0)`,
 		`INSERT INTO games (id, created_by, name, status, start_date, end_date, quarter, trade_fee, limit_orders)
 		 VALUES (1, 1, '` + this.Name() + `', 'active', '` + this.StartDate() + `', '` + this.EndDate() + `', '` + this.Key() + `', 0, 1),
 		        (2, 1, '` + next.Name() + `', 'pending', '` + next.StartDate() + `', '` + next.EndDate() + `', '` + next.Key() + `', 0, 1),
@@ -41,7 +41,11 @@ func quarterServer(t *testing.T) (http.Handler, *sql.DB) {
 	r := chi.NewRouter()
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			user, err := q.GetUser(r.Context(), 1)
+			id := int64(1)
+			if r.Header.Get("X-User") == "2" {
+				id = 2
+			}
+			user, err := q.GetUser(r.Context(), id)
 			if err != nil {
 				t.Fatalf("GetUser: %v", err)
 			}
@@ -50,6 +54,10 @@ func quarterServer(t *testing.T) (http.Handler, *sql.DB) {
 	})
 	r.Get("/games", h.GamesList)
 	r.Get("/dashboard", h.Dashboard)
+	r.Route("/games/{id}", func(r chi.Router) {
+		r.Use(h.GameContext)
+		r.Get("/", h.GameDetail)
+	})
 	r.Post("/admin/games/{gid}", h.AdminGameUpdate)
 	return r, d
 }
@@ -57,16 +65,14 @@ func quarterServer(t *testing.T) (http.Handler, *sql.DB) {
 func TestGamesPageShowsQuarterAndPastGames(t *testing.T) {
 	srv, _ := quarterServer(t)
 	this := market.QuarterOf(time.Now().UTC())
-	for _, path := range []string{"/games", "/dashboard"} {
-		body := getPage(t, srv, path, "1")
-		for _, want := range []string{"This quarter", this.Name(), "Next game", this.Next().Name(), `action="/games/2/join"`} {
-			if !strings.Contains(body, want) {
-				t.Errorf("%s doesn't contain %q", path, want)
-			}
+	body := getPage(t, srv, "/games", "1")
+	for _, want := range []string{"This quarter", this.Name(), "Next game", this.Next().Name(), `action="/games/2/join"`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("/games doesn't contain %q", want)
 		}
-		if strings.Contains(body, `action="/games/1/join"`) {
-			t.Errorf("%s offers to join a game Alice is in", path)
-		}
+	}
+	if strings.Contains(body, `action="/games/1/join"`) {
+		t.Error("/games offers to join a game Alice is in")
 	}
 	if body := getPage(t, srv, "/games", "1"); !strings.Contains(body, "Spring Cup") || !strings.Contains(body, "/games/3/leaderboard") {
 		t.Error("/games doesn't list the finished game with its standings")
@@ -116,5 +122,39 @@ func TestAdminChangesGameSettings(t *testing.T) {
 	// A finished game can't change.
 	if got := get(3); got.name != "Spring Cup" || got.fee != 0 {
 		t.Errorf("finished game changed: %+v", got)
+	}
+}
+
+// TestDashboardJoinsCurrentGame: a player who has never joined anything
+// lands in this quarter's game with its starting cash.
+func TestDashboardJoinsCurrentGame(t *testing.T) {
+	srv, d := quarterServer(t)
+	for range 2 { // the second visit mustn't join again
+		req := httptest.NewRequest("GET", "/dashboard", nil)
+		req.Header.Set("X-User", "2")
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, req)
+		if w.Code != http.StatusSeeOther || w.Header().Get("Location") != "/games/1" {
+			t.Fatalf("got %d to %q, want 303 to /games/1", w.Code, w.Header().Get("Location"))
+		}
+	}
+	var n int
+	var cash int64
+	if err := d.QueryRow("SELECT COUNT(*), SUM(cash_balance) FROM participants WHERE game_id = 1 AND user_id = 2").Scan(&n, &cash); err != nil || n != 1 || cash != 100000000 {
+		t.Errorf("Bob in game 1: %d rows with %d cash (%v), want 1 with 100000000", n, cash, err)
+	}
+}
+
+// TestGamePageJoinsOnlyCurrentGame: opening this quarter's game joins you;
+// opening the next or a past game doesn't.
+func TestGamePageJoinsOnlyCurrentGame(t *testing.T) {
+	srv, d := quarterServer(t)
+	for _, id := range []string{"2", "3", "1"} {
+		getPage(t, srv, "/games/"+id, "2")
+	}
+	var games string
+	d.QueryRow("SELECT group_concat(game_id) FROM participants WHERE user_id = 2").Scan(&games)
+	if games != "1" {
+		t.Errorf("Bob is in games %q, want just 1", games)
 	}
 }

@@ -134,20 +134,21 @@ func fillLimitOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrde
 		existing, _ := q.GetHolding(ctx, db.GetHoldingParams{
 			ParticipantID: participant.ID, StockID: order.StockID,
 		})
-		newQty := existing.Quantity + order.Quantity
-		var newAvg int64
-		if existing.ID != 0 {
-			newAvg = ((existing.Quantity * existing.AvgCost) + (order.Quantity * pricePerShare)) / newQty
+		newQty, newCost := Fill(existing.Quantity, existing.CostBasis, "buy", order.Quantity, pricePerShare)
+		if newQty == 0 {
+			_ = q.DeleteHolding(ctx, db.DeleteHoldingParams{
+				ParticipantID: participant.ID, StockID: order.StockID,
+			})
 		} else {
-			newAvg = pricePerShare
+			_ = q.UpsertHolding(ctx, db.UpsertHoldingParams{
+				ParticipantID: participant.ID,
+				StockID:       order.StockID,
+				Quantity:      newQty,
+				AvgCost:       AvgCost(newQty, newCost),
+				CostBasis:     newCost,
+				CurrentValue:  newQty * pricePerShare,
+			})
 		}
-		_ = q.UpsertHolding(ctx, db.UpsertHoldingParams{
-			ParticipantID: participant.ID,
-			StockID:       order.StockID,
-			Quantity:      newQty,
-			AvgCost:       newAvg,
-			CurrentValue:  newQty * pricePerShare,
-		})
 
 		// Insert transaction.
 		_, _ = q.InsertTransaction(ctx, db.InsertTransactionParams{
@@ -184,22 +185,18 @@ func fillLimitOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrde
 			ID:          participant.ID,
 		})
 
-		newQty := holding.Quantity - order.Quantity
+		newQty, newCost := Fill(holding.Quantity, holding.CostBasis, "sell", order.Quantity, pricePerShare)
 		if newQty == 0 {
 			_ = q.DeleteHolding(ctx, db.DeleteHoldingParams{
 				ParticipantID: participant.ID, StockID: order.StockID,
 			})
 		} else {
-			// A short position is tracked at the price it was opened at.
-			avgCost := holding.AvgCost
-			if newQty < 0 {
-				avgCost = pricePerShare
-			}
 			_ = q.UpsertHolding(ctx, db.UpsertHoldingParams{
 				ParticipantID: participant.ID,
 				StockID:       order.StockID,
 				Quantity:      newQty,
-				AvgCost:       avgCost,
+				AvgCost:       AvgCost(newQty, newCost),
+				CostBasis:     newCost,
 				CurrentValue:  newQty * pricePerShare,
 			})
 		}

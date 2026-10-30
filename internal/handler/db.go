@@ -100,6 +100,7 @@ var addedColumns = []struct{ table, column, ddl string }{
 	{"questions", "answer_seconds", "INTEGER NOT NULL DEFAULT 0"},
 	{"questions", "live_event_id", "INTEGER DEFAULT NULL REFERENCES live_events(id) ON DELETE SET NULL"},
 	{"questions", "answer_mailed", "INTEGER NOT NULL DEFAULT 1"},
+	{"holdings", "cost_basis", "INTEGER NOT NULL DEFAULT 0"},
 }
 
 // onceMigrations run exactly once per database, in order. Each is recorded in
@@ -140,6 +141,9 @@ var onceMigrations = []struct{ name, stmt string }{
 		('advice', 'Financial advice', 'Working with an adviser, fees, DIY vs professional advice.', 14)`},
 	// Not in schema.sql, which runs before addedColumns adds them.
 	{"idx-questions-topic", "CREATE INDEX IF NOT EXISTS idx_questions_topic ON questions(topic_id) WHERE topic_id IS NOT NULL"},
+	// Holdings kept only a rounded-down average price. Start each total
+	// from it; trades from now on keep it exact.
+	{"holdings-cost-basis", "UPDATE holdings SET cost_basis = quantity * avg_cost"},
 }
 
 func runMigrations(db *sql.DB) error {

@@ -149,8 +149,8 @@ func (h *Handler) placeLimitOrder(w http.ResponseWriter, r *http.Request, game d
 // The scheduler fills it at the first price after the open. estimate is the
 // trade's value at the last price, in the game's base currency; cash is
 // checked again at the fill, when the order is cancelled if it's short.
-func (h *Handler) queueMarketOrder(w http.ResponseWriter, r *http.Request, game db.Game, participant db.Participant, stock db.Stock, side string, quantity, estimate int64) {
-	back := fmt.Sprintf("/games/%d/stocks/%d", game.ID, stock.ID)
+// back is the page the order came from, for errors.
+func (h *Handler) queueMarketOrder(w http.ResponseWriter, r *http.Request, game db.Game, participant db.Participant, stock db.Stock, side string, quantity, estimate int64, back string) {
 	switch side {
 	case "buy":
 		if estimate+game.TradeFee > participant.CashBalance {
@@ -185,7 +185,11 @@ func (h *Handler) queueMarketOrder(w http.ResponseWriter, r *http.Request, game 
 	}
 
 	setFlashCookie(w, fmt.Sprintf("Order queued: %s %s of %s. The US market is closed, so it fills when it opens at 9:30 am New York time.", side, shares(quantity), stock.Symbol), "success")
-	http.Redirect(w, r, fmt.Sprintf("/games/%d/orders", game.ID), http.StatusSeeOther)
+	done := fmt.Sprintf("/games/%d/orders", game.ID)
+	if back == fmt.Sprintf("/games/%d", game.ID) {
+		done = back // queued from the home page's Sell button: stay there
+	}
+	http.Redirect(w, r, done, http.StatusSeeOther)
 }
 
 func (h *Handler) LimitOrderCancel(w http.ResponseWriter, r *http.Request) {

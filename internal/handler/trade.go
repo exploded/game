@@ -98,6 +98,10 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 
 	back := fmt.Sprintf("/games/%d/stocks/%d", gameID, stockID)
 	r.ParseForm()
+	if r.FormValue("from") == "home" {
+		// The Sell button on the game's home page.
+		back = fmt.Sprintf("/games/%d", gameID)
+	}
 	tradeType := r.FormValue("side") // "buy" or "sell"
 	if tradeType == "" {
 		tradeType = r.FormValue("type") // the old trade page's field
@@ -115,6 +119,21 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	quantity, _ := strconv.ParseInt(r.FormValue("quantity"), 10, 64)
+
+	// all=1 sells the whole holding, however many shares that is now. A
+	// second tap then finds nothing to sell instead of selling short.
+	sellAll := tradeType == "sell" && r.FormValue("all") == "1"
+	if sellAll {
+		held, _ := h.q.GetHolding(r.Context(), db.GetHoldingParams{
+			ParticipantID: participant.ID, StockID: stock.ID,
+		})
+		if held.Quantity <= 0 {
+			setFlashCookie(w, "You don't hold any "+stock.Symbol, "error")
+			http.Redirect(w, r, back, http.StatusSeeOther)
+			return
+		}
+		quantity = held.Quantity
+	}
 
 	if quantity <= 0 {
 		setFlashCookie(w, "Quantity must be positive", "error")
@@ -144,7 +163,12 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 	totalBase := convertCurrency(totalNative, stock.Currency, game.BaseCurrency, exchangeRate)
 
 	if queuesMarketOrder(stock.Market) {
-		h.queueMarketOrder(w, r, game, participant, stock, tradeType, quantity, totalBase)
+		if sellAll && h.sellQueued(r.Context(), participant.ID, stock.ID) {
+			setFlashCookie(w, "You've already queued a sale of "+stock.Symbol, "error")
+			http.Redirect(w, r, back, http.StatusSeeOther)
+			return
+		}
+		h.queueMarketOrder(w, r, game, participant, stock, tradeType, quantity, totalBase, back)
 		return
 	}
 
@@ -180,20 +204,22 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 		existing, _ := qtx.GetHolding(r.Context(), db.GetHoldingParams{
 			ParticipantID: participant.ID, StockID: stock.ID,
 		})
-		newQty := existing.Quantity + quantity
-		var newAvg int64
-		if existing.ID != 0 {
-			newAvg = ((existing.Quantity * existing.AvgCost) + (quantity * pricePerShare)) / newQty
+		newQty, newCost := market.Fill(existing.Quantity, existing.CostBasis, "buy", quantity, pricePerShare)
+		if newQty == 0 {
+			// Bought back a short exactly.
+			err = qtx.DeleteHolding(r.Context(), db.DeleteHoldingParams{
+				ParticipantID: participant.ID, StockID: stock.ID,
+			})
 		} else {
-			newAvg = pricePerShare
+			err = qtx.UpsertHolding(r.Context(), db.UpsertHoldingParams{
+				ParticipantID: participant.ID,
+				StockID:       stock.ID,
+				Quantity:      newQty,
+				AvgCost:       market.AvgCost(newQty, newCost),
+				CostBasis:     newCost,
+				CurrentValue:  newQty * pricePerShare,
+			})
 		}
-		err = qtx.UpsertHolding(r.Context(), db.UpsertHoldingParams{
-			ParticipantID: participant.ID,
-			StockID:       stock.ID,
-			Quantity:      newQty,
-			AvgCost:       newAvg,
-			CurrentValue:  newQty * pricePerShare,
-		})
 		if err != nil {
 			setFlashCookie(w, "Failed to update holding", "error")
 			http.Redirect(w, r, back, http.StatusSeeOther)
@@ -222,6 +248,12 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, back, http.StatusSeeOther)
 			return
 		}
+		if sellAll && holding.Quantity != quantity {
+			// Another trade got in first.
+			setFlashCookie(w, "Your "+stock.Symbol+" holding just changed. Check it and try again.", "error")
+			http.Redirect(w, r, back, http.StatusSeeOther)
+			return
+		}
 
 		proceeds := totalBase - game.TradeFee
 		if proceeds < 0 {
@@ -240,25 +272,18 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Update or delete holding. Supports negative qty for short positions.
-		newQty := holding.Quantity - quantity
+		newQty, newCost := market.Fill(holding.Quantity, holding.CostBasis, "sell", quantity, pricePerShare)
 		if newQty == 0 {
 			_ = qtx.DeleteHolding(r.Context(), db.DeleteHoldingParams{
 				ParticipantID: participant.ID, StockID: stock.ID,
 			})
 		} else {
-			avgCost := holding.AvgCost
-			if newQty < 0 && holding.Quantity <= 0 {
-				// Deepening short — track at current price.
-				avgCost = pricePerShare
-			} else if newQty < 0 && holding.Quantity > 0 {
-				// Went from long to short.
-				avgCost = pricePerShare
-			}
 			_ = qtx.UpsertHolding(r.Context(), db.UpsertHoldingParams{
 				ParticipantID: participant.ID,
 				StockID:       stock.ID,
 				Quantity:      newQty,
-				AvgCost:       avgCost,
+				AvgCost:       market.AvgCost(newQty, newCost),
+				CostBasis:     newCost,
 				CurrentValue:  newQty * pricePerShare,
 			})
 		}
@@ -309,6 +334,18 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 
 	setFlashCookie(w, fmt.Sprintf("%s %s of %s", action, shares(quantity), stock.Symbol), "success")
 	http.Redirect(w, r, back, http.StatusSeeOther)
+}
+
+// sellQueued reports whether the player has a sale of this stock waiting for
+// the market to open.
+func (h *Handler) sellQueued(ctx context.Context, participantID, stockID int64) bool {
+	orders, _ := h.q.ListOpenLimitOrders(ctx, participantID)
+	for _, o := range orders {
+		if o.StockID == stockID && o.Type == "sell" && o.Kind == "market" {
+			return true
+		}
+	}
+	return false
 }
 
 // revalueParticipant recalculates portfolio_value for a single participant after a trade.

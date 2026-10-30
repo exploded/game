@@ -213,6 +213,7 @@ CREATE TABLE IF NOT EXISTS holdings (
     avg_cost       INTEGER NOT NULL,            -- per-share in stock's native currency cents
     current_value  INTEGER NOT NULL DEFAULT 0,  -- quantity * latest close in native currency cents
     updated_at     TEXT    NOT NULL DEFAULT (datetime('now')),
+    cost_basis     INTEGER NOT NULL DEFAULT 0,  -- total paid for the shares held, native cents; negative for a short
     UNIQUE(participant_id, stock_id)
 );
 CREATE INDEX IF NOT EXISTS idx_holdings_participant ON holdings(participant_id);

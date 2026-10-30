@@ -63,18 +63,51 @@
                 <td class="num c-move" data-label="Total">{{with .Total}}{{if .Base}}<span class="pill {{.Class}}">{{.Pct}}</span> <span class="c-amt">{{.Text}}</span>{{end}}{{end}}</td>
                 <td class="num" data-label="Qty">{{.Quantity}}</td>
                 <td class="num" data-label="Price">{{if .Price}}{{cents .Price}}{{end}}</td>
-                <td class="num hide-sm">{{cents .AvgCost}}</td>
+                <td class="num hide-sm">{{cents .Avg}}</td>
                 <td class="hide-sm">{{marketLabel .Symbol .Market}}</td>
-                <td class="hide-sm"><a href="/games/{{$.Item.ID}}/stocks/{{.StockID}}" class="btn btn-primary btn-sm">Trade</a></td>
+                <td class="c-action">
+                    <div class="btn-group">
+                        <a href="/games/{{$.Item.ID}}/stocks/{{.StockID}}" class="btn btn-primary btn-sm hide-sm">Trade</a>
+                        {{if eq $.Item.Status "active"}}{{if .SellQueued}}
+                        <span class="badge badge-pending" title="Sells when the US market opens">Sale queued</span>
+                        {{else if gt .Quantity 0}}
+                        {{/* all=1: the server sells whatever is held when it arrives. */}}
+                        <form method="POST" action="/games/{{$.Item.ID}}/trade/{{.StockID}}">
+                            <input type="hidden" name="side" value="sell">
+                            <input type="hidden" name="all" value="1">
+                            <input type="hidden" name="from" value="home">
+                            <button type="submit" class="btn btn-danger btn-sm" data-confirm="Sell all {{.Quantity}} {{.Symbol}} at the market price?">Sell</button>
+                        </form>
+                        {{end}}{{end}}
+                    </div>
+                </td>
             </tr>
             {{end}}
         </tbody>
     </table>
     {{else}}
+    {{if eq .Item.Status "active"}}
+    <p class="text-muted">You haven't bought anything yet. Find a stock to buy:</p>
+    <div class="search-bar">
+        <input type="search" placeholder="Search by symbol or name"
+            hx-get="/games/{{.Item.ID}}/search"
+            hx-trigger="input changed delay:300ms, search"
+            hx-target="#stock-results"
+            name="q"
+            autocomplete="off"
+            aria-label="Search stocks"
+            class="search-input">
+    </div>
+    {{/* StockSearch fills this with the rows from stocks/browse.html. */}}
+    <table class="rtable">
+        <tbody id="stock-results"></tbody>
+    </table>
+    <p><a href="/games/{{.Item.ID}}/stocks" class="btn btn-primary">Browse all stocks</a></p>
+    {{else}}
     <div class="empty-state">
         <p>No holdings yet.</p>
-        {{if eq .Item.Status "active"}}<a href="/games/{{.Item.ID}}/stocks" class="btn btn-primary">Browse stocks</a>{{end}}
     </div>
+    {{end}}
     {{end}}
 </section>
 
@@ -85,7 +118,7 @@
 </section>
 {{end}}
 
-<p class="text-muted game-rules-link"><a href="/games/{{.Item.ID}}/rules">Game rules and settings &rsaquo;</a></p>
+<p class="text-muted game-rules-link"><a href="/games/{{.Item.ID}}/rules">Game rules and settings &rsaquo;</a> &middot; <a href="/games">Past and upcoming games &rsaquo;</a></p>
 
 {{if .Extra.Snapshots}}
 <script src="{{asset "js/chart-4.5.1.umd.min.js"}}"></script>

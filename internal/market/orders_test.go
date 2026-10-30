@@ -119,8 +119,8 @@ func TestQueuedMarketOrderFillsAtTheOpen(t *testing.T) {
 		t.Errorf("cash = %d, want %d", p.CashBalance, 100000-5*1050)
 	}
 	h, _ := q.GetHolding(t.Context(), db.GetHoldingParams{ParticipantID: 1, StockID: 1})
-	if h.Quantity != 5 || h.AvgCost != 1050 {
-		t.Errorf("holding = %d at %d, want 5 at 1050", h.Quantity, h.AvgCost)
+	if h.Quantity != 5 || h.AvgCost != 1050 || h.CostBasis != 5250 {
+		t.Errorf("holding = %d at %d costing %d, want 5 at 1050 costing 5250", h.Quantity, h.AvgCost, h.CostBasis)
 	}
 	if got := notificationTitle(d); got != "Queued Order Filled" {
 		t.Errorf("notification = %q, want Queued Order Filled", got)
@@ -151,7 +151,7 @@ func TestQueuedSellCanGoShort(t *testing.T) {
 		t.Fatalf("status = %q, want filled", s)
 	}
 	h, _ := q.GetHolding(t.Context(), db.GetHoldingParams{ParticipantID: 1, StockID: 1})
-	if h.Quantity != -3 || h.AvgCost != 1050 {
-		t.Errorf("holding = %d at %d, want -3 at 1050", h.Quantity, h.AvgCost)
+	if h.Quantity != -3 || h.AvgCost != 1050 || h.CostBasis != -3150 {
+		t.Errorf("holding = %d at %d costing %d, want -3 at 1050 costing -3150", h.Quantity, h.AvgCost, h.CostBasis)
 	}
 }

@@ -1463,7 +1463,7 @@ func (q *Queries) GetGameOwner(ctx context.Context) (int64, error) {
 }
 
 const getHolding = `-- name: GetHolding :one
-SELECT id, participant_id, stock_id, quantity, avg_cost, current_value, updated_at FROM holdings WHERE participant_id = ? AND stock_id = ?
+SELECT id, participant_id, stock_id, quantity, avg_cost, current_value, updated_at, cost_basis FROM holdings WHERE participant_id = ? AND stock_id = ?
 `
 
 type GetHoldingParams struct {
@@ -1482,6 +1482,7 @@ func (q *Queries) GetHolding(ctx context.Context, arg GetHoldingParams) (Holding
 		&i.AvgCost,
 		&i.CurrentValue,
 		&i.UpdatedAt,
+		&i.CostBasis,
 	)
 	return i, err
 }
@@ -2902,7 +2903,7 @@ func (q *Queries) ListActivityFeed(ctx context.Context, arg ListActivityFeedPara
 }
 
 const listAllActiveHoldings = `-- name: ListAllActiveHoldings :many
-SELECT h.id, h.participant_id, h.stock_id, h.quantity, h.avg_cost, h.current_value, h.updated_at, s.symbol, s.market, s.currency, p.game_id
+SELECT h.id, h.participant_id, h.stock_id, h.quantity, h.avg_cost, h.current_value, h.updated_at, h.cost_basis, s.symbol, s.market, s.currency, p.game_id
 FROM holdings h
 JOIN stocks s ON s.id = h.stock_id
 JOIN participants p ON p.id = h.participant_id
@@ -2918,6 +2919,7 @@ type ListAllActiveHoldingsRow struct {
 	AvgCost       int64
 	CurrentValue  int64
 	UpdatedAt     string
+	CostBasis     int64
 	Symbol        string
 	Market        string
 	Currency      string
@@ -2941,6 +2943,7 @@ func (q *Queries) ListAllActiveHoldings(ctx context.Context) ([]ListAllActiveHol
 			&i.AvgCost,
 			&i.CurrentValue,
 			&i.UpdatedAt,
+			&i.CostBasis,
 			&i.Symbol,
 			&i.Market,
 			&i.Currency,
@@ -3846,7 +3849,7 @@ func (q *Queries) ListGamesWithPlayers(ctx context.Context) ([]ListGamesWithPlay
 }
 
 const listHoldings = `-- name: ListHoldings :many
-SELECT h.id, h.participant_id, h.stock_id, h.quantity, h.avg_cost, h.current_value, h.updated_at, s.symbol, s.name AS stock_name, s.market, s.currency
+SELECT h.id, h.participant_id, h.stock_id, h.quantity, h.avg_cost, h.current_value, h.updated_at, h.cost_basis, s.symbol, s.name AS stock_name, s.market, s.currency
 FROM holdings h
 JOIN stocks s ON s.id = h.stock_id
 WHERE h.participant_id = ?
@@ -3861,6 +3864,7 @@ type ListHoldingsRow struct {
 	AvgCost       int64
 	CurrentValue  int64
 	UpdatedAt     string
+	CostBasis     int64
 	Symbol        string
 	StockName     string
 	Market        string
@@ -3884,6 +3888,7 @@ func (q *Queries) ListHoldings(ctx context.Context, participantID int64) ([]List
 			&i.AvgCost,
 			&i.CurrentValue,
 			&i.UpdatedAt,
+			&i.CostBasis,
 			&i.Symbol,
 			&i.StockName,
 			&i.Market,
@@ -7481,11 +7486,12 @@ func (q *Queries) UpsertExchangeRate(ctx context.Context, arg UpsertExchangeRate
 
 const upsertHolding = `-- name: UpsertHolding :exec
 
-INSERT INTO holdings (participant_id, stock_id, quantity, avg_cost, current_value, updated_at)
-VALUES (?, ?, ?, ?, ?, datetime('now'))
+INSERT INTO holdings (participant_id, stock_id, quantity, avg_cost, cost_basis, current_value, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
 ON CONFLICT(participant_id, stock_id) DO UPDATE SET
     quantity = excluded.quantity,
     avg_cost = excluded.avg_cost,
+    cost_basis = excluded.cost_basis,
     current_value = excluded.current_value,
     updated_at = datetime('now')
 `
@@ -7495,6 +7501,7 @@ type UpsertHoldingParams struct {
 	StockID       int64
 	Quantity      int64
 	AvgCost       int64
+	CostBasis     int64
 	CurrentValue  int64
 }
 
@@ -7507,6 +7514,7 @@ func (q *Queries) UpsertHolding(ctx context.Context, arg UpsertHoldingParams) er
 		arg.StockID,
 		arg.Quantity,
 		arg.AvgCost,
+		arg.CostBasis,
 		arg.CurrentValue,
 	)
 	return err

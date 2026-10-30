@@ -74,6 +74,7 @@ func TestOpenDBUpgradesLatestDeploy(t *testing.T) {
 		string(old),
 		"INSERT INTO users (id, email, name, email_token) VALUES (3, 'ann@example.com', 'Ann', 't3')",
 		"INSERT INTO questions (id, user_id, title, answer, answered_at) VALUES (1, 3, 'Old question', 'Old answer', datetime('now'))",
+		"INSERT INTO holdings (participant_id, stock_id, quantity, avg_cost) VALUES (1, 1, 200, 4567)",
 	} {
 		if _, err := raw.Exec(q); err != nil {
 			t.Fatalf("old database: %v", err)
@@ -94,6 +95,11 @@ func TestOpenDBUpgradesLatestDeploy(t *testing.T) {
 	d.QueryRow("SELECT COUNT(*) FROM topics").Scan(&topics)
 	if topics == 0 {
 		t.Error("the topics weren't seeded")
+	}
+	var cost int64
+	d.QueryRow("SELECT cost_basis FROM holdings").Scan(&cost)
+	if cost != 200*4567 {
+		t.Errorf("old holding's cost_basis = %d, want %d", cost, 200*4567)
 	}
 }
 

@@ -1,26 +1,23 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/exploded/game/internal/auth"
-	"github.com/exploded/game/internal/db"
 )
 
-// Dashboard shows this quarter's game and the next one, to open or join,
-// and what's new from Rob.
+// Dashboard takes the player straight into this quarter's game, joining
+// them if they aren't in it yet. Until the scheduler has created the game it
+// shows the games there are.
 func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
-	extra := map[string]any{}
-	if videos, err := h.q.ListLatestVideos(r.Context(), db.ListLatestVideosParams{Vertical: 0, Lim: 4}); err == nil {
-		extra["RobVideos"] = videos
-	}
-	if upcoming, err := h.q.ListUpcomingLive(r.Context()); err == nil && len(upcoming) > 0 {
-		extra["NextLive"] = upcoming[0]
+	if g, ok := h.currentGame(r.Context(), user.ID); ok {
+		http.Redirect(w, r, fmt.Sprintf("/games/%d", g.ID), http.StatusSeeOther)
+		return
 	}
 	h.render(w, r, "dashboard/index", "", PageData{
 		Title: "Dashboard",
 		Items: h.quarterCards(r.Context(), user.ID),
-		Extra: extra,
 	})
 }

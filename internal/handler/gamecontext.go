@@ -2,6 +2,8 @@ package handler
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -24,7 +26,8 @@ type gameBar struct {
 type gameBarKey struct{}
 
 // GameContext loads the game bar for full-page GETs under /games/{id} and
-// remembers the game as the user's current one. render picks it up from the
+// remembers the game as the user's current one. A user who isn't in this
+// quarter's game is joined to it. render picks it up from the
 // request context, so the handlers don't need to know about it.
 func (h *Handler) GameContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -46,9 +49,14 @@ func (h *Handler) GameContext(next http.Handler) http.Handler {
 		}
 
 		bar := &gameBar{Game: game, Tab: gameTab(r.URL.Path)}
-		if p, err := h.q.GetParticipantByGameAndUser(r.Context(), db.GetParticipantByGameAndUserParams{
+		p, err := h.q.GetParticipantByGameAndUser(r.Context(), db.GetParticipantByGameAndUserParams{
 			GameID: gameID, UserID: user.ID,
-		}); err == nil {
+		})
+		if errors.Is(err, sql.ErrNoRows) && h.isCurrentGame(game) {
+			// Everyone plays this quarter's game: no Join button to find.
+			p, err = h.joinGame(r.Context(), game, user.ID)
+		}
+		if err == nil {
 			bar.Participant = &p
 			if !user.LastGameID.Valid || user.LastGameID.Int64 != gameID {
 				_ = h.q.SetLastGame(r.Context(), db.SetLastGameParams{LastGameID: nint64(gameID), ID: user.ID})

@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 
@@ -170,11 +171,11 @@ func (h *Handler) SectorBreakdown(w http.ResponseWriter, r *http.Request) {
 		pl := HoldingPnL{ListHoldingsRow: h_}
 		if latestPrice, err := h.q.GetLatestPrice(r.Context(), h_.StockID); err == nil {
 			pl.LatestPx = latestPrice.Close
-			costBasis := h_.Quantity * h_.AvgCost
 			currentVal := h_.Quantity * latestPrice.Close
-			pl.PnL = currentVal - costBasis
-			if costBasis > 0 {
-				pct := float64(pl.PnL) / float64(costBasis) * 100
+			pl.PnL = currentVal - h_.CostBasis
+			if h_.CostBasis != 0 {
+				// A short's cost is negative; the sign follows the gain.
+				pct := float64(pl.PnL) / math.Abs(float64(h_.CostBasis)) * 100
 				pl.PnLPct = fmt.Sprintf("%+.2f", pct)
 			} else {
 				pl.PnLPct = "0.00"
