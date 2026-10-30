@@ -5,17 +5,26 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
+	"fmt"
 	"net/http"
 )
 
 const csrfTokenKey contextKey = "csrf_token"
 
-// GenerateCSRFSecret creates a random 32-byte secret for CSRF token generation.
-func GenerateCSRFSecret() ([]byte, error) {
+// LoadCSRFSecret returns the CSRF secret stored in app_secrets, creating a
+// random 32-byte one the first time.
+func LoadCSRFSecret(sqlDB *sql.DB) ([]byte, error) {
 	secret := make([]byte, 32)
 	if _, err := rand.Read(secret); err != nil {
 		return nil, err
+	}
+	if _, err := sqlDB.Exec("INSERT OR IGNORE INTO app_secrets (name, value) VALUES ('csrf', ?)", secret); err != nil {
+		return nil, fmt.Errorf("store csrf secret: %w", err)
+	}
+	if err := sqlDB.QueryRow("SELECT value FROM app_secrets WHERE name = 'csrf'").Scan(&secret); err != nil {
+		return nil, fmt.Errorf("load csrf secret: %w", err)
 	}
 	return secret, nil
 }

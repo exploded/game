@@ -165,7 +165,7 @@ link for their category.
 1. **IAM user for StockGame.** Done on 2026-10-30: the IAM user
    `stockgame-ses` has the policy `stockgame-ses-send`, which allows
    `ses:SendEmail` and `ses:SendRawEmail` only from `hello@thewealthlab.au`
-   (and `stockgame@mchugh.au` until the switch, both since 2026-10-30).
+   (since 2026-10-30; `stockgame@mchugh.au` was removed after the switch).
    If `MAIL_FROM` changes, update that policy too. Put the user's keys in the
    server's `.env` as `SES_ACCESS_KEY_ID` and `SES_SECRET_ACCESS_KEY`, and set
    `BASE_URL`, `SES_REGION=ap-southeast-2` and `MAIL_FROM`, plus `NEWS_SENDER`

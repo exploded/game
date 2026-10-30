@@ -137,8 +137,9 @@ func main() {
 	// Start background scheduler.
 	go scheduler.Start(ctx, queries, rawDB, loc, mailer, med)
 
-	// Generate CSRF secret.
-	csrfSecret, err := auth.GenerateCSRFSecret()
+	// The CSRF secret is kept in the database: a new one on every start would
+	// make every page left open across a restart or deploy fail its next POST.
+	csrfSecret, err := auth.LoadCSRFSecret(rawDB)
 	if err != nil {
 		log.Fatalf("csrf secret: %v", err)
 	}
@@ -182,7 +183,9 @@ func main() {
 		r.Post("/login/code", h.LoginCode)
 		r.Post("/login/verify", h.LoginVerify)
 	})
-	r.With(auth.CSRFProtect(csrfSecret)).Post("/logout", auth.HandleLogout(queries))
+	// Logout is in the nav on every page, including public ones that have no
+	// CSRF token, so it gets the same cross-origin check as sign-in.
+	r.With(crossOrigin.Handler).Post("/logout", auth.HandleLogout(queries))
 
 	// Unsubscribe links work without signing in. The POST also takes the
 	// RFC 8058 one-click request from mail clients, which has no session.

@@ -762,3 +762,9 @@ CREATE TABLE IF NOT EXISTS media_state (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
+
+-- Server secrets that must survive a restart (the CSRF token key).
+CREATE TABLE IF NOT EXISTS app_secrets (
+    name  TEXT PRIMARY KEY,
+    value BLOB NOT NULL
+);

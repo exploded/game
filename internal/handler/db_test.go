@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"database/sql"
 	"os"
 	"path/filepath"
@@ -8,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/exploded/game"
+	"github.com/exploded/game/internal/auth"
 )
 
 func openTestDB(t *testing.T) *sql.DB {
@@ -255,6 +257,29 @@ func TestClearASXNews(t *testing.T) {
 	d.QueryRow("SELECT COUNT(*), MAX(headline) FROM stock_news").Scan(&n, &headline)
 	if n != 1 || headline != "apple" {
 		t.Errorf("stock_news has %d rows (last %q), want only the S&P 500 story", n, headline)
+	}
+}
+
+// TestCSRFSecretSurvivesRestart: a new secret on every start made every page
+// left open across a restart fail its next POST with "invalid CSRF token".
+func TestCSRFSecretSurvivesRestart(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "test.db")
+	d, err := OpenDB(path, game.Schema)
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := auth.LoadCSRFSecret(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d.Close()
+
+	second, err := auth.LoadCSRFSecret(openTestDBAt(t, path))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(first) != 32 || !bytes.Equal(first, second) {
+		t.Errorf("secret after reopening = %x, want the first one %x", second, first)
 	}
 }
 

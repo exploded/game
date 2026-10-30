@@ -26,6 +26,11 @@ type ActivityFeed struct {
 	CreatedAt string
 }
 
+type AppSecret struct {
+	Name  string
+	Value []byte
+}
+
 type Avatar struct {
 	ID             int64
 	Key            string
