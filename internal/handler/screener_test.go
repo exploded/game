@@ -84,6 +84,7 @@ func TestApplyFilter(t *testing.T) {
 		screenStock(3, "MSFT", "Information Technology", 100, 101, 1000, 3500),
 		screenStock(4, "XOM", "Energy", 100, 110, 1, 400), // +10%
 		screenStock(5, "F", "Consumer Discretionary", 100, 100, 9000, 50),
+		screenStock(6, "TSM", "Information Technology", 100, 99, 0, 1200),
 	}
 	rows[2].IsPick, rows[2].PickOrder = 1, 1
 	rows[3].IsPick, rows[3].PickOrder = 1, 2
@@ -97,17 +98,18 @@ func TestApplyFilter(t *testing.T) {
 		{"", "", "", "MSFT XOM AAPL"}, // the default is Rob's Picks, in Rob's order
 		{"picks", "Information Technology", "", "MSFT AAPL"},
 		{"mag7", "", "", "MSFT AAPL"},
-		{"tech", "", "", "MSFT AAPL"},
+		{"tech", "", "", "MSFT AAPL TSM"},
 		{"up", "", "", "XOM AAPL MSFT"},
-		{"down", "", "", "BHP"},
-		{"big", "", "", "MSFT AAPL XOM BHP F"},
+		{"down", "", "", "BHP TSM"},
+		{"big", "", "", "MSFT AAPL TSM XOM BHP F"},
 		{"active", "", "", "F MSFT AAPL BHP XOM"}, // dollar volume, not shares
 		{"aus", "", "", "BHP"},
+		{"intl", "", "", "TSM"},
 		{"all", "Energy", "", "XOM"},
 		{"nonsense", "", "", "MSFT XOM AAPL"},
 		// A search ignores the chip and sector. An exact symbol comes first.
 		{"down", "Energy", "f", "F MSFT"},
-		{"up", "", "m", "MSFT XOM"},
+		{"up", "", "m", "MSFT XOM TSM"},
 	} {
 		got := applyFilter(rows, c.f, c.sector, c.q, nil)
 		if s := symbols(got.Rows); s != c.want {

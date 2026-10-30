@@ -171,11 +171,27 @@ var AusUS = []StockInfo{
 	{"MQBKY", "Macquarie Group (US OTC)", "Financials"},
 }
 
-// OtherUS contains other US-listed companies outside the S&P 500 that Rob
-// talks about, such as ASML (a Dutch company with US shares). Like AusUS,
-// they share the sp500 market.
+// OtherUS contains big overseas companies that trade in the US, as shares
+// or ADRs, on the NYSE or Nasdaq. They can't be in the S&P 500, which only
+// takes US companies. Like AusUS, they're priced in USD on US hours, an ADR
+// can stand for several home-market shares, and they share the sp500 market.
+// Plain symbols resolve to the US listing on Twelve Data (checked 30 October
+// 2026), though AZN, SHEL and SAP also trade under them in London and
+// Frankfurt.
 var OtherUS = []StockInfo{
 	{"ASML", "ASML Holding (US-listed)", "Information Technology"},
+	{"TSM", "TSMC (US-listed)", "Information Technology"},
+	{"NVO", "Novo Nordisk (US-listed)", "Healthcare"},
+	{"ARM", "Arm Holdings", "Information Technology"},
+	{"SAP", "SAP (US-listed)", "Information Technology"},
+	{"TM", "Toyota Motor (US-listed)", "Consumer Discretionary"},
+	{"SONY", "Sony Group (US-listed)", "Consumer Discretionary"},
+	{"AZN", "AstraZeneca (US-listed)", "Healthcare"},
+	{"NVS", "Novartis (US-listed)", "Healthcare"},
+	{"SHEL", "Shell (US-listed)", "Energy"},
+	{"MELI", "MercadoLibre", "Consumer Discretionary"},
+	{"SHOP", "Shopify Inc.", "Information Technology"},
+	{"SPOT", "Spotify Technology", "Communication Services"},
 }
 
 var ausUSSymbols = symbolSet(AusUS)
@@ -194,15 +210,20 @@ func IsAusUS(symbol, market string) bool {
 	return market == "sp500" && ausUSSymbols[symbol]
 }
 
+// IsOtherUS says whether a stock is one of the US-listed overseas companies.
+func IsOtherUS(symbol, market string) bool {
+	return market == "sp500" && otherUSSymbols[symbol]
+}
+
 // MarketLabel is the market name shown to players for a stock. AusUS and
 // OtherUS stocks sit in the sp500 market but aren't in the index, so they
-// get "AU (US)" and "US".
+// get "AU (US)" and "INTL (US)".
 func MarketLabel(symbol, market string) string {
 	switch {
 	case IsAusUS(symbol, market):
 		return "AU (US)"
-	case market == "sp500" && otherUSSymbols[symbol]:
-		return "US"
+	case IsOtherUS(symbol, market):
+		return "INTL (US)"
 	}
 	return strings.ToUpper(market)
 }
@@ -330,7 +351,6 @@ var SP500 = []StockInfo{
 	{"CRWD", "CrowdStrike", "Information Technology"},
 	{"DDOG", "Datadog Inc.", "Information Technology"},
 	{"NET", "Cloudflare Inc.", "Information Technology"},
-	{"SHOP", "Shopify Inc.", "Information Technology"},
 	{"SQ", "Block Inc.", "Financials"},
 	{"PLTR", "Palantir Technologies", "Information Technology"},
 	{"RIVN", "Rivian Automotive", "Consumer Discretionary"},
@@ -350,7 +370,6 @@ var SP500 = []StockInfo{
 	{"WDAY", "Workday Inc.", "Information Technology"},
 	{"ZM", "Zoom Video", "Information Technology"},
 	{"ROKU", "Roku Inc.", "Communication Services"},
-	{"SPOT", "Spotify Technology", "Communication Services"},
 	{"SNAP", "Snap Inc.", "Communication Services"},
 	{"PINS", "Pinterest Inc.", "Communication Services"},
 	{"DOCU", "DocuSign Inc.", "Information Technology"},

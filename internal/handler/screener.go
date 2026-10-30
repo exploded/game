@@ -58,6 +58,7 @@ var screenFilters = []screenFilter{
 	{"big", "Biggest", "The biggest companies"},
 	{"active", "Most traded", "Most traded today, by dollar value"},
 	{"aus", "Aussie", "Australian companies listed in the US"},
+	{"intl", "International", "Overseas companies listed in the US"},
 	{"popular", "Players' favourites", "Most held by players in this game"},
 	{"all", "All A–Z", "Every stock, A–Z"},
 }
@@ -238,6 +239,8 @@ func applyFilter(rows []screenRow, f, sector, q string, holders map[int64]int64)
 			return r.Turnover > 0
 		case "aus":
 			return market.IsAusUS(r.Symbol, r.Market)
+		case "intl":
+			return market.IsOtherUS(r.Symbol, r.Market)
 		case "popular":
 			return holders[r.ID] > 0
 		}
@@ -258,7 +261,7 @@ func applyFilter(rows []screenRow, f, sector, q string, holders map[int64]int64)
 	switch f {
 	case "picks":
 		sort.SliceStable(out, func(i, j int) bool { return out[i].PickOrder < out[j].PickOrder })
-	case "mag7", "tech", "aus":
+	case "mag7", "tech", "aus", "intl":
 		sort.SliceStable(out, byCap)
 	case "big":
 		sort.SliceStable(out, byCap)
