@@ -753,6 +753,47 @@ UPDATE limit_orders SET status = 'filled', filled_at = datetime('now') WHERE id 
 -- name: CancelLimitOrder :exec
 UPDATE limit_orders SET status = 'cancelled' WHERE id = ?;
 
+-- =============================================================================
+-- Stock splits (market/splits.go)
+-- =============================================================================
+
+-- name: RecordStockSplit :execrows
+-- 0 rows means it was applied already.
+INSERT OR IGNORE INTO stock_splits (stock_id, date, from_factor, to_factor, description)
+VALUES (?, ?, ?, ?, ?);
+
+-- name: AdjustPricesForSplit :exec
+-- Bars before the split, fetched before it took effect. Twelve Data adjusts
+-- history once a split happens, so later fetches already have it.
+UPDATE stock_prices SET
+    open   = CAST(ROUND(open   * CAST(sqlc.arg(price_factor) AS REAL)) AS INTEGER),
+    high   = CAST(ROUND(high   * CAST(sqlc.arg(price_factor) AS REAL)) AS INTEGER),
+    low    = CAST(ROUND(low    * CAST(sqlc.arg(price_factor) AS REAL)) AS INTEGER),
+    close  = CAST(ROUND(close  * CAST(sqlc.arg(price_factor) AS REAL)) AS INTEGER),
+    volume = CAST(ROUND(volume / CAST(sqlc.arg(price_factor) AS REAL)) AS INTEGER)
+WHERE stock_id = sqlc.arg(stock_id) AND date < sqlc.arg(split_date) AND created_at < sqlc.arg(took_effect);
+
+-- name: ListSplitHoldings :many
+-- Positions in a stock in running games.
+SELECT h.*, p.user_id, p.game_id, g.base_currency
+FROM holdings h
+JOIN participants p ON p.id = h.participant_id
+JOIN games g ON g.id = p.game_id
+WHERE h.stock_id = ? AND g.status = 'active';
+
+-- name: NetSharesTradedSince :one
+-- Shares bought less shares sold since a time, which a split mustn't scale.
+SELECT CAST(COALESCE(SUM(CASE WHEN type = 'buy' THEN quantity ELSE -quantity END), 0) AS INTEGER)
+FROM transactions
+WHERE participant_id = ? AND stock_id = ? AND created_at >= ?;
+
+-- name: ListOpenOrdersPlacedBefore :many
+SELECT * FROM limit_orders
+WHERE stock_id = ? AND status = 'open' AND created_at < ?;
+
+-- name: UpdateOrderForSplit :exec
+UPDATE limit_orders SET quantity = ?, limit_price = ? WHERE id = ?;
+
 -- name: ExpireOldLimitOrders :many
 UPDATE limit_orders SET status = 'expired'
 WHERE status = 'open' AND expires_at IS NOT NULL AND expires_at < sqlc.arg(today)

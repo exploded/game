@@ -19,17 +19,10 @@ When a game has `allow_short` enabled, players can sell shares they don't own to
 
 - **Files:** Updated `internal/handler/trade.go`, updated `templates/pages/trade/form.html`
 
-### 4. Dividend Simulation
-Admin can simulate dividend payments for any stock. All participants holding the stock in active games receive cash credited to their balance (converted to game currency if needed). Notifications are sent to each recipient.
-
-- **Routes:** `/admin/dividend` (POST)
-- **Files:** `internal/handler/gameevents.go`, updated `templates/pages/admin/index.html`
-
 ### 5. Stock Splits
-Admin can simulate stock splits (e.g. 2:1, 3:1). All holdings of the stock across active games are adjusted — quantity multiplied by the split ratio, with the total cost unchanged, so the average cost falls to match. Notifications sent to holders.
+Applied automatically. Each US weekday from 10:00 UTC, after the daily fetch and before the open, `market.CheckSplits` reads the last week of Twelve Data's US splits calendar (one call, 40 credits) and applies any split in a game stock once (`stock_splits`). Shares held before the split's open are multiplied (a reverse split's part share is paid out in cash), stored prices from before it are divided, open orders placed before it are rescaled, and holders get a notification. Splits applied late scale only what came before the open.
 
-- **Routes:** `/admin/stock-split` (POST)
-- **Files:** `internal/handler/gameevents.go`, updated `templates/pages/admin/index.html`
+- **Files:** `internal/market/splits.go`, `internal/scheduler/scheduler.go`
 
 ---
 

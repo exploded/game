@@ -369,8 +369,6 @@ func main() {
 			r.Post("/picks/{sid}/delete", h.AdminPickDelete)
 			r.Get("/prices", h.AdminPrices)
 			r.Get("/activity", http.RedirectHandler("/admin/users?sort=trades", http.StatusMovedPermanently).ServeHTTP) // merged into /admin/users
-			r.Post("/dividend", h.AdminDividend)
-			r.Post("/stock-split", h.AdminStockSplit)
 			r.Get("/messages", h.AdminContactMessages)
 			r.Get("/email", h.AdminEmail)
 			r.Get("/courses", h.AdminCourses)

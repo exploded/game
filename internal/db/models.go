@@ -511,6 +511,15 @@ type StockRecommendation struct {
 	StrongSell int64
 }
 
+type StockSplit struct {
+	StockID     int64
+	Date        string
+	FromFactor  float64
+	ToFactor    float64
+	Description string
+	AppliedAt   string
+}
+
 type Topic struct {
 	ID          int64
 	Slug        string

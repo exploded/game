@@ -136,6 +136,35 @@ func (q *Queries) AddVideoTopic(ctx context.Context, arg AddVideoTopicParams) er
 	return err
 }
 
+const adjustPricesForSplit = `-- name: AdjustPricesForSplit :exec
+UPDATE stock_prices SET
+    open   = CAST(ROUND(open   * CAST(?1 AS REAL)) AS INTEGER),
+    high   = CAST(ROUND(high   * CAST(?1 AS REAL)) AS INTEGER),
+    low    = CAST(ROUND(low    * CAST(?1 AS REAL)) AS INTEGER),
+    close  = CAST(ROUND(close  * CAST(?1 AS REAL)) AS INTEGER),
+    volume = CAST(ROUND(volume / CAST(?1 AS REAL)) AS INTEGER)
+WHERE stock_id = ?2 AND date < ?3 AND created_at < ?4
+`
+
+type AdjustPricesForSplitParams struct {
+	PriceFactor float64
+	StockID     int64
+	SplitDate   string
+	TookEffect  string
+}
+
+// Bars before the split, fetched before it took effect. Twelve Data adjusts
+// history once a split happens, so later fetches already have it.
+func (q *Queries) AdjustPricesForSplit(ctx context.Context, arg AdjustPricesForSplitParams) error {
+	_, err := q.db.ExecContext(ctx, adjustPricesForSplit,
+		arg.PriceFactor,
+		arg.StockID,
+		arg.SplitDate,
+		arg.TookEffect,
+	)
+	return err
+}
+
 const advancePendingGames = `-- name: AdvancePendingGames :exec
 UPDATE games SET status = 'active', updated_at = datetime('now')
 WHERE status = 'pending' AND start_date <= ?
@@ -4946,6 +4975,51 @@ func (q *Queries) ListOpenLimitOrders(ctx context.Context, participantID int64) 
 	return items, nil
 }
 
+const listOpenOrdersPlacedBefore = `-- name: ListOpenOrdersPlacedBefore :many
+SELECT id, participant_id, stock_id, type, quantity, limit_price, status, created_at, expires_at, filled_at, kind FROM limit_orders
+WHERE stock_id = ? AND status = 'open' AND created_at < ?
+`
+
+type ListOpenOrdersPlacedBeforeParams struct {
+	StockID   int64
+	CreatedAt string
+}
+
+func (q *Queries) ListOpenOrdersPlacedBefore(ctx context.Context, arg ListOpenOrdersPlacedBeforeParams) ([]LimitOrder, error) {
+	rows, err := q.db.QueryContext(ctx, listOpenOrdersPlacedBefore, arg.StockID, arg.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []LimitOrder
+	for rows.Next() {
+		var i LimitOrder
+		if err := rows.Scan(
+			&i.ID,
+			&i.ParticipantID,
+			&i.StockID,
+			&i.Type,
+			&i.Quantity,
+			&i.LimitPrice,
+			&i.Status,
+			&i.CreatedAt,
+			&i.ExpiresAt,
+			&i.FilledAt,
+			&i.Kind,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listParticipantsByGame = `-- name: ListParticipantsByGame :many
 SELECT p.id, p.game_id, p.user_id, p.cash_balance, p.portfolio_value, p.is_public, p.joined_at, u.name AS user_name, u.picture_url AS user_picture
 FROM participants p
@@ -5658,6 +5732,64 @@ func (q *Queries) ListSnapshotsForExport(ctx context.Context, participantID int6
 			&i.CashBalance,
 			&i.HoldingsValue,
 			&i.TotalValue,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listSplitHoldings = `-- name: ListSplitHoldings :many
+SELECT h.id, h.participant_id, h.stock_id, h.quantity, h.avg_cost, h.current_value, h.updated_at, h.cost_basis, p.user_id, p.game_id, g.base_currency
+FROM holdings h
+JOIN participants p ON p.id = h.participant_id
+JOIN games g ON g.id = p.game_id
+WHERE h.stock_id = ? AND g.status = 'active'
+`
+
+type ListSplitHoldingsRow struct {
+	ID            int64
+	ParticipantID int64
+	StockID       int64
+	Quantity      int64
+	AvgCost       int64
+	CurrentValue  int64
+	UpdatedAt     string
+	CostBasis     int64
+	UserID        int64
+	GameID        int64
+	BaseCurrency  string
+}
+
+// Positions in a stock in running games.
+func (q *Queries) ListSplitHoldings(ctx context.Context, stockID int64) ([]ListSplitHoldingsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listSplitHoldings, stockID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListSplitHoldingsRow
+	for rows.Next() {
+		var i ListSplitHoldingsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ParticipantID,
+			&i.StockID,
+			&i.Quantity,
+			&i.AvgCost,
+			&i.CurrentValue,
+			&i.UpdatedAt,
+			&i.CostBasis,
+			&i.UserID,
+			&i.GameID,
+			&i.BaseCurrency,
 		); err != nil {
 			return nil, err
 		}
@@ -7186,6 +7318,26 @@ func (q *Queries) MarkNotificationRead(ctx context.Context, arg MarkNotification
 	return err
 }
 
+const netSharesTradedSince = `-- name: NetSharesTradedSince :one
+SELECT CAST(COALESCE(SUM(CASE WHEN type = 'buy' THEN quantity ELSE -quantity END), 0) AS INTEGER)
+FROM transactions
+WHERE participant_id = ? AND stock_id = ? AND created_at >= ?
+`
+
+type NetSharesTradedSinceParams struct {
+	ParticipantID int64
+	StockID       int64
+	CreatedAt     string
+}
+
+// Shares bought less shares sold since a time, which a split mustn't scale.
+func (q *Queries) NetSharesTradedSince(ctx context.Context, arg NetSharesTradedSinceParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, netSharesTradedSince, arg.ParticipantID, arg.StockID, arg.CreatedAt)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const pickVideos = `-- name: PickVideos :many
 SELECT id, platform, title, published_at FROM videos
 WHERE hidden = 0 AND live_status = '' AND (CAST(?1 AS TEXT) = '' OR title LIKE '%' || ?1 || '%')
@@ -7271,6 +7423,38 @@ func (q *Queries) QueueEmail(ctx context.Context, arg QueueEmailParams) error {
 		arg.UnsubscribeUrl,
 	)
 	return err
+}
+
+const recordStockSplit = `-- name: RecordStockSplit :execrows
+
+INSERT OR IGNORE INTO stock_splits (stock_id, date, from_factor, to_factor, description)
+VALUES (?, ?, ?, ?, ?)
+`
+
+type RecordStockSplitParams struct {
+	StockID     int64
+	Date        string
+	FromFactor  float64
+	ToFactor    float64
+	Description string
+}
+
+// =============================================================================
+// Stock splits (market/splits.go)
+// =============================================================================
+// 0 rows means it was applied already.
+func (q *Queries) RecordStockSplit(ctx context.Context, arg RecordStockSplitParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, recordStockSplit,
+		arg.StockID,
+		arg.Date,
+		arg.FromFactor,
+		arg.ToFactor,
+		arg.Description,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const removeFromWatchlist = `-- name: RemoveFromWatchlist :exec
@@ -7867,6 +8051,21 @@ func (q *Queries) UpdateLiveEvent(ctx context.Context, arg UpdateLiveEventParams
 		arg.ScheduledAt,
 		arg.ID,
 	)
+	return err
+}
+
+const updateOrderForSplit = `-- name: UpdateOrderForSplit :exec
+UPDATE limit_orders SET quantity = ?, limit_price = ? WHERE id = ?
+`
+
+type UpdateOrderForSplitParams struct {
+	Quantity   int64
+	LimitPrice int64
+	ID         int64
+}
+
+func (q *Queries) UpdateOrderForSplit(ctx context.Context, arg UpdateOrderForSplitParams) error {
+	_, err := q.db.ExecContext(ctx, updateOrderForSplit, arg.Quantity, arg.LimitPrice, arg.ID)
 	return err
 }
 

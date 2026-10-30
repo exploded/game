@@ -26,41 +26,4 @@
         <a href="/admin/learn" class="btn btn-primary">Learn: videos and live</a>
     </div>
 </section>
-
-<div class="analytics-grid">
-    <div class="analytics-card">
-        <h3>Simulate Dividend</h3>
-        <form method="POST" action="/admin/dividend">
-            <div class="form-group">
-                <label for="div-stock">Stock Ticker or Name</label>
-                <input type="text" id="div-stock" name="stock_search" required placeholder="e.g. BHP or Commonwealth">
-            </div>
-            <div class="form-group">
-                <label for="div-amount">Dividend per Share ($)</label>
-                <input type="number" id="div-amount" name="dividend" required min="0.01" step="0.01" placeholder="0.50">
-            </div>
-            <button type="submit" class="btn btn-primary btn-sm" data-confirm="Pay dividend to all holders?">Pay Dividend</button>
-        </form>
-    </div>
-    <div class="analytics-card">
-        <h3>Simulate Stock Split</h3>
-        <form method="POST" action="/admin/stock-split">
-            <div class="form-group">
-                <label for="split-stock">Stock Ticker or Name</label>
-                <input type="text" id="split-stock" name="stock_search" required placeholder="e.g. BHP or Commonwealth">
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="split-num">New shares</label>
-                    <input type="number" id="split-num" name="ratio_num" required min="1" value="2" placeholder="2">
-                </div>
-                <div class="form-group">
-                    <label for="split-den">Per old shares</label>
-                    <input type="number" id="split-den" name="ratio_den" required min="1" value="1" placeholder="1">
-                </div>
-            </div>
-            <button type="submit" class="btn btn-primary btn-sm" data-confirm="Apply stock split to all holders?">Apply Split</button>
-        </form>
-    </div>
-</div>
 {{end}}

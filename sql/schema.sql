@@ -570,6 +570,19 @@ CREATE TABLE IF NOT EXISTS stock_profiles (
 );
 
 --------------------------------------------------------------------------------
+-- Stock splits applied from Twelve Data's splits calendar (market/splits.go)
+--------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS stock_splits (
+    stock_id    INTEGER NOT NULL REFERENCES stocks(id) ON DELETE CASCADE,
+    date        TEXT    NOT NULL,                -- YYYY-MM-DD, the first day it trades split
+    from_factor REAL    NOT NULL,                -- "10-for-1": from 10, to 1; shares × from / to
+    to_factor   REAL    NOT NULL,
+    description TEXT    NOT NULL DEFAULT '',
+    applied_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (stock_id, date)
+);
+
+--------------------------------------------------------------------------------
 -- Rob's Picks: the stocks page's first chip, set at /admin/picks
 --------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS stock_picks (

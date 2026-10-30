@@ -1307,6 +1307,8 @@ td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-
 .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 16px; scrollbar-width: none; }
 .chips::-webkit-scrollbar { display: none; }
 .chips-wrap { flex-wrap: wrap; overflow: visible; }
+/* Phones swipe the row; a mouse can't scroll a hidden scrollbar, so wrap. */
+@media (min-width: 768px) { .chips { flex-wrap: wrap; overflow: visible; } }
 .chip {
     flex-shrink: 0; padding: 6px 12px; border-radius: 999px; white-space: nowrap; font-size: 13px;
     background: var(--color-surface-2); border: 1px solid var(--color-border); color: var(--color-text);

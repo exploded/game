@@ -21,6 +21,12 @@ var quotesRunning atomic.Bool
 var profilesRunning atomic.Bool
 var ratesRunning atomic.Bool
 var newsRunning atomic.Bool
+var splitsRunning atomic.Bool
+
+// splitsCheckedFor is the New York date of the last good splits check, and
+// splitsTriedAt when the last one started (Unix seconds).
+var splitsCheckedFor atomic.Value
+var splitsTriedAt atomic.Int64
 
 // quoteEveryMinutes is how often intraday quotes run during the US session.
 // Each run costs 1 credit per S&P 500 stock (about 520), close to the
@@ -89,6 +95,7 @@ func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, 
 		}
 	}
 	maybeFetchQuotes(ctx, q, rawDB, now)
+	maybeCheckSplits(ctx, q, rawDB, now)
 	if utcNow.Minute()%15 == 0 {
 		go fetchRates(ctx, q, rawDB)
 	}
@@ -135,6 +142,43 @@ func startupBackfill(ctx context.Context, q *db.Queries, rawDB *sql.DB) {
 		slog.Error("startup backfill", "error", err)
 	}
 	SignalPricesChanged()
+}
+
+// maybeCheckSplits applies stock splits (market.CheckSplits) once each New
+// York weekday, from 10:00 UTC: after the night's daily fetch and before
+// the 13:30 or 14:30 UTC open, so holdings, orders and prices change
+// together. A failed check is tried again after dailyRetry.
+func maybeCheckSplits(ctx context.Context, q *db.Queries, rawDB *sql.DB, now time.Time) {
+	if market.NewYork == nil || now.UTC().Hour() < 10 {
+		return
+	}
+	ny := now.In(market.NewYork)
+	if ny.Weekday() == time.Saturday || ny.Weekday() == time.Sunday {
+		return
+	}
+	today := ny.Format(time.DateOnly)
+	if done, _ := splitsCheckedFor.Load().(string); done == today {
+		return
+	}
+	if now.Sub(time.Unix(splitsTriedAt.Load(), 0)) < dailyRetry {
+		return
+	}
+	if !splitsRunning.CompareAndSwap(false, true) {
+		return
+	}
+	splitsTriedAt.Store(now.Unix())
+	go func() {
+		defer splitsRunning.Store(false)
+		n, err := market.NewFetcher(q, rawDB).CheckSplits(ctx, q, today)
+		if err != nil {
+			slog.Error("stock splits", "error", err)
+			return
+		}
+		splitsCheckedFor.Store(today)
+		if n > 0 {
+			SignalPricesChanged()
+		}
+	}()
 }
 
 // dailyRetry is how long after a daily fetch that saved nothing it's tried
