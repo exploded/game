@@ -69,6 +69,9 @@ func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, 
 		slog.Error("credit interest", "error", err)
 	}
 	q.AdvancePendingGames(ctx, today)
+	if err := q.CancelOrdersInExpiredGames(ctx, today); err != nil {
+		slog.Error("cancel orders in ended games", "error", err)
+	}
 	q.FinishExpiredGames(ctx, today)
 
 	// 2. Fetch prices (skip weekends; use UTC for market hours).

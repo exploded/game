@@ -65,8 +65,8 @@ func TestShortReturnHasTheRightSign(t *testing.T) {
 	if want := `<span class="pill pill-up">&#43;10.00%</span> <span class="c-amt">&#43;$10.00</span>`; !strings.Contains(body, want) {
 		t.Errorf("home page is missing %q", want)
 	}
-	if strings.Contains(body, `name="all"`) {
-		t.Error("a short has a Sell all button")
+	if !strings.Contains(body, `data-confirm="Buy back all 10 ACME at the market price to close your short?"`) {
+		t.Error("a short has no Close position button that buys it back")
 	}
 }
 
@@ -133,7 +133,70 @@ func TestSellAllQueuesOnceWhileClosed(t *testing.T) {
 	if h := holding(t, q); h.Quantity != 7 {
 		t.Errorf("holding = %d before the open, want 7", h.Quantity)
 	}
-	if body := getPage(t, srv, "/games/1", ""); !strings.Contains(body, "Sale queued") || strings.Contains(body, `name="all"`) {
-		t.Error("home page doesn't show the queued sale in place of the Sell button")
+	if body := getPage(t, srv, "/games/1", ""); !strings.Contains(body, "Close queued") || strings.Contains(body, `name="all"`) {
+		t.Error("home page doesn't show the queued sale in place of the Close position button")
+	}
+}
+
+func coverAll(srv http.Handler) (code int, location, flash string) {
+	w := postTicket(srv, url.Values{"side": {"buy"}, "all": {"1"}, "from": {"home"}})
+	return w.Code, w.Header().Get("Location"), w.Header().Get("Set-Cookie")
+}
+
+// TestCloseShortFromHome: 3 ACME short, bought back at $10.50.
+func TestCloseShortFromHome(t *testing.T) {
+	srv, q := gameServer(t)
+	setMarketOpen(t, true)
+	hold(t, q, -3, -3000, -3150)
+
+	if code, loc, _ := coverAll(srv); code != http.StatusSeeOther || loc != "/games/1" {
+		t.Fatalf("got %d to %q, want 303 to /games/1", code, loc)
+	}
+	if h := holding(t, q); h.ID != 0 {
+		t.Errorf("still holding %d ACME", h.Quantity)
+	}
+	if p := alice(t, q); p.CashBalance != 100000000-3*1050 {
+		t.Errorf("cash = %d, want %d", p.CashBalance, 100000000-3*1050)
+	}
+
+	// A second tap finds nothing to buy back, and doesn't go long.
+	if _, loc, flash := coverAll(srv); loc != "/games/1" || !strings.Contains(flash, "short ACME") {
+		t.Errorf("second tap went to %q with %q, want home with an error", loc, flash)
+	}
+	if h := holding(t, q); h.ID != 0 {
+		t.Errorf("second tap left %d ACME", h.Quantity)
+	}
+}
+
+func TestCoverAllDoesntBuyMoreOfALong(t *testing.T) {
+	srv, q := gameServer(t)
+	setMarketOpen(t, true)
+	hold(t, q, 7, 6300, 7350)
+	if _, _, flash := coverAll(srv); !strings.Contains(flash, "short ACME") {
+		t.Errorf("flash = %q, want an error", flash)
+	}
+	if h := holding(t, q); h.Quantity != 7 {
+		t.Errorf("holding = %d, want 7", h.Quantity)
+	}
+}
+
+// TestFinishedGameIsFrozen: 10 ACME were worth $10.00 each when the game
+// ended. ACME has moved since, but the home page still shows the end.
+func TestFinishedGameIsFrozen(t *testing.T) {
+	srv, q := gameServer(t)
+	hold(t, q, 10, 9000, 10000)
+	if err := q.FinishExpiredGames(t.Context(), "2027-01-01"); err != nil {
+		t.Fatal(err)
+	}
+
+	body := getPage(t, srv, "/games/1", "")
+	if !strings.Contains(body, `data-label="Price">$10.00</td>`) {
+		t.Error("price isn't the one from the end of the game")
+	}
+	if strings.Contains(body, `data-label="Today"`) || strings.Contains(body, "Close position") {
+		t.Error("a finished game shows today's move or a Close position button")
+	}
+	if !strings.Contains(body, "Final value") {
+		t.Error("a finished game's value isn't labelled final")
 	}
 }

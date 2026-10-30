@@ -59,11 +59,28 @@ func (c change) Class() string {
 // stock's own currency.
 type holdingRow struct {
 	db.ListHoldingsRow
-	Avg        int64  // average price paid per share
-	Price      int64  // the latest close
-	Today      change // what the position made since the previous close (dayMove)
-	Total      change // value against what the shares cost
-	SellQueued bool   // a sale is waiting for the market to open
+	Avg         int64  // average price paid per share
+	Price       int64  // the latest close, or the final one once the game is over
+	Today       change // what the position made since the previous close (dayMove)
+	Total       change // value against what the shares cost
+	CloseQueued bool   // an order closing the position waits for the market to open
+}
+
+// CloseSide is the trade that closes the position: sell shares held, buy
+// back a short.
+func (r holdingRow) CloseSide() string {
+	if r.Quantity < 0 {
+		return "buy"
+	}
+	return "sell"
+}
+
+// Shares is the position's size without its sign.
+func (r holdingRow) Shares() int64 {
+	if r.Quantity < 0 {
+		return -r.Quantity
+	}
+	return r.Quantity
 }
 
 // dayMove is how much a position of qty shares made since the previous
@@ -159,14 +176,22 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 		rate = er.RateAudUsd
 	}
 
-	queuedSells := map[int64]bool{}
+	// Queued market orders, by stock and side.
+	queued := map[int64]map[string]bool{}
 	if orders, err := h.q.ListOpenLimitOrders(ctx, participant.ID); err == nil {
 		for _, o := range orders {
-			if o.Type == "sell" && o.Kind == "market" {
-				queuedSells[o.StockID] = true
+			if o.Kind == "market" {
+				if queued[o.StockID] == nil {
+					queued[o.StockID] = map[string]bool{}
+				}
+				queued[o.StockID][o.Type] = true
 			}
 		}
 	}
+
+	// Once the game is over its values stay as they were at the end, so the
+	// price comes from the final value and there's no today.
+	over := game.Status != "active"
 
 	// Every trade in this game, by stock. A month of one player's trades is
 	// small, and it means no trade since a stock's previous close is missed.
@@ -184,9 +209,13 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 			ListHoldingsRow: ho,
 			Avg:             market.AvgCost(ho.Quantity, ho.CostBasis),
 			Total:           change{ho.CurrentValue - ho.CostBasis, ho.CostBasis},
-			SellQueued:      queuedSells[ho.StockID],
 		}
-		if bars, err := h.q.ListLatestPrices(ctx, ho.StockID); err == nil && len(bars) > 0 {
+		row.CloseQueued = queued[ho.StockID][row.CloseSide()]
+		if over {
+			if ho.Quantity != 0 {
+				row.Price = ho.CurrentValue / ho.Quantity
+			}
+		} else if bars, err := h.q.ListLatestPrices(ctx, ho.StockID); err == nil && len(bars) > 0 {
 			row.Price = bars[0].Close
 			row.Today = dayMove(ho.Quantity, bars, trades[ho.StockID])
 		}
@@ -194,11 +223,15 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 		rows = append(rows, row)
 		delete(trades, ho.StockID)
 	}
-	// A stock sold out of today still made or lost money before the sale.
-	for stockID, ts := range trades {
-		if bars, err := h.q.ListLatestPrices(ctx, stockID); err == nil {
-			todayBase += convertCurrency(dayMove(0, bars, ts).Amount, ts[0].Currency, game.BaseCurrency, rate)
+	var today *change
+	if !over {
+		// A stock sold out of today still made or lost money before the sale.
+		for stockID, ts := range trades {
+			if bars, err := h.q.ListLatestPrices(ctx, stockID); err == nil {
+				todayBase += convertCurrency(dayMove(0, bars, ts).Amount, ts[0].Currency, game.BaseCurrency, rate)
+			}
 		}
+		today = &change{todayBase, participant.PortfolioValue - todayBase}
 	}
 	interest, _ := h.q.TotalInterest(ctx, participant.ID)
 	var invites []db.ListInvitesSentRow
@@ -213,7 +246,8 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 		Extra: map[string]any{
 			"Participant": participant,
 			"Snapshots":   snapshots,
-			"Today":       change{todayBase, participant.PortfolioValue - todayBase},
+			"Over":        over,
+			"Today":       today,
 			"Total":       change{participant.PortfolioValue - game.StartingBalance, game.StartingBalance},
 			"Standing":    rankPlayer(participant, board),
 			"Interest":    interest,

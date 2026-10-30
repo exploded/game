@@ -172,6 +172,12 @@ var onceMigrations = []struct{ name, stmt string }{
 			WHERE id = 21 AND exchange_rate_used = 106641 AND converted_total = 717557)`},
 	{"fix-fake-rate-trade", `UPDATE transactions SET converted_total = 108898, exchange_rate_used = 702680
 		WHERE id = 21 AND exchange_rate_used = 106641 AND converted_total = 717557`},
+	// Orders are now cancelled when their game ends. Cancel those left open
+	// in games that ended before that, quietly.
+	{"cancel-orders-in-ended-games", `UPDATE limit_orders SET status = 'cancelled'
+		WHERE status = 'open' AND participant_id IN (
+			SELECT p.id FROM participants p JOIN games g ON g.id = p.game_id
+			WHERE g.status IN ('finished', 'cancelled'))`},
 }
 
 func runMigrations(db *sql.DB) error {

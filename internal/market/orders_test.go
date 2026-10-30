@@ -208,3 +208,25 @@ func TestQueuedSellCanGoShort(t *testing.T) {
 		t.Errorf("holding = %d at %d costing %d, want -3 at 1050 costing -3150", h.Quantity, h.AvgCost, h.CostBasis)
 	}
 }
+
+// TestOrdersCancelledWhenGameEnds: ordersDB's game ends on 31 December. Its
+// queued order stays open that day and is cancelled, without a notification,
+// once the game is over.
+func TestOrdersCancelledWhenGameEnds(t *testing.T) {
+	q, d := ordersDB(t, "2026-12-31", "buy", 5)
+	if err := q.CancelOrdersInExpiredGames(t.Context(), "2026-12-31"); err != nil {
+		t.Fatal(err)
+	}
+	if s := orderStatus(t, d); s != "open" {
+		t.Errorf("status = %q on the game's last day, want open", s)
+	}
+	if err := q.CancelOrdersInExpiredGames(t.Context(), "2027-01-01"); err != nil {
+		t.Fatal(err)
+	}
+	if s := orderStatus(t, d); s != "cancelled" {
+		t.Errorf("status = %q after the game ended, want cancelled", s)
+	}
+	if title := notificationTitle(d); title != "" {
+		t.Errorf("notification %q, want none", title)
+	}
+}

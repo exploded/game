@@ -61,6 +61,10 @@
             </div>
         </div>
 
+        <h2>When the game ends</h2>
+        <p>The game ends at midnight Sydney time at the end of {{longDate .Item.EndDate}}, and final values use the latest US prices at that moment. From October to March the US market hasn't opened by then, so that's the previous US trading day's close. From April to September it opens half an hour before midnight, so the first 30 minutes of the last day's trading count.</p>
+        <p>Anything you still hold or are short when the game ends isn't sold or bought back. It's valued at those final prices, the same as closing it at that price with no fee. Orders still waiting are cancelled.</p>
+
         {{if .Extra.CanJoin}}
         <form method="POST" action="/games/{{.Item.ID}}/join" class="join-form">
             <button type="submit" class="btn btn-primary">Join Game</button>

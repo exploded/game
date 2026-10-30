@@ -193,6 +193,23 @@ func (q *Queries) CancelLive(ctx context.Context, id int64) error {
 	return err
 }
 
+const cancelOrdersInExpiredGames = `-- name: CancelOrdersInExpiredGames :exec
+UPDATE limit_orders SET status = 'cancelled'
+WHERE status = 'open' AND participant_id IN (
+    SELECT p.id FROM participants p
+    JOIN games g ON g.id = p.game_id
+    WHERE g.status = 'active' AND g.end_date < ?
+)
+`
+
+// Run just before FinishExpiredGames, with the same date: orders still open
+// when a game ends are cancelled, without a notification (the game's results
+// email covers it).
+func (q *Queries) CancelOrdersInExpiredGames(ctx context.Context, endDate string) error {
+	_, err := q.db.ExecContext(ctx, cancelOrdersInExpiredGames, endDate)
+	return err
+}
+
 const claimGameEmail = `-- name: ClaimGameEmail :execrows
 INSERT OR IGNORE INTO game_emails (game_id, kind) VALUES (?, ?)
 `

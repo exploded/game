@@ -209,6 +209,17 @@ SELECT COUNT(*) FROM participants WHERE game_id = ?;
 UPDATE games SET status = 'active', updated_at = datetime('now')
 WHERE status = 'pending' AND start_date <= ?;
 
+-- name: CancelOrdersInExpiredGames :exec
+-- Run just before FinishExpiredGames, with the same date: orders still open
+-- when a game ends are cancelled, without a notification (the game's results
+-- email covers it).
+UPDATE limit_orders SET status = 'cancelled'
+WHERE status = 'open' AND participant_id IN (
+    SELECT p.id FROM participants p
+    JOIN games g ON g.id = p.game_id
+    WHERE g.status = 'active' AND g.end_date < ?
+);
+
 -- name: FinishExpiredGames :exec
 UPDATE games SET status = 'finished', updated_at = datetime('now')
 WHERE status = 'active' AND end_date < ?;

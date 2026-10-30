@@ -14,7 +14,7 @@
 {{end}}{{end}}
 
 <div class="portfolio-hero">
-    <span class="stat-label">Total value</span>
+    <span class="stat-label">{{if .Extra.Over}}Final value{{else}}Total value{{end}}</span>
     <div class="hero-value mono">{{cents $pt.PortfolioValue}}</div>
     <div class="hero-change">
         {{with .Extra.Today}}<span><span class="pill {{.Class}}">{{.Text}} ({{.Pct}})</span> <span class="text-muted">today</span></span>{{end}}
@@ -37,13 +37,15 @@
     </div>
     {{if .Items}}
     {{/* rtable: a table on desktop, one tappable card per row on a phone.
-    Today and Total are in the stock's own currency. */}}
+    Today and Total are in the stock's own currency. A finished game shows
+    the values from its end, so there's no Today. */}}
+    {{if .Extra.Over}}<p class="text-muted">This game is over. Positions are valued at the last prices before it ended.</p>{{end}}
     <table class="rtable">
         <thead>
             <tr>
                 <th>Stock</th>
                 <th class="num">Value</th>
-                <th class="num">Today</th>
+                {{if not .Extra.Over}}<th class="num">Today</th>{{end}}
                 <th class="num">Total</th>
                 <th class="num">Qty</th>
                 <th class="num">Price</th>
@@ -60,7 +62,7 @@
                     <span class="c-sub">{{.StockName}}</span>
                 </td>
                 <td class="c-end num">{{cents .CurrentValue}} <span class="text-muted c-cur">{{.Currency}}</span></td>
-                <td class="num c-move" data-label="Today">{{with .Today}}{{if .Base}}<span class="pill {{.Class}}">{{.Pct}}</span> <span class="c-amt">{{.Text}}</span>{{end}}{{end}}</td>
+                {{if not $.Extra.Over}}<td class="num c-move" data-label="Today">{{with .Today}}{{if .Base}}<span class="pill {{.Class}}">{{.Pct}}</span> <span class="c-amt">{{.Text}}</span>{{end}}{{end}}</td>{{end}}
                 <td class="num c-move" data-label="Total">{{with .Total}}{{if .Base}}<span class="pill {{.Class}}">{{.Pct}}</span> <span class="c-amt">{{.Text}}</span>{{end}}{{end}}</td>
                 <td class="num" data-label="Qty">{{.Quantity}}</td>
                 <td class="num" data-label="Price">{{if .Price}}{{cents .Price}}{{end}}</td>
@@ -69,15 +71,16 @@
                 <td class="c-action">
                     <div class="btn-group">
                         <a href="/games/{{$.Item.ID}}/stocks/{{.StockID}}" class="btn btn-primary btn-sm hide-sm">Trade</a>
-                        {{if eq $.Item.Status "active"}}{{if .SellQueued}}
-                        <span class="badge badge-pending" title="Sells when the US market opens">Sale queued</span>
-                        {{else if gt .Quantity 0}}
-                        {{/* all=1: the server sells whatever is held when it arrives. */}}
+                        {{if eq $.Item.Status "active"}}{{if .CloseQueued}}
+                        <span class="badge badge-pending" title="Closes when the US market opens">Close queued</span>
+                        {{else}}
+                        {{/* all=1: the server sells whatever is held, or buys back
+                        whatever is short, when it arrives. */}}
                         <form method="POST" action="/games/{{$.Item.ID}}/trade/{{.StockID}}">
-                            <input type="hidden" name="side" value="sell">
+                            <input type="hidden" name="side" value="{{.CloseSide}}">
                             <input type="hidden" name="all" value="1">
                             <input type="hidden" name="from" value="home">
-                            <button type="submit" class="btn btn-danger btn-sm" data-confirm="Sell all {{.Quantity}} {{.Symbol}} at the market price?">Sell</button>
+                            <button type="submit" class="btn btn-danger btn-sm" data-confirm="{{if lt .Quantity 0}}Buy back all {{.Shares}} {{.Symbol}} at the market price to close your short?{{else}}Sell all {{.Shares}} {{.Symbol}} at the market price?{{end}}">Close position</button>
                         </form>
                         {{end}}{{end}}
                     </div>
