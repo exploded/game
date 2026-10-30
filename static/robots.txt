@@ -1,5 +1,0 @@
-User-agent: *
-Disallow: /admin/
-Disallow: /auth/
-Disallow: /games/
-Crawl-delay: 2
