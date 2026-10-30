@@ -124,6 +124,17 @@ var onceMigrations = []struct{ name, stmt string }{
 	// One game per quarter. Not in schema.sql, which runs before addedColumns
 	// adds quarter.
 	{"idx-games-quarter", "CREATE UNIQUE INDEX IF NOT EXISTS idx_games_quarter ON games(quarter) WHERE quarter IS NOT NULL"},
+	// Games went monthly on 1 November 2026. The Oct–Dec game ends on 31
+	// October as October's game, and the Jan–Mar game goes (with anyone who
+	// joined it early); the scheduler creates November's and December's.
+	{"monthly-games-october", `UPDATE games SET
+		quarter = '2026-10',
+		end_date = '2026-10-31',
+		name = CASE WHEN name = 'Oct–Dec 2026' THEN 'October 2026' ELSE name END,
+		description = CASE WHEN description = 'Three months to grow $1,000,000. The biggest portfolio when the game ends wins.'
+			THEN 'One month to grow $1,000,000. The biggest portfolio when the game ends wins.' ELSE description END
+		WHERE quarter = '2026-Q4'`},
+	{"monthly-games-drop-2027-q1", "DELETE FROM games WHERE quarter = '2027-Q1' AND status = 'pending'"},
 	// The Learn topics. Admins rename or add them on /admin/learn/topics;
 	// Claude reads each description when it sorts a video.
 	{"seed-topics", `INSERT OR IGNORE INTO topics (slug, name, description, sort_order) VALUES

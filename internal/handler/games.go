@@ -18,7 +18,7 @@ import (
 // gameCard is one game on the Games page and the dashboard.
 type gameCard struct {
 	Game        db.Game
-	Label       string          // "This quarter" or "Next game"; "" for past games
+	Label       string          // "This month" or "Next game"; "" for past games
 	Participant *db.Participant // nil when the user hasn't joined
 	Players     int64
 }
@@ -34,16 +34,16 @@ func (h *Handler) gameCard(ctx context.Context, g db.Game, label string, userID 
 	return c
 }
 
-// quarterCards are this quarter's game and the next one, for those the
-// scheduler has created (see market.EnsureQuarterlyGames).
-func (h *Handler) quarterCards(ctx context.Context, userID int64) []gameCard {
-	this := market.QuarterOf(time.Now().In(h.loc))
+// monthCards are this month's game and the next one, for those the
+// scheduler has created (see market.EnsureMonthlyGames).
+func (h *Handler) monthCards(ctx context.Context, userID int64) []gameCard {
+	this := market.MonthOf(time.Now().In(h.loc))
 	var cards []gameCard
 	for _, c := range []struct {
-		qtr   market.Quarter
+		month market.Month
 		label string
-	}{{this, "This quarter"}, {this.Next(), "Next game"}} {
-		g, err := h.q.GetGameByQuarter(ctx, sql.NullString{String: c.qtr.Key(), Valid: true})
+	}{{this, "This month"}, {this.Next(), "Next game"}} {
+		g, err := h.q.GetGameByMonth(ctx, sql.NullString{String: c.month.Key(), Valid: true})
 		if err != nil {
 			continue
 		}
@@ -52,7 +52,7 @@ func (h *Handler) quarterCards(ctx context.Context, userID int64) []gameCard {
 	return cards
 }
 
-// GamesList shows this quarter's game, the next one and every past game.
+// GamesList shows this month's game, the next one and every past game.
 func (h *Handler) GamesList(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 
@@ -64,7 +64,7 @@ func (h *Handler) GamesList(w http.ResponseWriter, r *http.Request) {
 
 	h.render(w, r, "games/list", "", PageData{
 		Title: "Games",
-		Items: h.quarterCards(r.Context(), user.ID),
+		Items: h.monthCards(r.Context(), user.ID),
 		Extra: map[string]any{"Past": past},
 	})
 }
@@ -175,17 +175,17 @@ func (h *Handler) joinGame(ctx context.Context, game db.Game, userID int64) (db.
 	return participant, nil
 }
 
-// isCurrentGame reports whether g is this quarter's game, which every
-// player is in without having to join.
+// isCurrentGame reports whether g is this month's game, which every player
+// is in without having to join.
 func (h *Handler) isCurrentGame(g db.Game) bool {
-	return g.Quarter.Valid && g.Quarter.String == market.QuarterOf(time.Now().In(h.loc)).Key()
+	return g.Quarter.Valid && g.Quarter.String == market.MonthOf(time.Now().In(h.loc)).Key()
 }
 
-// currentGame is this quarter's game, with the user joined to it. It's
-// false until the scheduler has created the game.
+// currentGame is this month's game, with the user joined to it. It's false
+// until the scheduler has created the game.
 func (h *Handler) currentGame(ctx context.Context, userID int64) (db.Game, bool) {
-	qtr := market.QuarterOf(time.Now().In(h.loc))
-	g, err := h.q.GetGameByQuarter(ctx, sql.NullString{String: qtr.Key(), Valid: true})
+	month := market.MonthOf(time.Now().In(h.loc))
+	g, err := h.q.GetGameByMonth(ctx, sql.NullString{String: month.Key(), Valid: true})
 	if err != nil {
 		return db.Game{}, false
 	}
@@ -199,7 +199,7 @@ func (h *Handler) currentGame(ctx context.Context, userID int64) (db.Game, bool)
 	return g, true
 }
 
-// GameJoin joins a game that isn't this quarter's, such as the next one.
+// GameJoin joins a game that isn't this month's, such as the next one.
 func (h *Handler) GameJoin(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)

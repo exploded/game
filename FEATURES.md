@@ -36,7 +36,7 @@ Admin can simulate stock splits (e.g. 2:1, 3:1). All holdings of the stock acros
 ## Social & Competition
 
 ### 6. Invite a Friend
-Any player can invite a friend by email from the game's home page while the game's referral bonus is above 0. The friend gets a link to `/invite/{code}`, which remembers the invite and shows the sign-up form. If they create an account, they join the game and the inviter gets the referral bonus (`referral_bonus_pct` of the starting cash). Existing accounts earn nothing. Each invite pays once; each player can send 10 a day, and each address is invited once per game.
+Any player can invite a friend by email from the game's home page while the game's referral bonus is above 0. The friend gets a link to `/invite/{code}`, which remembers the invite and shows the sign-up form. If they create an account, they join the game and the inviter gets the referral bonus (`referral_bonus_pct` of the starting cash). Existing accounts earn nothing. Each player gets the bonus once per game (so once a month); each invite pays once, each player can send 10 a day, and each address is invited once per game.
 
 - **Routes:** `POST /games/{id}/invite` (send), `/invite/{code}` (landing, public)
 - **Files:** `internal/handler/invite.go`, `internal/mail/templates/invite.tmpl`
@@ -132,12 +132,12 @@ Dashboard showing trade statistics: total trades, buy/sell counts, win rate, tot
 
 ## Game Enhancements
 
-### 16. One game per quarter
-There's one game each calendar quarter. It starts at midnight on 1 January, April, July or October and ends at midnight after the quarter's last day, in `TIMEZONE`. Players can't create games, and they don't join this quarter's game: signing in takes them straight into it with their starting cash. The scheduler creates this quarter's game and the next one, named like "Jan–Mar 2027", each copying the settings of the game before it, so players can join the next game early. Admins change a game's settings at `/admin/games`: name, description, markets, player limit, trade fee, referral bonus, limit orders and short selling. Starting cash and currency are fixed once someone has joined. Finished games are listed on `/games` with their final standings.
+### 16. One game per month
+There's one game each calendar month (quarterly until 31 October 2026). It starts at midnight on the 1st and ends at midnight after the month's last day, in `TIMEZONE`. Players can't create games, and they don't join this month's game: signing in takes them straight into it with their starting cash. The scheduler creates this month's game and the next one, named like "November 2026", each copying the settings of the game before it, so players can join the next game early. Admins change a game's settings at `/admin/games`: name, description, markets, player limit, trade fee, referral bonus, limit orders and short selling. Starting cash and currency are fixed once someone has joined. Finished games are listed on `/games` with their final standings.
 
-- **Schema:** `games.quarter` (`2027-Q1`, unique; NULL for games from before quarters)
+- **Schema:** `games.quarter` holds the month (`2026-11`, unique; NULL for games from before quarterly games)
 - **Routes:** `/games`, `/admin/games`, `/admin/games/{gid}` (GET/POST), `/admin/games/{gid}/cancel`
-- **Files:** `internal/market/quarterly.go`, `internal/handler/games.go`, `internal/handler/admin_games.go`, `templates/pages/admin/game*.html`
+- **Files:** `internal/market/monthly.go`, `internal/handler/games.go`, `internal/handler/admin_games.go`, `templates/pages/admin/game*.html`
 
 ### 17. Game templates and recurring games (removed)
 Replaced by quarterly games on 2026-10-30. The `game_templates` table and the `recurring_interval`, `parent_game_id` and `template_id` columns are still in the schema but unused.

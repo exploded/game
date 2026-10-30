@@ -12,7 +12,7 @@ import (
 )
 
 // AdminGames lists every game, newest first. The scheduler creates one per
-// quarter; admins change their settings here.
+// month; admins change their settings here.
 func (h *Handler) AdminGames(w http.ResponseWriter, r *http.Request) {
 	games, err := h.q.ListGamesWithPlayers(r.Context())
 	if err != nil {
@@ -61,7 +61,7 @@ func (h *Handler) AdminGame(w http.ResponseWriter, r *http.Request) {
 }
 
 // AdminGameUpdate saves a game's settings. They apply straight away, to
-// everyone in the game. Dates come from the quarter and can't change.
+// everyone in the game. Dates come from the month and can't change.
 func (h *Handler) AdminGameUpdate(w http.ResponseWriter, r *http.Request) {
 	g, ok := h.adminGame(w, r)
 	if !ok {
@@ -152,7 +152,7 @@ func (h *Handler) AdminGameUpdate(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/admin/games/%d", g.ID), http.StatusSeeOther)
 }
 
-// AdminGameCancel cancels a game. Its quarter gets no replacement.
+// AdminGameCancel cancels a game. Its month gets no replacement.
 func (h *Handler) AdminGameCancel(w http.ResponseWriter, r *http.Request) {
 	g, ok := h.adminGame(w, r)
 	if !ok {

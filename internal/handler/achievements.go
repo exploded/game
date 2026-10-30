@@ -26,7 +26,7 @@ func SeedAchievements(ctx context.Context, q *db.Queries) {
 		{"top_three", "Podium Finish", "Finish in the top 3", "🥇"},
 		{"joined_3_games", "Social Player", "Join 3 or more games", "🤝"},
 		{"watchlist_10", "Market Watcher", "Add 10 stocks to your watchlist", "👀"},
-		{"referral_3", "Recruiter", "Refer 3 players to a single game", "📣"},
+		{"referral_3", "Recruiter", "Invite 3 friends who sign up", "📣"},
 	}
 	for _, d := range defs {
 		if err := q.UpsertAchievement(ctx, db.UpsertAchievementParams{

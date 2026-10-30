@@ -241,7 +241,7 @@ func main() {
 		r.Get("/welcome", h.WelcomePage)
 		r.Post("/welcome", h.WelcomeSubmit)
 
-		// Games: one per quarter, created by the scheduler. Admins change
+		// Games: one per month, created by the scheduler. Admins change
 		// their settings under /admin/games.
 		r.Get("/games", h.GamesList)
 		r.Get("/history", func(w http.ResponseWriter, r *http.Request) {

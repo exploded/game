@@ -207,3 +207,36 @@ func TestInviteRules(t *testing.T) {
 		t.Error("home page offers invites when the bonus is 0")
 	}
 }
+
+func TestOneReferralBonusPerGame(t *testing.T) {
+	srv, d := inviteServer(t)
+	first := openInvite(t, srv, d, "first@example.com")
+	second := openInvite(t, srv, d, "second@example.com")
+
+	for _, f := range []struct {
+		email string
+		inv   *http.Cookie
+	}{{"first@example.com", first}, {"second@example.com", second}} {
+		req, code, _ := requestLogin(t, srv, d, f.email)
+		if w := post(srv, "/login/code", url.Values{"code": {code}}, req, f.inv); w.Header().Get("Location") != "/welcome" {
+			t.Fatalf("%s sign up: %d to %q", f.email, w.Code, w.Header().Get("Location"))
+		}
+	}
+	if got, want := cash(t, d, 1), int64(100000000+1000000); got != want {
+		t.Errorf("Alice's cash = %d, want %d: one bonus, not two", got, want)
+	}
+	var joined, used int
+	d.QueryRow("SELECT COUNT(*) FROM participants p JOIN users u ON u.id = p.user_id WHERE p.game_id = 1 AND u.email = 'second@example.com'").Scan(&joined)
+	d.QueryRow("SELECT use_count FROM game_invites WHERE email = 'second@example.com'").Scan(&used)
+	if joined != 1 || used != 1 {
+		t.Errorf("second friend: joined %d, invite used %d; want 1 and 1", joined, used)
+	}
+
+	if got := invite(t, srv, "1", "third@example.com"); !strings.Contains(got, "had your referral bonus") {
+		t.Errorf("invite after the bonus: flash %q", got)
+	}
+	body := getPage(t, srv, "/games/1", "1")
+	if !strings.Contains(body, "had your $10,000 referral bonus") || strings.Contains(body, `action="/games/1/invite"`) {
+		t.Error("home page still offers invites after the bonus")
+	}
+}

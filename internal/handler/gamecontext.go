@@ -27,8 +27,8 @@ type gameBarKey struct{}
 
 // GameContext loads the game bar for full-page GETs under /games/{id} and
 // remembers the game as the user's current one. A user who isn't in this
-// quarter's game is joined to it. render picks it up from the
-// request context, so the handlers don't need to know about it.
+// month's game is joined to it. render picks it up from the request context,
+// so the handlers don't need to know about it.
 func (h *Handler) GameContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := auth.UserFromContext(r.Context())
@@ -53,7 +53,7 @@ func (h *Handler) GameContext(next http.Handler) http.Handler {
 			GameID: gameID, UserID: user.ID,
 		})
 		if errors.Is(err, sql.ErrNoRows) && h.isCurrentGame(game) {
-			// Everyone plays this quarter's game: no Join button to find.
+			// Everyone plays this month's game: no Join button to find.
 			p, err = h.joinGame(r.Context(), game, user.ID)
 		}
 		if err == nil {

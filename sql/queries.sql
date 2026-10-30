@@ -166,14 +166,16 @@ RETURNING *;
 -- name: GetGame :one
 SELECT * FROM games WHERE id = ?;
 
--- name: GetGameByQuarter :one
+-- A month's game. The column is still called quarter: games were quarterly
+-- until November 2026.
+-- name: GetGameByMonth :one
 SELECT * FROM games WHERE quarter = ?;
 
--- The most recent quarter's game, whose settings the next one copies.
--- name: GetLatestQuarterlyGame :one
+-- The most recent month's game, whose settings the next one copies.
+-- name: GetLatestMonthlyGame :one
 SELECT * FROM games WHERE quarter IS NOT NULL ORDER BY start_date DESC LIMIT 1;
 
--- Who quarterly games are created by: the first admin, else the first user.
+-- Who monthly games are created by: the first admin, else the first user.
 -- name: GetGameOwner :one
 SELECT id FROM users WHERE deleted_at IS NULL ORDER BY is_admin DESC, id LIMIT 1;
 
@@ -741,8 +743,10 @@ SELECT COUNT(*) FROM game_messages WHERE game_id = ?;
 -- =============================================================================
 
 -- name: UpsertAchievement :exec
-INSERT OR IGNORE INTO achievements (key, name, description, icon)
-VALUES (?, ?, ?, ?);
+-- Keeps each achievement's text in step with the code.
+INSERT INTO achievements (key, name, description, icon)
+VALUES (?, ?, ?, ?)
+ON CONFLICT(key) DO UPDATE SET name = excluded.name, description = excluded.description, icon = excluded.icon;
 
 -- name: ListAchievements :many
 SELECT * FROM achievements ORDER BY id;
@@ -1047,6 +1051,9 @@ ORDER BY rb.created_at DESC;
 
 -- name: CountReferralBonuses :one
 SELECT COUNT(*) FROM referral_bonuses WHERE referrer_id = ? AND game_id = ?;
+
+-- name: CountAllReferralBonuses :one
+SELECT COUNT(*) FROM referral_bonuses WHERE referrer_id = ?;
 
 -- name: TotalReferralBonus :one
 SELECT COALESCE(SUM(bonus_amount), 0) FROM referral_bonuses WHERE referrer_id = ? AND game_id = ?;

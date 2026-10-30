@@ -60,10 +60,10 @@ func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, 
 	now := time.Now()
 	today := now.In(loc).Format("2006-01-02")
 
-	// 1. Make sure this quarter's game and the next exist, pay yesterday's
+	// 1. Make sure this month's game and the next exist, pay yesterday's
 	// interest on cash, then advance game statuses. Interest comes first so a
 	// game's last day is paid before the game finishes.
-	market.EnsureQuarterlyGames(ctx, q, now.In(loc))
+	market.EnsureMonthlyGames(ctx, q, now.In(loc))
 	if err := market.CreditInterest(ctx, q, rawDB, now.In(loc)); err != nil {
 		slog.Error("credit interest", "error", err)
 	}

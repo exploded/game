@@ -252,6 +252,17 @@ func (q *Queries) CompleteLesson(ctx context.Context, arg CompleteLessonParams) 
 	return err
 }
 
+const countAllReferralBonuses = `-- name: CountAllReferralBonuses :one
+SELECT COUNT(*) FROM referral_bonuses WHERE referrer_id = ?
+`
+
+func (q *Queries) CountAllReferralBonuses(ctx context.Context, referrerID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countAllReferralBonuses, referrerID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countContactMessages = `-- name: CountContactMessages :one
 SELECT COUNT(*) FROM contact_messages
 `
@@ -1446,12 +1457,14 @@ func (q *Queries) GetGame(ctx context.Context, id int64) (Game, error) {
 	return i, err
 }
 
-const getGameByQuarter = `-- name: GetGameByQuarter :one
+const getGameByMonth = `-- name: GetGameByMonth :one
 SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, is_public, portfolio_visibility, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, after_hours_trading, quarter, created_at, updated_at FROM games WHERE quarter = ?
 `
 
-func (q *Queries) GetGameByQuarter(ctx context.Context, quarter sql.NullString) (Game, error) {
-	row := q.db.QueryRowContext(ctx, getGameByQuarter, quarter)
+// A month's game. The column is still called quarter: games were quarterly
+// until November 2026.
+func (q *Queries) GetGameByMonth(ctx context.Context, quarter sql.NullString) (Game, error) {
+	row := q.db.QueryRowContext(ctx, getGameByMonth, quarter)
 	var i Game
 	err := row.Scan(
 		&i.ID,
@@ -1493,7 +1506,7 @@ const getGameOwner = `-- name: GetGameOwner :one
 SELECT id FROM users WHERE deleted_at IS NULL ORDER BY is_admin DESC, id LIMIT 1
 `
 
-// Who quarterly games are created by: the first admin, else the first user.
+// Who monthly games are created by: the first admin, else the first user.
 func (q *Queries) GetGameOwner(ctx context.Context) (int64, error) {
 	row := q.db.QueryRowContext(ctx, getGameOwner)
 	var id int64
@@ -1584,48 +1597,13 @@ func (q *Queries) GetLatestFetchLog(ctx context.Context, market string) (PriceFe
 	return i, err
 }
 
-const getLatestPrice = `-- name: GetLatestPrice :one
-SELECT id, stock_id, date, open, high, low, close, volume, created_at FROM stock_prices
-WHERE stock_id = ?
-ORDER BY date DESC LIMIT 1
-`
-
-func (q *Queries) GetLatestPrice(ctx context.Context, stockID int64) (StockPrice, error) {
-	row := q.db.QueryRowContext(ctx, getLatestPrice, stockID)
-	var i StockPrice
-	err := row.Scan(
-		&i.ID,
-		&i.StockID,
-		&i.Date,
-		&i.Open,
-		&i.High,
-		&i.Low,
-		&i.Close,
-		&i.Volume,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
-const getLatestPriceDate = `-- name: GetLatestPriceDate :one
-SELECT MAX(date) AS latest_date FROM stock_prices
-WHERE stock_id IN (SELECT id FROM stocks WHERE market = ?)
-`
-
-func (q *Queries) GetLatestPriceDate(ctx context.Context, market string) (interface{}, error) {
-	row := q.db.QueryRowContext(ctx, getLatestPriceDate, market)
-	var latest_date interface{}
-	err := row.Scan(&latest_date)
-	return latest_date, err
-}
-
-const getLatestQuarterlyGame = `-- name: GetLatestQuarterlyGame :one
+const getLatestMonthlyGame = `-- name: GetLatestMonthlyGame :one
 SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, is_public, portfolio_visibility, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, after_hours_trading, quarter, created_at, updated_at FROM games WHERE quarter IS NOT NULL ORDER BY start_date DESC LIMIT 1
 `
 
-// The most recent quarter's game, whose settings the next one copies.
-func (q *Queries) GetLatestQuarterlyGame(ctx context.Context) (Game, error) {
-	row := q.db.QueryRowContext(ctx, getLatestQuarterlyGame)
+// The most recent month's game, whose settings the next one copies.
+func (q *Queries) GetLatestMonthlyGame(ctx context.Context) (Game, error) {
+	row := q.db.QueryRowContext(ctx, getLatestMonthlyGame)
 	var i Game
 	err := row.Scan(
 		&i.ID,
@@ -1661,6 +1639,41 @@ func (q *Queries) GetLatestQuarterlyGame(ctx context.Context) (Game, error) {
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getLatestPrice = `-- name: GetLatestPrice :one
+SELECT id, stock_id, date, open, high, low, close, volume, created_at FROM stock_prices
+WHERE stock_id = ?
+ORDER BY date DESC LIMIT 1
+`
+
+func (q *Queries) GetLatestPrice(ctx context.Context, stockID int64) (StockPrice, error) {
+	row := q.db.QueryRowContext(ctx, getLatestPrice, stockID)
+	var i StockPrice
+	err := row.Scan(
+		&i.ID,
+		&i.StockID,
+		&i.Date,
+		&i.Open,
+		&i.High,
+		&i.Low,
+		&i.Close,
+		&i.Volume,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getLatestPriceDate = `-- name: GetLatestPriceDate :one
+SELECT MAX(date) AS latest_date FROM stock_prices
+WHERE stock_id IN (SELECT id FROM stocks WHERE market = ?)
+`
+
+func (q *Queries) GetLatestPriceDate(ctx context.Context, market string) (interface{}, error) {
+	row := q.db.QueryRowContext(ctx, getLatestPriceDate, market)
+	var latest_date interface{}
+	err := row.Scan(&latest_date)
+	return latest_date, err
 }
 
 const getLesson = `-- name: GetLesson :one
@@ -7562,8 +7575,9 @@ func (q *Queries) UpdateUserName(ctx context.Context, arg UpdateUserNameParams) 
 
 const upsertAchievement = `-- name: UpsertAchievement :exec
 
-INSERT OR IGNORE INTO achievements (key, name, description, icon)
+INSERT INTO achievements (key, name, description, icon)
 VALUES (?, ?, ?, ?)
+ON CONFLICT(key) DO UPDATE SET name = excluded.name, description = excluded.description, icon = excluded.icon
 `
 
 type UpsertAchievementParams struct {
@@ -7576,6 +7590,7 @@ type UpsertAchievementParams struct {
 // =============================================================================
 // Achievements (Feature 8)
 // =============================================================================
+// Keeps each achievement's text in step with the code.
 func (q *Queries) UpsertAchievement(ctx context.Context, arg UpsertAchievementParams) error {
 	_, err := q.db.ExecContext(ctx, upsertAchievement,
 		arg.Key,

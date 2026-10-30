@@ -15,13 +15,13 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// quarterServer seeds this quarter's game (id 1, which Alice has joined), the
-// next quarter's (id 2) and a finished game (id 3). Alice (user 1) is an
+// monthServer seeds this month's game (id 1, which Alice has joined), the
+// next month's (id 2) and a finished game (id 3). Alice (user 1) is an
 // admin; Bob (user 2, X-User: 2) hasn't joined anything.
-func quarterServer(t *testing.T) (http.Handler, *sql.DB) {
+func monthServer(t *testing.T) (http.Handler, *sql.DB) {
 	t.Helper()
 	d := openTestDB(t)
-	this := market.QuarterOf(time.Now().UTC())
+	this := market.MonthOf(time.Now().UTC())
 	next := this.Next()
 	for _, stmt := range []string{
 		`INSERT INTO users (id, email, name, email_token, is_admin) VALUES (1, 'a@x', 'Alice', 't1', 1), (2, 'b@x', 'Bob', 't2', 0)`,
@@ -62,11 +62,11 @@ func quarterServer(t *testing.T) (http.Handler, *sql.DB) {
 	return r, d
 }
 
-func TestGamesPageShowsQuarterAndPastGames(t *testing.T) {
-	srv, _ := quarterServer(t)
-	this := market.QuarterOf(time.Now().UTC())
+func TestGamesPageShowsMonthAndPastGames(t *testing.T) {
+	srv, _ := monthServer(t)
+	this := market.MonthOf(time.Now().UTC())
 	body := getPage(t, srv, "/games", "1")
-	for _, want := range []string{"This quarter", this.Name(), "Next game", this.Next().Name(), `action="/games/2/join"`} {
+	for _, want := range []string{"This month", this.Name(), "Next game", this.Next().Name(), `action="/games/2/join"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("/games doesn't contain %q", want)
 		}
@@ -88,7 +88,7 @@ func postSettings(srv http.Handler, game string, form url.Values) *httptest.Resp
 }
 
 func TestAdminChangesGameSettings(t *testing.T) {
-	srv, d := quarterServer(t)
+	srv, d := monthServer(t)
 	form := url.Values{
 		"name": {"Summer Cup"}, "markets": {"sp500"}, "starting_balance": {"500000"},
 		"base_currency": {"USD"}, "trade_fee": {"9.95"}, "referral_bonus_pct": {"2"},
@@ -126,9 +126,9 @@ func TestAdminChangesGameSettings(t *testing.T) {
 }
 
 // TestDashboardJoinsCurrentGame: a player who has never joined anything
-// lands in this quarter's game with its starting cash.
+// lands in this month's game with its starting cash.
 func TestDashboardJoinsCurrentGame(t *testing.T) {
-	srv, d := quarterServer(t)
+	srv, d := monthServer(t)
 	for range 2 { // the second visit mustn't join again
 		req := httptest.NewRequest("GET", "/dashboard", nil)
 		req.Header.Set("X-User", "2")
@@ -145,10 +145,10 @@ func TestDashboardJoinsCurrentGame(t *testing.T) {
 	}
 }
 
-// TestGamePageJoinsOnlyCurrentGame: opening this quarter's game joins you;
+// TestGamePageJoinsOnlyCurrentGame: opening this month's game joins you;
 // opening the next or a past game doesn't.
 func TestGamePageJoinsOnlyCurrentGame(t *testing.T) {
-	srv, d := quarterServer(t)
+	srv, d := monthServer(t)
 	for _, id := range []string{"2", "3", "1"} {
 		getPage(t, srv, "/games/"+id, "2")
 	}

@@ -7,7 +7,7 @@ import (
 	"github.com/exploded/game/internal/auth"
 )
 
-// Dashboard takes the player straight into this quarter's game, joining
+// Dashboard takes the player straight into this month's game, joining
 // them if they aren't in it yet. Until the scheduler has created the game it
 // shows the games there are.
 func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
@@ -18,6 +18,6 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 	h.render(w, r, "dashboard/index", "", PageData{
 		Title: "Dashboard",
-		Items: h.quarterCards(r.Context(), user.ID),
+		Items: h.monthCards(r.Context(), user.ID),
 	})
 }

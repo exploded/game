@@ -175,6 +175,7 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 			"Standing":    rankPlayer(participant, board),
 			"Interest":    interest,
 			"InvitesOpen": invitesOpen(game),
+			"InviteUsed":  invitesOpen(game) && h.referralsUsed(ctx, game.ID, participant.UserID),
 			"Bonus":       fmtDollars(referralBonus(game)),
 			"Invites":     invites,
 		},

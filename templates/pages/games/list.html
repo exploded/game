@@ -5,7 +5,7 @@
     <h1>Games</h1>
 </div>
 
-<p class="text-muted" style="margin-bottom:16px">There's one game each quarter. Each starts at midnight on 1 January, April, July and October, and ends at midnight at the end of the quarter.</p>
+<p class="text-muted" style="margin-bottom:16px">There's one game each month. Each starts at midnight on the 1st and ends at midnight at the end of the month.</p>
 
 <section class="section">
     {{if .Items}}
@@ -13,7 +13,7 @@
         {{range .Items}}{{template "gamecard" .}}{{end}}
     </div>
     {{else}}
-    <p class="text-muted">This quarter's game isn't ready yet. Check back in a minute.</p>
+    <p class="text-muted">This month's game isn't ready yet. Check back in a minute.</p>
     {{end}}
 </section>
 

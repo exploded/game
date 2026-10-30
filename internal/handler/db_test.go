@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/exploded/game"
@@ -75,6 +76,10 @@ func TestOpenDBUpgradesLatestDeploy(t *testing.T) {
 		"INSERT INTO users (id, email, name, email_token) VALUES (3, 'ann@example.com', 'Ann', 't3')",
 		"INSERT INTO questions (id, user_id, title, answer, answered_at) VALUES (1, 3, 'Old question', 'Old answer', datetime('now'))",
 		"INSERT INTO holdings (participant_id, stock_id, quantity, avg_cost) VALUES (1, 1, 200, 4567)",
+		`INSERT INTO games (id, created_by, name, description, status, start_date, end_date, quarter) VALUES
+			(1, 3, 'Oct–Dec 2026', 'Three months to grow $1,000,000. The biggest portfolio when the game ends wins.', 'active', '2026-10-01', '2026-12-31', '2026-Q4'),
+			(2, 3, 'Jan–Mar 2027', 'Three months to grow $1,000,000. The biggest portfolio when the game ends wins.', 'pending', '2027-01-01', '2027-03-31', '2027-Q1')`,
+		"INSERT INTO participants (id, game_id, user_id, cash_balance, portfolio_value) VALUES (1, 1, 3, 100000000, 100000000), (2, 2, 3, 100000000, 100000000)",
 	} {
 		if _, err := raw.Exec(q); err != nil {
 			t.Fatalf("old database: %v", err)
@@ -100,6 +105,21 @@ func TestOpenDBUpgradesLatestDeploy(t *testing.T) {
 	d.QueryRow("SELECT cost_basis FROM holdings").Scan(&cost)
 	if cost != 200*4567 {
 		t.Errorf("old holding's cost_basis = %d, want %d", cost, 200*4567)
+	}
+
+	// Games went monthly: Oct–Dec ends on 31 October, and Jan–Mar goes.
+	var key, name, end, desc string
+	if err := d.QueryRow("SELECT quarter, name, end_date, description FROM games WHERE id = 1").Scan(&key, &name, &end, &desc); err != nil {
+		t.Fatal(err)
+	}
+	if key != "2026-10" || name != "October 2026" || end != "2026-10-31" || !strings.HasPrefix(desc, "One month") {
+		t.Errorf("Oct–Dec game is now %s %q ending %s, %q; want 2026-10 \"October 2026\" ending 2026-10-31, one month", key, name, end, desc)
+	}
+	var games, players int
+	d.QueryRow("SELECT COUNT(*) FROM games WHERE id = 2").Scan(&games)
+	d.QueryRow("SELECT COUNT(*) FROM participants WHERE game_id = 2").Scan(&players)
+	if games != 0 || players != 0 {
+		t.Errorf("Jan–Mar game: %d games and %d players left, want none", games, players)
 	}
 }
 

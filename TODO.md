@@ -91,7 +91,9 @@ Built on 2026-10-30. Not deployed yet.
 - [ ] **Cancel "Test 3" in production** (`/admin/games/3`) once this is
   deployed, so the quarterly game is the only one running. It has one player
   and no trades.
-- [ ] **Email everyone when a quarter's game opens**, not only players who
+- [x] **Monthly instead of quarterly** (2026-10-30). The Oct–Dec 2026 game
+  ended on 31 October as "October 2026"; Jan–Mar 2027 was removed.
+- [ ] **Email everyone when a month's game opens**, not only players who
   joined early. Today G1 (game started) goes only to players already in it.
 
 ## From the whole-game review (2026-10-29)

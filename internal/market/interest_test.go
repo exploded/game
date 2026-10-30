@@ -24,7 +24,7 @@ func TestDailyInterest(t *testing.T) {
 // paid once for the day that ended, and only if they were in the game that
 // day with cash to earn on.
 func TestCreditInterest(t *testing.T) {
-	d, q := quarterlyDB(t)
+	d, q := monthlyDB(t)
 	ctx := context.Background()
 	if _, err := d.Exec(`
 		INSERT INTO users (id, email, name, email_token) VALUES

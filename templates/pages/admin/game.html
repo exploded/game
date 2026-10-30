@@ -109,7 +109,7 @@
 
 <section class="section" style="margin-top:24px">
     <h2>Cancel this game</h2>
-    <p class="text-muted" style="margin-bottom:8px">Players can't trade in a cancelled game, and the server doesn't make a new one for this quarter.</p>
+    <p class="text-muted" style="margin-bottom:8px">Players can't trade in a cancelled game, and the server doesn't make a new one for this month.</p>
     <form method="POST" action="/admin/games/{{$g.ID}}/cancel" data-confirm="Cancel {{$g.Name}}? This can't be undone.">
         <button type="submit" class="btn btn-danger btn-sm">Cancel game</button>
     </form>
