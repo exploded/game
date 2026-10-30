@@ -5,43 +5,73 @@
     <h1>Stocks</h1>
 </div>
 
-<div class="search-bar">
-    <input type="search" placeholder="Search by symbol or name"
-        hx-get="/games/{{.Item.ID}}/search"
+{{/* The search sends the chip and sector too, so clearing it goes back to
+     them; a search itself looks through every stock. Picking a chip or
+     sector clears the search (data-clear-search in app.js). */}}
+<div class="screener-controls">
+    <input type="search" id="stock-q" name="q" value="{{.Extra.Q}}" placeholder="Search by symbol or name"
+        hx-get="/games/{{.Item.ID}}/stocks"
         hx-trigger="input changed delay:300ms, search"
-        hx-target="#stock-results"
-        name="q"
+        hx-include="#stock-filters"
+        hx-target="#stock-list"
+        hx-push-url="true"
         autocomplete="off"
         aria-label="Search stocks"
         class="search-input">
+    <form id="stock-filters" method="GET" action="/games/{{.Item.ID}}/stocks"
+        hx-get="/games/{{.Item.ID}}/stocks" hx-trigger="change" hx-target="#stock-list" hx-push-url="true"
+        data-clear-search="#stock-q">
+        <select name="sector" aria-label="Sector" class="screener-sector">
+            <option value="">Any sector</option>
+            {{range .Extra.Sectors}}<option{{if eq . $.Extra.Sector}} selected{{end}}>{{.}}</option>{{end}}
+        </select>
+        <div class="chips screener-chips" role="radiogroup" aria-label="Show">
+            {{range .Extra.Filters}}<label class="chip"><input type="radio" name="f" value="{{.Key}}" class="sr-only"{{if eq .Key $.Extra.Filter}} checked{{end}}>{{.Label}}</label>{{end}}
+        </div>
+    </form>
 </div>
 
-<table class="rtable">
+<div id="stock-list">
+    {{template "stock-list" .}}
+</div>
+{{end}}
+
+{{/* Served alone to htmx requests from the chips, sector menu and search. */}}
+{{define "stock-list"}}
+<p class="screener-caption">{{.Extra.Result.Caption}} <span class="text-muted">· {{len .Items}} {{if eq (len .Items) 1}}stock{{else}}stocks{{end}}</span></p>
+<table class="rtable screener">
     <thead>
         <tr>
             <th>Stock</th>
-            <th>Market</th>
-            <th>Sector</th>
-            <th class="hide-sm"></th>
+            <th>30 days</th>
+            <th class="num">Price, today</th>
+            <th class="hide-sm">Sector</th>
         </tr>
     </thead>
-    <tbody id="stock-results">
+    <tbody>
         {{template "stock-rows" .}}
     </tbody>
 </table>
 {{end}}
 
-{{/* Also served alone by StockSearch as the search results. */}}
+{{/* Also served alone by StockSearch for the search on an empty portfolio. */}}
 {{define "stock-rows"}}
 {{range .Items}}
 <tr>
     <td class="c-main">
-        <a href="/games/{{$.Item.ID}}/stocks/{{.ID}}" class="stretch"><strong>{{.Symbol}}</strong></a>
-        <span class="c-sub">{{.Name}}</span>
+        <div class="sc-stock">
+            {{if .Logo}}<img src="{{.Logo}}" alt="" width="32" height="32" loading="lazy" referrerpolicy="no-referrer" class="sc-logo">{{else}}<span class="sc-logo sc-letter" aria-hidden="true">{{.Initial}}</span>{{end}}
+            <div class="sc-text">
+                <a href="/games/{{$.Item.ID}}/stocks/{{.ID}}" class="stretch"><strong>{{.Symbol}}</strong></a>
+                <span class="c-sub">{{.Name}}</span>
+                {{if and $.Extra.ShowNotes .PickNote}}<span class="c-sub sc-note">{{.PickNote}}</span>{{end}}
+                {{if .Holders}}<span class="c-sub">{{.Holders}} {{if eq .Holders 1}}player{{else}}players{{end}}</span>{{end}}
+            </div>
+        </div>
     </td>
-    <td class="c-end">{{marketLabel .Symbol .Market}}</td>
-    <td class="text-muted">{{.Sector}}</td>
-    <td class="hide-sm"><a href="/games/{{$.Item.ID}}/stocks/{{.ID}}" class="btn btn-primary btn-sm">Trade</a></td>
+    <td class="c-spark">{{if .Spark}}<svg class="spark {{if .SparkUp}}spark-up{{else}}spark-down{{end}}" viewBox="0 0 60 20" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{.Spark}}"/></svg>{{end}}</td>
+    <td class="c-end num">{{if .Price}}<span class="sc-price">{{if eq .Currency "USD"}}US{{end}}{{cents .Price}}</span>{{with .Today}}{{if .Base}}<span class="pill {{.Class}}">{{.Pct}}</span>{{end}}{{end}}{{else}}<span class="text-muted">N/A</span>{{end}}</td>
+    <td class="text-muted hide-sm">{{.Sector}}</td>
 </tr>
 {{else}}
 <tr><td colspan="4" class="text-muted">No stocks match.</td></tr>

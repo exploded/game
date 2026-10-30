@@ -70,6 +70,23 @@ func (q *Queries) AddStartingStock(ctx context.Context, arg AddStartingStockPara
 	return err
 }
 
+const addStockPick = `-- name: AddStockPick :exec
+INSERT INTO stock_picks (stock_id, note, sort_order)
+VALUES (?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM stock_picks))
+ON CONFLICT(stock_id) DO UPDATE SET note = excluded.note
+`
+
+type AddStockPickParams struct {
+	StockID int64
+	Note    string
+}
+
+// A new pick goes last.
+func (q *Queries) AddStockPick(ctx context.Context, arg AddStockPickParams) error {
+	_, err := q.db.ExecContext(ctx, addStockPick, arg.StockID, arg.Note)
+	return err
+}
+
 const addToWatchlist = `-- name: AddToWatchlist :exec
 
 INSERT OR IGNORE INTO watchlist (participant_id, stock_id) VALUES (?, ?)
@@ -1228,6 +1245,15 @@ func (q *Queries) DeleteStockNews(ctx context.Context, stockID int64) error {
 	return err
 }
 
+const deleteStockPick = `-- name: DeleteStockPick :exec
+DELETE FROM stock_picks WHERE stock_id = ?
+`
+
+func (q *Queries) DeleteStockPick(ctx context.Context, stockID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteStockPick, stockID)
+	return err
+}
+
 const deleteTopic = `-- name: DeleteTopic :exec
 DELETE FROM topics WHERE id = ?
 `
@@ -2073,6 +2099,22 @@ func (q *Queries) GetStockNewsAge(ctx context.Context, stockID int64) (string, e
 	var column_1 string
 	err := row.Scan(&column_1)
 	return column_1, err
+}
+
+const getStockPick = `-- name: GetStockPick :one
+SELECT stock_id, note, sort_order, created_at FROM stock_picks WHERE stock_id = ?
+`
+
+func (q *Queries) GetStockPick(ctx context.Context, stockID int64) (StockPick, error) {
+	row := q.db.QueryRowContext(ctx, getStockPick, stockID)
+	var i StockPick
+	err := row.Scan(
+		&i.StockID,
+		&i.Note,
+		&i.SortOrder,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const getStockProfile = `-- name: GetStockProfile :one
@@ -3827,6 +3869,43 @@ func (q *Queries) ListFinishedGamesEndedSince(ctx context.Context, endDate strin
 	return items, nil
 }
 
+const listGameHolderCounts = `-- name: ListGameHolderCounts :many
+SELECT h.stock_id, COUNT(*) AS holders
+FROM holdings h
+JOIN participants p ON p.id = h.participant_id
+WHERE p.game_id = ? AND h.quantity > 0
+GROUP BY h.stock_id
+`
+
+type ListGameHolderCountsRow struct {
+	StockID int64
+	Holders int64
+}
+
+// How many players in the game own each stock (shorts don't count).
+func (q *Queries) ListGameHolderCounts(ctx context.Context, gameID int64) ([]ListGameHolderCountsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listGameHolderCounts, gameID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListGameHolderCountsRow
+	for rows.Next() {
+		var i ListGameHolderCountsRow
+		if err := rows.Scan(&i.StockID, &i.Holders); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listGamesWithPlayers = `-- name: ListGamesWithPlayers :many
 SELECT g.id, g.created_by, g.name, g.description, g.status, g.markets, g.starting_balance, g.base_currency, g.max_participants, g.start_date, g.end_date, g.allow_short, g.trade_fee, g.referral_bonus_pct, g.recurring_interval, g.parent_game_id, g.template_id, g.is_public, g.portfolio_visibility, g.credit_interest_rate, g.leverage_interest_rate, g.min_stock_price, g.max_stock_price, g.margin_trading, g.limit_orders, g.stop_loss, g.fractional_shares, g.after_hours_trading, g.quarter, g.created_at, g.updated_at, (SELECT COUNT(*) FROM participants p WHERE p.game_id = g.id) AS players
 FROM games g
@@ -5306,6 +5385,49 @@ func (q *Queries) ListQuestions(ctx context.Context, arg ListQuestionsParams) ([
 	return items, nil
 }
 
+const listRecentCloses = `-- name: ListRecentCloses :many
+SELECT stock_id, date, close, volume FROM stock_prices
+WHERE date >= (SELECT date(MAX(date), '-45 days') FROM stock_prices)
+ORDER BY stock_id, date
+`
+
+type ListRecentClosesRow struct {
+	StockID int64
+	Date    string
+	Close   int64
+	Volume  int64
+}
+
+// The last 45 days of bars for every stock, counted back from the newest
+// bar stored, so the page still has moves if prices stop updating.
+func (q *Queries) ListRecentCloses(ctx context.Context) ([]ListRecentClosesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listRecentCloses)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListRecentClosesRow
+	for rows.Next() {
+		var i ListRecentClosesRow
+		if err := rows.Scan(
+			&i.StockID,
+			&i.Date,
+			&i.Close,
+			&i.Volume,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listReferralBonuses = `-- name: ListReferralBonuses :many
 SELECT rb.id, rb.invite_id, rb.referrer_id, rb.referred_id, rb.game_id, rb.bonus_amount, rb.created_at, u.name AS referred_name
 FROM referral_bonuses rb
@@ -5424,6 +5546,76 @@ func (q *Queries) ListRelatedVideos(ctx context.Context, id int64) ([]ListRelate
 			&i.ClassifiedAt,
 			&i.CreatedAt,
 			&i.Shared,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listScreenerStocks = `-- name: ListScreenerStocks :many
+SELECT s.id, s.symbol, s.name, s.market, s.sector, s.currency,
+       COALESCE(p.logo, '') AS logo,
+       CAST(COALESCE(p.market_cap, 0) AS INTEGER) AS market_cap,
+       CAST(pk.stock_id IS NOT NULL AS INTEGER) AS is_pick,
+       COALESCE(pk.note, '') AS pick_note,
+       CAST(COALESCE(pk.sort_order, 0) AS INTEGER) AS pick_order
+FROM stocks s
+LEFT JOIN stock_profiles p ON p.stock_id = s.id
+LEFT JOIN stock_picks pk ON pk.stock_id = s.id
+WHERE s.is_active = 1 AND (s.market = ? OR ? = 'both')
+  AND s.id IN (SELECT DISTINCT stock_id FROM stock_prices)
+ORDER BY s.symbol ASC
+`
+
+type ListScreenerStocksParams struct {
+	Market  string
+	Column2 interface{}
+}
+
+type ListScreenerStocksRow struct {
+	ID        int64
+	Symbol    string
+	Name      string
+	Market    string
+	Sector    string
+	Currency  string
+	Logo      string
+	MarketCap int64
+	IsPick    int64
+	PickNote  string
+	PickOrder int64
+}
+
+// Every stock on the stocks page, with what its rows and chips need.
+func (q *Queries) ListScreenerStocks(ctx context.Context, arg ListScreenerStocksParams) ([]ListScreenerStocksRow, error) {
+	rows, err := q.db.QueryContext(ctx, listScreenerStocks, arg.Market, arg.Column2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListScreenerStocksRow
+	for rows.Next() {
+		var i ListScreenerStocksRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Symbol,
+			&i.Name,
+			&i.Market,
+			&i.Sector,
+			&i.Currency,
+			&i.Logo,
+			&i.MarketCap,
+			&i.IsPick,
+			&i.PickNote,
+			&i.PickOrder,
 		); err != nil {
 			return nil, err
 		}
@@ -5600,6 +5792,54 @@ func (q *Queries) ListStockNews(ctx context.Context, arg ListStockNewsParams) ([
 			&i.Url,
 			&i.PublishedAt,
 			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listStockPicks = `-- name: ListStockPicks :many
+
+SELECT pk.stock_id, pk.note, pk.sort_order, s.symbol, s.name
+FROM stock_picks pk
+JOIN stocks s ON s.id = pk.stock_id
+ORDER BY pk.sort_order, s.symbol
+`
+
+type ListStockPicksRow struct {
+	StockID   int64
+	Note      string
+	SortOrder int64
+	Symbol    string
+	Name      string
+}
+
+// =============================================================================
+// Rob's Picks
+// =============================================================================
+func (q *Queries) ListStockPicks(ctx context.Context) ([]ListStockPicksRow, error) {
+	rows, err := q.db.QueryContext(ctx, listStockPicks)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListStockPicksRow
+	for rows.Next() {
+		var i ListStockPicksRow
+		if err := rows.Scan(
+			&i.StockID,
+			&i.Note,
+			&i.SortOrder,
+			&i.Symbol,
+			&i.Name,
 		); err != nil {
 			return nil, err
 		}
@@ -7618,6 +7858,21 @@ type UpdateStockLogoParams struct {
 
 func (q *Queries) UpdateStockLogo(ctx context.Context, arg UpdateStockLogoParams) error {
 	_, err := q.db.ExecContext(ctx, updateStockLogo, arg.Logo, arg.StockID)
+	return err
+}
+
+const updateStockPick = `-- name: UpdateStockPick :exec
+UPDATE stock_picks SET note = ?, sort_order = ? WHERE stock_id = ?
+`
+
+type UpdateStockPickParams struct {
+	Note      string
+	SortOrder int64
+	StockID   int64
+}
+
+func (q *Queries) UpdateStockPick(ctx context.Context, arg UpdateStockPickParams) error {
+	_, err := q.db.ExecContext(ctx, updateStockPick, arg.Note, arg.SortOrder, arg.StockID)
 	return err
 }
 

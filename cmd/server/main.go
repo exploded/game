@@ -89,6 +89,9 @@ func main() {
 
 	// Seed stocks, achievements, and avatars on startup.
 	market.SeedStocks(context.Background(), queries)
+	if err := handler.RunSeedMigrations(rawDB); err != nil {
+		log.Fatalf("database: %v", err)
+	}
 	handler.SeedAchievements(context.Background(), queries)
 	handler.SeedAvatars(context.Background(), queries)
 
@@ -360,6 +363,10 @@ func main() {
 			r.Post("/games/{gid}/cancel", h.AdminGameCancel)
 			r.Get("/users", h.AdminUsers)
 			r.Post("/users/{id}/admin", h.AdminToggle)
+			r.Get("/picks", h.AdminPicks)
+			r.Post("/picks", h.AdminPickAdd)
+			r.Post("/picks/{sid}", h.AdminPickUpdate)
+			r.Post("/picks/{sid}/delete", h.AdminPickDelete)
 			r.Get("/prices", h.AdminPrices)
 			r.Post("/prices/fetch", h.AdminFetchPrices)
 			r.Post("/news/refresh", h.AdminFetchNews)

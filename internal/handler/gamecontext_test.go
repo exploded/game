@@ -78,6 +78,7 @@ func gameServer(t *testing.T) (http.Handler, *db.Queries) {
 		r.Get("/", h.GameDetail)
 		r.Get("/rules", h.GameRules)
 		r.Get("/portfolio", h.Portfolio)
+		r.Get("/stocks", h.StocksBrowse)
 		r.Get("/stocks/{sid}", h.StockDetail)
 		r.Get("/trade/{sid}", h.TradeForm)
 		r.Post("/trade/{sid}", h.TradeExecute)

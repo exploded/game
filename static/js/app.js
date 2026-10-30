@@ -54,6 +54,21 @@ document.addEventListener("change", function(e) {
     }
 });
 
+// data-clear-search on a form (the stocks page's chips): changing it
+// empties the search box it names, so the chip's list shows, not a search.
+document.addEventListener("change", function(e) {
+    const form = e.target.closest("form[data-clear-search]");
+    const box = form && document.querySelector(form.getAttribute("data-clear-search"));
+    if (box) box.value = "";
+});
+
+// A row of chips scrolls sideways on a phone: bring the chosen one into view.
+document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll(".chips .chip:has(:checked)").forEach(function(chip) {
+        chip.scrollIntoView({block: "nearest", inline: "center"});
+    });
+});
+
 // data-nav-toggle: open and close the mobile nav.
 document.addEventListener("click", function(e) {
     const btn = e.target.closest("[data-nav-toggle]");

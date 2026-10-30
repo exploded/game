@@ -25,6 +25,7 @@ type Handler struct {
 	loc        *time.Location
 	mailer     *mail.Mailer
 	media      *media.Service
+	screener   screenCache // the stocks page's rows (screener.go)
 }
 
 func New(q *db.Queries, rawDB *sql.DB, pages PageTemplates, production bool, loc *time.Location) *Handler {

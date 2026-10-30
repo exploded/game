@@ -345,6 +345,28 @@ SELECT * FROM stock_prices
 WHERE stock_id = ? AND date >= ? AND date <= ?
 ORDER BY date ASC;
 
+-- name: ListScreenerStocks :many
+-- Every stock on the stocks page, with what its rows and chips need.
+SELECT s.id, s.symbol, s.name, s.market, s.sector, s.currency,
+       COALESCE(p.logo, '') AS logo,
+       CAST(COALESCE(p.market_cap, 0) AS INTEGER) AS market_cap,
+       CAST(pk.stock_id IS NOT NULL AS INTEGER) AS is_pick,
+       COALESCE(pk.note, '') AS pick_note,
+       CAST(COALESCE(pk.sort_order, 0) AS INTEGER) AS pick_order
+FROM stocks s
+LEFT JOIN stock_profiles p ON p.stock_id = s.id
+LEFT JOIN stock_picks pk ON pk.stock_id = s.id
+WHERE s.is_active = 1 AND (s.market = ? OR ? = 'both')
+  AND s.id IN (SELECT DISTINCT stock_id FROM stock_prices)
+ORDER BY s.symbol ASC;
+
+-- name: ListRecentCloses :many
+-- The last 45 days of bars for every stock, counted back from the newest
+-- bar stored, so the page still has moves if prices stop updating.
+SELECT stock_id, date, close, volume FROM stock_prices
+WHERE date >= (SELECT date(MAX(date), '-45 days') FROM stock_prices)
+ORDER BY stock_id, date;
+
 -- name: GetLatestPriceDate :one
 SELECT MAX(date) AS latest_date FROM stock_prices
 WHERE stock_id IN (SELECT id FROM stocks WHERE market = ?);
@@ -355,6 +377,31 @@ WHERE stock_id IN (SELECT id FROM stocks WHERE market = ?);
 
 -- name: GetStockProfile :one
 SELECT * FROM stock_profiles WHERE stock_id = ?;
+
+-- =============================================================================
+-- Rob's Picks
+-- =============================================================================
+
+-- name: ListStockPicks :many
+SELECT pk.stock_id, pk.note, pk.sort_order, s.symbol, s.name
+FROM stock_picks pk
+JOIN stocks s ON s.id = pk.stock_id
+ORDER BY pk.sort_order, s.symbol;
+
+-- name: GetStockPick :one
+SELECT * FROM stock_picks WHERE stock_id = ?;
+
+-- name: AddStockPick :exec
+-- A new pick goes last.
+INSERT INTO stock_picks (stock_id, note, sort_order)
+VALUES (?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM stock_picks))
+ON CONFLICT(stock_id) DO UPDATE SET note = excluded.note;
+
+-- name: UpdateStockPick :exec
+UPDATE stock_picks SET note = ?, sort_order = ? WHERE stock_id = ?;
+
+-- name: DeleteStockPick :exec
+DELETE FROM stock_picks WHERE stock_id = ?;
 
 -- name: CountStockProfiles :one
 SELECT COUNT(*) FROM stock_profiles;
@@ -950,6 +997,14 @@ JOIN stocks s ON s.id = h.stock_id
 WHERE h.participant_id = ?
 GROUP BY s.sector
 ORDER BY total_value DESC;
+
+-- name: ListGameHolderCounts :many
+-- How many players in the game own each stock (shorts don't count).
+SELECT h.stock_id, COUNT(*) AS holders
+FROM holdings h
+JOIN participants p ON p.id = h.participant_id
+WHERE p.game_id = ? AND h.quantity > 0
+GROUP BY h.stock_id;
 
 -- =============================================================================
 -- CSV Export Helpers (Feature 23)

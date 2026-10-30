@@ -226,7 +226,28 @@ func runMigrations(db *sql.DB) error {
 		}
 	}
 
-	for _, m := range onceMigrations {
+	return applyOnce(db, onceMigrations)
+}
+
+// seedMigrations are onceMigrations that need the stocks SeedStocks
+// inserts, so they run after it, from RunSeedMigrations.
+var seedMigrations = []struct{ name, stmt string }{
+	// Rob's first picks, in his order. Admins change them at /admin/picks.
+	{"seed-rob-picks", `INSERT OR IGNORE INTO stock_picks (stock_id, sort_order)
+		SELECT id, CASE symbol WHEN 'V' THEN 1 WHEN 'MSFT' THEN 2 WHEN 'ASML' THEN 3
+			WHEN 'META' THEN 4 WHEN 'NVDA' THEN 5 ELSE 6 END
+		FROM stocks WHERE market = 'sp500' AND symbol IN ('V', 'MSFT', 'ASML', 'META', 'NVDA', 'GOOG')`},
+}
+
+// RunSeedMigrations applies seedMigrations. Call it after market.SeedStocks.
+func RunSeedMigrations(db *sql.DB) error {
+	return applyOnce(db, seedMigrations)
+}
+
+// applyOnce runs each migration not yet recorded in schema_migrations,
+// recording it in the same transaction.
+func applyOnce(db *sql.DB, migrations []struct{ name, stmt string }) error {
+	for _, m := range migrations {
 		var done int
 		if err := db.QueryRow("SELECT COUNT(*) FROM schema_migrations WHERE name = ?", m.name).Scan(&done); err != nil {
 			return fmt.Errorf("checking migration %s: %w", m.name, err)

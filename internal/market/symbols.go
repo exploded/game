@@ -22,15 +22,17 @@ func SeedStocks(ctx context.Context, q *db.Queries) {
 		})
 		count++
 	}
-	for _, s := range AusUS {
-		q.InsertStock(ctx, db.InsertStockParams{
-			Symbol:   s.Symbol,
-			Name:     s.Name,
-			Market:   "sp500",
-			Sector:   s.Sector,
-			Currency: "USD",
-		})
-		count++
+	for _, list := range [][]StockInfo{AusUS, OtherUS} {
+		for _, s := range list {
+			q.InsertStock(ctx, db.InsertStockParams{
+				Symbol:   s.Symbol,
+				Name:     s.Name,
+				Market:   "sp500",
+				Sector:   s.Sector,
+				Currency: "USD",
+			})
+			count++
+		}
 	}
 	slog.Info("stocks seeded", "total", count)
 }
@@ -169,19 +171,38 @@ var AusUS = []StockInfo{
 	{"MQBKY", "Macquarie Group (US OTC)", "Financials"},
 }
 
-var ausUSSymbols = func() map[string]bool {
-	m := make(map[string]bool, len(AusUS))
-	for _, s := range AusUS {
+// OtherUS contains other US-listed companies outside the S&P 500 that Rob
+// talks about, such as ASML (a Dutch company with US shares). Like AusUS,
+// they share the sp500 market.
+var OtherUS = []StockInfo{
+	{"ASML", "ASML Holding (US-listed)", "Information Technology"},
+}
+
+var ausUSSymbols = symbolSet(AusUS)
+var otherUSSymbols = symbolSet(OtherUS)
+
+func symbolSet(list []StockInfo) map[string]bool {
+	m := make(map[string]bool, len(list))
+	for _, s := range list {
 		m[s.Symbol] = true
 	}
 	return m
-}()
+}
 
-// MarketLabel is the market name shown to players for a stock. AusUS stocks
-// sit in the sp500 market but aren't in the index, so they get "AU (US)".
+// IsAusUS says whether a stock is one of the US-listed Australian companies.
+func IsAusUS(symbol, market string) bool {
+	return market == "sp500" && ausUSSymbols[symbol]
+}
+
+// MarketLabel is the market name shown to players for a stock. AusUS and
+// OtherUS stocks sit in the sp500 market but aren't in the index, so they
+// get "AU (US)" and "US".
 func MarketLabel(symbol, market string) string {
-	if market == "sp500" && ausUSSymbols[symbol] {
+	switch {
+	case IsAusUS(symbol, market):
 		return "AU (US)"
+	case market == "sp500" && otherUSSymbols[symbol]:
+		return "US"
 	}
 	return strings.ToUpper(market)
 }

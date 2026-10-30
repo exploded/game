@@ -20,6 +20,9 @@ type peerLink struct {
 	StockID int64
 }
 
+// StocksBrowse is the stocks page: chips (screenFilters) and a sector menu
+// pick what it lists, or a search looks through every stock. An htmx
+// request gets just the list.
 func (h *Handler) StocksBrowse(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	gameID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -44,16 +47,51 @@ func (h *Handler) StocksBrowse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	market := game.Markets
-	stocks, _ := h.q.ListStocksByMarket(r.Context(), db.ListStocksByMarketParams{
-		Market: market, Column2: market,
-	})
+	rows, err := h.screenRows(r.Context(), game.Markets)
+	if err != nil {
+		h.serverError(w, "stocks page", err)
+		return
+	}
+	v := r.URL.Query()
+	f, sector, search := filterKey(v.Get("f")), v.Get("sector"), strings.TrimSpace(v.Get("q"))
+	var holders map[int64]int64
+	if f == "popular" && search == "" {
+		holders = h.holderCounts(r, gameID)
+	}
+	res := applyFilter(rows, f, sector, search, holders)
 
-	h.render(w, r, "stocks/browse", "", PageData{
+	data := PageData{
 		Title: "Stocks - " + game.Name,
 		Item:  game,
-		Items: stocks,
-	})
+		Items: res.Rows,
+		Extra: map[string]any{
+			"Result":    res,
+			"Filter":    f,
+			"Filters":   screenFilters,
+			"Sectors":   screenSectors(rows),
+			"Sector":    sector,
+			"Q":         search,
+			"ShowNotes": res.Filter == "picks",
+		},
+	}
+	// The same URL serves the page and the list, so caches must tell them
+	// apart. Back re-fetches the page with HX-Request set, and needs it all.
+	w.Header().Add("Vary", "HX-Request")
+	if isHTMX(r) && r.Header.Get("HX-History-Restore-Request") != "true" {
+		h.render(w, r, "stocks/browse", "stock-list", data)
+		return
+	}
+	h.render(w, r, "stocks/browse", "", data)
+}
+
+// holderCounts maps each stock to how many players in the game hold it.
+func (h *Handler) holderCounts(r *http.Request, gameID int64) map[int64]int64 {
+	counts, _ := h.q.ListGameHolderCounts(r.Context(), gameID)
+	m := make(map[int64]int64, len(counts))
+	for _, c := range counts {
+		m[c.StockID] = c.Holders
+	}
+	return m
 }
 
 func (h *Handler) StockDetail(w http.ResponseWriter, r *http.Request) {
@@ -91,6 +129,7 @@ func (h *Handler) StockDetail(w http.ResponseWriter, r *http.Request) {
 
 	latestPrice, _ := h.q.GetLatestPrice(r.Context(), stock.ID)
 	profile, _ := h.q.GetStockProfile(r.Context(), stock.ID)
+	profile.Logo = logoURL(profile.Logo)
 	news, _ := h.q.ListStockNews(r.Context(), db.ListStockNewsParams{StockID: stock.ID, Limit: 20})
 	recs, _ := h.q.ListStockRecommendations(r.Context(), db.ListStockRecommendationsParams{StockID: stock.ID, Limit: 6})
 
@@ -122,6 +161,10 @@ func (h *Handler) StockDetail(w http.ResponseWriter, r *http.Request) {
 
 	// Rob's videos that talk about this stock (picked by the classifier).
 	robVideos, _ := h.q.ListStockVideos(r.Context(), stock.ID)
+	var pick *db.StockPick
+	if p, err := h.q.GetStockPick(r.Context(), stock.ID); err == nil {
+		pick = &p
+	}
 
 	h.render(w, r, "stocks/detail", "", PageData{
 		Title: stock.Symbol + " - " + stock.Name,
@@ -137,6 +180,7 @@ func (h *Handler) StockDetail(w http.ResponseWriter, r *http.Request) {
 			"Peers":           peers,
 			"Trade":           trade,
 			"RobVideos":       robVideos,
+			"Pick":            pick,
 		},
 	})
 }
@@ -209,6 +253,8 @@ func (h *Handler) StockPrice(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// StockSearch fills the search box on an empty portfolio with stock rows.
+// An empty query shows Rob's Picks.
 func (h *Handler) StockSearch(w http.ResponseWriter, r *http.Request) {
 	gameID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
@@ -222,21 +268,11 @@ func (h *Handler) StockSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// An empty query (the search box cleared) shows the full list again.
-	var stocks []db.Stock
-	if q := r.URL.Query().Get("q"); q == "" {
-		stocks, _ = h.q.ListStocksByMarket(r.Context(), db.ListStocksByMarketParams{
-			Market: game.Markets, Column2: game.Markets,
-		})
-	} else {
-		pattern := "%" + q + "%"
-		stocks, _ = h.q.SearchStocks(r.Context(), db.SearchStocksParams{
-			Market:  game.Markets,
-			Column2: game.Markets,
-			Symbol:  pattern,
-			Name:    pattern,
-		})
+	rows, err := h.screenRows(r.Context(), game.Markets)
+	if err != nil {
+		h.serverError(w, "stock search", err)
+		return
 	}
-
-	h.render(w, r, "stocks/browse", "stock-rows", PageData{Item: game, Items: stocks})
+	res := applyFilter(rows, "", "", r.URL.Query().Get("q"), nil)
+	h.render(w, r, "stocks/browse", "stock-rows", PageData{Item: game, Items: res.Rows})
 }

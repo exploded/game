@@ -565,6 +565,16 @@ CREATE TABLE IF NOT EXISTS stock_profiles (
 );
 
 --------------------------------------------------------------------------------
+-- Rob's Picks: the stocks page's first chip, set at /admin/picks
+--------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS stock_picks (
+    stock_id   INTEGER PRIMARY KEY REFERENCES stocks(id) ON DELETE CASCADE,
+    note       TEXT    NOT NULL DEFAULT '',     -- one line on why Rob likes it
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+--------------------------------------------------------------------------------
 -- Stock News (TickerTick API — replaced on each refresh)
 --------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS stock_news (

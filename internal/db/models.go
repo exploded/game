@@ -399,6 +399,13 @@ type StockNews struct {
 	CreatedAt   string
 }
 
+type StockPick struct {
+	StockID   int64
+	Note      string
+	SortOrder int64
+	CreatedAt string
+}
+
 type StockPrice struct {
 	ID        int64
 	StockID   int64

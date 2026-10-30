@@ -7,6 +7,7 @@
         <div>
             <h1>{{.Item.Symbol}}</h1>
             <div class="text-muted">{{.Item.Name}}</div>
+            {{with .Extra.Pick}}<div class="stock-pick"><span class="badge badge-pick">Rob's pick</span>{{with .Note}} {{.}}{{end}}</div>{{end}}
         </div>
     </div>
     <div class="page-header-actions">
