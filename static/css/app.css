@@ -452,6 +452,34 @@ td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-
 .toast-info { background: #0C3640; border-color: var(--color-primary); }
 
 /* ============================================================
+   Confirm dialog (askConfirm in app.js)
+   ============================================================ */
+/* No padding on the dialog itself, so a click whose target is the dialog
+   is a click on the backdrop. The reset's margin: 0 would pin it top-left. */
+dialog.confirm {
+    width: min(400px, calc(100vw - 32px));
+    margin: auto;
+    padding: 0;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
+}
+dialog.confirm[open] { animation: confirm-in 0.15s ease-out; }
+dialog.confirm::backdrop { background: rgba(5, 8, 14, 0.75); }
+dialog.confirm form { padding: 20px; }
+.confirm-msg { margin: 0 0 20px; font-size: 15px; line-height: 1.5; }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 8px; }
+@keyframes confirm-in { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) { dialog.confirm[open] { animation: none; } }
+/* On a phone it sits at the bottom, under the thumb, with full-width buttons. */
+@media (max-width: 767px) {
+    dialog.confirm { margin: auto auto calc(16px + env(safe-area-inset-bottom)); }
+    .confirm-actions .btn { flex: 1; height: 44px; font-size: 15px; }
+}
+
+/* ============================================================
    Footer
    ============================================================ */
 .footer {

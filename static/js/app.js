@@ -39,12 +39,68 @@ document.body.addEventListener("htmx:error", function() {
     showToast("Connection problem - please try again", "error");
 });
 
-// data-confirm on a submit button or a form: ask before submitting.
-document.addEventListener("submit", function(e) {
-    const el = (e.submitter && e.submitter.closest("[data-confirm]")) || e.target.closest("form[data-confirm]");
-    if (el && !confirm(el.getAttribute("data-confirm"))) {
-        e.preventDefault();
+// askConfirm shows the site's own confirm dialog (the browser's confirm()
+// box can't be styled) and resolves true if the player says yes. The yes
+// button takes okLabel, or the label of the button that asked, and is red
+// when that button is btn-danger, with No focused so Enter is safe.
+let confirmDialog;
+function askConfirm(msg, btn, okLabel) {
+    if (!confirmDialog) {
+        confirmDialog = document.createElement("dialog");
+        confirmDialog.className = "confirm";
+        confirmDialog.innerHTML = '<form method="dialog"><p class="confirm-msg"></p><div class="confirm-actions">'
+            + '<button value="" class="btn btn-secondary"></button><button value="ok" class="btn"></button></div></form>';
+        document.body.appendChild(confirmDialog);
+        // A tap on the backdrop says no.
+        confirmDialog.addEventListener("click", function(e) {
+            if (e.target === confirmDialog) confirmDialog.close();
+        });
     }
+    const no = confirmDialog.querySelector('[value=""]');
+    const yes = confirmDialog.querySelector('[value="ok"]');
+    const danger = !!btn && btn.classList.contains("btn-danger");
+    const label = okLabel || (btn && btn.textContent.trim()) || "OK";
+    confirmDialog.querySelector(".confirm-msg").textContent = msg;
+    yes.textContent = label;
+    yes.className = "btn " + (danger ? "btn-danger" : "btn-primary");
+    no.textContent = /^cancel\b/i.test(label) ? "Go back" : "Cancel";
+    return new Promise(function(resolve) {
+        confirmDialog.addEventListener("close", function() {
+            resolve(confirmDialog.returnValue === "ok");
+        }, {once: true});
+        confirmDialog.returnValue = "";
+        confirmDialog.showModal();
+        (danger ? no : yes).focus();
+    });
+}
+
+// data-confirm on a submit button or a form: ask before submitting.
+// data-confirm-ok beside it overrides the yes button's label.
+let confirmedForm = null;
+document.addEventListener("submit", function(e) {
+    const form = e.target;
+    const el = (e.submitter && e.submitter.closest("[data-confirm]")) || form.closest("form[data-confirm]");
+    if (!el) return;
+    if (confirmedForm === form) {
+        confirmedForm = null;
+        return;
+    }
+    e.preventDefault();
+    const btn = e.submitter;
+    askConfirm(el.getAttribute("data-confirm"), btn, el.getAttribute("data-confirm-ok")).then(function(ok) {
+        if (!ok) return;
+        confirmedForm = form;
+        form.requestSubmit(btn);
+    });
+});
+
+// hx-confirm: the same dialog for htmx requests.
+document.body.addEventListener("htmx:confirm", function(e) {
+    e.preventDefault();
+    const d = e.detail, src = d.ctx.sourceElement;
+    askConfirm(d.ctx.confirm, src.closest("button"), src.getAttribute("data-confirm-ok")).then(function(ok) {
+        if (ok) d.issueRequest(); else d.dropRequest();
+    });
 });
 
 // data-autosubmit on a select: submit its form when it changes.

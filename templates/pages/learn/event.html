@@ -54,7 +54,7 @@
             <div class="btn-group" style="flex-wrap:wrap;margin:12px 0">
                 {{if ne $e.Status "live"}}<form method="POST" action="/admin/learn/live/{{$e.ID}}/start"><button class="btn btn-primary">Go live now</button></form>{{end}}
                 {{if eq $e.Status "live"}}<form method="POST" action="/admin/learn/live/{{$e.ID}}/end" data-confirm="End the stream? Voters on answered questions get their email."><button class="btn btn-primary">End stream</button></form>{{end}}
-                {{if eq $e.Status "upcoming"}}<form method="POST" action="/admin/learn/live/{{$e.ID}}/cancel" data-confirm="Cancel this stream?"><button class="btn btn-secondary">Cancel</button></form>{{end}}
+                {{if eq $e.Status "upcoming"}}<form method="POST" action="/admin/learn/live/{{$e.ID}}/cancel" data-confirm="Cancel this stream?" data-confirm-ok="Cancel stream"><button class="btn btn-secondary">Cancel</button></form>{{end}}
                 <form method="POST" action="/admin/learn/live/{{$e.ID}}/delete" data-confirm="Delete this stream?"><button class="btn btn-danger">Delete</button></form>
             </div>
             {{if eq $e.Source "admin"}}

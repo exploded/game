@@ -40,7 +40,7 @@
             <td class="c-action">
                 {{if eq .Status "open"}}
                 <form method="POST" action="/games/{{$.Item.ID}}/orders/{{.ID}}/cancel">
-                    <button type="submit" class="btn btn-danger btn-sm" data-confirm="Cancel this order?">Cancel</button>
+                    <button type="submit" class="btn btn-danger btn-sm" data-confirm="Cancel this order?" data-confirm-ok="Cancel order">Cancel</button>
                 </form>
                 {{end}}
             </td>
