@@ -6009,6 +6009,72 @@ func (q *Queries) ListTopics(ctx context.Context) ([]ListTopicsRow, error) {
 	return items, nil
 }
 
+const listTradesSince = `-- name: ListTradesSince :many
+SELECT t.id, t.participant_id, t.stock_id, t.type, t.quantity, t.price, t.total, t.converted_total, t.exchange_rate_used, t.fee, t.created_at, s.currency
+FROM transactions t
+JOIN stocks s ON s.id = t.stock_id
+WHERE t.participant_id = ? AND t.created_at >= ?
+ORDER BY t.id
+`
+
+type ListTradesSinceParams struct {
+	ParticipantID int64
+	CreatedAt     string
+}
+
+type ListTradesSinceRow struct {
+	ID               int64
+	ParticipantID    int64
+	StockID          int64
+	Type             string
+	Quantity         int64
+	Price            int64
+	Total            int64
+	ConvertedTotal   int64
+	ExchangeRateUsed int64
+	Fee              int64
+	CreatedAt        string
+	Currency         string
+}
+
+// A player's trades from a date (YYYY-MM-DD, UTC) on, oldest first, for
+// working out how each position moved today.
+func (q *Queries) ListTradesSince(ctx context.Context, arg ListTradesSinceParams) ([]ListTradesSinceRow, error) {
+	rows, err := q.db.QueryContext(ctx, listTradesSince, arg.ParticipantID, arg.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListTradesSinceRow
+	for rows.Next() {
+		var i ListTradesSinceRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ParticipantID,
+			&i.StockID,
+			&i.Type,
+			&i.Quantity,
+			&i.Price,
+			&i.Total,
+			&i.ConvertedTotal,
+			&i.ExchangeRateUsed,
+			&i.Fee,
+			&i.CreatedAt,
+			&i.Currency,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTransactions = `-- name: ListTransactions :many
 SELECT t.id, t.participant_id, t.stock_id, t.type, t.quantity, t.price, t.total, t.converted_total, t.exchange_rate_used, t.fee, t.created_at, s.symbol, s.name AS stock_name, s.market, s.currency
 FROM transactions t

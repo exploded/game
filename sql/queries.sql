@@ -542,6 +542,15 @@ WHERE t.participant_id = ?
 ORDER BY t.created_at DESC
 LIMIT ? OFFSET ?;
 
+-- name: ListTradesSince :many
+-- A player's trades from a date (YYYY-MM-DD, UTC) on, oldest first, for
+-- working out how each position moved today.
+SELECT t.*, s.currency
+FROM transactions t
+JOIN stocks s ON s.id = t.stock_id
+WHERE t.participant_id = ? AND t.created_at >= ?
+ORDER BY t.id;
+
 -- name: CountTransactions :one
 SELECT COUNT(*) FROM transactions WHERE participant_id = ?;
 

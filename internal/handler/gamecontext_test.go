@@ -209,6 +209,44 @@ func TestChangePct(t *testing.T) {
 	}
 }
 
+// TestDayMove: only moves after the player held the shares count. The
+// previous close was $28.04 on 29 October and the latest is $28.64.
+func TestDayMove(t *testing.T) {
+	bars := []db.StockPrice{{Date: "2026-10-30", Close: 2864}, {Date: "2026-10-29", Close: 2804}}
+	trade := func(at, side string, n, price int64) db.ListTradesSinceRow {
+		return db.ListTradesSinceRow{CreatedAt: at, Type: side, Quantity: n, Price: price, Total: n * price}
+	}
+	for _, tc := range []struct {
+		name   string
+		qty    int64
+		trades []db.ListTradesSinceRow
+		want   change
+	}{
+		{"held overnight", 100, nil, change{6000, 280400}},
+		{"bought before the previous close", 100,
+			[]db.ListTradesSinceRow{trade("2026-10-29 15:00:00", "buy", 100, 2790)}, change{6000, 280400}},
+		{"bought after hours at the latest close", 100,
+			[]db.ListTradesSinceRow{trade("2026-10-30 22:30:00", "buy", 100, 2864)}, change{0, 286400}},
+		{"bought during the session", 100,
+			[]db.ListTradesSinceRow{trade("2026-10-30 15:00:00", "buy", 100, 2850)}, change{1400, 285000}},
+		{"added to overnight shares", 150,
+			[]db.ListTradesSinceRow{trade("2026-10-30 15:00:00", "buy", 50, 2850)}, change{6700, 422900}},
+		{"sold half during the session", 50,
+			[]db.ListTradesSinceRow{trade("2026-10-30 15:00:00", "sell", 50, 2850)}, change{5300, 137900}},
+		{"sold out during the session", 0,
+			[]db.ListTradesSinceRow{trade("2026-10-30 15:00:00", "sell", 100, 2850)}, change{4600, -4600}},
+		{"shorted during the session", -100,
+			[]db.ListTradesSinceRow{trade("2026-10-30 15:00:00", "sell", 100, 2900)}, change{3600, -290000}},
+	} {
+		if got := dayMove(tc.qty, bars, tc.trades); got != tc.want {
+			t.Errorf("%s: dayMove = %+v, want %+v", tc.name, got, tc.want)
+		}
+	}
+	if got := dayMove(100, bars[:1], nil); got != (change{}) {
+		t.Errorf("one bar: dayMove = %+v, want no change", got)
+	}
+}
+
 func TestTradePageRedirectsToStockPage(t *testing.T) {
 	srv, _ := gameServer(t)
 	w := httptest.NewRecorder()

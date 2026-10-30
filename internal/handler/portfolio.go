@@ -61,9 +61,38 @@ type holdingRow struct {
 	db.ListHoldingsRow
 	Avg        int64  // average price paid per share
 	Price      int64  // the latest close
-	Today      change // the latest close against the one before
+	Today      change // what the position made since the previous close (dayMove)
 	Total      change // value against what the shares cost
 	SellQueued bool   // a sale is waiting for the market to open
+}
+
+// dayMove is how much a position of qty shares made since the previous
+// close, from the newest two price bars and the player's trades in the
+// stock. Shares held at that close count from it. Shares bought or sold
+// since count from the price they traded at, so a buy made after the close
+// isn't credited with the move before it. Trades are dated in UTC, not the
+// market's time: one made near the close fills at that close, so which side
+// of the line it lands on doesn't change the answer.
+func dayMove(qty int64, bars []db.StockPrice, trades []db.ListTradesSinceRow) change {
+	if len(bars) < 2 {
+		return change{}
+	}
+	start := qty   // shares held at the previous close
+	var paid int64 // paid for shares since, less what sales brought in
+	for _, t := range trades {
+		if len(t.CreatedAt) < 10 || t.CreatedAt[:10] <= bars[1].Date {
+			continue
+		}
+		if t.Type == "sell" {
+			start += t.Quantity
+			paid -= t.Total
+		} else {
+			start -= t.Quantity
+			paid += t.Total
+		}
+	}
+	base := start*bars[1].Close + paid
+	return change{qty*bars[0].Close - base, base}
 }
 
 // standing is where a player sits on the game's leaderboard.
@@ -139,8 +168,17 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 		}
 	}
 
+	// Every trade in this game, by stock. A month of one player's trades is
+	// small, and it means no trade since a stock's previous close is missed.
+	trades := map[int64][]db.ListTradesSinceRow{}
+	if ts, err := h.q.ListTradesSince(ctx, db.ListTradesSinceParams{ParticipantID: participant.ID, CreatedAt: game.StartDate}); err == nil {
+		for _, t := range ts {
+			trades[t.StockID] = append(trades[t.StockID], t)
+		}
+	}
+
 	rows := make([]holdingRow, 0, len(holdings))
-	var todayBase int64 // today's move across all holdings, in the game's currency
+	var todayBase int64 // today's move across all positions, in the game's currency
 	for _, ho := range holdings {
 		row := holdingRow{
 			ListHoldingsRow: ho,
@@ -150,12 +188,17 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 		}
 		if bars, err := h.q.ListLatestPrices(ctx, ho.StockID); err == nil && len(bars) > 0 {
 			row.Price = bars[0].Close
-			if len(bars) > 1 {
-				row.Today = change{ho.Quantity * (bars[0].Close - bars[1].Close), ho.Quantity * bars[1].Close}
-			}
+			row.Today = dayMove(ho.Quantity, bars, trades[ho.StockID])
 		}
 		todayBase += convertCurrency(row.Today.Amount, ho.Currency, game.BaseCurrency, rate)
 		rows = append(rows, row)
+		delete(trades, ho.StockID)
+	}
+	// A stock sold out of today still made or lost money before the sale.
+	for stockID, ts := range trades {
+		if bars, err := h.q.ListLatestPrices(ctx, stockID); err == nil {
+			todayBase += convertCurrency(dayMove(0, bars, ts).Amount, ts[0].Currency, game.BaseCurrency, rate)
+		}
 	}
 	interest, _ := h.q.TotalInterest(ctx, participant.ID)
 	var invites []db.ListInvitesSentRow
