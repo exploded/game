@@ -62,7 +62,7 @@ func HandleLogout(queries *db.Queries) http.HandlerFunc {
 			Secure:   IsSecure(r),
 			SameSite: http.SameSiteLaxMode,
 		})
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 }
 
