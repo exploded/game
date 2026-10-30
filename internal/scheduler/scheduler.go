@@ -18,6 +18,7 @@ import (
 var pricesChanged atomic.Bool
 var quotesRunning atomic.Bool
 var profilesRunning atomic.Bool
+var ratesRunning atomic.Bool
 
 // quoteEveryMinutes is how often intraday quotes run during the US session.
 // Each run costs 1 credit per S&P 500 stock (about 520), close to the
@@ -83,6 +84,9 @@ func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, 
 		}
 	}
 	maybeFetchQuotes(ctx, q, rawDB, now)
+	if utcNow.Minute()%15 == 0 {
+		go fetchRates(ctx, q, rawDB)
+	}
 
 	// 3-4. Process limit orders and revalue portfolios only when prices changed.
 	if pricesChanged.Swap(false) {
@@ -114,6 +118,10 @@ func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, 
 // open: a full refresh takes most of the quota for nearly an hour, so during
 // the session it's left to the 23:00 UTC run.
 func startupBackfill(ctx context.Context, q *db.Queries, rawDB *sql.DB) {
+	// Before anything else: until a rate is stored, trades in a stock priced
+	// in another currency are refused.
+	fetchRates(ctx, q, rawDB)
+
 	defer func() {
 		if !inUSSession(time.Now()) {
 			refreshProfiles(ctx, q, rawDB)
@@ -194,6 +202,17 @@ func inUSSession(now time.Time) bool {
 	}
 	mins := ny.Hour()*60 + ny.Minute()
 	return mins >= 9*60+30 && mins <= 16*60+10
+}
+
+// fetchRates updates the AUD/USD rate. Skips if a fetch is already running.
+func fetchRates(ctx context.Context, q *db.Queries, rawDB *sql.DB) {
+	if !ratesRunning.CompareAndSwap(false, true) {
+		return
+	}
+	defer ratesRunning.Store(false)
+	if err := market.NewFetcher(q, rawDB).FetchExchangeRates(ctx, q); err != nil {
+		slog.Error("exchange rate", "error", err)
+	}
 }
 
 // refreshProfiles updates missing or stale company profiles. Skips if a

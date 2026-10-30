@@ -32,8 +32,8 @@ const (
 
 // Config holds the site details emails need.
 type Config struct {
-	BaseURL     string // the site's public URL
-	NewsReplyTo string // Reply-To for News emails, so replies reach Rob; optional
+	BaseURL string // the site's public URL
+	ReplyTo string // Reply-To on every email, so replies reach Consortium; optional
 	// NewsSender names who sends News emails and how to reach them, such as
 	// "Rob Smith, PO Box 1, Melbourne VIC 3000". The Spam Act needs it in
 	// every marketing email, so News can't go out without it.
@@ -130,7 +130,7 @@ func (m *Mailer) ToAddress(ctx context.Context, to, template string, data any) e
 	}
 	if err := m.q.QueueEmail(ctx, db.QueueEmailParams{
 		ToEmail: to, Category: string(Account), Template: template,
-		Subject: subject, TextBody: text, HtmlBody: html,
+		Subject: subject, TextBody: text, HtmlBody: html, ReplyTo: m.cfg.ReplyTo,
 	}); err != nil {
 		return err
 	}
@@ -170,7 +170,6 @@ func (m *Mailer) toUser(ctx context.Context, userID int64, c Category, template 
 		return false, nil
 	}
 	v := view{BaseURL: m.cfg.BaseURL, Name: user.Name, D: data}
-	var replyTo string
 	if c != Account {
 		if !test {
 			on, err := m.Enabled(ctx, userID, c)
@@ -182,7 +181,6 @@ func (m *Mailer) toUser(ctx context.Context, userID int64, c Category, template 
 		v.CategoryLabel = info.Label
 		v.UnsubscribeURL = m.UnsubscribeURL(user.EmailToken, c)
 		if c == News {
-			replyTo = m.cfg.NewsReplyTo
 			v.NewsSender = m.cfg.NewsSender
 		}
 	}
@@ -197,7 +195,7 @@ func (m *Mailer) toUser(ctx context.Context, userID int64, c Category, template 
 		UserID: sql.NullInt64{Int64: userID, Valid: true}, ToEmail: user.Email,
 		Category: string(c), Template: template,
 		Subject: subject, TextBody: text, HtmlBody: html,
-		ReplyTo: replyTo, UnsubscribeUrl: v.UnsubscribeURL,
+		ReplyTo: m.cfg.ReplyTo, UnsubscribeUrl: v.UnsubscribeURL,
 	}); err != nil {
 		return false, err
 	}

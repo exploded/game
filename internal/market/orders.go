@@ -110,13 +110,15 @@ func fillLimitOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrde
 
 	totalNative := order.Quantity * pricePerShare
 
-	// Get exchange rate.
+	// Get exchange rate. Without one, leave the order for a later run rather
+	// than convert 1:1.
 	var exchangeRate int64 = 1000000
 	if order.Currency != game.BaseCurrency {
 		rate, err := q.GetLatestExchangeRate(ctx)
-		if err == nil {
-			exchangeRate = rate.RateAudUsd
+		if err != nil {
+			return fmt.Errorf("no exchange rate: %w", err)
 		}
+		exchangeRate = rate.RateAudUsd
 	}
 
 	totalBase := convertCurrency(totalNative, order.Currency, game.BaseCurrency, exchangeRate)

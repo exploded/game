@@ -32,8 +32,8 @@ Built on 2026-10-29 and merged into `master` on 2026-10-30. Not deployed yet.
   Without them nobody can sign in. Remove `GOOGLE_CLIENT_*` from the `.env`.
 - [ ] **Newsletter details from Rob (2026-10-30)** go in the server `.env`:
   `NEWS_SENDER="Consortium Private Wealth, 24A Darlot Street, Horsham VIC 3400"`
-  and `NEWS_REPLY_TO=info@consortiumpw.com.au`. Also change `MAIL_FROM`'s
-  name to The Wealth Lab.
+  and `MAIL_REPLY_TO=info@consortiumpw.com.au` (was `NEWS_REPLY_TO`), and
+  `MAIL_FROM=The Wealth Lab <hello@thewealthlab.au>`.
 - [x] **Landing page team photo.** On the sign-in page: beside the form on a
   wide screen, under it on a phone (`static/img/team.jpg`, 2026-10-30).
 - [ ] **Weekly summary and "we miss you" emails** (D1 and N2 in
@@ -72,9 +72,8 @@ reminders need an account.
   API), pass TikTok's app review, set `TIKTOK_CLIENT_KEY` and
   `TIKTOK_CLIENT_SECRET`, then Rob clicks **Connect TikTok**. Reconnect
   before the year is up; the admin page warns 30 days ahead.
-- [ ] **From Rob:** his podcast link (he's organising it), and whether the
-  topic list suits him (`/admin/learn/topics`). His general advice wording is
-  in (2026-10-30).
+- [ ] **From Rob:** whether the topic list suits him (`/admin/learn/topics`).
+  His general advice wording is in; no podcast link is needed (2026-10-30).
 - [ ] **Later:** Facebook and Instagram sync and Facebook live detection
   through Meta's Graph API (needs Rob's Page connected to a Meta app). TikTok
   LIVE has no API, so TikTok streams stay manual. Web push notifications.

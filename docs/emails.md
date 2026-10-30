@@ -9,9 +9,10 @@ email goes through Amazon SES.
   `email_outbox` table, and a background worker (`internal/mail`) sends it.
   A failed send retries with back-off, so an SES outage doesn't lose mail or
   slow down a request. Sign-in emails wake the worker straight away.
-- **Sender.** `MAIL_FROM` (for example `The Wealth Lab <stockgame@mchugh.au>`).
-  `mchugh.au` is already an SES identity. Marketing email from Rob sets
-  `Reply-To` to Rob's address so replies reach him.
+- **Sender.** `MAIL_FROM` (`The Wealth Lab <hello@thewealthlab.au>`).
+  `thewealthlab.au` is an SES identity. Every email sets `Reply-To` to
+  `MAIL_REPLY_TO` (`info@consortiumpw.com.au`) so replies reach Consortium.
+  Mail sent straight to an `@thewealthlab.au` address goes to Fastmail.
 - **Dev.** Without SES credentials the worker prints each email to the log
   instead of sending it, so you can sign in locally by copying the link.
 - **Format.** Every email has a plain-text part and an HTML part. HTML uses
@@ -163,18 +164,20 @@ link for their category.
 
 1. **IAM user for StockGame.** Done on 2026-10-30: the IAM user
    `stockgame-ses` has the policy `stockgame-ses-send`, which allows
-   `ses:SendEmail` and `ses:SendRawEmail` only from `stockgame@mchugh.au`.
+   `ses:SendEmail` and `ses:SendRawEmail` only from `hello@thewealthlab.au`
+   (and `stockgame@mchugh.au` until the switch, both since 2026-10-30).
    If `MAIL_FROM` changes, update that policy too. Put the user's keys in the
    server's `.env` as `SES_ACCESS_KEY_ID` and `SES_SECRET_ACCESS_KEY`, and set
    `BASE_URL`, `SES_REGION=ap-southeast-2` and `MAIL_FROM`, plus `NEWS_SENDER`
-   and `NEWS_REPLY_TO` once Rob confirms them.
+   and `MAIL_REPLY_TO`.
 2. **SES production access.** On, checked 2026-10-30: 50,000 emails a day,
-   14 a second. `mchugh.au` is verified, with DKIM and the MAIL FROM domain
-   `ses.mchugh.au`.
+   14 a second. `thewealthlab.au` is an identity (added 2026-10-30), with
+   DKIM, the MAIL FROM domain `ses.thewealthlab.au` and DMARC
+   `p=quarantine`, all in Cloudflare DNS.
 3. **Suppression list.** The account-level suppression list is on for
    bounces and complaints, so we never retry a dead address.
 4. **Later, for marketing volume.** Send newsletters from a separate
-   configuration set (or subdomain such as `news.mchugh.au`) so a complaint
+   configuration set (or subdomain such as `news.thewealthlab.au`) so a complaint
    spike on a newsletter can't hurt sign-in email delivery.
 
 ## Open questions for Rob

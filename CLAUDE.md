@@ -1,7 +1,7 @@
 ## Project: game
 
 **Path:** `C:\Projects\go\game`
-**Purpose:** The Wealth Lab (called StockGame until 2026-10-30): Rob Goudie's investing community for Consortium Private Wealth, which runs it. A monthly fantasy share game (players get $1M to invest in S&P 500 stocks and US-listed Australian companies; ASX is out until its licence is sorted), plus Learn (videos, live streams, Ask Rob). In player-facing text the site is "The Wealth Lab" and the game is "the share game". The repo, service and domain are still `game`.
+**Purpose:** The Wealth Lab (called StockGame until 2026-10-30): Rob Goudie's investing community for Consortium Private Wealth, which runs it. A monthly fantasy share game (players get $1M to invest in S&P 500 stocks and US-listed Australian companies; ASX is out until its licence is sorted), plus Learn (videos, live streams, Ask Rob). In player-facing text the site is "The Wealth Lab" and the game is "the share game". The site is at `https://thewealthlab.au` (from 2026-10-30, before anyone used it). `game.mchugh.au` was retired with no redirect, and there's no `www`. The repo, systemd service and app directory are still `game`.
 
 ### Stack
 - Go 1.26 / Chi router / htmx 4 / SQLite (modernc.org/sqlite) / sqlc / Go html/template
@@ -13,7 +13,7 @@
 ### Key conventions
 - **Money**: All monetary values stored as INTEGER cents. Never use floats for money.
 - **Holding cost**: `holdings.cost_basis` is the exact total paid for the shares held (native cents, negative for a short). Returns use it, not `avg_cost`, which is rounded. Update both through `market.Fill` and `market.AvgCost` (`internal/market/holding.go`) in every fill path.
-- **Exchange rates**: Stored as INTEGER (rate * 1,000,000) for precision.
+- **Exchange rates**: Stored as INTEGER (rate * 1,000,000) for precision. `market.FetchExchangeRates` (`internal/market/forex.go`) gets AUD/USD from Twelve Data at startup and every 15 minutes, loading a year of daily closes when the table is empty. With no rate stored, trades and order fills in a stock priced in another currency are refused, never converted 1:1.
 - **SQLite**: WAL mode, foreign_keys on, busy_timeout=5000, SetMaxOpenConns(1). The DSN in `internal/handler/db.go` must use modernc's `_pragma=name(value)` form; the mattn form (`_journal_mode=WAL`) is silently ignored. `TestOpenDBAppliesPragmas` guards this.
 - **Migrations** (`internal/handler/db.go`): new columns go in `addedColumns` (and in `sql/schema.sql`); one-off data changes go in `onceMigrations`, recorded in `schema_migrations`.
 - **Embedded assets**: `assets.go` embeds `templates/`, `static/` and `sql/schema.sql` into the binary. Template, CSS or JS changes need a rebuild. Link static files with `{{asset "css/app.css"}}`, which adds a content hash so they can be cached for a year.

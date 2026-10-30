@@ -23,12 +23,12 @@ fi
 # Create .env file if it doesn't exist.
 if [ ! -f "$APP_DIR/.env" ]; then
     cat > "$APP_DIR/.env" <<'ENVEOF'
-BASE_URL=https://game.mchugh.au
+BASE_URL=https://thewealthlab.au
 SES_ACCESS_KEY_ID=
 SES_SECRET_ACCESS_KEY=
 SES_REGION=ap-southeast-2
-MAIL_FROM=StockGame <stockgame@mchugh.au>
-NEWS_REPLY_TO=
+MAIL_FROM=The Wealth Lab <hello@thewealthlab.au>
+MAIL_REPLY_TO=info@consortiumpw.com.au
 NEWS_SENDER=
 ADMIN_EMAIL=
 PORT=8888
@@ -98,7 +98,7 @@ echo ""
 echo "[note] Add this block to /etc/caddy/Caddyfile, then run: sudo systemctl reload caddy"
 cat <<'CADDY'
 
-game.mchugh.au {
+thewealthlab.au {
 	import access_log
 	reverse_proxy 127.0.0.1:8888 {
 		header_up X-Forwarded-For {client_ip}
@@ -115,4 +115,4 @@ echo "  1. Edit $APP_DIR/.env with your credentials (copy MONITOR_API_KEY from a
 echo "  2. Add the Caddy block above, then: sudo systemctl reload caddy"
 echo "  3. Make sure the GitHub repo has the DEPLOY_HOST, DEPLOY_USER, DEPLOY_PORT (2222)"
 echo "     and DEPLOY_SSH_KEY Actions secrets, then push to master to deploy"
-echo "  4. Point the monitor uptime check at https://game.mchugh.au/health"
+echo "  4. Point the monitor uptime check at https://thewealthlab.au/health"

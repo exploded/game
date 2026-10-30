@@ -160,6 +160,18 @@ var onceMigrations = []struct{ name, stmt string }{
 	// Interest on cash started at the 1% default. Match Macquarie's 5.25% in
 	// games still to come or running, unless an admin chose a rate.
 	{"interest-5-25", "UPDATE games SET credit_interest_rate = 525 WHERE status IN ('pending', 'active') AND credit_interest_rate = 100"},
+	// Until 30 October 2026 production ran the dev-only fake price feed, which
+	// walked AUD/USD from 0.66 down to 0.11. The scheduler refetches real
+	// rates once the table is empty.
+	{"real-exchange-rates", "DELETE FROM exchange_rates"},
+	// The one trade that used the fake rate: 3 IBM at US$255.07 cost
+	// A$7,175.57 at 0.106641 instead of A$1,088.98 at 0.70268. Refund the
+	// difference, then fix the trade. Both match only the bad trade.
+	{"fix-fake-rate-trade-cash", `UPDATE participants SET cash_balance = cash_balance + 608659
+		WHERE id = (SELECT participant_id FROM transactions
+			WHERE id = 21 AND exchange_rate_used = 106641 AND converted_total = 717557)`},
+	{"fix-fake-rate-trade", `UPDATE transactions SET converted_total = 108898, exchange_rate_used = 702680
+		WHERE id = 21 AND exchange_rate_used = 106641 AND converted_total = 717557`},
 }
 
 func runMigrations(db *sql.DB) error {

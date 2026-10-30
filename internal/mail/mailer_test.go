@@ -44,7 +44,7 @@ func newMailer(t *testing.T) (*mail.Mailer, *db.Queries, *fakeSender) {
 	}
 	q := db.New(d)
 	f := &fakeSender{}
-	m, err := mail.New(q, f, mail.Config{BaseURL: "https://game.example/", NewsReplyTo: "rob@example.com", NewsSender: "Rob, PO Box 1, Melbourne VIC 3000"})
+	m, err := mail.New(q, f, mail.Config{BaseURL: "https://game.example/", ReplyTo: "info@example.com", NewsSender: "Rob, PO Box 1, Melbourne VIC 3000"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,6 +96,11 @@ func TestEveryTemplateRenders(t *testing.T) {
 	if login.UnsubscribeURL != "" {
 		t.Error("an account email has an unsubscribe link")
 	}
+	for _, e := range f.sent {
+		if e.ReplyTo != "info@example.com" {
+			t.Errorf("%q reply-to = %q, want Consortium's address", e.Subject, e.ReplyTo)
+		}
+	}
 	if !strings.Contains(f.sent[1].Text, "Hi Alice,") {
 		t.Errorf("welcome email doesn't greet by name:\n%s", f.sent[1].Text)
 	}
@@ -128,8 +133,8 @@ func TestToUserRespectsPrefs(t *testing.T) {
 		t.Fatalf("sent %d emails, want 1", len(f.sent))
 	}
 	news := f.sent[0]
-	if news.ReplyTo != "rob@example.com" {
-		t.Errorf("News reply-to = %q, want Rob's address", news.ReplyTo)
+	if news.ReplyTo != "info@example.com" {
+		t.Errorf("News reply-to = %q, want Consortium's address", news.ReplyTo)
 	}
 	want := "https://game.example/email/unsubscribe?c=news&t=tok1"
 	if news.UnsubscribeURL != want || !strings.Contains(news.Text, want) {

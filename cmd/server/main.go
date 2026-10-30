@@ -119,9 +119,9 @@ func main() {
 		sender = mail.Unavailable{}
 	}
 	mailer, err := mail.New(queries, sender, mail.Config{
-		BaseURL:     os.Getenv("BASE_URL"),
-		NewsReplyTo: os.Getenv("NEWS_REPLY_TO"),
-		NewsSender:  os.Getenv("NEWS_SENDER"),
+		BaseURL:    os.Getenv("BASE_URL"),
+		ReplyTo:    os.Getenv("MAIL_REPLY_TO"),
+		NewsSender: os.Getenv("NEWS_SENDER"),
 	})
 	if err != nil {
 		log.Fatalf("email templates: %v", err)

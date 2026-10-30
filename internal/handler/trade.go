@@ -150,13 +150,16 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get exchange rate.
+	// Get exchange rate. Without one, converting 1:1 would misprice the trade.
 	var exchangeRate int64 = 1000000
 	if stock.Currency != game.BaseCurrency {
 		rate, err := h.q.GetLatestExchangeRate(r.Context())
-		if err == nil {
-			exchangeRate = rate.RateAudUsd
+		if err != nil {
+			setFlashCookie(w, "We don't have an exchange rate yet. Try again in a minute.", "error")
+			http.Redirect(w, r, back, http.StatusSeeOther)
+			return
 		}
+		exchangeRate = rate.RateAudUsd
 	}
 
 	pricePerShare := latestPrice.Close
