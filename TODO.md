@@ -70,7 +70,7 @@ reminders need an account.
   `TIKTOK_CLIENT_SECRET`, then Rob clicks **Connect TikTok**. Reconnect
   before the year is up; the admin page warns 30 days ahead.
 - [ ] **From Rob:** his licensee's general advice wording
-  (`LEARN_DISCLAIMER`), his X and podcast links, and whether the topic list
+  (`LEARN_DISCLAIMER`), his podcast link, and whether the topic list
   suits him (`/admin/learn/topics`).
 - [ ] **Later:** Facebook and Instagram sync and Facebook live detection
   through Meta's Graph API (needs Rob's Page connected to a Meta app). TikTok

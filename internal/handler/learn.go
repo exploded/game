@@ -28,6 +28,7 @@ var robSocials = []social{
 	{"TikTok", "https://www.tiktok.com/@rob_goudie", "tt"},
 	{"Instagram", "https://www.instagram.com/consortiumprivatewealth/", "ig"},
 	{"Facebook", "https://www.facebook.com/consortiumpw", "fb"},
+	{"X", "https://x.com/consortiumpw", "x"},
 }
 
 // learnDisclaimer is the general advice warning under every Learn page.

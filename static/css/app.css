@@ -1070,7 +1070,7 @@ td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-
 }
 .hero-value { font-size: 32px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.2; margin: 2px 0 8px; }
 .hero-change { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
-.hero-split { display: flex; gap: 32px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--color-border); }
+.hero-split { display: flex; flex-wrap: wrap; gap: 10px 32px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--color-border); }
 .hero-split .mono { font-size: 15px; font-weight: 600; }
 .perf-chart { position: relative; height: 260px; }
 .game-rules-link { margin-top: 24px; font-size: 13px; }
@@ -1237,7 +1237,7 @@ td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-
     /* Portfolio */
     .portfolio-hero { padding: 16px; margin-bottom: 20px; }
     .hero-value { font-size: 30px; }
-    .hero-split { gap: 24px; }
+    .hero-split { gap: 10px 24px; }
     .perf-chart { height: 200px; }
 
     /* Stock page: shorter chart so the ticket is closer. */
@@ -1455,6 +1455,7 @@ td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-
 .social-tt { background: #000; border: 1px solid #333; }
 .social-ig { background: linear-gradient(45deg, #F58529, #DD2A7B, #8134AF); }
 .social-fb { background: #1877F2; }
+.social-x { background: #000; border: 1px solid #333; }
 
 .admin-status { list-style: none; display: flex; flex-direction: column; gap: 6px; }
 .topic-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }

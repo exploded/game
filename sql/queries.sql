@@ -196,7 +196,7 @@ UPDATE games SET status = ?, updated_at = datetime('now') WHERE id = ?;
 UPDATE games SET
     name = ?, description = ?, markets = ?, starting_balance = ?,
     base_currency = ?, max_participants = ?, trade_fee = ?, allow_short = ?,
-    limit_orders = ?, referral_bonus_pct = ?,
+    limit_orders = ?, referral_bonus_pct = ?, credit_interest_rate = ?,
     updated_at = datetime('now')
 WHERE id = ?;
 
@@ -586,6 +586,37 @@ SELECT p.*, g.base_currency
 FROM participants p
 JOIN games g ON g.id = p.game_id
 WHERE g.status = 'active';
+
+-- =============================================================================
+-- Interest on cash
+-- =============================================================================
+
+-- name: ListInterestDue :many
+-- Players owed interest for a day: in a game that ran that day, joined
+-- before the day ended, holding cash, and not paid for it yet.
+SELECT p.id, p.cash_balance, g.credit_interest_rate
+FROM participants p
+JOIN games g ON g.id = p.game_id
+WHERE g.status = 'active'
+  AND g.start_date <= sqlc.arg(day) AND g.end_date >= sqlc.arg(day)
+  AND g.credit_interest_rate > 0
+  AND p.cash_balance > 0
+  AND p.joined_at < sqlc.arg(day_end)
+  AND NOT EXISTS (SELECT 1 FROM interest_payments ip WHERE ip.participant_id = p.id AND ip.date = sqlc.arg(day));
+
+-- name: InsertInterestPayment :exec
+INSERT INTO interest_payments (participant_id, date, balance, rate, amount)
+VALUES (?, ?, ?, ?, ?);
+
+-- name: CreditCash :exec
+-- Adds to cash and the portfolio value together, so the leaderboard moves
+-- without waiting for a revaluation.
+UPDATE participants
+SET cash_balance = cash_balance + sqlc.arg(amount), portfolio_value = portfolio_value + sqlc.arg(amount)
+WHERE id = sqlc.arg(id);
+
+-- name: TotalInterest :one
+SELECT CAST(COALESCE(SUM(amount), 0) AS INTEGER) FROM interest_payments WHERE participant_id = ?;
 
 -- =============================================================================
 -- Limit Orders (Feature 1)

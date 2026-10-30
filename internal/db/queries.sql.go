@@ -1041,6 +1041,24 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const creditCash = `-- name: CreditCash :exec
+UPDATE participants
+SET cash_balance = cash_balance + ?1, portfolio_value = portfolio_value + ?1
+WHERE id = ?2
+`
+
+type CreditCashParams struct {
+	Amount int64
+	ID     int64
+}
+
+// Adds to cash and the portfolio value together, so the leaderboard moves
+// without waiting for a revaluation.
+func (q *Queries) CreditCash(ctx context.Context, arg CreditCashParams) error {
+	_, err := q.db.ExecContext(ctx, creditCash, arg.Amount, arg.ID)
+	return err
+}
+
 const deleteCourse = `-- name: DeleteCourse :exec
 DELETE FROM courses WHERE id = ?
 `
@@ -2422,6 +2440,30 @@ func (q *Queries) InsertFetchLog(ctx context.Context, arg InsertFetchLogParams) 
 		arg.StocksUpdated,
 		arg.ErrorMsg,
 		arg.DurationMs,
+	)
+	return err
+}
+
+const insertInterestPayment = `-- name: InsertInterestPayment :exec
+INSERT INTO interest_payments (participant_id, date, balance, rate, amount)
+VALUES (?, ?, ?, ?, ?)
+`
+
+type InsertInterestPaymentParams struct {
+	ParticipantID int64
+	Date          string
+	Balance       int64
+	Rate          int64
+	Amount        int64
+}
+
+func (q *Queries) InsertInterestPayment(ctx context.Context, arg InsertInterestPaymentParams) error {
+	_, err := q.db.ExecContext(ctx, insertInterestPayment,
+		arg.ParticipantID,
+		arg.Date,
+		arg.Balance,
+		arg.Rate,
+		arg.Amount,
 	)
 	return err
 }
@@ -3935,6 +3977,58 @@ func (q *Queries) ListHoldingsBySector(ctx context.Context, participantID int64)
 	for rows.Next() {
 		var i ListHoldingsBySectorRow
 		if err := rows.Scan(&i.Sector, &i.TotalValue); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listInterestDue = `-- name: ListInterestDue :many
+
+SELECT p.id, p.cash_balance, g.credit_interest_rate
+FROM participants p
+JOIN games g ON g.id = p.game_id
+WHERE g.status = 'active'
+  AND g.start_date <= ?1 AND g.end_date >= ?1
+  AND g.credit_interest_rate > 0
+  AND p.cash_balance > 0
+  AND p.joined_at < ?2
+  AND NOT EXISTS (SELECT 1 FROM interest_payments ip WHERE ip.participant_id = p.id AND ip.date = ?1)
+`
+
+type ListInterestDueParams struct {
+	Day    string
+	DayEnd string
+}
+
+type ListInterestDueRow struct {
+	ID                 int64
+	CashBalance        int64
+	CreditInterestRate int64
+}
+
+// =============================================================================
+// Interest on cash
+// =============================================================================
+// Players owed interest for a day: in a game that ran that day, joined
+// before the day ended, holding cash, and not paid for it yet.
+func (q *Queries) ListInterestDue(ctx context.Context, arg ListInterestDueParams) ([]ListInterestDueRow, error) {
+	rows, err := q.db.QueryContext(ctx, listInterestDue, arg.Day, arg.DayEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListInterestDueRow
+	for rows.Next() {
+		var i ListInterestDueRow
+		if err := rows.Scan(&i.ID, &i.CashBalance, &i.CreditInterestRate); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -7117,6 +7211,17 @@ func (q *Queries) SoftDeleteUser(ctx context.Context, id int64) error {
 	return err
 }
 
+const totalInterest = `-- name: TotalInterest :one
+SELECT CAST(COALESCE(SUM(amount), 0) AS INTEGER) FROM interest_payments WHERE participant_id = ?
+`
+
+func (q *Queries) TotalInterest(ctx context.Context, participantID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, totalInterest, participantID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const totalReferralBonus = `-- name: TotalReferralBonus :one
 SELECT COALESCE(SUM(bonus_amount), 0) FROM referral_bonuses WHERE referrer_id = ? AND game_id = ?
 `
@@ -7195,23 +7300,24 @@ const updateGameSettings = `-- name: UpdateGameSettings :exec
 UPDATE games SET
     name = ?, description = ?, markets = ?, starting_balance = ?,
     base_currency = ?, max_participants = ?, trade_fee = ?, allow_short = ?,
-    limit_orders = ?, referral_bonus_pct = ?,
+    limit_orders = ?, referral_bonus_pct = ?, credit_interest_rate = ?,
     updated_at = datetime('now')
 WHERE id = ?
 `
 
 type UpdateGameSettingsParams struct {
-	Name             string
-	Description      string
-	Markets          string
-	StartingBalance  int64
-	BaseCurrency     string
-	MaxParticipants  sql.NullInt64
-	TradeFee         int64
-	AllowShort       int64
-	LimitOrders      int64
-	ReferralBonusPct int64
-	ID               int64
+	Name               string
+	Description        string
+	Markets            string
+	StartingBalance    int64
+	BaseCurrency       string
+	MaxParticipants    sql.NullInt64
+	TradeFee           int64
+	AllowShort         int64
+	LimitOrders        int64
+	ReferralBonusPct   int64
+	CreditInterestRate int64
+	ID                 int64
 }
 
 // The settings admins can change. Dates come from the quarter.
@@ -7227,6 +7333,7 @@ func (q *Queries) UpdateGameSettings(ctx context.Context, arg UpdateGameSettings
 		arg.AllowShort,
 		arg.LimitOrders,
 		arg.ReferralBonusPct,
+		arg.CreditInterestRate,
 		arg.ID,
 	)
 	return err

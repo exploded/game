@@ -91,6 +91,9 @@ func LoadTemplates(fsys fs.FS, static *Static) (PageTemplates, error) {
 		"bps": func(bp int64) string {
 			return fmt.Sprintf("%.2f%%", float64(bp)/100)
 		},
+		"rawBps": func(bp int64) string { // for a percent input
+			return fmt.Sprintf("%.2f", float64(bp)/100)
+		},
 		"bigMoney": func(v int64) string {
 			if v == 0 {
 				return "N/A"

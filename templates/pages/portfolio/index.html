@@ -23,6 +23,7 @@
     <div class="hero-split">
         <div><span class="stat-label">Cash</span><span class="mono">{{cents $pt.CashBalance}}</span></div>
         <div><span class="stat-label">Invested</span><span class="mono">{{cents (subtract $pt.PortfolioValue $pt.CashBalance)}}</span></div>
+        {{if .Extra.Interest}}<div><span class="stat-label">Interest</span><span class="mono">{{cents .Extra.Interest}}</span></div>{{end}}
     </div>
 </div>
 

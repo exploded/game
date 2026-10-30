@@ -63,7 +63,7 @@ var defaultGame = db.Game{
 	ReferralBonusPct:     1,
 	IsPublic:             1,
 	PortfolioVisibility:  "public",
-	CreditInterestRate:   100,
+	CreditInterestRate:   525,
 	LeverageInterestRate: 500,
 	LimitOrders:          1,
 }

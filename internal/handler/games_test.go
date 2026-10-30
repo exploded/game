@@ -92,7 +92,7 @@ func TestAdminChangesGameSettings(t *testing.T) {
 	form := url.Values{
 		"name": {"Summer Cup"}, "markets": {"sp500"}, "starting_balance": {"500000"},
 		"base_currency": {"USD"}, "trade_fee": {"9.95"}, "referral_bonus_pct": {"2"},
-		"allow_short": {"1"}, // limit_orders unticked
+		"credit_interest_rate": {"4.35"}, "allow_short": {"1"}, // limit_orders unticked
 	}
 	for _, id := range []string{"1", "2", "3"} {
 		if w := postSettings(srv, id, form); w.Code != http.StatusSeeOther {
@@ -101,22 +101,22 @@ func TestAdminChangesGameSettings(t *testing.T) {
 	}
 
 	type settings struct {
-		name, markets, currency            string
-		balance, fee, bonus, short, limits int
+		name, markets, currency                      string
+		balance, fee, bonus, short, limits, interest int
 	}
 	get := func(id int) settings {
 		var s settings
-		if err := d.QueryRow(`SELECT name, markets, base_currency, starting_balance, trade_fee, referral_bonus_pct, allow_short, limit_orders FROM games WHERE id = ?`, id).
-			Scan(&s.name, &s.markets, &s.currency, &s.balance, &s.fee, &s.bonus, &s.short, &s.limits); err != nil {
+		if err := d.QueryRow(`SELECT name, markets, base_currency, starting_balance, trade_fee, referral_bonus_pct, allow_short, limit_orders, credit_interest_rate FROM games WHERE id = ?`, id).
+			Scan(&s.name, &s.markets, &s.currency, &s.balance, &s.fee, &s.bonus, &s.short, &s.limits, &s.interest); err != nil {
 			t.Fatal(err)
 		}
 		return s
 	}
 	// Game 1 has a player, so its starting cash and currency stay put.
-	if got, want := get(1), (settings{"Summer Cup", "sp500", "AUD", 100000000, 995, 2, 1, 0}); got != want {
+	if got, want := get(1), (settings{"Summer Cup", "sp500", "AUD", 100000000, 995, 2, 1, 0, 435}); got != want {
 		t.Errorf("running game with a player: got %+v, want %+v", got, want)
 	}
-	if got, want := get(2), (settings{"Summer Cup", "sp500", "USD", 50000000, 995, 2, 1, 0}); got != want {
+	if got, want := get(2), (settings{"Summer Cup", "sp500", "USD", 50000000, 995, 2, 1, 0, 435}); got != want {
 		t.Errorf("next game: got %+v, want %+v", got, want)
 	}
 	// A finished game can't change.

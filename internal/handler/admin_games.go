@@ -130,6 +130,11 @@ func (h *Handler) AdminGameUpdate(w http.ResponseWriter, r *http.Request) {
 	} else {
 		errs["referral_bonus_pct"] = "Enter 0 to 10"
 	}
+	if pct, err := strconv.ParseFloat(r.FormValue("credit_interest_rate"), 64); err == nil && pct >= 0 && pct <= 20 {
+		p.CreditInterestRate = int64(math.Round(pct * 100))
+	} else {
+		errs["credit_interest_rate"] = "Enter 0 to 20"
+	}
 
 	if len(errs) > 0 {
 		g.Name, g.Description, g.Markets = p.Name, p.Description, p.Markets

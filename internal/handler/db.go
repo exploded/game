@@ -80,7 +80,7 @@ var addedColumns = []struct{ table, column, ddl string }{
 	{"games", "referral_bonus_pct", "INTEGER NOT NULL DEFAULT 1"},
 	{"games", "is_public", "INTEGER NOT NULL DEFAULT 1"},
 	{"games", "portfolio_visibility", "TEXT NOT NULL DEFAULT 'public'"},
-	{"games", "credit_interest_rate", "INTEGER NOT NULL DEFAULT 100"},
+	{"games", "credit_interest_rate", "INTEGER NOT NULL DEFAULT 525"},
 	{"games", "leverage_interest_rate", "INTEGER NOT NULL DEFAULT 500"},
 	{"games", "min_stock_price", "INTEGER DEFAULT NULL"},
 	{"games", "max_stock_price", "INTEGER DEFAULT NULL"},
@@ -144,6 +144,9 @@ var onceMigrations = []struct{ name, stmt string }{
 	// Holdings kept only a rounded-down average price. Start each total
 	// from it; trades from now on keep it exact.
 	{"holdings-cost-basis", "UPDATE holdings SET cost_basis = quantity * avg_cost"},
+	// Interest on cash started at the 1% default. Match Macquarie's 5.25% in
+	// games still to come or running, unless an admin chose a rate.
+	{"interest-5-25", "UPDATE games SET credit_interest_rate = 525 WHERE status IN ('pending', 'active') AND credit_interest_rate = 100"},
 }
 
 func runMigrations(db *sql.DB) error {

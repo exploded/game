@@ -157,6 +157,7 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 		todayBase += convertCurrency(row.Today.Amount, ho.Currency, game.BaseCurrency, rate)
 		rows = append(rows, row)
 	}
+	interest, _ := h.q.TotalInterest(ctx, participant.ID)
 
 	h.render(w, r, "portfolio/index", "", PageData{
 		Title: game.Name,
@@ -168,6 +169,7 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 			"Today":       change{todayBase, participant.PortfolioValue - todayBase},
 			"Total":       change{participant.PortfolioValue - game.StartingBalance, game.StartingBalance},
 			"Standing":    rankPlayer(participant, board),
+			"Interest":    interest,
 		},
 	})
 }

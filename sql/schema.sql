@@ -126,7 +126,7 @@ CREATE TABLE IF NOT EXISTS games (
     template_id          INTEGER REFERENCES game_templates(id),
     is_public            INTEGER NOT NULL DEFAULT 1,            -- 1 = public, 0 = private (invite only)
     portfolio_visibility TEXT    NOT NULL DEFAULT 'public',      -- 'public' | 'private' | 'user_selectable'
-    credit_interest_rate INTEGER NOT NULL DEFAULT 100,           -- basis points (100 = 1.00%)
+    credit_interest_rate INTEGER NOT NULL DEFAULT 525,           -- basis points (525 = 5.25%)
     leverage_interest_rate INTEGER NOT NULL DEFAULT 500,         -- basis points (500 = 5.00%)
     min_stock_price      INTEGER,                                -- minimum stock price in cents, NULL = no limit
     max_stock_price      INTEGER,                                -- maximum stock price in cents, NULL = no limit
@@ -250,6 +250,21 @@ CREATE TABLE IF NOT EXISTS portfolio_snapshots (
     UNIQUE(participant_id, date)
 );
 CREATE INDEX IF NOT EXISTS idx_snapshots_participant ON portfolio_snapshots(participant_id, date DESC);
+
+--------------------------------------------------------------------------------
+-- Interest on cash, paid by the scheduler just after midnight for the day
+-- that ended. One row per player per day, so it's never paid twice.
+--------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS interest_payments (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    participant_id INTEGER NOT NULL REFERENCES participants(id) ON DELETE CASCADE,
+    date           TEXT    NOT NULL,             -- YYYY-MM-DD in TIMEZONE: the day it's for
+    balance        INTEGER NOT NULL,             -- cash it was paid on, game currency cents
+    rate           INTEGER NOT NULL,             -- basis points a year
+    amount         INTEGER NOT NULL,             -- cents credited (can be 0)
+    created_at     TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(participant_id, date)
+);
 
 --------------------------------------------------------------------------------
 -- Price Fetch Log

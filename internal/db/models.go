@@ -190,6 +190,16 @@ type Holding struct {
 	CostBasis     int64
 }
 
+type InterestPayment struct {
+	ID            int64
+	ParticipantID int64
+	Date          string
+	Balance       int64
+	Rate          int64
+	Amount        int64
+	CreatedAt     string
+}
+
 type Lesson struct {
 	ID          int64
 	CourseID    int64
