@@ -25,6 +25,14 @@ Built on 2026-10-29 and merged into `master` on 2026-10-30. Not deployed yet.
 - [x] **Courses.** `/courses`: video lessons from YouTube, Vimeo or Bunny
   Stream, with progress per player. Admins build them at `/admin/courses` and
   can email members when a course is first published.
+- [x] **Rob's CPW courses.** The 7 video courses from consortiumpw.com.au/elearning
+  (94 lessons) are copied in by the `import-cpw-courses` and `import-cpw-lessons`
+  seed migrations (`courses_cpw.go`), published with no email. Courses have no
+  thumbnail image.
+- [ ] **From Rob:** are the 2018 super courses (Beginners Guide to Super, How
+  Super Works) still right? How Super Works says employers pay 9.5% super;
+  it's 12% now, and the videos may quote old caps and rules too. He can
+  unpublish or edit them at `/admin/courses`.
 - [x] **Review the whole game for improvements.** Findings are in the next
   section.
 - [ ] **Go live.** Needs an SES IAM user and `SES_ACCESS_KEY_ID`,

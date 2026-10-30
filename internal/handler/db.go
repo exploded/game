@@ -261,14 +261,18 @@ func runMigrations(db *sql.DB) error {
 	return applyOnce(db, onceMigrations)
 }
 
-// seedMigrations are onceMigrations that need the stocks SeedStocks
-// inserts, so they run after it, from RunSeedMigrations.
+// seedMigrations are onceMigrations that add content: some need the stocks
+// SeedStocks inserts, so they run after it, from RunSeedMigrations. Tests that
+// don't call it start without them.
 var seedMigrations = []struct{ name, stmt string }{
 	// Rob's first picks, in his order. Admins change them at /admin/picks.
 	{"seed-rob-picks", `INSERT OR IGNORE INTO stock_picks (stock_id, sort_order)
 		SELECT id, CASE symbol WHEN 'V' THEN 1 WHEN 'MSFT' THEN 2 WHEN 'ASML' THEN 3
 			WHEN 'META' THEN 4 WHEN 'NVDA' THEN 5 ELSE 6 END
 		FROM stocks WHERE market = 'sp500' AND symbol IN ('V', 'MSFT', 'ASML', 'META', 'NVDA', 'GOOG')`},
+	// Rob's courses from the CPW site (courses_cpw.go).
+	{"import-cpw-courses", importCPWCourses},
+	{"import-cpw-lessons", importCPWLessons},
 }
 
 // RunSeedMigrations applies seedMigrations. Call it after market.SeedStocks.

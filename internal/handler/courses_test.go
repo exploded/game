@@ -133,3 +133,64 @@ func TestCourseLifecycle(t *testing.T) {
 		t.Errorf("course page doesn't show progress:\n%s", page)
 	}
 }
+
+// TestCPWCoursesImported checks the courses copied from the CPW site: all
+// published, every lesson playable and numbered 1 to n, and nothing added
+// twice when the migrations run again.
+func TestCPWCoursesImported(t *testing.T) {
+	d := openTestDB(t)
+	for range 2 {
+		if err := RunSeedMigrations(d); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want := map[string]int{
+		"how-to-invest-secrets-learnt-from-20-years-in-finance": 7,
+		"how-to-pay-off-your-home-loan-faster":                  16,
+		"beating-mortgage-stress":                               30,
+		"investing-in-the-right-asset-class":                    8,
+		"beginners-guide-to-super":                              11,
+		"how-super-works":                                       11,
+		"understanding-credit-cards":                            11,
+	}
+	rows, err := d.Query(`SELECT c.slug, c.published, c.published_at IS NOT NULL,
+		l.title, l.video_url, l.embed_url, l.minutes, l.sort_order
+		FROM courses c JOIN lessons l ON l.course_id = c.id ORDER BY c.sort_order, l.sort_order`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	got := map[string]int{}
+	for rows.Next() {
+		var slug, title, videoURL, embed string
+		var published, minutes, order int64
+		var publishedAt bool
+		if err := rows.Scan(&slug, &published, &publishedAt, &title, &videoURL, &embed, &minutes, &order); err != nil {
+			t.Fatal(err)
+		}
+		got[slug]++
+		if published != 1 || !publishedAt {
+			t.Errorf("%s isn't published with a published_at", slug)
+		}
+		if order != int64(got[slug]) {
+			t.Errorf("%s: %q is lesson %d, want %d", slug, title, order, got[slug])
+		}
+		if e, ok := embedURL(videoURL); !ok || e != embed {
+			t.Errorf("%s: %q embeds %q, embedURL(%q) gives %q", slug, title, embed, videoURL, e)
+		}
+		if minutes < 1 || title == "" {
+			t.Errorf("%s lesson %d: title %q, %d minutes", slug, order, title, minutes)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+	for slug, n := range want {
+		if got[slug] != n {
+			t.Errorf("%s has %d lessons, want %d", slug, got[slug], n)
+		}
+	}
+	if len(got) != len(want) {
+		t.Errorf("imported courses %v, want %v", got, want)
+	}
+}

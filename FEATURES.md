@@ -87,7 +87,8 @@ A public hub at `/learn` with tabs Watch, Live, Ask Rob and Courses. Built phone
 Pre-recorded video lessons for signed-in members. Videos are hosted on YouTube (unlisted), Vimeo or Bunny Stream and embedded; the CSP's `frame-src` allows only those players. Members see their progress and mark lessons done. Admins build courses as drafts on `/admin/courses`, preview them, and publish; the first publish can email members (Community email).
 
 - **Routes:** `/courses`, `/courses/{slug}`, `/courses/{slug}/{lid}`, `/admin/courses`, `/admin/courses/{cid}`, `/admin/lessons/{lid}`
-- **Files:** `internal/handler/courses.go`, `internal/handler/video.go`, `templates/pages/courses/`, `templates/pages/admin/course*.html`
+- **Content:** Rob's 7 courses from the CPW site (consortiumpw.com.au/elearning) are loaded once by seed migrations from `internal/handler/courses_cpw.go`.
+- **Files:** `internal/handler/courses.go`, `internal/handler/courses_cpw.go`, `internal/handler/video.go`, `templates/pages/courses/`, `templates/pages/admin/course*.html`
 
 ---
 

@@ -10,7 +10,7 @@
 {{range .Items}}
 <a href="/courses/{{.Slug}}" class="settings-card" style="display:block;color:inherit;text-decoration:none">
     <h2 style="margin-bottom:4px">{{.Title}}</h2>
-    {{with .Summary}}<p style="margin-bottom:8px">{{.}}</p>{{end}}
+    {{with .Summary}}<p style="margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">{{.}}</p>{{end}}
     <p class="text-muted" style="font-size:12px">
         {{.Lessons}} lesson{{if ne .Lessons 1}}s{{end}}{{if .Minutes}} &middot; {{.Minutes}} min{{end}}
         {{if .Completed}}&middot; <span style="color:var(--color-success)">{{.Completed}} of {{.Lessons}} done</span>{{end}}
