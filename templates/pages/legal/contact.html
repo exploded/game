@@ -9,13 +9,6 @@
     <p>Have a question, found a bug, or want to give feedback? Send us a message and we&rsquo;ll get back to you.</p>
 
     <form method="POST" action="/contact" class="form-card">
-        <input type="hidden" name="t" value="{{.Extra.Token}}">
-        <!-- A trap for bots, which fill every field: people never see it. -->
-        <div style="position:absolute;left:-10000px" aria-hidden="true">
-            <label for="website">Leave this empty</label>
-            <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
-        </div>
-
         <div class="form-group">
             <label for="name">Name</label>
             <input type="text" id="name" name="name" required

@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/exploded/game/internal/auth"
@@ -27,9 +26,6 @@ type Handler struct {
 	mailer     *mail.Mailer
 	media      *media.Service
 	screener   screenCache // the stocks page's rows (screener.go)
-
-	contactKeyOnce sync.Once // the contact form's token key (contact_spam.go)
-	contactKeyVal  []byte
 }
 
 func New(q *db.Queries, rawDB *sql.DB, pages PageTemplates, production bool, loc *time.Location) *Handler {

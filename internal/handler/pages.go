@@ -2,10 +2,8 @@ package handler
 
 import (
 	"database/sql"
-	"log/slog"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/db"
@@ -34,7 +32,7 @@ func (h *Handler) HelpPage(w http.ResponseWriter, r *http.Request) {
 // ContactPage renders the contact form.
 func (h *Handler) ContactPage(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
-	extra := map[string]any{"Token": h.contactToken(time.Now())}
+	extra := map[string]any{}
 	if user != nil {
 		extra["PrefillName"] = user.Name
 		extra["PrefillEmail"] = user.Email
@@ -70,32 +68,6 @@ func (h *Handler) ContactSubmit(w http.ResponseWriter, r *http.Request) {
 		errs["message"] = "Message must be under 5000 characters"
 	}
 
-	user := auth.UserFromContext(r.Context())
-	now := time.Now()
-	var spam string // why a signed-out sender's message is dropped
-	if user == nil {
-		age, ok := h.contactTokenAge(r.FormValue("t"), now)
-		switch {
-		case r.FormValue("website") != "":
-			spam = "hidden field filled"
-		case !ok:
-			spam = "no form token"
-		case age < contactMinAge:
-			spam = "sent too fast"
-		case age > contactMaxAge && len(errs) == 0:
-			errs["message"] = errContactExpired
-		case looksLikeSpam(message, r.Host):
-			spam = "sales pitch"
-		}
-	}
-	if spam != "" {
-		slog.Info("contact message dropped", "reason", spam, "name", name, "email", email,
-			"message", truncate(message, 200))
-		setFlashCookie(w, "Your message has been sent. We'll get back to you soon!", "success")
-		http.Redirect(w, r, "/contact", http.StatusSeeOther)
-		return
-	}
-
 	if len(errs) > 0 {
 		h.render(w, r, "legal/contact", "", PageData{
 			Title:  "Contact Us",
@@ -104,14 +76,13 @@ func (h *Handler) ContactSubmit(w http.ResponseWriter, r *http.Request) {
 				"PrefillName":  name,
 				"PrefillEmail": email,
 				"Message":      message,
-				"Token":        h.contactToken(now),
 			},
 		})
 		return
 	}
 
 	var userID sql.NullInt64
-	if user != nil {
+	if user := auth.UserFromContext(r.Context()); user != nil {
 		userID = sql.NullInt64{Int64: user.ID, Valid: true}
 	}
 

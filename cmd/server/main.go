@@ -199,8 +199,8 @@ func main() {
 	r.Get("/email/unsubscribe", h.UnsubscribePage)
 	r.Post("/email/unsubscribe", h.Unsubscribe)
 
-	// Public pages (with optional auth for pre-filling the contact form, and
-	// for / to send a signed-in user to the dashboard).
+	// Public pages (with optional auth for / to send a signed-in user to the
+	// dashboard).
 	r.Group(func(r chi.Router) {
 		r.Use(func(next http.Handler) http.Handler {
 			return auth.OptionalAuth(queries, next)
@@ -210,8 +210,6 @@ func main() {
 		r.Get("/terms", h.TermsPage)
 		r.Get("/about", h.AboutPage)
 		r.Get("/help", h.HelpPage)
-		r.Get("/contact", h.ContactPage)
-		r.With(crossOrigin.Handler, contactLimiter.Middleware).Post("/contact", h.ContactSubmit)
 	})
 
 	// Learn: Rob's videos, live streams and questions. Anyone can read them;
@@ -249,6 +247,11 @@ func main() {
 		r.Get("/dashboard", h.Dashboard)
 		r.Get("/welcome", h.WelcomePage)
 		r.Post("/welcome", h.WelcomeSubmit)
+
+		// Contact: signed in only. Everything sent signed out was spam, and
+		// the footer link sends a signed-out visitor to sign in first.
+		r.Get("/contact", h.ContactPage)
+		r.With(contactLimiter.Middleware).Post("/contact", h.ContactSubmit)
 
 		// Games: one per month, created by the scheduler. Admins change
 		// their settings under /admin/games.
