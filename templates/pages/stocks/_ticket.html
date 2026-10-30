@@ -1,9 +1,14 @@
-{{/* Order ticket beside the chart on the stock page. Buy/Sell are radio
-inputs styled as tabs; the script in detail.html does the sums. */}}
+{{/* Order ticket beside the chart on the stock page; on a phone it's a sheet
+that the Buy and Sell bar opens. Buy/Sell are radio inputs styled as tabs;
+static/js/ticket.js does the sums from the form's data- attributes. The form
+posts through htmx, and the reply (ticket-update) redraws the ticket in place
+with a confirmation, so the page and the browser's history stay as they
+were. All money in cents; data-rate is AUD/USD * 1,000,000. */}}
 {{define "ticket"}}
 {{- $g := .Extra.Game -}}
 {{- $t := .Extra.Trade -}}
-<aside class="ticket" id="ticket">
+{{- $open := and $t (eq $g.Status "active") .Extra.LatestPrice.ID -}}
+<aside class="ticket{{if $open}} ticket-sheet{{end}}{{if .Extra.Done}} is-done{{end}}" id="ticket" aria-label="Order ticket">
     {{if not $t}}
     <p class="text-muted">You're not playing in this game. <a href="/games/{{$g.ID}}">Join it</a> to trade {{.Item.Symbol}}.</p>
     {{else if ne $g.Status "active"}}
@@ -11,6 +16,23 @@ inputs styled as tabs; the script in detail.html does the sums. */}}
     {{else if not .Extra.LatestPrice.ID}}
     <p class="text-muted">No price yet, so {{.Item.Symbol}} can't be traded. Prices are fetched daily after market close.</p>
     {{else}}
+    <div class="ticket-head">
+        <span class="ticket-grab" aria-hidden="true"></span>
+        <strong>{{.Item.Symbol}}</strong>
+        <button type="button" class="ticket-close" data-ticket-close aria-label="Close">&times;</button>
+    </div>
+
+    {{with .Extra.Done}}
+    <div class="ticket-done" role="status">
+        <p class="ticket-done-msg"><span aria-hidden="true">&#10003;</span> {{.Message}}</p>
+        <div class="ticket-done-actions">
+            {{with $.Extra.Back}}<a href="{{.URL}}" class="btn btn-primary" data-back>&lsaquo; {{if eq .Label "Back"}}Back{{else}}Back to {{.Label}}{{end}}</a>{{end}}
+            <button type="button" class="btn btn-secondary" data-ticket-again>Trade again</button>
+        </div>
+        {{if .ToOrders}}<a href="/games/{{$g.ID}}/orders" class="ticket-done-link">See it on the Orders tab</a>{{else}}<a href="/games/{{$g.ID}}" class="ticket-done-link">View your portfolio</a>{{end}}
+    </div>
+    {{end}}
+
     <div class="ticket-game">Trading in <strong>{{$g.Name}}</strong></div>
     <div class="ticket-position">
         <div><span class="info-label">Cash</span><span class="mono">{{cents $t.Participant.CashBalance}}</span></div>
@@ -18,7 +40,12 @@ inputs styled as tabs; the script in detail.html does the sums. */}}
         {{if $t.Holding.ID}}<div><span class="info-label">Worth</span><span class="mono">{{cents $t.HoldingValue}}</span></div>{{end}}
     </div>
 
-    <form method="POST" action="/games/{{$g.ID}}/trade/{{.Item.ID}}" id="ticket-form"{{if $t.Queued}} data-queued{{end}}>
+    <form method="POST" action="/games/{{$g.ID}}/trade/{{.Item.ID}}" id="ticket-form"
+        hx-post="/games/{{$g.ID}}/trade/{{.Item.ID}}" hx-target="#ticket" hx-swap="outerHTML" hx-disable="find #ticket-btn"
+        data-price="{{.Extra.LatestPrice.Close}}" data-cash="{{$t.Participant.CashBalance}}" data-held="{{$t.Holding.Quantity}}"
+        data-fee="{{$g.TradeFee}}" data-currency="{{.Item.Currency}}" data-base="{{$g.BaseCurrency}}" data-rate="{{$t.ExchangeRate}}"
+        {{- if $g.AllowShort}} data-short{{end}}{{if $t.Queued}} data-queued{{end}}>
+        {{with .Extra.Back}}<input type="hidden" name="back" value="{{.URL}}">{{end}}
         <div class="ticket-sides">
             <input type="radio" name="side" value="buy" id="side-buy" checked>
             <label for="side-buy">Buy</label>
@@ -40,7 +67,7 @@ inputs styled as tabs; the script in detail.html does the sums. */}}
 
         <div class="form-group">
             <label for="qty">Shares</label>
-            <input type="number" id="qty" name="quantity" min="1" value="0" required>
+            <input type="number" id="qty" name="quantity" min="1" value="0" inputmode="numeric" required>
             <input type="range" id="qty-slider" min="0" max="0" value="0" class="slider" aria-label="Shares">
             <div class="slider-labels"><span>0</span><span id="qty-max">0</span></div>
         </div>
@@ -50,7 +77,7 @@ inputs styled as tabs; the script in detail.html does the sums. */}}
             <div class="form-row">
                 <div class="form-group">
                     <label for="limit-price">Limit price ({{.Item.Currency}})</label>
-                    <input type="number" id="limit-price" name="limit_price" min="0.01" step="0.01" value="{{rawDollars .Extra.LatestPrice.Close}}">
+                    <input type="number" id="limit-price" name="limit_price" min="0.01" step="0.01" inputmode="decimal" value="{{rawDollars .Extra.LatestPrice.Close}}">
                 </div>
                 <div class="form-group">
                     <label for="limit-expires">Expires (optional)</label>
@@ -97,4 +124,11 @@ inputs styled as tabs; the script in detail.html does the sums. */}}
     </form>
     {{end}}
 </aside>
+{{end}}
+
+{{/* The reply to an order from the ticket: the ticket again, with the
+confirmation, and the game bar's cash and value swapped in beside it. */}}
+{{define "ticket-update"}}
+{{template "ticket" .}}
+{{with .Extra.Trade}}{{template "gamebar-stats" dict "Game" $.Extra.Game "P" .Participant "OOB" true}}{{end}}
 {{end}}

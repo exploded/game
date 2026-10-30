@@ -18,14 +18,7 @@
                 {{end}}
             </div>
             {{/* A player's home page shows these in its summary card. */}}
-            {{if ne .Tab "home"}}{{with .Participant}}
-            <div class="game-bar-stats">
-                <span><span class="game-bar-label">Cash</span> <span class="mono">{{cents .CashBalance}}</span></span>
-                <span><span class="game-bar-label">Value</span> <span class="mono">{{cents .PortfolioValue}}</span></span>
-                {{$pl := subtract .PortfolioValue $g.StartingBalance}}
-                <span><span class="game-bar-label">P&amp;L</span> <span class="mono {{if gt $pl 0}}text-green{{else if lt $pl 0}}text-red{{end}}">{{cents $pl}}</span></span>
-            </div>
-            {{end}}{{end}}
+            {{if ne .Tab "home"}}{{with .Participant}}{{template "gamebar-stats" dict "Game" $g "P" .}}{{end}}{{end}}
         </div>
         <nav class="game-tabs" aria-label="Game">
             {{if .Participant}}
@@ -35,7 +28,7 @@
             {{end}}
             {{if .Participant}}
             {{if eq $g.Status "active"}}
-            <a href="/games/{{$g.ID}}/stocks"{{if eq .Tab "stocks"}} class="active"{{end}}>Stocks</a>
+            <a href="/games/{{$g.ID}}/stocks" data-stocks-tab{{if eq .Tab "stocks"}} class="active"{{end}}>Stocks</a>
             <a href="/games/{{$g.ID}}/orders"{{if eq .Tab "orders"}} class="active"{{end}}>Orders</a>
             <a href="/games/{{$g.ID}}/watchlist"{{if eq .Tab "watchlist"}} class="active"{{end}}>Watchlist</a>
             {{end}}
@@ -59,7 +52,7 @@ bottom of the screen instead, in thumb reach. Desktop never shows it. */}}
         <span>Portfolio</span>
     </a>
     {{if eq $g.Status "active"}}
-    <a href="/games/{{$g.ID}}/stocks"{{if eq .Tab "stocks"}} class="active"{{end}}>
+    <a href="/games/{{$g.ID}}/stocks" data-stocks-tab{{if eq .Tab "stocks"}} class="active"{{end}}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
         <span>Stocks</span>
     </a>
@@ -87,4 +80,15 @@ bottom of the screen instead, in thumb reach. Desktop never shows it. */}}
     </details>
 </nav>
 {{end}}
+{{end}}
+
+{{/* Cash, value and P&L in the game bar. P is the player's participant row.
+OOB is set when the order ticket redraws it after a trade (_ticket.html). */}}
+{{define "gamebar-stats"}}
+<div class="game-bar-stats" id="game-bar-stats"{{if .OOB}} hx-swap-oob="true"{{end}}>
+    <span><span class="game-bar-label">Cash</span> <span class="mono">{{cents .P.CashBalance}}</span></span>
+    <span><span class="game-bar-label">Value</span> <span class="mono">{{cents .P.PortfolioValue}}</span></span>
+    {{$pl := subtract .P.PortfolioValue .Game.StartingBalance}}
+    <span><span class="game-bar-label">P&amp;L</span> <span class="mono {{if gt $pl 0}}text-green{{else if lt $pl 0}}text-red{{end}}">{{cents $pl}}</span></span>
+</div>
 {{end}}

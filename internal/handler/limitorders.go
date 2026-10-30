@@ -99,14 +99,12 @@ func (h *Handler) placeLimitOrder(w http.ResponseWriter, r *http.Request, game d
 	expiresAt := r.FormValue("expires_at")
 
 	if quantity <= 0 || limitPrice <= 0 {
-		setFlashCookie(w, "Quantity and price must be positive", "error")
-		http.Redirect(w, r, back, http.StatusSeeOther)
+		tradeError(w, r, "Quantity and price must be positive", back)
 		return
 	}
 
 	if orderType != "buy" && orderType != "sell" {
-		setFlashCookie(w, "Invalid order type", "error")
-		http.Redirect(w, r, back, http.StatusSeeOther)
+		tradeError(w, r, "Invalid order type", back)
 		return
 	}
 
@@ -116,8 +114,7 @@ func (h *Handler) placeLimitOrder(w http.ResponseWriter, r *http.Request, game d
 			ParticipantID: participant.ID, StockID: stock.ID,
 		})
 		if holding.Quantity < quantity {
-			setFlashCookie(w, "Insufficient shares for limit sell order", "error")
-			http.Redirect(w, r, back, http.StatusSeeOther)
+			tradeError(w, r, "Insufficient shares for limit sell order", back)
 			return
 		}
 	}
@@ -136,13 +133,14 @@ func (h *Handler) placeLimitOrder(w http.ResponseWriter, r *http.Request, game d
 		ExpiresAt:     expiry,
 	})
 	if err != nil {
-		setFlashCookie(w, "Failed to create order", "error")
-		http.Redirect(w, r, back, http.StatusSeeOther)
+		tradeError(w, r, "Failed to create order", back)
 		return
 	}
 
-	setFlashCookie(w, fmt.Sprintf("Limit %s order placed for %s of %s at %s", orderType, shares(quantity), stock.Symbol, fmtCents(limitPrice)), "success")
-	http.Redirect(w, r, fmt.Sprintf("/games/%d/orders", game.ID), http.StatusSeeOther)
+	h.orderPlaced(w, r, game, stock, tradeDone{
+		Message:  fmt.Sprintf("Limit %s order placed for %s of %s at %s", orderType, shares(quantity), stock.Symbol, fmtCents(limitPrice)),
+		ToOrders: true,
+	}, fmt.Sprintf("/games/%d/orders", game.ID))
 }
 
 // queueMarketOrder stores a market order placed while the market is closed.
@@ -154,8 +152,7 @@ func (h *Handler) queueMarketOrder(w http.ResponseWriter, r *http.Request, game 
 	switch side {
 	case "buy":
 		if estimate+game.TradeFee > participant.CashBalance {
-			setFlashCookie(w, "Insufficient funds", "error")
-			http.Redirect(w, r, back, http.StatusSeeOther)
+			tradeError(w, r, "Insufficient funds", back)
 			return
 		}
 	case "sell":
@@ -163,13 +160,11 @@ func (h *Handler) queueMarketOrder(w http.ResponseWriter, r *http.Request, game 
 			ParticipantID: participant.ID, StockID: stock.ID,
 		})
 		if holding.Quantity < quantity && game.AllowShort == 0 {
-			setFlashCookie(w, "Insufficient shares (short selling not allowed)", "error")
-			http.Redirect(w, r, back, http.StatusSeeOther)
+			tradeError(w, r, "Insufficient shares (short selling not allowed)", back)
 			return
 		}
 	default:
-		setFlashCookie(w, "Invalid trade type", "error")
-		http.Redirect(w, r, back, http.StatusSeeOther)
+		tradeError(w, r, "Invalid trade type", back)
 		return
 	}
 
@@ -179,8 +174,7 @@ func (h *Handler) queueMarketOrder(w http.ResponseWriter, r *http.Request, game 
 		Type:          side,
 		Quantity:      quantity,
 	}); err != nil {
-		setFlashCookie(w, "Failed to create order", "error")
-		http.Redirect(w, r, back, http.StatusSeeOther)
+		tradeError(w, r, "Failed to create order", back)
 		return
 	}
 
@@ -188,12 +182,14 @@ func (h *Handler) queueMarketOrder(w http.ResponseWriter, r *http.Request, game 
 	if o := marketOpens(marketNow()); o != "" {
 		opens = " " + o
 	}
-	setFlashCookie(w, fmt.Sprintf("Order queued: %s %s of %s. The US market is closed, so it fills when it opens%s.", side, shares(quantity), stock.Symbol, opens), "success")
 	done := fmt.Sprintf("/games/%d/orders", game.ID)
 	if back == fmt.Sprintf("/games/%d", game.ID) {
 		done = back // queued from the home page's Sell button: stay there
 	}
-	http.Redirect(w, r, done, http.StatusSeeOther)
+	h.orderPlaced(w, r, game, stock, tradeDone{
+		Message:  fmt.Sprintf("Order queued: %s %s of %s. The US market is closed, so it fills when it opens%s.", side, shares(quantity), stock.Symbol, opens),
+		ToOrders: true,
+	}, done)
 }
 
 func (h *Handler) LimitOrderCancel(w http.ResponseWriter, r *http.Request) {

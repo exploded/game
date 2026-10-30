@@ -431,7 +431,9 @@ td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-
    Toasts
    ============================================================ */
 /* Solid backgrounds: a see-through toast over a busy page can't be read. */
-#toast-container { position: fixed; top: 12px; right: 12px; z-index: 10001; display: flex; flex-direction: column; gap: 8px; max-width: 420px; }
+/* The container itself lets taps through to the page; only toasts take them. */
+#toast-container { position: fixed; top: 12px; right: 12px; z-index: 10001; display: flex; flex-direction: column; gap: 8px; max-width: 420px; pointer-events: none; }
+#toast-container .toast { pointer-events: auto; }
 .toast {
     padding: 12px 16px 12px 14px;
     border-radius: var(--radius);
@@ -1099,6 +1101,17 @@ dialog.confirm form { padding: 20px; }
 .ticket .form-group { margin-bottom: 12px; }
 .ticket-note { font-size: 12px; line-height: 1.45; margin-bottom: 12px; padding: 8px 10px; border-radius: var(--radius); background: rgba(255, 177, 26, 0.12); color: var(--color-warning); }
 .ticket-note[hidden] { display: none; }
+/* The confirmation after a trade; the form shows again on "Trade again". */
+.ticket-done { margin-bottom: 14px; padding: 12px; border-radius: var(--radius); background: rgba(2, 199, 122, 0.1); border: 1px solid rgba(2, 199, 122, 0.3); }
+.ticket-done-msg { margin: 0 0 10px; font-weight: 600; color: var(--color-success); line-height: 1.4; }
+.ticket-done-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.ticket-done-actions .btn { width: 100%; justify-content: center; }
+.ticket-done-link { font-size: 13px; }
+.ticket.is-done #ticket-form { display: none; }
+/* The sheet's header and the Buy/Sell bar are for phones only. */
+.ticket-head, .trade-bar, .sheet-backdrop { display: none; }
+.back-link { display: inline-flex; align-items: center; min-height: 32px; margin-bottom: 6px; font-size: 14px; color: var(--color-text-muted); }
+.back-link:hover { color: var(--color-text); }
 
 /* ============================================================
    Phone-first pieces: pills, portfolio summary, card tables, tab bar
@@ -1317,6 +1330,40 @@ dialog.confirm form { padding: 20px; }
     .ticket .slider::-moz-range-thumb { width: 28px; height: 28px; }
     .estimate-row { font-size: 14px; }
     #ticket-btn { height: 50px; font-size: 16px; }
+    .back-link { min-height: 44px; margin: -10px 0 0; font-size: 15px; }
+
+    /* The ticket is a sheet that slides up over the page from the Buy and
+       Sell bar, which sits above the tab bar (ticket.js opens it). */
+    .trade-bar {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+        position: fixed; left: 0; right: 0; bottom: calc(60px + env(safe-area-inset-bottom)); z-index: 999;
+        padding: 8px 16px; background: var(--color-nav-bg); border-top: 1px solid var(--color-border);
+    }
+    .trade-bar .btn { height: 46px; font-size: 16px; font-weight: 600; justify-content: center; }
+    .trade-bar .btn:disabled { opacity: 0.4; }
+    body:has(.trade-bar) { padding-bottom: calc(122px + env(safe-area-inset-bottom)); }
+    body:has(.trade-bar) #toast-container { bottom: calc(136px + env(safe-area-inset-bottom)); }
+    .ticket-sheet {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 1002;
+        max-height: 88dvh; overflow-y: auto; overscroll-behavior: contain;
+        border-radius: 16px 16px 0 0; border-bottom: 0;
+        padding: 0 16px calc(16px + env(safe-area-inset-bottom));
+        box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.6);
+        transform: translateY(100%); visibility: hidden;
+        transition: transform 0.25s ease, visibility 0s linear 0.25s;
+    }
+    .ticket-open .ticket-sheet { transform: none; visibility: visible; transition: transform 0.25s ease; }
+    .ticket-open { overflow: hidden; }
+    /* Over the sheet a toast would hide the order button: show it at the top. */
+    body.ticket-open #toast-container { top: calc(12px + env(safe-area-inset-top)); bottom: auto; }
+    .ticket-sheet .ticket-head {
+        display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 1;
+        margin: 0 -16px 8px; padding: 18px 8px 6px 16px; background: var(--color-surface); font-size: 17px;
+    }
+    .ticket-grab { position: absolute; top: 6px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: var(--color-border); }
+    .ticket-close { width: 44px; height: 44px; border: 0; background: none; color: var(--color-text-muted); font-size: 28px; line-height: 1; cursor: pointer; }
+    .sheet-backdrop { position: fixed; inset: 0; z-index: 1001; background: rgba(0, 0, 0, 0.6); }
+    .ticket-open .sheet-backdrop { display: block; }
 
     .footer-links { gap: 8px 20px; }
 }

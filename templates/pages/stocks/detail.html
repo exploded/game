@@ -1,6 +1,9 @@
 {{template "base" .}}
 
 {{define "content"}}
+{{/* Back to wherever the stock was opened from (backLink in stocks.go);
+app.js goes back through history when it can. */}}
+{{with .Extra.Back}}<a href="{{.URL}}" class="back-link" data-back>&lsaquo; {{.Label}}</a>{{end}}
 <div class="page-header stock-header">
     <div class="stock-title">
         {{if .Extra.Profile.Logo}}<img src="{{.Extra.Profile.Logo}}" alt="" referrerpolicy="no-referrer" class="stock-logo">{{end}}
@@ -11,9 +14,7 @@
         </div>
     </div>
     <div class="page-header-actions">
-        <a href="/games/{{.Extra.Game.ID}}/stocks" class="btn btn-sm hide-sm">&larr; Stocks</a>
         {{if .Extra.Trade}}{{template "watch-button" dict "Game" .Extra.Game.ID "Stock" .Item.ID "Symbol" .Item.Symbol "Watching" .Extra.Watching}}{{end}}
-        {{if .Extra.Trade}}<a href="#ticket" class="btn btn-primary btn-sm show-sm">Trade</a>{{end}}
     </div>
 </div>
 
@@ -28,6 +29,15 @@
     </div>
     {{template "ticket" .}}
 </div>
+
+{{/* On a phone the ticket is a sheet: these open it (ticket.js). */}}
+{{if and .Extra.Trade (eq .Extra.Game.Status "active") .Extra.LatestPrice.ID}}
+<div class="trade-bar">
+    <button type="button" class="btn btn-buy" data-ticket-open="buy">Buy</button>
+    <button type="button" class="btn btn-sell" data-ticket-open="sell"{{if and (le .Extra.Trade.Holding.Quantity 0) (not .Extra.Game.AllowShort)}} disabled{{end}}>Sell</button>
+</div>
+<div class="sheet-backdrop" data-ticket-close></div>
+{{end}}
 
 <div class="info-grid" id="info-grid">
     <div class="info-item">
@@ -567,118 +577,6 @@
 {{end}}
 
 {{if and .Extra.Trade (eq .Extra.Game.Status "active") .Extra.LatestPrice.ID}}
-{{- $t := .Extra.Trade}}
-<script nonce="{{.Nonce}}">
-(function() {
-    // All money in cents. exchangeRate is AUD/USD * 1,000,000.
-    let marketCents = {{.Extra.LatestPrice.Close}};
-    const cashCents = {{$t.Participant.CashBalance}};
-    const held = {{$t.Holding.Quantity}};
-    const feeCents = {{.Extra.Game.TradeFee}};
-    const allowShort = {{if .Extra.Game.AllowShort}}true{{else}}false{{end}};
-    const stockCurrency = "{{.Item.Currency}}";
-    const baseCurrency = "{{.Extra.Game.BaseCurrency}}";
-    const exchangeRate = {{$t.ExchangeRate}};
-
-    const form = document.getElementById("ticket-form");
-    const qty = document.getElementById("qty");
-    const slider = document.getElementById("qty-slider");
-    const maxLabel = document.getElementById("qty-max");
-    const btn = document.getElementById("ticket-btn");
-    const orderType = document.getElementById("order-type");
-    const limitFields = document.getElementById("limit-fields");
-    const limitPrice = document.getElementById("limit-price");
-    // Market closed: a market order queues for the open (see _ticket.html).
-    const queued = form.hasAttribute("data-queued");
-    const queuedNote = document.getElementById("queued-note");
-
-    function toBase(cents) {
-        if (stockCurrency === baseCurrency) return cents;
-        if (stockCurrency === "AUD" && baseCurrency === "USD") return Math.round(cents * exchangeRate / 1000000);
-        if (stockCurrency === "USD" && baseCurrency === "AUD") return Math.round(cents * 1000000 / exchangeRate);
-        return cents;
-    }
-
-    function fmt(cents) {
-        const abs = Math.abs(cents);
-        const s = "$" + Math.floor(abs / 100).toLocaleString("en-US") + "." + String(abs % 100).padStart(2, "0");
-        return cents < 0 ? "-" + s : s;
-    }
-
-    function side() { return form.elements.side.value; }
-    function isLimit() { return !!orderType && orderType.value === "limit"; }
-    function price() {
-        return isLimit() ? Math.round((parseFloat(limitPrice.value) || 0) * 100) : marketCents;
-    }
-
-    // The most you can buy with your cash, or sell from what you hold. In a
-    // short-selling game a market sell can go past your holding by as much
-    // as your cash would buy.
-    function maxShares() {
-        const per = toBase(price());
-        const affordable = per > 0 ? Math.max(0, Math.floor((cashCents - feeCents) / per)) : 0;
-        if (side() === "buy") return affordable;
-        if (allowShort && !isLimit()) return Math.max(0, held) + affordable;
-        return Math.max(0, held);
-    }
-
-    function update() {
-        const max = maxShares();
-        qty.max = max;
-        slider.max = max;
-        maxLabel.textContent = max.toLocaleString();
-        let n = parseInt(qty.value, 10) || 0;
-        n = Math.min(Math.max(n, 0), max);
-        qty.value = n;
-        slider.value = n;
-
-        const buying = side() === "buy";
-        const native = n * price();
-        const base = toBase(native);
-        const total = n > 0 ? (buying ? base + feeCents : Math.max(0, base - feeCents)) : 0;
-        const after = cashCents + (buying ? -total : total);
-
-        const word = buying ? "Cost" : "Proceeds";
-        document.getElementById("est-native-label").textContent = word + " (" + stockCurrency + ")";
-        document.getElementById("est-native").textContent = fmt(native);
-        const convLabel = document.getElementById("est-converted-label");
-        if (convLabel) {
-            convLabel.textContent = word + " (" + baseCurrency + ")";
-            document.getElementById("est-converted").textContent = fmt(base);
-        }
-        document.getElementById("est-total-label").textContent = (buying ? "Total" : "Net proceeds") + " (" + baseCurrency + ")";
-        document.getElementById("est-total").textContent = fmt(total);
-        const rem = document.getElementById("est-remaining");
-        rem.textContent = fmt(after);
-        rem.className = after < 0 ? "text-red" : "";
-
-        if (limitFields) limitFields.hidden = !isLimit();
-        if (limitPrice) limitPrice.required = isLimit();
-        if (queuedNote) queuedNote.hidden = isLimit();
-
-        const shares = n.toLocaleString() + " share" + (n === 1 ? "" : "s");
-        let action = buying ? "Buy " : "Sell ";
-        if (isLimit()) action = "Place limit " + side() + ": ";
-        else if (queued) action = "Queue " + side() + ": ";
-        btn.textContent = action + shares;
-        btn.className = "btn " + (buying ? "btn-primary" : "btn-danger");
-        btn.disabled = n <= 0 || after < 0 || (isLimit() && price() <= 0);
-    }
-
-    qty.addEventListener("input", function() { slider.value = qty.value; update(); });
-    slider.addEventListener("input", function() { qty.value = slider.value; update(); });
-    form.addEventListener("change", update);
-    if (limitPrice) limitPrice.addEventListener("input", update);
-    form.addEventListener("submit", function(e) {
-        if (btn.disabled) e.preventDefault();
-    });
-    // The price header refreshes while the market is open; keep the estimate current.
-    document.addEventListener("price:update", function(e) {
-        marketCents = e.detail.close;
-        update();
-    });
-    update();
-})();
-</script>
+<script src="{{asset "js/ticket.js"}}"></script>
 {{end}}
 {{end}}

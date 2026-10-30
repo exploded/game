@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -128,7 +130,6 @@ func (h *Handler) StockDetail(w http.ResponseWriter, r *http.Request) {
 	})
 	prices = chartBars(prices, now.AddDate(-2, 0, 0).Format("2006-01-02"))
 
-	latestPrice, _ := h.q.GetLatestPrice(r.Context(), stock.ID)
 	profile, _ := h.q.GetStockProfile(r.Context(), stock.ID)
 	profile.Logo = logoURL(profile.Logo)
 	news, _ := h.q.ListStockNews(r.Context(), db.ListStockNewsParams{StockID: stock.ID, Limit: 20})
@@ -157,14 +158,6 @@ func (h *Handler) StockDetail(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// The order ticket shows only for players in the game; anyone can view.
-	trade, _ := h.loadTradeContext(r.Context(), game, stock, latestPrice, auth.UserFromContext(r.Context()).ID)
-	var watching bool
-	if trade != nil {
-		n, _ := h.q.IsWatching(r.Context(), db.IsWatchingParams{ParticipantID: trade.Participant.ID, StockID: stock.ID})
-		watching = n > 0
-	}
-
 	// Rob's videos that talk about this stock (picked by the classifier).
 	robVideos, _ := h.q.ListStockVideos(r.Context(), stock.ID)
 	var pick *db.StockPick
@@ -172,24 +165,82 @@ func (h *Handler) StockDetail(w http.ResponseWriter, r *http.Request) {
 		pick = &p
 	}
 
+	extra := h.ticketData(r.Context(), game, stock, auth.UserFromContext(r.Context()).ID)
+	extra["Back"] = backLink(r.Referer(), r.Host, gameID, stock.ID)
+	extra["PriceStats"] = h.loadPriceStats(r, gameID, stock.ID)
+	extra["Profile"] = profile
+	extra["News"] = news
+	extra["Recommendations"] = recs
+	extra["Peers"] = peers
+	extra["RobVideos"] = robVideos
+	extra["Pick"] = pick
 	h.render(w, r, "stocks/detail", "", PageData{
 		Title: stock.Symbol + " - " + stock.Name,
 		Item:  stock,
 		Items: prices,
-		Extra: map[string]any{
-			"Game":            game,
-			"PriceStats":      h.loadPriceStats(r, gameID, stock.ID),
-			"LatestPrice":     latestPrice,
-			"Profile":         profile,
-			"News":            news,
-			"Recommendations": recs,
-			"Peers":           peers,
-			"Trade":           trade,
-			"Watching":        watching,
-			"RobVideos":       robVideos,
-			"Pick":            pick,
-		},
+		Extra: extra,
 	})
+}
+
+// ticketData is what the order ticket (stocks/_ticket.html) needs. The
+// ticket shows only for players in the game; anyone can view the stock.
+func (h *Handler) ticketData(ctx context.Context, game db.Game, stock db.Stock, userID int64) map[string]any {
+	latest, _ := h.q.GetLatestPrice(ctx, stock.ID)
+	trade, _ := h.loadTradeContext(ctx, game, stock, latest, userID)
+	var watching bool
+	if trade != nil {
+		n, _ := h.q.IsWatching(ctx, db.IsWatchingParams{ParticipantID: trade.Participant.ID, StockID: stock.ID})
+		watching = n > 0
+	}
+	return map[string]any{
+		"Game":        game,
+		"LatestPrice": latest,
+		"Trade":       trade,
+		"Watching":    watching,
+	}
+}
+
+// backTo is where the stock page's Back link goes.
+type backTo struct {
+	URL   string
+	Label string // "Stocks", "Portfolio", ..., or "Back" for another page
+}
+
+// backLink is the page in this game that the player opened the stock from,
+// read from ref (the Referer, or the ticket's back field): the stock list
+// with its chip and search, their portfolio, and so on. Anything else, such
+// as another site or this same stock, goes to the stock list. app.js goes
+// back through the browser's history when it can, so the list keeps its
+// scroll position.
+func backLink(ref, host string, gameID, stockID int64) backTo {
+	game := fmt.Sprintf("/games/%d", gameID)
+	fallback := backTo{URL: game + "/stocks", Label: "Stocks"}
+	u, err := url.Parse(ref)
+	if err != nil || ref == "" || (u.Host != "" && u.Host != host) || (u.Host == "" && u.Scheme != "") {
+		return fallback
+	}
+	rest, ok := strings.CutPrefix(u.Path, game)
+	if !ok || (rest != "" && rest[0] != '/') {
+		return fallback
+	}
+	link := u.Path
+	if u.RawQuery != "" {
+		link += "?" + u.RawQuery
+	}
+	parts := strings.Split(strings.Trim(rest, "/"), "/")
+	switch {
+	case rest == "" || rest == "/":
+		return backTo{URL: link, Label: "Portfolio"}
+	case len(parts) == 1 && parts[0] == "stocks":
+		return backTo{URL: link, Label: "Stocks"}
+	case len(parts) == 1 && parts[0] == "watchlist":
+		return backTo{URL: link, Label: "Watchlist"}
+	case len(parts) == 1 && parts[0] == "orders":
+		return backTo{URL: link, Label: "Orders"}
+	case parts[0] == "trade" || (parts[0] == "stocks" && len(parts) == 2 && parts[1] == strconv.FormatInt(stockID, 10)):
+		return fallback // this stock itself
+	}
+	return backTo{URL: link, Label: "Back"}
 }
 
 // priceStats is the data for the price header (stocks/_price_stats.html).

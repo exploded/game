@@ -90,8 +90,7 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if game.Status != "active" {
-		setFlashCookie(w, "Game is not active", "error")
-		http.Redirect(w, r, fmt.Sprintf("/games/%d", gameID), http.StatusSeeOther)
+		tradeError(w, r, "Game is not active", fmt.Sprintf("/games/%d", gameID))
 		return
 	}
 
@@ -105,7 +104,7 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 		GameID: gameID, UserID: user.ID,
 	})
 	if err != nil {
-		http.Redirect(w, r, fmt.Sprintf("/games/%d", gameID), http.StatusSeeOther)
+		tradeError(w, r, "You're not playing in this game", fmt.Sprintf("/games/%d", gameID))
 		return
 	}
 
@@ -126,8 +125,7 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 
 	latestPrice, err := h.q.GetLatestPrice(r.Context(), stock.ID)
 	if err != nil || latestPrice.Close == 0 {
-		setFlashCookie(w, "No price data available for this stock", "error")
-		http.Redirect(w, r, back, http.StatusSeeOther)
+		tradeError(w, r, "No price data available for this stock", back)
 		return
 	}
 
@@ -147,19 +145,16 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 		case tradeType == "buy" && held.Quantity < 0:
 			quantity = -held.Quantity
 		case tradeType == "buy":
-			setFlashCookie(w, "You aren't short "+stock.Symbol, "error")
-			http.Redirect(w, r, back, http.StatusSeeOther)
+			tradeError(w, r, "You aren't short "+stock.Symbol, back)
 			return
 		default:
-			setFlashCookie(w, "You don't hold any "+stock.Symbol, "error")
-			http.Redirect(w, r, back, http.StatusSeeOther)
+			tradeError(w, r, "You don't hold any "+stock.Symbol, back)
 			return
 		}
 	}
 
 	if quantity <= 0 {
-		setFlashCookie(w, "Quantity must be positive", "error")
-		http.Redirect(w, r, back, http.StatusSeeOther)
+		tradeError(w, r, "Quantity must be positive", back)
 		return
 	}
 
@@ -168,8 +163,7 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 	if stock.Currency != game.BaseCurrency {
 		rate, err := h.q.GetLatestExchangeRate(r.Context())
 		if err != nil {
-			setFlashCookie(w, "We don't have an exchange rate yet. Try again in a minute.", "error")
-			http.Redirect(w, r, back, http.StatusSeeOther)
+			tradeError(w, r, "We don't have an exchange rate yet. Try again in a minute.", back)
 			return
 		}
 		exchangeRate = rate.RateAudUsd
@@ -179,8 +173,7 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 
 	// Guard against integer overflow (quantity * price).
 	if pricePerShare != 0 && quantity > math.MaxInt64/pricePerShare {
-		setFlashCookie(w, "Trade value too large", "error")
-		http.Redirect(w, r, back, http.StatusSeeOther)
+		tradeError(w, r, "Trade value too large", back)
 		return
 	}
 
@@ -189,8 +182,7 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 
 	if queuesMarketOrder(game, stock.Market) {
 		if closeAll && h.closeQueued(r.Context(), participant.ID, stock.ID, tradeType) {
-			setFlashCookie(w, "You've already queued an order to close "+stock.Symbol, "error")
-			http.Redirect(w, r, back, http.StatusSeeOther)
+			tradeError(w, r, "You've already queued an order to close "+stock.Symbol, back)
 			return
 		}
 		h.queueMarketOrder(w, r, game, participant, stock, tradeType, quantity, totalBase, back)
@@ -199,8 +191,7 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 
 	tx, err := h.rawDB.BeginTx(r.Context(), nil)
 	if err != nil {
-		setFlashCookie(w, "Internal error", "error")
-		http.Redirect(w, r, back, http.StatusSeeOther)
+		tradeError(w, r, "Internal error", back)
 		return
 	}
 	defer tx.Rollback()
@@ -209,8 +200,7 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 	if tradeType == "buy" {
 		cost := totalBase + game.TradeFee
 		if cost > participant.CashBalance {
-			setFlashCookie(w, "Insufficient funds", "error")
-			http.Redirect(w, r, back, http.StatusSeeOther)
+			tradeError(w, r, "Insufficient funds", back)
 			return
 		}
 
@@ -220,8 +210,7 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 			ID:          participant.ID,
 		})
 		if err != nil {
-			setFlashCookie(w, "Failed to update balance", "error")
-			http.Redirect(w, r, back, http.StatusSeeOther)
+			tradeError(w, r, "Failed to update balance", back)
 			return
 		}
 
@@ -231,8 +220,7 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 		})
 		if closeAll && existing.Quantity != -quantity {
 			// Another trade got in first.
-			setFlashCookie(w, "Your "+stock.Symbol+" position just changed. Check it and try again.", "error")
-			http.Redirect(w, r, back, http.StatusSeeOther)
+			tradeError(w, r, "Your "+stock.Symbol+" position just changed. Check it and try again.", back)
 			return
 		}
 		newQty, newCost := market.Fill(existing.Quantity, existing.CostBasis, "buy", quantity, pricePerShare)
@@ -252,8 +240,7 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 		if err != nil {
-			setFlashCookie(w, "Failed to update holding", "error")
-			http.Redirect(w, r, back, http.StatusSeeOther)
+			tradeError(w, r, "Failed to update holding", back)
 			return
 		}
 
@@ -275,14 +262,12 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 			ParticipantID: participant.ID, StockID: stock.ID,
 		})
 		if holding.Quantity < quantity && game.AllowShort == 0 {
-			setFlashCookie(w, "Insufficient shares (short selling not allowed)", "error")
-			http.Redirect(w, r, back, http.StatusSeeOther)
+			tradeError(w, r, "Insufficient shares (short selling not allowed)", back)
 			return
 		}
 		if closeAll && holding.Quantity != quantity {
 			// Another trade got in first.
-			setFlashCookie(w, "Your "+stock.Symbol+" holding just changed. Check it and try again.", "error")
-			http.Redirect(w, r, back, http.StatusSeeOther)
+			tradeError(w, r, "Your "+stock.Symbol+" holding just changed. Check it and try again.", back)
 			return
 		}
 
@@ -297,8 +282,7 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 			ID:          participant.ID,
 		})
 		if err != nil {
-			setFlashCookie(w, "Failed to update balance", "error")
-			http.Redirect(w, r, back, http.StatusSeeOther)
+			tradeError(w, r, "Failed to update balance", back)
 			return
 		}
 
@@ -332,20 +316,17 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 			Fee:              game.TradeFee,
 		})
 	} else {
-		setFlashCookie(w, "Invalid trade type", "error")
-		http.Redirect(w, r, back, http.StatusSeeOther)
+		tradeError(w, r, "Invalid trade type", back)
 		return
 	}
 
 	if err != nil {
-		setFlashCookie(w, "Trade failed", "error")
-		http.Redirect(w, r, back, http.StatusSeeOther)
+		tradeError(w, r, "Trade failed", back)
 		return
 	}
 
 	if err := tx.Commit(); err != nil {
-		setFlashCookie(w, "Trade failed", "error")
-		http.Redirect(w, r, back, http.StatusSeeOther)
+		tradeError(w, r, "Trade failed", back)
 		return
 	}
 
@@ -363,8 +344,43 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 	// Check achievements.
 	go h.CheckAndGrantAchievements(context.Background(), user.ID, gameID, participant.ID)
 
-	setFlashCookie(w, fmt.Sprintf("%s %s of %s", action, shares(quantity), stock.Symbol), "success")
+	h.orderPlaced(w, r, game, stock, tradeDone{Message: fmt.Sprintf("%s %s of %s", action, shares(quantity), stock.Symbol)}, back)
+}
+
+// tradeError refuses an order. The stock page's ticket posts through htmx
+// and gets a toast, with the ticket left as it was (204 doesn't swap). A
+// plain form post, such as the home page's Close position, gets a flash and
+// goes back.
+func tradeError(w http.ResponseWriter, r *http.Request, msg, back string) {
+	if isHTMX(r) {
+		triggerToast(w, msg, "error")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	setFlashCookie(w, msg, "error")
 	http.Redirect(w, r, back, http.StatusSeeOther)
+}
+
+// tradeDone is the confirmation at the top of the ticket after an order.
+type tradeDone struct {
+	Message  string
+	ToOrders bool // a limit or queued order, waiting on the Orders tab
+}
+
+// orderPlaced finishes a successful order. The ticket (htmx) is drawn again
+// in place with the confirmation and the new position, and the game bar's
+// cash with it, so the player stays on the stock page and nothing is added
+// to the browser's history. A plain form post gets a flash and goes to done.
+func (h *Handler) orderPlaced(w http.ResponseWriter, r *http.Request, game db.Game, stock db.Stock, d tradeDone, done string) {
+	if !isHTMX(r) {
+		setFlashCookie(w, d.Message, "success")
+		http.Redirect(w, r, done, http.StatusSeeOther)
+		return
+	}
+	extra := h.ticketData(r.Context(), game, stock, auth.UserFromContext(r.Context()).ID)
+	extra["Done"] = &d
+	extra["Back"] = backLink(r.FormValue("back"), r.Host, game.ID, stock.ID)
+	h.render(w, r, "stocks/detail", "ticket-update", PageData{Item: stock, Extra: extra})
 }
 
 // closeQueued reports whether the player has a market order of this side in

@@ -269,11 +269,15 @@ func TestStockPageHasGameBarAndTicket(t *testing.T) {
 		`class="game-bar has-dock"`,
 		`class="game-dock"`, // the phone tab bar, for players only
 		`Spring Cup`,
-		`href="/games/1/stocks" class="active">Stocks`,
+		`href="/games/1/stocks" data-stocks-tab class="active">Stocks`,
 		`href="/games/1/orders"`,
 		`id="ticket-form"`,
+		`hx-post="/games/1/trade/1"`, // trades in place, adding no history
 		`<option value="limit">`,
 		`id="side-sell" disabled`, // holds nothing, no shorting
+		`class="trade-bar"`,       // the phone's Buy and Sell
+		`data-ticket-open="sell" disabled`,
+		`<a href="/games/1/stocks" class="back-link" data-back>&lsaquo; Stocks</a>`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("page is missing %q", want)
@@ -296,7 +300,7 @@ func TestStockPageWithoutJoiningHasNoTicket(t *testing.T) {
 		t.Fatalf("status %d: %s", w.Code, w.Body.String())
 	}
 	body := w.Body.String()
-	if strings.Contains(body, `id="ticket-form"`) {
+	if strings.Contains(body, `id="ticket-form"`) || strings.Contains(body, `class="trade-bar"`) {
 		t.Error("non-member was shown the order ticket")
 	}
 	if !strings.Contains(body, "Join it") {

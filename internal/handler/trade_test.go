@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
@@ -198,5 +199,106 @@ func TestFinishedGameIsFrozen(t *testing.T) {
 	}
 	if !strings.Contains(body, "Final value") {
 		t.Error("a finished game's value isn't labelled final")
+	}
+}
+
+// postTicketHTMX posts the stock page's order ticket the way htmx does.
+func postTicketHTMX(srv http.Handler, form url.Values) *httptest.ResponseRecorder {
+	req := httptest.NewRequest("POST", "/games/1/trade/1", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("HX-Request", "true")
+	w := httptest.NewRecorder()
+	srv.ServeHTTP(w, req)
+	return w
+}
+
+// TestTicketTradesInPlace: a buy from the ticket redraws the ticket with a
+// confirmation and a way back to the list, and updates the game bar, rather
+// than redirecting to the same page and adding to the browser's history.
+func TestTicketTradesInPlace(t *testing.T) {
+	srv, q := gameServer(t)
+	setMarketOpen(t, true)
+	w := postTicketHTMX(srv, url.Values{"side": {"buy"}, "quantity": {"5"}, "back": {"/games/1/stocks?f=tech"}})
+	if w.Code != http.StatusOK || w.Header().Get("Location") != "" {
+		t.Fatalf("got %d to %q, want 200 and no redirect", w.Code, w.Header().Get("Location"))
+	}
+	body := w.Body.String()
+	for _, want := range []string{
+		`class="ticket ticket-sheet is-done"`,
+		`Bought 5 shares of ACME`,
+		`<a href="/games/1/stocks?f=tech" class="btn btn-primary" data-back>&lsaquo; Back to Stocks</a>`,
+		`View your portfolio`,
+		`data-held="5"`,
+		`<input type="hidden" name="back" value="/games/1/stocks?f=tech">`,
+		`id="game-bar-stats" hx-swap-oob="true"`,
+		`$999,947.50`, // the game bar's cash after 5 x $10.50
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("reply is missing %q", want)
+		}
+	}
+	if strings.Contains(body, "<html") {
+		t.Error("reply is a whole page, not the ticket")
+	}
+	if h := holding(t, q); h.Quantity != 5 {
+		t.Errorf("holding = %d, want 5", h.Quantity)
+	}
+}
+
+func TestTicketRefusalIsAToast(t *testing.T) {
+	srv, q := gameServer(t)
+	setMarketOpen(t, true)
+	w := postTicketHTMX(srv, url.Values{"side": {"buy"}, "quantity": {"100000000"}})
+	if w.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want 204 so the ticket stays as it was", w.Code)
+	}
+	if trig := w.Header().Get("HX-Trigger"); !strings.Contains(trig, "Insufficient funds") || !strings.Contains(trig, `"error"`) {
+		t.Errorf("HX-Trigger = %q, want an error toast", trig)
+	}
+	if p := alice(t, q); p.CashBalance != 100000000 {
+		t.Errorf("cash = %d, want it unchanged", p.CashBalance)
+	}
+}
+
+// TestTicketOrdersStayOnTheStock: limit and queued orders used to send the
+// player to the Orders tab; from the ticket they stay and link to it.
+func TestTicketOrdersStayOnTheStock(t *testing.T) {
+	srv, q := gameServer(t)
+	setMarketOpen(t, true)
+	w := postTicketHTMX(srv, url.Values{"side": {"buy"}, "order_type": {"limit"}, "quantity": {"2"}, "limit_price": {"9.00"}})
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Limit buy order placed for 2 shares of ACME") ||
+		!strings.Contains(w.Body.String(), `href="/games/1/orders" class="ticket-done-link"`) {
+		t.Errorf("limit order: got %d, body without the confirmation or Orders link", w.Code)
+	}
+
+	noAfterHours(t, q)
+	setMarketOpen(t, false)
+	w = postTicketHTMX(srv, url.Values{"side": {"buy"}, "order_type": {"market"}, "quantity": {"3"}})
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Order queued: buy 3 shares of ACME") {
+		t.Errorf("queued order: got %d, body without the confirmation", w.Code)
+	}
+	if orders, _ := q.ListOpenLimitOrders(t.Context(), alice(t, q).ID); len(orders) != 2 {
+		t.Errorf("%d open orders, want 2", len(orders))
+	}
+}
+
+func TestBackLink(t *testing.T) {
+	for _, c := range []struct{ ref, url, label string }{
+		{"http://example.com/games/1/stocks?f=tech&q=", "/games/1/stocks?f=tech&q=", "Stocks"},
+		{"/games/1/stocks", "/games/1/stocks", "Stocks"},
+		{"http://example.com/games/1", "/games/1", "Portfolio"},
+		{"http://example.com/games/1/watchlist", "/games/1/watchlist", "Watchlist"},
+		{"http://example.com/games/1/orders", "/games/1/orders", "Orders"},
+		{"http://example.com/games/1/stocks/2", "/games/1/stocks/2", "Back"}, // a peer
+		{"http://example.com/games/1/stocks/1", "/games/1/stocks", "Stocks"}, // this stock
+		{"http://example.com/games/12/stocks", "/games/1/stocks", "Stocks"},  // another game
+		{"http://evil.example/games/1/stocks", "/games/1/stocks", "Stocks"},
+		{"//evil.example/games/1", "/games/1/stocks", "Stocks"},
+		{"javascript:alert(1)", "/games/1/stocks", "Stocks"},
+		{"", "/games/1/stocks", "Stocks"},
+	} {
+		if got := backLink(c.ref, "example.com", 1, 1); got.URL != c.url || got.Label != c.label {
+			t.Errorf("backLink(%q) = %+v, want %s %q", c.ref, got, c.label, c.url)
+		}
 	}
 }

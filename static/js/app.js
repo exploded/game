@@ -125,6 +125,44 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 
+// data-back on a link (the stock page's Back): the server points it at the
+// page the player came from. When that's the page before this one in the
+// browser's history, go back instead, so the list keeps its scroll position.
+document.addEventListener("click", function(e) {
+    const link = e.target.closest("a[data-back]");
+    if (!link || e.metaKey || e.ctrlKey || e.shiftKey) return;
+    let prev;
+    try { prev = new URL(document.referrer); } catch (err) { return; }
+    const target = new URL(link.href);
+    if (history.length > 1 && prev.origin === location.origin
+        && prev.pathname + prev.search === target.pathname + target.search) {
+        e.preventDefault();
+        history.back();
+    }
+});
+
+// The Stocks tab goes back to the list as the player left it (chip, sector
+// or search) rather than the default list. Remembered for this browser tab.
+(function() {
+    const m = location.pathname.match(/^\/games\/(\d+)(\/stocks\/?$)?/);
+    if (!m) return;
+    const key = "stocks-list:" + m[1];
+    try {
+        if (m[2]) {
+            // The chips and search change the address without reloading.
+            const save = function() { sessionStorage.setItem(key, location.pathname + location.search); };
+            save();
+            window.addEventListener("pagehide", save);
+            document.body.addEventListener("htmx:after:swap", save);
+            return;
+        }
+        const list = sessionStorage.getItem(key);
+        if (list) document.querySelectorAll("a[data-stocks-tab]").forEach(function(a) { a.href = list; });
+    } catch (err) {
+        // Storage blocked: the tab opens the default list.
+    }
+})();
+
 // data-nav-toggle: open and close the mobile nav.
 document.addEventListener("click", function(e) {
     const btn = e.target.closest("[data-nav-toggle]");
