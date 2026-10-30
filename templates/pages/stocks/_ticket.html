@@ -30,7 +30,7 @@ inputs styled as tabs; the script in detail.html does the sums. */}}
         <div class="form-group">
             <label for="order-type">Order type</label>
             <select id="order-type" name="order_type">
-                <option value="market">Market: {{if $t.Queued}}at the next open{{else}}at the current price{{end}}</option>
+                <option value="market">Market: {{if $t.Queued}}at the next open{{else if $t.Closed}}at the last close{{else}}at the current price{{end}}</option>
                 <option value="limit">Limit: at your price or better</option>
             </select>
         </div>
@@ -89,6 +89,8 @@ inputs styled as tabs; the script in detail.html does the sums. */}}
 
         {{if $t.Queued}}
         <p class="ticket-note" id="queued-note">The US market is closed. A market order is queued and fills at the first price after the open (9:30 am New York time), which can differ from this estimate.</p>
+        {{else if $t.Closed}}
+        <p class="ticket-note" id="closed-note">The US market is closed. A market order fills now at the last close.{{if $g.LimitOrders}} A limit order waits for the open.{{end}}</p>
         {{end}}
 
         <button type="submit" id="ticket-btn" class="btn btn-primary" style="width:100%" disabled>Buy 0 shares</button>

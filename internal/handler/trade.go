@@ -13,9 +13,16 @@ import (
 	"github.com/exploded/game/internal/market"
 )
 
-// queuesMarketOrder reports whether a market order for a stock on this market
-// waits for the open. A variable so tests can open and close the market.
-var queuesMarketOrder = market.QueuesMarketOrder
+// marketClosed reports whether a stock's market is closed. A variable so tests
+// can open and close the market.
+var marketClosed = market.MarketClosed
+
+// queuesMarketOrder reports whether a market order in game g waits for the
+// open. With after-hours trading, the default, it fills straight away at the
+// last price instead.
+func queuesMarketOrder(g db.Game, stockMarket string) bool {
+	return g.AfterHoursTrading == 0 && marketClosed(stockMarket)
+}
 
 // TradeForm used to be a separate trade page. Trading now happens in the
 // order ticket on the stock page, so old links land there.
@@ -31,6 +38,7 @@ type tradeContext struct {
 	HoldingValue int64 // in the game's base currency
 	ExchangeRate int64 // AUD/USD * 1,000,000; 1,000,000 when the currencies match
 	Queued       bool  // the market is closed, so a market order queues for the open
+	Closed       bool  // the market is closed, so a market order fills at the last price
 }
 
 // loadTradeContext returns the ticket data, or false if the user isn't in
@@ -42,7 +50,8 @@ func (h *Handler) loadTradeContext(ctx context.Context, game db.Game, stock db.S
 	if err != nil {
 		return nil, false
 	}
-	tc := &tradeContext{Participant: participant, ExchangeRate: 1000000, Queued: queuesMarketOrder(stock.Market)}
+	tc := &tradeContext{Participant: participant, ExchangeRate: 1000000, Queued: queuesMarketOrder(game, stock.Market)}
+	tc.Closed = !tc.Queued && marketClosed(stock.Market)
 	tc.Holding, _ = h.q.GetHolding(ctx, db.GetHoldingParams{
 		ParticipantID: participant.ID, StockID: stock.ID,
 	})
@@ -162,7 +171,7 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 	totalNative := quantity * pricePerShare
 	totalBase := convertCurrency(totalNative, stock.Currency, game.BaseCurrency, exchangeRate)
 
-	if queuesMarketOrder(stock.Market) {
+	if queuesMarketOrder(game, stock.Market) {
 		if sellAll && h.sellQueued(r.Context(), participant.ID, stock.ID) {
 			setFlashCookie(w, "You've already queued a sale of "+stock.Symbol, "error")
 			http.Redirect(w, r, back, http.StatusSeeOther)

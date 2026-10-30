@@ -66,6 +66,7 @@ var defaultGame = db.Game{
 	CreditInterestRate:   525,
 	LeverageInterestRate: 500,
 	LimitOrders:          1,
+	AfterHoursTrading:    1,
 }
 
 // EnsureQuarterlyGames creates the games for now's quarter and the next one
@@ -122,6 +123,7 @@ func ensureQuarterGame(ctx context.Context, q *db.Queries, qtr Quarter) error {
 		LimitOrders:          prev.LimitOrders,
 		StopLoss:             prev.StopLoss,
 		FractionalShares:     prev.FractionalShares,
+		AfterHoursTrading:    prev.AfterHoursTrading,
 		Quarter:              sql.NullString{String: qtr.Key(), Valid: true},
 	})
 	if err != nil {

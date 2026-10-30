@@ -55,6 +55,10 @@
                 <span class="info-label">Limit Orders</span>
                 <span class="info-value">{{if .Item.LimitOrders}}On{{else}}Off{{end}}</span>
             </div>
+            <div class="info-item">
+                <span class="info-label">After Hours</span>
+                <span class="info-value">{{if .Item.AfterHoursTrading}}Market orders fill at the last close{{else}}Market orders wait for the open{{end}}</span>
+            </div>
         </div>
 
         {{if .Extra.CanJoin}}

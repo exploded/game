@@ -98,6 +98,9 @@ func (h *Handler) AdminGameUpdate(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("limit_orders") == "1" {
 		p.LimitOrders = 1
 	}
+	if r.FormValue("after_hours_trading") == "1" {
+		p.AfterHoursTrading = 1
+	}
 
 	players, _ := h.q.CountParticipants(r.Context(), g.ID)
 	if players == 0 {

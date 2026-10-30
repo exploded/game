@@ -116,6 +116,7 @@ func TestSellAllDoesntCoverOrDeepenAShort(t *testing.T) {
 
 func TestSellAllQueuesOnceWhileClosed(t *testing.T) {
 	srv, q := gameServer(t)
+	noAfterHours(t, q)
 	setMarketOpen(t, false)
 	hold(t, q, 7, 6300, 7350)
 

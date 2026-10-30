@@ -268,11 +268,29 @@ func TestStockPageWithoutJoiningHasNoTicket(t *testing.T) {
 	}
 }
 
-// setMarketOpen opens or closes the US market for market orders, for one test.
+// setMarketOpen opens or closes the US market, for one test.
 func setMarketOpen(t *testing.T, open bool) {
-	old := queuesMarketOrder
-	queuesMarketOrder = func(string) bool { return !open }
-	t.Cleanup(func() { queuesMarketOrder = old })
+	old := marketClosed
+	marketClosed = func(string) bool { return !open }
+	t.Cleanup(func() { marketClosed = old })
+}
+
+// noAfterHours turns off after-hours trading in gameServer's game, so market
+// orders placed while the market is closed queue for the open.
+func noAfterHours(t *testing.T, q *db.Queries) {
+	t.Helper()
+	g, err := q.GetGame(t.Context(), 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := q.UpdateGameSettings(t.Context(), db.UpdateGameSettingsParams{
+		ID: g.ID, Name: g.Name, Description: g.Description, Markets: g.Markets,
+		StartingBalance: g.StartingBalance, BaseCurrency: g.BaseCurrency, MaxParticipants: g.MaxParticipants,
+		TradeFee: g.TradeFee, AllowShort: g.AllowShort, LimitOrders: g.LimitOrders,
+		ReferralBonusPct: g.ReferralBonusPct, CreditInterestRate: g.CreditInterestRate,
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func postTicket(srv http.Handler, form url.Values) *httptest.ResponseRecorder {
@@ -285,6 +303,7 @@ func postTicket(srv http.Handler, form url.Values) *httptest.ResponseRecorder {
 
 func TestMarketOrderQueuesWhileClosed(t *testing.T) {
 	srv, q := gameServer(t)
+	noAfterHours(t, q)
 	setMarketOpen(t, false)
 	w := postTicket(srv, url.Values{"side": {"buy"}, "order_type": {"market"}, "quantity": {"5"}})
 	if w.Code != http.StatusSeeOther || w.Header().Get("Location") != "/games/1/orders" {
@@ -317,9 +336,47 @@ func TestMarketOrderFillsWhileOpen(t *testing.T) {
 	}
 }
 
-func TestTicketSaysWhenOrdersQueue(t *testing.T) {
+// TestMarketOrderFillsAfterHours: by default a market order placed while the
+// market is closed fills straight away at the last close.
+func TestMarketOrderFillsAfterHours(t *testing.T) {
+	srv, q := gameServer(t)
+	setMarketOpen(t, false)
+	w := postTicket(srv, url.Values{"side": {"buy"}, "order_type": {"market"}, "quantity": {"5"}})
+	if w.Code != http.StatusSeeOther || w.Header().Get("Location") != "/games/1/stocks/1" {
+		t.Fatalf("got %d to %q, want 303 to /games/1/stocks/1", w.Code, w.Header().Get("Location"))
+	}
+	p, _ := q.GetParticipantByGameAndUser(t.Context(), db.GetParticipantByGameAndUserParams{GameID: 1, UserID: 1})
+	if h, _ := q.GetHolding(t.Context(), db.GetHoldingParams{ParticipantID: p.ID, StockID: 1}); h.Quantity != 5 || h.CostBasis != 5*1050 {
+		t.Errorf("holding = %d costing %d, want 5 costing %d", h.Quantity, h.CostBasis, 5*1050)
+	}
+	if orders, _ := q.ListOpenLimitOrders(t.Context(), p.ID); len(orders) != 0 {
+		t.Errorf("open orders = %+v, want none", orders)
+	}
+}
+
+func TestTicketSaysWhenMarketClosed(t *testing.T) {
 	for _, open := range []bool{false, true} {
 		srv, _ := gameServer(t)
+		setMarketOpen(t, open)
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, httptest.NewRequest("GET", "/games/1/stocks/1", nil))
+		body := w.Body.String()
+		if got := strings.Contains(body, `id="closed-note"`); got == open {
+			t.Errorf("market open %v: closed note shown = %v", open, got)
+		}
+		if got := strings.Contains(body, "at the last close"); got == open {
+			t.Errorf("market open %v: order type says last close = %v", open, got)
+		}
+		if strings.Contains(body, `id="queued-note"`) {
+			t.Errorf("market open %v: queued note shown in an after-hours game", open)
+		}
+	}
+}
+
+func TestTicketSaysWhenOrdersQueue(t *testing.T) {
+	for _, open := range []bool{false, true} {
+		srv, q := gameServer(t)
+		noAfterHours(t, q)
 		setMarketOpen(t, open)
 		w := httptest.NewRecorder()
 		srv.ServeHTTP(w, httptest.NewRequest("GET", "/games/1/stocks/1", nil))

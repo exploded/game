@@ -127,6 +127,59 @@ func TestQueuedMarketOrderFillsAtTheOpen(t *testing.T) {
 	}
 }
 
+// limitOrder adds a limit order of 2 shares to ordersDB's player and returns
+// its id.
+func limitOrder(t *testing.T, q *db.Queries, side string, limit int64) int64 {
+	t.Helper()
+	o, err := q.CreateLimitOrder(t.Context(), db.CreateLimitOrderParams{
+		ParticipantID: 1, StockID: 1, Type: side, Quantity: 2, LimitPrice: limit,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return o.ID
+}
+
+func statusOf(t *testing.T, d *sql.DB, id int64) string {
+	t.Helper()
+	var status string
+	if err := d.QueryRow("SELECT status FROM limit_orders WHERE id = ?", id).Scan(&status); err != nil {
+		t.Fatal(err)
+	}
+	return status
+}
+
+// TestLimitOrderWaitsWhileClosed: a limit buy above the last close mustn't
+// fill at that close while the market is closed, but fills once it opens.
+func TestLimitOrderWaitsWhileClosed(t *testing.T) {
+	q, d := ordersDB(t, sessionToday(t), "buy", 5)
+	id := limitOrder(t, q, "buy", 1100)
+	setMarketOpen(t, false)
+	ProcessLimitOrders(t.Context(), q)
+	if s := statusOf(t, d, id); s != "open" {
+		t.Fatalf("status = %q while the market is closed, want open", s)
+	}
+
+	setMarketOpen(t, true)
+	ProcessLimitOrders(t.Context(), q)
+	if s := statusOf(t, d, id); s != "filled" {
+		t.Errorf("status = %q once the market opened, want filled", s)
+	}
+}
+
+// TestLimitOrderWaitsForTodaysPrice: the market has opened, but the newest
+// price is still yesterday's close.
+func TestLimitOrderWaitsForTodaysPrice(t *testing.T) {
+	sessionToday(t)
+	q, d := ordersDB(t, "2020-01-02", "buy", 5)
+	id := limitOrder(t, q, "buy", 1100)
+	setMarketOpen(t, true)
+	ProcessLimitOrders(t.Context(), q)
+	if s := statusOf(t, d, id); s != "open" {
+		t.Errorf("status = %q with only a stale price, want open", s)
+	}
+}
+
 func TestQueuedBuyCancelledWithoutCash(t *testing.T) {
 	q, d := ordersDB(t, sessionToday(t), "buy", 1000) // $10,500 against $1,000 cash
 	setMarketOpen(t, true)

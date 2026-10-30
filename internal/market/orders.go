@@ -23,11 +23,10 @@ func fmtCentsSimple(c int64) string {
 	return fmt.Sprintf("$%.2f", float64(c)/100)
 }
 
-// QueuesMarketOrder reports whether a market order for a stock on this market
-// waits for the next session instead of filling at the last stored price.
-// Only S&P 500 stocks get intraday quotes, so only they queue, and only while
-// QuoteStatus says the US market is closed.
-func QueuesMarketOrder(stockMarket string) bool {
+// MarketClosed reports whether a stock's market is closed, so its last stored
+// price is stale. Only S&P 500 stocks get intraday quotes, so only they can be
+// closed, and only while QuoteStatus says the US market is closed.
+func MarketClosed(stockMarket string) bool {
 	if stockMarket != "sp500" || NewYork == nil {
 		return false
 	}
@@ -36,7 +35,8 @@ func QueuesMarketOrder(stockMarket string) bool {
 }
 
 // ProcessLimitOrders fills open limit orders whose price condition is met, and
-// queued market orders once the market has opened.
+// queued market orders, once the market has opened. Neither fills against the
+// last price while the market is closed.
 func ProcessLimitOrders(ctx context.Context, q *db.Queries) {
 	// Expire old orders first, and tell their owners.
 	today := time.Now().UTC().Format("2006-01-02")
@@ -45,8 +45,8 @@ func ProcessLimitOrders(ctx context.Context, q *db.Queries) {
 		notifyExpired(ctx, q, o)
 	}
 
-	// A queued market order fills at the first price of the session: the
-	// market must be open and the stock's newest price dated today.
+	// Orders fill at prices from the session: the market must be open and an
+	// S&P 500 stock's newest price dated today.
 	sessionDate := ""
 	if NewYork != nil {
 		sessionDate = time.Now().In(NewYork).Format("2006-01-02")
@@ -64,9 +64,13 @@ func ProcessLimitOrders(ctx context.Context, q *db.Queries) {
 			continue
 		}
 
+		if MarketClosed(order.Market) || (order.Market == "sp500" && sessionDate != "" && latestPrice.Date != sessionDate) {
+			continue
+		}
+
 		shouldFill := false
 		if order.Kind == "market" {
-			shouldFill = !QueuesMarketOrder(order.Market) && (NewYork == nil || latestPrice.Date == sessionDate)
+			shouldFill = true
 		} else if order.Type == "buy" && latestPrice.Close <= order.LimitPrice {
 			shouldFill = true
 		} else if order.Type == "sell" && latestPrice.Close >= order.LimitPrice {
