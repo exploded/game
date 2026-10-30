@@ -1443,6 +1443,9 @@ td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-
     flex: 1; min-width: 0; height: 36px; padding: 0 12px; border-radius: var(--radius);
     background: var(--color-surface-2); border: 1px solid var(--color-border); color: var(--color-text); font: inherit;
 }
+.invite-list { list-style: none; margin: 0; padding: 0; }
+.invite-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--color-border); font-size: 14px; }
+.invite-email { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .queue { display: flex; flex-direction: column; gap: 10px; }
 .queue-item { display: flex; align-items: center; gap: 12px; padding: 10px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); }
 .queue-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }

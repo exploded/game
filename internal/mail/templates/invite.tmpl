@@ -1,0 +1,17 @@
+{{define "subject"}}{{.D.From}} invited you to play StockGame{{end}}
+
+{{define "text"}}{{.D.From}} invited you to join {{.D.Game}} on StockGame, the
+fantasy stock market game.
+
+You get {{.D.Starting}} of virtual cash to invest in real ASX and US stocks
+at real prices. The biggest portfolio at the end of the game wins.
+
+Join here: {{.BaseURL}}/invite/{{.D.Code}}
+
+You got this email because {{.D.From}} entered your address on StockGame.
+We haven't added you to any mailing list.{{end}}
+
+{{define "html"}}<p style="margin:0 0 16px;"><strong>{{.D.From}}</strong> invited you to join {{.D.Game}} on StockGame, the fantasy stock market game.</p>
+<p style="margin:0 0 24px;">You get {{.D.Starting}} of virtual cash to invest in real ASX and US stocks at real prices. The biggest portfolio at the end of the game wins.</p>
+<p style="margin:0 0 24px;"><a href="{{.BaseURL}}/invite/{{.D.Code}}" style="display:inline-block;background:#007994;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:6px;">Join {{.D.From}}</a></p>
+<p style="margin:0;color:#6b7385;font-size:13px;">You got this email because {{.D.From}} entered your address on StockGame. We haven't added you to any mailing list.</p>{{end}}

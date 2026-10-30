@@ -147,6 +147,7 @@ type GameInvite struct {
 	MaxUses   sql.NullInt64
 	UseCount  int64
 	ExpiresAt sql.NullString
+	Email     sql.NullString
 	CreatedAt string
 }
 

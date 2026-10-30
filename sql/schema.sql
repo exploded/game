@@ -322,6 +322,7 @@ CREATE TABLE IF NOT EXISTS game_invites (
     max_uses   INTEGER,                            -- NULL = unlimited
     use_count  INTEGER NOT NULL DEFAULT 0,
     expires_at TEXT,
+    email      TEXT,                               -- the friend it was emailed to; NULL for a plain link
     created_at TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_invites_code ON game_invites(code);

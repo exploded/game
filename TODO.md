@@ -101,10 +101,8 @@ Highest impact for the effort first.
 - [x] **Recurring games made a new round every minute** once a round finished.
   Fixed, with a test. No recurring game had finished in production, so no one
   was affected.
-- [ ] **Invite links.** "Generate Invite Link" never shows the link
-  (`ListGameInvites` is unused). Show it with a copy button, and send a
-  signed-out visitor back to `/invite/{code}` after sign-in. `InviteJoin`
-  ignores `expires_at` and `max_participants` and joins on a GET.
+- [x] **Invite links.** Replaced by inviting a friend by email from the
+  game's home page; the bonus is paid when the friend signs up (2026-10-30).
 - [x] **An always-open official game.** Done as one game per quarter
   (2026-10-30).
 - [ ] **First-trade onboarding.** After `/welcome`, join the official game and

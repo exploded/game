@@ -76,11 +76,6 @@
         {{if .Extra.IsAdmin}}
         <div class="creator-actions" style="flex-wrap:wrap">
             <a href="/admin/games/{{.Item.ID}}" class="btn btn-sm">Change settings</a>
-            {{if or (eq .Item.Status "pending") (eq .Item.Status "active")}}
-            <form method="POST" action="/games/{{.Item.ID}}/invite" style="display:inline">
-                <button type="submit" class="btn btn-sm">Generate Invite Link</button>
-            </form>
-            {{end}}
         </div>
         {{end}}
     </div>

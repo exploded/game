@@ -263,6 +263,19 @@ func (q *Queries) CountContactMessages(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+const countInvitesSentToday = `-- name: CountInvitesSentToday :one
+SELECT COUNT(*) FROM game_invites
+WHERE created_by = ? AND email IS NOT NULL AND created_at > datetime('now', '-1 day')
+`
+
+// Invites the user emailed in the last 24 hours, in any game.
+func (q *Queries) CountInvitesSentToday(ctx context.Context, createdBy int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countInvitesSentToday, createdBy)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countLobbyMessages = `-- name: CountLobbyMessages :one
 SELECT COUNT(*) FROM lobby_messages
 `
@@ -647,9 +660,9 @@ func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) (Game, e
 
 const createInvite = `-- name: CreateInvite :one
 
-INSERT INTO game_invites (game_id, code, created_by, max_uses, expires_at)
-VALUES (?, ?, ?, ?, ?)
-RETURNING id, game_id, code, created_by, max_uses, use_count, expires_at, created_at
+INSERT INTO game_invites (game_id, code, created_by, max_uses, expires_at, email)
+VALUES (?, ?, ?, ?, ?, ?)
+RETURNING id, game_id, code, created_by, max_uses, use_count, expires_at, email, created_at
 `
 
 type CreateInviteParams struct {
@@ -658,6 +671,7 @@ type CreateInviteParams struct {
 	CreatedBy int64
 	MaxUses   sql.NullInt64
 	ExpiresAt sql.NullString
+	Email     sql.NullString
 }
 
 // =============================================================================
@@ -670,6 +684,7 @@ func (q *Queries) CreateInvite(ctx context.Context, arg CreateInviteParams) (Gam
 		arg.CreatedBy,
 		arg.MaxUses,
 		arg.ExpiresAt,
+		arg.Email,
 	)
 	var i GameInvite
 	err := row.Scan(
@@ -680,6 +695,7 @@ func (q *Queries) CreateInvite(ctx context.Context, arg CreateInviteParams) (Gam
 		&i.MaxUses,
 		&i.UseCount,
 		&i.ExpiresAt,
+		&i.Email,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -1511,7 +1527,7 @@ func (q *Queries) GetHolding(ctx context.Context, arg GetHoldingParams) (Holding
 }
 
 const getInviteByCode = `-- name: GetInviteByCode :one
-SELECT id, game_id, code, created_by, max_uses, use_count, expires_at, created_at FROM game_invites WHERE code = ?
+SELECT id, game_id, code, created_by, max_uses, use_count, expires_at, email, created_at FROM game_invites WHERE code = ?
 `
 
 func (q *Queries) GetInviteByCode(ctx context.Context, code string) (GameInvite, error) {
@@ -1525,6 +1541,7 @@ func (q *Queries) GetInviteByCode(ctx context.Context, code string) (GameInvite,
 		&i.MaxUses,
 		&i.UseCount,
 		&i.ExpiresAt,
+		&i.Email,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -2385,15 +2402,6 @@ func (q *Queries) HideQuestion(ctx context.Context, id int64) error {
 	return err
 }
 
-const incrementInviteUse = `-- name: IncrementInviteUse :exec
-UPDATE game_invites SET use_count = use_count + 1 WHERE id = ?
-`
-
-func (q *Queries) IncrementInviteUse(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, incrementInviteUse, id)
-	return err
-}
-
 const insertActivity = `-- name: InsertActivity :exec
 
 INSERT INTO activity_feed (game_id, user_id, action, detail, is_public)
@@ -2605,6 +2613,22 @@ func (q *Queries) InsertTransaction(ctx context.Context, arg InsertTransactionPa
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const inviteSentTo = `-- name: InviteSentTo :one
+SELECT COUNT(*) FROM game_invites WHERE game_id = ? AND email = ?
+`
+
+type InviteSentToParams struct {
+	GameID int64
+	Email  sql.NullString
+}
+
+func (q *Queries) InviteSentTo(ctx context.Context, arg InviteSentToParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, inviteSentTo, arg.GameID, arg.Email)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const isOnWatchlist = `-- name: IsOnWatchlist :one
@@ -3769,42 +3793,6 @@ func (q *Queries) ListFinishedGamesEndedSince(ctx context.Context, endDate strin
 	return items, nil
 }
 
-const listGameInvites = `-- name: ListGameInvites :many
-SELECT id, game_id, code, created_by, max_uses, use_count, expires_at, created_at FROM game_invites WHERE game_id = ? ORDER BY created_at DESC
-`
-
-func (q *Queries) ListGameInvites(ctx context.Context, gameID int64) ([]GameInvite, error) {
-	rows, err := q.db.QueryContext(ctx, listGameInvites, gameID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GameInvite
-	for rows.Next() {
-		var i GameInvite
-		if err := rows.Scan(
-			&i.ID,
-			&i.GameID,
-			&i.Code,
-			&i.CreatedBy,
-			&i.MaxUses,
-			&i.UseCount,
-			&i.ExpiresAt,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listGamesWithPlayers = `-- name: ListGamesWithPlayers :many
 SELECT g.id, g.created_by, g.name, g.description, g.status, g.markets, g.starting_balance, g.base_currency, g.max_participants, g.start_date, g.end_date, g.allow_short, g.trade_fee, g.referral_bonus_pct, g.recurring_interval, g.parent_game_id, g.template_id, g.is_public, g.portfolio_visibility, g.credit_interest_rate, g.leverage_interest_rate, g.min_stock_price, g.max_stock_price, g.margin_trading, g.limit_orders, g.stop_loss, g.fractional_shares, g.after_hours_trading, g.quarter, g.created_at, g.updated_at, (SELECT COUNT(*) FROM participants p WHERE p.game_id = g.id) AS players
 FROM games g
@@ -4041,6 +4029,48 @@ func (q *Queries) ListInterestDue(ctx context.Context, arg ListInterestDueParams
 	for rows.Next() {
 		var i ListInterestDueRow
 		if err := rows.Scan(&i.ID, &i.CashBalance, &i.CreditInterestRate); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listInvitesSent = `-- name: ListInvitesSent :many
+SELECT gi.email, gi.use_count, gi.created_at
+FROM game_invites gi
+WHERE gi.game_id = ? AND gi.created_by = ? AND gi.email IS NOT NULL
+ORDER BY gi.id DESC
+LIMIT 20
+`
+
+type ListInvitesSentParams struct {
+	GameID    int64
+	CreatedBy int64
+}
+
+type ListInvitesSentRow struct {
+	Email     sql.NullString
+	UseCount  int64
+	CreatedAt string
+}
+
+func (q *Queries) ListInvitesSent(ctx context.Context, arg ListInvitesSentParams) ([]ListInvitesSentRow, error) {
+	rows, err := q.db.QueryContext(ctx, listInvitesSent, arg.GameID, arg.CreatedBy)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListInvitesSentRow
+	for rows.Next() {
+		var i ListInvitesSentRow
+		if err := rows.Scan(&i.Email, &i.UseCount, &i.CreatedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -8084,6 +8114,20 @@ func (q *Queries) UpsertYouTubeLiveEvent(ctx context.Context, arg UpsertYouTubeL
 		arg.Status,
 	)
 	return err
+}
+
+const useInvite = `-- name: UseInvite :execrows
+UPDATE game_invites SET use_count = use_count + 1
+WHERE id = ? AND (max_uses IS NULL OR use_count < max_uses)
+`
+
+// Counts one use, unless the invite is used up.
+func (q *Queries) UseInvite(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, useInvite, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const useLoginRequest = `-- name: UseLoginRequest :execrows

@@ -47,11 +47,16 @@ worked out but aren't written yet.
 | A1 | Sign-in link and code | Someone enters their email on `/login` | Built |
 | A2 | Welcome | First sign-in creates the account | Built |
 | A3 | Account deleted | User deletes their account on Settings | Built |
+| A4 | Invite from a friend | A player enters a friend's email under **Invite a friend** on a game's home page | Built |
 
 - **A1** has a link and a 6-digit code. The link suits someone reading on the
   same device. The code suits someone who reads email on their phone but plays
   on a laptop. Both expire after 15 minutes and work once.
 - **A2** explains how a game works and links to the dashboard and help.
+- **A4** goes to someone who isn't a user yet, so it has no unsubscribe link.
+  It's sent once per address per game, only to addresses with no account,
+  and each player can send 10 a day. It says who entered the address and that
+  we haven't added them to a mailing list.
 
 ### Trades
 
@@ -74,7 +79,7 @@ worked out but aren't written yet.
 | G2 | Game ending soon | 3 days and 1 day before a game you're in ends | Built |
 | G3 | Final results | A game you're in finishes: your rank, return and the top 3 | Built |
 | G4 | Next round ready | A recurring game you created starts its next round | Removed: recurring games were replaced by one game per quarter |
-| G5 | Referral bonus | Someone joins a game through your invite link | Built |
+| G5 | Referral bonus | A friend you invited signs up, and you get the game's referral bonus | Built |
 
 - G2 and G3 matter most to Rob: they bring people back before a game ends.
 - G1 to G3 go out after 8 am in `TIMEZONE`, once per game (the `game_emails`

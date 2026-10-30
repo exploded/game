@@ -251,7 +251,11 @@ func (h *Handler) finishLogin(w http.ResponseWriter, r *http.Request, req db.Log
 		h.serverError(w, "start session", err)
 		return
 	}
+	invite := takeInvite(w, r)
 	if isNew {
+		if invite != "" {
+			h.acceptInvite(ctx, invite, user)
+		}
 		if _, err := h.mailer.ToUser(ctx, user.ID, mail.Account, "welcome", nil); err != nil {
 			slog.Error("queue welcome email", "user", user.ID, "error", err)
 		}

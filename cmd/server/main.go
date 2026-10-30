@@ -203,7 +203,8 @@ func main() {
 	})
 
 	// Learn: Rob's videos, live streams and questions. Anyone can read them;
-	// asking, voting and reminders are in the signed-in group below.
+	// asking, voting and reminders are in the signed-in group below. Invite
+	// links are here too, so a signed-out friend can open one.
 	r.Group(func(r chi.Router) {
 		r.Use(func(next http.Handler) http.Handler {
 			return auth.OptionalAuth(queries, next)
@@ -220,6 +221,8 @@ func main() {
 		r.Get("/learn/questions", h.QuestionsPage)
 		r.Get("/learn/questions/{qid}", h.QuestionPage)
 		r.Get("/learn/courses", h.LearnCourses)
+		// An emailed invite: signed-out visitors get the sign-up form.
+		r.Get("/invite/{code}", h.InviteLanding)
 		r.Get("/questions", handler.OldQuestionsRedirect)
 		r.Get("/questions/{qid}", handler.OldQuestionsRedirect)
 	})
@@ -278,8 +281,8 @@ func main() {
 			r.Post("/watchlist/{sid}", h.WatchlistAdd)
 			r.Delete("/watchlist/{sid}", h.WatchlistRemove)
 
-			// Invite Links (Feature 6)
-			r.Post("/invite", h.InviteCreate)
+			// Invite a friend by email
+			r.Post("/invite", h.InviteSend)
 
 			// Chat (Feature 7)
 			r.Get("/chat", h.ChatPage)
@@ -298,7 +301,6 @@ func main() {
 			r.Get("/export/transactions", h.ExportTransactionsCSV)
 			r.Get("/export/snapshots", h.ExportSnapshotsCSV)
 		})
-		r.Get("/invite/{code}", h.InviteJoin)
 
 		// Learn: asking, voting and stream reminders
 		r.Post("/learn/questions", h.QuestionCreate)

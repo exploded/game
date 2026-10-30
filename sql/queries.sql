@@ -689,18 +689,32 @@ SELECT COUNT(*) FROM watchlist WHERE participant_id = ? AND stock_id = ?;
 -- =============================================================================
 
 -- name: CreateInvite :one
-INSERT INTO game_invites (game_id, code, created_by, max_uses, expires_at)
-VALUES (?, ?, ?, ?, ?)
+INSERT INTO game_invites (game_id, code, created_by, max_uses, expires_at, email)
+VALUES (?, ?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: GetInviteByCode :one
 SELECT * FROM game_invites WHERE code = ?;
 
--- name: IncrementInviteUse :exec
-UPDATE game_invites SET use_count = use_count + 1 WHERE id = ?;
+-- name: UseInvite :execrows
+-- Counts one use, unless the invite is used up.
+UPDATE game_invites SET use_count = use_count + 1
+WHERE id = ? AND (max_uses IS NULL OR use_count < max_uses);
 
--- name: ListGameInvites :many
-SELECT * FROM game_invites WHERE game_id = ? ORDER BY created_at DESC;
+-- name: InviteSentTo :one
+SELECT COUNT(*) FROM game_invites WHERE game_id = ? AND email = ?;
+
+-- name: CountInvitesSentToday :one
+-- Invites the user emailed in the last 24 hours, in any game.
+SELECT COUNT(*) FROM game_invites
+WHERE created_by = ? AND email IS NOT NULL AND created_at > datetime('now', '-1 day');
+
+-- name: ListInvitesSent :many
+SELECT gi.email, gi.use_count, gi.created_at
+FROM game_invites gi
+WHERE gi.game_id = ? AND gi.created_by = ? AND gi.email IS NOT NULL
+ORDER BY gi.id DESC
+LIMIT 20;
 
 -- =============================================================================
 -- Game Chat (Feature 7)

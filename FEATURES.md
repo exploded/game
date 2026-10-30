@@ -35,11 +35,11 @@ Admin can simulate stock splits (e.g. 2:1, 3:1). All holdings of the stock acros
 
 ## Social & Competition
 
-### 6. Invite Links
-Game creators can generate shareable invite codes. Anyone with the link can join the game directly (respecting max participants and game status). Invite codes track usage count and can have a max uses limit.
+### 6. Invite a Friend
+Any player can invite a friend by email from the game's home page while the game's referral bonus is above 0. The friend gets a link to `/invite/{code}`, which remembers the invite and shows the sign-up form. If they create an account, they join the game and the inviter gets the referral bonus (`referral_bonus_pct` of the starting cash). Existing accounts earn nothing. Each invite pays once; each player can send 10 a day, and each address is invited once per game.
 
-- **Routes:** `/games/{id}/invite` (create), `/invite/{code}` (join)
-- **Files:** `internal/handler/invite.go`
+- **Routes:** `POST /games/{id}/invite` (send), `/invite/{code}` (landing, public)
+- **Files:** `internal/handler/invite.go`, `internal/mail/templates/invite.tmpl`
 
 ### 7. Chat
 Per-game discussion thread. Participants can send messages (max 500 chars). HTMX-powered — new messages appear inline without page reload. Messages are displayed newest-first.

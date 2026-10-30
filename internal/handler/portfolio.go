@@ -158,6 +158,10 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 		rows = append(rows, row)
 	}
 	interest, _ := h.q.TotalInterest(ctx, participant.ID)
+	var invites []db.ListInvitesSentRow
+	if invitesOpen(game) {
+		invites, _ = h.q.ListInvitesSent(ctx, db.ListInvitesSentParams{GameID: game.ID, CreatedBy: participant.UserID})
+	}
 
 	h.render(w, r, "portfolio/index", "", PageData{
 		Title: game.Name,
@@ -170,6 +174,9 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 			"Total":       change{participant.PortfolioValue - game.StartingBalance, game.StartingBalance},
 			"Standing":    rankPlayer(participant, board),
 			"Interest":    interest,
+			"InvitesOpen": invitesOpen(game),
+			"Bonus":       fmtDollars(referralBonus(game)),
+			"Invites":     invites,
 		},
 	})
 }
