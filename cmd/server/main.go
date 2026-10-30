@@ -168,6 +168,10 @@ func main() {
 	// Health check for the uptime monitor, outside the auth groups.
 	r.Get("/health", h.Health)
 
+	// For search engines.
+	r.Get("/robots.txt", h.Robots)
+	r.Get("/sitemap.xml", h.Sitemap)
+
 	// Public routes.
 	// Sign-in. These POSTs come before there's a session, so the CSRF
 	// middleware can't cover them; CrossOriginProtection stops another site

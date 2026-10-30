@@ -72,6 +72,8 @@ Line two.', 'https://i.ytimg.com/vi/a/mqdefault.jpg', '2026-10-01 00:00:00', 725
 	r.Get("/learn/questions", h.QuestionsPage)
 	r.Get("/learn/questions/{qid}", h.QuestionPage)
 	r.Get("/privacy", h.PrivacyPage)
+	r.Get("/sitemap.xml", h.Sitemap)
+	r.Get("/robots.txt", h.Robots)
 	r.Route("/admin", func(r chi.Router) {
 		r.Use(auth.RequireAdmin)
 		r.Get("/learn", h.AdminLearn)
@@ -132,6 +134,34 @@ func TestLearnPagesRender(t *testing.T) {
 	}
 	if w := as(srv, "", "GET", "/learn/thumb/2", nil, false); w.Header().Get("Content-Type") != "image/svg+xml" {
 		t.Errorf("a missing cover should fall back to the placeholder, got %q", w.Header().Get("Content-Type"))
+	}
+}
+
+func TestSitemapAndRobots(t *testing.T) {
+	t.Setenv("BASE_URL", "https://site.example")
+	srv := learnServer(t)
+	w := as(srv, "", "GET", "/sitemap.xml", nil, false)
+	body := w.Body.String()
+	if w.Code != http.StatusOK || !strings.HasPrefix(body, "<?xml") {
+		t.Fatalf("sitemap: %d\n%s", w.Code, body)
+	}
+	for _, s := range []string{
+		"<loc>https://site.example/login</loc>",
+		"<loc>https://site.example/learn/topics/super</loc>",
+		"<loc>https://site.example/learn/v/1</loc><lastmod>2026-10-01</lastmod>",
+		"<loc>https://site.example/learn/v/2</loc>",
+	} {
+		if !strings.Contains(body, s) {
+			t.Errorf("sitemap has no %s\n%s", s, body)
+		}
+	}
+	if strings.Contains(body, "/learn/questions/1") {
+		t.Error("the sitemap lists an unanswered question")
+	}
+
+	w = as(srv, "", "GET", "/robots.txt", nil, false)
+	if !strings.Contains(w.Body.String(), "Sitemap: https://site.example/sitemap.xml") {
+		t.Errorf("robots.txt doesn't point at the sitemap:\n%s", w.Body)
 	}
 }
 
