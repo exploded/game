@@ -88,9 +88,9 @@ inputs styled as tabs; the script in detail.html does the sums. */}}
         </div>
 
         {{if $t.Queued}}
-        <p class="ticket-note" id="queued-note">The US market is closed. A market order is queued and fills at the first price after the open (9:30 am New York time), which can differ from this estimate.</p>
+        <p class="ticket-note" id="queued-note">The US market is closed.{{with $t.Opens}} It opens {{.}}.{{end}} A market order is queued and fills at the first price after the open, which can differ from this estimate.</p>
         {{else if $t.Closed}}
-        <p class="ticket-note" id="closed-note">The US market is closed. A market order fills now at the last close.{{if $g.LimitOrders}} A limit order waits for the open.{{end}}</p>
+        <p class="ticket-note" id="closed-note">The US market is closed.{{with $t.Opens}} It opens {{.}}.{{end}} A market order fills now at the last close.{{if $g.LimitOrders}} A limit order waits for the open.{{end}}</p>
         {{end}}
 
         <button type="submit" id="ticket-btn" class="btn btn-primary" style="width:100%" disabled>Buy 0 shares</button>

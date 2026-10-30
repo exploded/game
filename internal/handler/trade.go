@@ -35,10 +35,11 @@ func (h *Handler) TradeForm(w http.ResponseWriter, r *http.Request) {
 type tradeContext struct {
 	Participant  db.Participant
 	Holding      db.Holding
-	HoldingValue int64 // in the game's base currency
-	ExchangeRate int64 // AUD/USD * 1,000,000; 1,000,000 when the currencies match
-	Queued       bool  // the market is closed, so a market order queues for the open
-	Closed       bool  // the market is closed, so a market order fills at the last price
+	HoldingValue int64  // in the game's base currency
+	ExchangeRate int64  // AUD/USD * 1,000,000; 1,000,000 when the currencies match
+	Queued       bool   // the market is closed, so a market order queues for the open
+	Closed       bool   // the market is closed, so a market order fills at the last price
+	Opens        string // when a closed market opens, from marketOpens
 }
 
 // loadTradeContext returns the ticket data, or false if the user isn't in
@@ -52,6 +53,9 @@ func (h *Handler) loadTradeContext(ctx context.Context, game db.Game, stock db.S
 	}
 	tc := &tradeContext{Participant: participant, ExchangeRate: 1000000, Queued: queuesMarketOrder(game, stock.Market)}
 	tc.Closed = !tc.Queued && marketClosed(stock.Market)
+	if tc.Queued || tc.Closed {
+		tc.Opens = marketOpens(marketNow())
+	}
 	tc.Holding, _ = h.q.GetHolding(ctx, db.GetHoldingParams{
 		ParticipantID: participant.ID, StockID: stock.ID,
 	})

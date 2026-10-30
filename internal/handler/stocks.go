@@ -200,6 +200,7 @@ type priceStats struct {
 	Up              bool
 	Open            bool   // US market open; the header polls for updates while true
 	AsOf            string // "As of 10:42 am ET" while open, otherwise "Close, 28 Oct"
+	Closes          string // "Closes in 2 hr 5 min" while open
 }
 
 // loadPriceStats builds the price header from the newest two price rows. While
@@ -232,6 +233,7 @@ func (h *Handler) loadPriceStats(r *http.Request, gameID, stockID int64) priceSt
 	ps.Open = open && market.NewYork != nil
 	if ps.Open {
 		ps.AsOf = "As of " + at.In(market.NewYork).Format("3:04 pm") + " ET"
+		ps.Closes = marketCloses(marketNow())
 	} else if d, err := time.Parse("2006-01-02", ps.Latest.Date); err == nil {
 		ps.AsOf = "Close, " + d.Format("2 Jan")
 	}

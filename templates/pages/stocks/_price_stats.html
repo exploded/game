@@ -14,7 +14,7 @@ today's candle after each swap. */}}
     </div>
     <div class="price-range">
         <span class="badge {{if .Open}}badge-active{{else}}badge-finished{{end}}">{{if .Open}}Market open{{else}}Market closed{{end}}</span>
-        <span>{{.AsOf}}</span>
+        <span>{{.AsOf}}{{with .Closes}} &middot; {{.}}{{end}}</span>
     </div>
 </div>
 {{end}}{{end}}{{end}}

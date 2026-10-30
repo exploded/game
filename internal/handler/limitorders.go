@@ -184,7 +184,11 @@ func (h *Handler) queueMarketOrder(w http.ResponseWriter, r *http.Request, game 
 		return
 	}
 
-	setFlashCookie(w, fmt.Sprintf("Order queued: %s %s of %s. The US market is closed, so it fills when it opens at 9:30 am New York time.", side, shares(quantity), stock.Symbol), "success")
+	opens := ""
+	if o := marketOpens(marketNow()); o != "" {
+		opens = " " + o
+	}
+	setFlashCookie(w, fmt.Sprintf("Order queued: %s %s of %s. The US market is closed, so it fills when it opens%s.", side, shares(quantity), stock.Symbol, opens), "success")
 	done := fmt.Sprintf("/games/%d/orders", game.ID)
 	if back == fmt.Sprintf("/games/%d", game.ID) {
 		done = back // queued from the home page's Sell button: stay there

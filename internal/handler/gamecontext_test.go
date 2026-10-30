@@ -344,6 +344,7 @@ func TestMarketOrderQueuesWhileClosed(t *testing.T) {
 	srv, q := gameServer(t)
 	noAfterHours(t, q)
 	setMarketOpen(t, false)
+	setMarketNow(t, nyTime(t, "2026-11-02 04:00"))
 	w := postTicket(srv, url.Values{"side": {"buy"}, "order_type": {"market"}, "quantity": {"5"}})
 	if w.Code != http.StatusSeeOther || w.Header().Get("Location") != "/games/1/orders" {
 		t.Fatalf("got %d to %q, want 303 to /games/1/orders", w.Code, w.Header().Get("Location"))
@@ -359,6 +360,9 @@ func TestMarketOrderQueuesWhileClosed(t *testing.T) {
 	}
 	if !strings.Contains(w.Header().Get("Set-Cookie"), "queued") {
 		t.Errorf("flash doesn't tell the player the order is queued: %q", w.Header().Get("Set-Cookie"))
+	}
+	if !strings.Contains(w.Header().Get("Set-Cookie"), "fills when it opens in 5 hr 30 min, at 1:30 am AEDT tomorrow.") {
+		t.Errorf("flash doesn't say when the market opens: %q", w.Header().Get("Set-Cookie"))
 	}
 }
 
@@ -397,11 +401,15 @@ func TestTicketSaysWhenMarketClosed(t *testing.T) {
 	for _, open := range []bool{false, true} {
 		srv, _ := gameServer(t)
 		setMarketOpen(t, open)
+		setMarketNow(t, nyTime(t, "2026-11-02 04:00"))
 		w := httptest.NewRecorder()
 		srv.ServeHTTP(w, httptest.NewRequest("GET", "/games/1/stocks/1", nil))
 		body := w.Body.String()
 		if got := strings.Contains(body, `id="closed-note"`); got == open {
 			t.Errorf("market open %v: closed note shown = %v", open, got)
+		}
+		if got := strings.Contains(body, "It opens in 5 hr 30 min, at 1:30 am AEDT tomorrow."); got == open {
+			t.Errorf("market open %v: says when it opens = %v", open, got)
 		}
 		if got := strings.Contains(body, "at the last close"); got == open {
 			t.Errorf("market open %v: order type says last close = %v", open, got)
