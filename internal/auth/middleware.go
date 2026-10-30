@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"net/http"
+	"net/url"
 
 	"github.com/exploded/game/internal/db"
 )
@@ -12,11 +13,12 @@ type contextKey string
 const userKey contextKey = "user"
 
 // RequireAuth checks for a valid session and injects the user into context.
+// Without one it sends a page request to sign in, coming back afterwards.
 func RequireAuth(queries *db.Queries, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("session")
 		if err != nil {
-			http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+			http.Redirect(w, r, loginURL(r), http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -25,19 +27,28 @@ func RequireAuth(queries *db.Queries, next http.Handler) http.Handler {
 			http.SetCookie(w, &http.Cookie{
 				Name: "session", Value: "", Path: "/", MaxAge: -1,
 			})
-			http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+			http.Redirect(w, r, loginURL(r), http.StatusTemporaryRedirect)
 			return
 		}
 
 		user, err := queries.GetUser(r.Context(), session.UserID)
 		if err != nil {
-			http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+			http.Redirect(w, r, loginURL(r), http.StatusTemporaryRedirect)
 			return
 		}
 
 		ctx := context.WithValue(r.Context(), userKey, &user)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+// loginURL is the sign-in page, with next= set to come back to a GET
+// request's page. The dashboard is the default, so it isn't added.
+func loginURL(r *http.Request) string {
+	if r.Method != http.MethodGet || r.URL.Path == "/" || r.URL.Path == "/dashboard" {
+		return "/login"
+	}
+	return "/login?next=" + url.QueryEscape(r.URL.RequestURI())
 }
 
 // RequireAdmin checks that the current user is a site admin.

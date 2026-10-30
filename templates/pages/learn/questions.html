@@ -1,0 +1,71 @@
+{{template "base" .}}
+
+{{define "content"}}
+{{template "learntabs" .}}
+{{$f := index .Extra "Form"}}{{$sort := index .Extra "Sort"}}{{$show := index .Extra "Show"}}{{$topic := index .Extra "TopicSlug"}}
+
+<p style="margin-bottom:16px">Ask Rob anything about money, investing or the game. Vote for the questions you want answered: Rob takes the most popular ones in writing, in a video or live on air, and everyone who voted gets the answer by email.</p>
+
+<div class="settings-card" id="ask">
+    {{if .User}}
+    <form method="POST" action="/learn/questions">
+        <div class="form-group">
+            <label for="title">Your question</label>
+            <input type="text" id="title" name="title" value="{{index $f "Title"}}" maxlength="150" required placeholder="For example: should I salary sacrifice into super?">
+            {{with index .Errors "title"}}<p class="form-error">{{.}}</p>{{end}}
+        </div>
+        <div class="form-group">
+            <label for="body">Details (optional)</label>
+            <textarea id="body" name="body" rows="3" maxlength="2000">{{index $f "Body"}}</textarea>
+            {{with index .Errors "body"}}<p class="form-error">{{.}}</p>{{end}}
+        </div>
+        <div class="form-group">
+            <label for="topic">Topic (optional)</label>
+            <select id="topic" name="topic">
+                <option value="">Let us pick</option>
+                {{range index .Extra "Topics"}}<option value="{{.Slug}}"{{if eq .Slug (index $f "Topic")}} selected{{end}}>{{.Name}}</option>{{end}}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Ask</button>
+    </form>
+    {{else}}
+    <p><a href="{{index .Extra "SignIn"}}" class="btn btn-primary">Sign in to ask a question</a></p>
+    <p class="text-muted" style="margin-top:8px">It's free: we email you a sign-in link, no password.</p>
+    {{end}}
+</div>
+
+<div class="chips" aria-label="Topics">
+    <a href="?sort={{$sort}}&show={{$show}}" class="chip{{if not $topic}} chip-on{{end}}">All topics</a>
+    {{range index .Extra "Topics"}}<a href="?sort={{$sort}}&show={{$show}}&topic={{.Slug}}" class="chip{{if eq .Slug $topic}} chip-on{{end}}">{{.Name}}</a>{{end}}
+</div>
+
+<div class="q-filters">
+    <div class="btn-group">
+        <a href="?sort=top&show={{$show}}&topic={{$topic}}" class="btn btn-sm{{if eq $sort "top"}} btn-primary{{else}} btn-secondary{{end}}">Most votes</a>
+        <a href="?sort=new&show={{$show}}&topic={{$topic}}" class="btn btn-sm{{if eq $sort "new"}} btn-primary{{else}} btn-secondary{{end}}">Newest</a>
+    </div>
+    <div class="btn-group">
+        <a href="?sort={{$sort}}&show=all&topic={{$topic}}" class="btn btn-sm{{if eq $show "all"}} btn-primary{{else}} btn-secondary{{end}}">All</a>
+        <a href="?sort={{$sort}}&show=open&topic={{$topic}}" class="btn btn-sm{{if eq $show "open"}} btn-primary{{else}} btn-secondary{{end}}">Unanswered</a>
+        <a href="?sort={{$sort}}&show=answered&topic={{$topic}}" class="btn btn-sm{{if eq $show "answered"}} btn-primary{{else}} btn-secondary{{end}}">Answered</a>
+    </div>
+</div>
+
+{{range .Items}}
+<div class="settings-card q-card">
+    {{template "vote" (dict "Q" . "User" $.User "SignIn" (index $.Extra "SignIn"))}}
+    <div style="min-width:0">
+        <a href="/learn/questions/{{.ID}}" class="q-title">{{.Title}}</a>
+        <p class="text-muted q-meta">
+            {{.UserName}} &middot; {{day .CreatedAt}}
+            {{with .TopicName}}&middot; {{.}}{{end}}
+            {{if .Answer}}&middot; <span style="color:var(--color-success)">{{if .HasVideo}}Answered in a video{{else}}Answered{{end}}</span>{{end}}
+        </p>
+    </div>
+</div>
+{{else}}
+<p class="text-muted">No questions here yet. Be the first to ask.</p>
+{{end}}
+
+{{template "disclaimer" .}}
+{{end}}

@@ -1,0 +1,85 @@
+{{template "base" .}}
+
+{{define "content"}}
+{{template "learntabs" .}}
+
+{{with .Item}}
+<p style="margin-bottom:12px"><a href="/learn/questions">&larr; All questions</a></p>
+<div class="settings-card q-card">
+    {{template "vote" (dict "Q" . "User" $.User "SignIn" (index $.Extra "SignIn"))}}
+    <div style="min-width:0">
+        <h1 class="q-h1">{{.Title}}</h1>
+        <p class="text-muted q-meta" style="margin-bottom:12px">
+            Asked by {{.UserName}} on {{day .CreatedAt}}
+            {{with .TopicName}}&middot; <a href="/learn/topics/{{$.Item.TopicSlug}}">{{.}}</a>{{end}}
+        </p>
+        {{range paragraphs .Body}}<p style="margin-bottom:12px">{{.}}</p>{{end}}
+    </div>
+</div>
+
+{{if .Answer}}
+<div class="settings-card answer-card">
+    <h2>Answer{{with .AnsweredByName}} from {{.}}{{end}}</h2>
+    {{with index $.Extra "VideoEmbed"}}
+    {{template "player" (dict "Embed" . "Thumb" (thumb $.Item.VideoThumbUrl $.Item.AnswerVideoID.Int64) "Title" $.Item.VideoTitle "Vertical" $.Item.VideoVertical)}}
+    <p class="text-muted" style="margin:8px 0 12px">
+        <a href="/learn/v/{{$.Item.AnswerVideoID.Int64}}{{if $.Item.AnswerSeconds}}?t={{$.Item.AnswerSeconds}}{{end}}">{{$.Item.VideoTitle}}</a>{{if $.Item.AnswerSeconds}}, from {{mmss $.Item.AnswerSeconds}}{{end}}
+    </p>
+    {{end}}
+    {{range paragraphs .Answer}}<p style="margin-bottom:12px">{{.}}</p>{{end}}
+    {{with index $.Extra "Event"}}{{if not $.Item.AnswerVideoID.Valid}}<p><a href="/learn/live/{{.ID}}">About the stream</a> &middot; <a href="{{.Url}}" target="_blank" rel="noopener">Watch on {{platform .Platform}}</a></p>{{end}}{{end}}
+</div>
+{{else}}
+<p class="text-muted" style="margin:16px 0">Not answered yet. The more votes it gets, the sooner Rob answers it.</p>
+{{end}}
+
+{{if and $.User (eq .UserID $.User.ID) (not .Answer)}}
+<form method="POST" action="/learn/questions/{{.ID}}/delete" data-confirm="Delete your question?" style="margin-bottom:16px">
+    <button type="submit" class="btn btn-sm btn-secondary">Delete my question</button>
+</form>
+{{end}}
+
+{{if and $.User $.User.IsAdmin}}
+<div class="settings-card">
+    <h2>{{if .Answer}}Edit the answer{{else}}Answer this question{{end}}</h2>
+    <form method="GET" action="/learn/questions/{{.ID}}" class="learn-search" style="margin-bottom:12px">
+        <input type="search" name="vq" value="{{index $.Extra "VQ"}}" placeholder="Find a video to answer with" aria-label="Find a video">
+        <button type="submit" class="btn btn-secondary">Find</button>
+    </form>
+    <form method="POST" action="/learn/questions/{{.ID}}/answer">
+        <div class="form-row">
+            <div class="form-group" style="flex:3">
+                <label for="video_id">Answer with a video (optional)</label>
+                <select id="video_id" name="video_id">
+                    <option value="">No video</option>
+                    {{range index $.Extra "Picks"}}<option value="{{.ID}}"{{if and $.Item.AnswerVideoID.Valid (eq .ID $.Item.AnswerVideoID.Int64)}} selected{{end}}>{{.Title}} ({{platform .Platform}}, {{day .PublishedAt}})</option>{{end}}
+                </select>
+            </div>
+            <div class="form-group" style="flex:1">
+                <label for="at">From (m:ss)</label>
+                <input type="text" id="at" name="at" inputmode="numeric" placeholder="0:00" value="{{if .AnswerSeconds}}{{mmss .AnswerSeconds}}{{end}}">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="answer">Written answer</label>
+            <textarea id="answer" name="answer" rows="6" maxlength="10000">{{.Answer}}</textarea>
+            <p class="text-muted" style="font-size:12px;margin-top:4px">Plain text. Leave a blank line between paragraphs. Optional with a video. {{if not .Answer}}Posting emails the asker and everyone who voted.{{end}}</p>
+        </div>
+        {{if .AnswerVideoID.Valid}}<label class="checkbox-label" style="padding-top:0;margin-bottom:12px"><input type="checkbox" name="clear_video" value="1"> Remove the video</label>{{end}}
+        <button type="submit" class="btn btn-primary">{{if .Answer}}Save{{else}}Post answer{{end}}</button>
+    </form>
+    {{range index $.Extra "Live"}}
+    <form method="POST" action="/learn/questions/{{$.Item.ID}}/onair" style="margin-top:12px">
+        <input type="hidden" name="event_id" value="{{.ID}}">
+        <button type="submit" class="btn btn-secondary">Answered on air in &ldquo;{{.Title}}&rdquo;</button>
+    </form>
+    {{end}}
+    <form method="POST" action="/learn/questions/{{.ID}}/hide" data-confirm="Remove this question for everyone?" style="margin-top:12px">
+        <button type="submit" class="btn btn-sm btn-danger">Remove question</button>
+    </form>
+</div>
+{{end}}
+{{end}}
+
+{{template "disclaimer" .}}
+{{end}}

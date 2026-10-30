@@ -421,6 +421,18 @@
 </table>
 {{end}}
 
+{{with .Extra.RobVideos}}
+<h2 style="margin-top:2rem">Rob talks about {{$.Item.Symbol}}</h2>
+<div class="vlist" style="max-width:640px">
+    {{range .}}
+    <a href="/learn/v/{{.ID}}" class="vcard{{if .Vertical}} vcard-tall{{end}}">
+        <span class="vthumb"><img src="{{thumb .ThumbUrl .ID}}" alt="" loading="lazy">{{with duration .DurationSeconds}}<span class="vbadge">{{.}}</span>{{end}}</span>
+        <span><span class="vtitle">{{.Title}}</span><span class="vmeta">{{day .PublishedAt}}</span></span>
+    </a>
+    {{end}}
+</div>
+{{end}}
+
 {{if .Extra.News}}
 <h2 style="margin-top:2rem">Recent News</h2>
 <ul style="list-style:none; padding:0; margin:0;">

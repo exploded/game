@@ -19,6 +19,7 @@ import (
 	"github.com/exploded/game/internal/handler"
 	"github.com/exploded/game/internal/mail"
 	"github.com/exploded/game/internal/market"
+	"github.com/exploded/game/internal/media"
 	"github.com/exploded/game/internal/scheduler"
 	"github.com/exploded/monitor/pkg/logship"
 	"github.com/go-chi/chi/v5"
@@ -128,8 +129,13 @@ func main() {
 	h.SetMailer(mailer)
 	go mailer.Run(ctx)
 
+	// Learn: syncs Rob's YouTube and TikTok and sorts videos into topics.
+	// Each part is off until its keys are in .env.
+	med := media.New(queries, mailer, loc)
+	h.SetMedia(med)
+
 	// Start background scheduler.
-	go scheduler.Start(ctx, queries, rawDB, loc, mailer)
+	go scheduler.Start(ctx, queries, rawDB, loc, mailer, med)
 
 	// Generate CSRF secret.
 	csrfSecret, err := auth.GenerateCSRFSecret()
@@ -194,6 +200,28 @@ func main() {
 		r.Get("/help", h.HelpPage)
 		r.Get("/contact", h.ContactPage)
 		r.With(contactLimiter.Middleware).Post("/contact", h.ContactSubmit)
+	})
+
+	// Learn: Rob's videos, live streams and questions. Anyone can read them;
+	// asking, voting and reminders are in the signed-in group below.
+	r.Group(func(r chi.Router) {
+		r.Use(func(next http.Handler) http.Handler {
+			return auth.OptionalAuth(queries, next)
+		})
+		r.Use(auth.CSRFProtect(csrfSecret))
+		r.Get("/learn", h.LearnHome)
+		r.Get("/learn/topics/{slug}", h.LearnTopic)
+		r.Get("/learn/v/{vid}", h.LearnVideo)
+		r.Get("/learn/thumb/{vid}", h.LearnThumb)
+		r.Get("/learn/live", h.LearnLive)
+		r.Get("/learn/live/{eid}", h.LearnLiveEvent)
+		r.Get("/learn/live/{eid}/queue", h.LearnLiveQueue)
+		r.Get("/learn/live/{eid}/calendar.ics", h.LearnLiveCalendar)
+		r.Get("/learn/questions", h.QuestionsPage)
+		r.Get("/learn/questions/{qid}", h.QuestionPage)
+		r.Get("/learn/courses", h.LearnCourses)
+		r.Get("/questions", handler.OldQuestionsRedirect)
+		r.Get("/questions/{qid}", handler.OldQuestionsRedirect)
 	})
 
 	// Authenticated routes.
@@ -272,14 +300,14 @@ func main() {
 		})
 		r.Get("/invite/{code}", h.InviteJoin)
 
-		// Ask a Question
-		r.Get("/questions", h.QuestionsPage)
-		r.Post("/questions", h.QuestionCreate)
-		r.Get("/questions/{qid}", h.QuestionPage)
-		r.Post("/questions/{qid}/vote", h.QuestionVote)
-		r.Post("/questions/{qid}/delete", h.QuestionDelete)
-		r.With(auth.RequireAdmin).Post("/questions/{qid}/answer", h.QuestionAnswer)
-		r.With(auth.RequireAdmin).Post("/questions/{qid}/hide", h.QuestionHide)
+		// Learn: asking, voting and stream reminders
+		r.Post("/learn/questions", h.QuestionCreate)
+		r.Post("/learn/questions/{qid}/vote", h.QuestionVote)
+		r.Post("/learn/questions/{qid}/delete", h.QuestionDelete)
+		r.With(auth.RequireAdmin).Post("/learn/questions/{qid}/answer", h.QuestionAnswer)
+		r.With(auth.RequireAdmin).Post("/learn/questions/{qid}/onair", h.QuestionOnAir)
+		r.With(auth.RequireAdmin).Post("/learn/questions/{qid}/hide", h.QuestionHide)
+		r.Post("/learn/live/{eid}/remind", h.LearnLiveRemind)
 
 		// Courses
 		r.Get("/courses", h.CoursesPage)
@@ -341,6 +369,23 @@ func main() {
 			r.Post("/courses/{cid}/lessons", h.AdminLessonCreate)
 			r.Post("/lessons/{lid}", h.AdminLessonUpdate)
 			r.Post("/lessons/{lid}/delete", h.AdminLessonDelete)
+			r.Get("/learn", h.AdminLearn)
+			r.Post("/learn/sync", h.AdminLearnSync)
+			r.Post("/learn/videos", h.AdminLearnPaste)
+			r.Get("/learn/videos/{vid}", h.AdminLearnVideo)
+			r.Post("/learn/videos/{vid}", h.AdminLearnVideoUpdate)
+			r.Post("/learn/videos/{vid}/reclassify", h.AdminLearnVideoReclassify)
+			r.Post("/learn/videos/{vid}/delete", h.AdminLearnVideoDelete)
+			r.Get("/learn/topics", h.AdminLearnTopics)
+			r.Post("/learn/topics", h.AdminLearnTopicCreate)
+			r.Post("/learn/topics/{tid}", h.AdminLearnTopicUpdate)
+			r.Post("/learn/topics/{tid}/delete", h.AdminLearnTopicDelete)
+			r.Get("/learn/live", h.AdminLearnLive)
+			r.Post("/learn/live", h.AdminLearnLiveCreate)
+			r.Post("/learn/live/{eid}/{action}", h.AdminLearnLiveAction)
+			r.Get("/learn/tiktok/connect", h.AdminTikTokConnect)
+			r.Get("/learn/tiktok/callback", h.AdminTikTokCallback)
+			r.Post("/learn/tiktok/disconnect", h.AdminTikTokDisconnect)
 			r.Post("/email", h.AdminEmailSend)
 			r.Post("/messages/{mid}/read", h.AdminMarkMessageRead)
 		})

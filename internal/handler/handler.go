@@ -13,6 +13,7 @@ import (
 	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/db"
 	"github.com/exploded/game/internal/mail"
+	"github.com/exploded/game/internal/media"
 )
 
 // Handler holds shared dependencies for all HTTP handlers.
@@ -23,9 +24,11 @@ type Handler struct {
 	production bool
 	loc        *time.Location
 	mailer     *mail.Mailer
+	media      *media.Service
 }
 
 func New(q *db.Queries, rawDB *sql.DB, pages PageTemplates, production bool, loc *time.Location) *Handler {
+	displayLoc = loc
 	return &Handler{
 		rawDB:      rawDB,
 		q:          q,
@@ -38,6 +41,9 @@ func New(q *db.Queries, rawDB *sql.DB, pages PageTemplates, production bool, loc
 // SetMailer gives the handlers a way to send email.
 func (h *Handler) SetMailer(m *mail.Mailer) { h.mailer = m }
 
+// SetMedia gives the handlers the video sync, for the admin pages.
+func (h *Handler) SetMedia(m *media.Service) { h.media = m }
+
 // PageData is the standard data envelope passed to all templates.
 type PageData struct {
 	Title     string
@@ -49,7 +55,8 @@ type PageData struct {
 	Item      any
 	Extra     map[string]any
 	Errors    map[string]string
-	GameBar   *gameBar // set by the GameContext middleware on /games/{id} pages
+	GameBar   *gameBar      // set by the GameContext middleware on /games/{id} pages
+	LiveNow   *db.LiveEvent // a stream on now, for the "Rob is live" banner
 }
 
 type Flash struct {
@@ -108,6 +115,9 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, pageName, fragm
 		}
 		if data.GameBar == nil {
 			data.GameBar, _ = r.Context().Value(gameBarKey{}).(*gameBar)
+		}
+		if data.LiveNow == nil {
+			data.LiveNow = h.liveNow(r)
 		}
 	}
 	// Render into a buffer first: a template error halfway through would

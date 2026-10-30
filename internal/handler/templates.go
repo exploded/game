@@ -11,7 +11,24 @@ import (
 
 	"github.com/exploded/game/internal/mail"
 	"github.com/exploded/game/internal/market"
+	"github.com/exploded/game/internal/media"
 )
+
+// displayLoc is the time zone templates show times in. New sets it.
+var displayLoc = time.UTC
+
+// sqlTimeArg reads a stored UTC time from a string or sql.NullString.
+func sqlTimeArg(v any) time.Time {
+	switch t := v.(type) {
+	case string:
+		return parseUTC(t)
+	case sql.NullString:
+		if t.Valid {
+			return parseUTC(t.String)
+		}
+	}
+	return time.Time{}
+}
 
 // PageTemplates maps page keys (e.g. "games/list") to cloned template sets.
 type PageTemplates map[string]*template.Template
@@ -153,6 +170,71 @@ func LoadTemplates(fsys fs.FS, static *Static) (PageTemplates, error) {
 			}
 			return time.Unix(ts, 0).UTC().Format("2006-01-02")
 		},
+		// duration turns 725 seconds into "12:05".
+		"duration": func(s int64) string {
+			if s <= 0 {
+				return ""
+			}
+			if s >= 3600 {
+				return fmt.Sprintf("%d:%02d:%02d", s/3600, s/60%60, s%60)
+			}
+			return fmt.Sprintf("%d:%02d", s/60, s%60)
+		},
+		// mmss turns 3725 seconds into "1:02:05" for a timestamp link.
+		"mmss": func(s int64) string {
+			if s >= 3600 {
+				return fmt.Sprintf("%d:%02d:%02d", s/3600, s/60%60, s%60)
+			}
+			return fmt.Sprintf("%d:%02d", s/60, s%60)
+		},
+		// day turns a stored UTC time into "30 Oct 2026" in the site's time
+		// zone.
+		"day": func(v any) string {
+			t := sqlTimeArg(v)
+			if t.IsZero() {
+				return ""
+			}
+			return t.In(displayLoc).Format("2 Jan 2006")
+		},
+		// when turns a stored UTC time into "Thu 6 Nov, 7:00 pm AEDT".
+		"when": func(v any) string {
+			t := sqlTimeArg(v)
+			if t.IsZero() {
+				return ""
+			}
+			return t.In(displayLoc).Format("Mon 2 Jan, 3:04 pm MST")
+		},
+		// until says how long until a stored UTC time: "in 2 days",
+		// "in 3 hours", "in 20 minutes", or "any minute".
+		"until": func(v any) string {
+			d := time.Until(sqlTimeArg(v))
+			switch {
+			case d >= 48*time.Hour:
+				return fmt.Sprintf("in %d days", int(d.Hours()/24))
+			case d >= 2*time.Hour:
+				return fmt.Sprintf("in %d hours", int(d.Hours()))
+			case d >= 2*time.Minute:
+				return fmt.Sprintf("in %d minutes", int(d.Minutes()))
+			}
+			return "any minute"
+		},
+		// localInput turns a stored UTC time into a datetime-local value.
+		"localInput": func(v any) string {
+			t := sqlTimeArg(v)
+			if t.IsZero() {
+				return ""
+			}
+			return t.In(displayLoc).Format("2006-01-02T15:04")
+		},
+		"platform": media.PlatformName,
+		// thumb is a video's cover: the platform's image, or the cached copy.
+		"thumb": func(thumbURL string, id int64) string {
+			if thumbURL != "" {
+				return thumbURL
+			}
+			return fmt.Sprintf("/learn/thumb/%d", id)
+		},
+		"embedAt": embedAt,
 		"int": func(v any) int {
 			switch val := v.(type) {
 			case int:

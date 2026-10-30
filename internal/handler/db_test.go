@@ -57,6 +57,46 @@ func TestOpenDBUpgradesDeployedSchema(t *testing.T) {
 	}
 }
 
+// TestOpenDBUpgradesLatestDeploy opens a database made by the schema
+// deployed on 2026-10-30 (6ef8b66), which already has questions without
+// the Learn columns. Refresh the file after each deploy.
+func TestOpenDBUpgradesLatestDeploy(t *testing.T) {
+	old, err := os.ReadFile("testdata/schema-2026-10-30.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "test.db")
+	raw, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, q := range []string{
+		string(old),
+		"INSERT INTO users (id, email, name, email_token) VALUES (3, 'ann@example.com', 'Ann', 't3')",
+		"INSERT INTO questions (id, user_id, title, answer, answered_at) VALUES (1, 3, 'Old question', 'Old answer', datetime('now'))",
+	} {
+		if _, err := raw.Exec(q); err != nil {
+			t.Fatalf("old database: %v", err)
+		}
+	}
+	raw.Close()
+
+	d := openTestDBAt(t, path)
+	var mailed int
+	var topic sql.NullInt64
+	if err := d.QueryRow("SELECT answer_mailed, topic_id FROM questions WHERE id = 1").Scan(&mailed, &topic); err != nil {
+		t.Fatal(err)
+	}
+	if mailed != 1 || topic.Valid {
+		t.Errorf("old question: answer_mailed = %d, topic = %v; want 1 and none", mailed, topic)
+	}
+	var topics int
+	d.QueryRow("SELECT COUNT(*) FROM topics").Scan(&topics)
+	if topics == 0 {
+		t.Error("the topics weren't seeded")
+	}
+}
+
 // TestOpenDBAppliesPragmas guards against the DSN using mattn/go-sqlite3
 // syntax, which modernc silently ignores: production ran for months with WAL,
 // foreign keys and the busy timeout all off.

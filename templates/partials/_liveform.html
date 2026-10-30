@@ -1,0 +1,33 @@
+{{/* The fields for adding or editing a stream by hand. . is a LiveEvent
+(or nil for a new one). */}}
+{{define "liveform"}}
+<div class="form-group">
+    <label for="lf-title">Title</label>
+    <input type="text" id="lf-title" name="title" maxlength="150" required value="{{with .}}{{.Title}}{{end}}">
+</div>
+<div class="form-row">
+    <div class="form-group" style="flex:1">
+        <label for="lf-platform">Where</label>
+        <select id="lf-platform" name="platform">
+            {{$p := ""}}{{with .}}{{$p = .Platform}}{{end}}
+            <option value="tiktok"{{if eq $p "tiktok"}} selected{{end}}>TikTok</option>
+            <option value="youtube"{{if eq $p "youtube"}} selected{{end}}>YouTube</option>
+            <option value="facebook"{{if eq $p "facebook"}} selected{{end}}>Facebook</option>
+            <option value="instagram"{{if eq $p "instagram"}} selected{{end}}>Instagram</option>
+            <option value="x"{{if eq $p "x"}} selected{{end}}>X</option>
+        </select>
+    </div>
+    <div class="form-group" style="flex:1">
+        <label for="lf-when">Starts</label>
+        <input type="datetime-local" id="lf-when" name="scheduled" value="{{with .}}{{with .ScheduledAt.String}}{{localInput .}}{{end}}{{end}}">
+    </div>
+</div>
+<div class="form-group">
+    <label for="lf-url">Link to watch</label>
+    <input type="url" id="lf-url" name="url" required placeholder="https://www.tiktok.com/@rob_goudie/live" value="{{with .}}{{.Url}}{{end}}">
+</div>
+<div class="form-group">
+    <label for="lf-desc">About it (optional)</label>
+    <textarea id="lf-desc" name="description" rows="2">{{with .}}{{.Description}}{{end}}</textarea>
+</div>
+{{end}}

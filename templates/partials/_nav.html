@@ -10,8 +10,7 @@
             <a href="/dashboard">Dashboard</a>
             <a href="/games">Games</a>
             <a href="/lobby">Lobby</a>
-            <a href="/questions">Questions</a>
-            <a href="/courses">Courses</a>
+            <a href="/learn">Learn</a>
             <a href="/achievements">Achievements</a>
             <a href="/notifications" class="nav-notif">
                 Notifications
@@ -29,6 +28,11 @@
             </a>
             <a href="/settings" class="nav-settings" title="Account Settings">Settings</a>
             <form method="POST" action="/logout" style="display:inline"><button type="submit" class="nav-logout">Logout</button></form>
+        </div>
+        {{else}}
+        <div class="nav-links nav-links-public">
+            <a href="/learn">Learn</a>
+            <a href="/login" class="btn btn-sm btn-primary nav-signin">Sign in</a>
         </div>
         {{end}}
     </div>

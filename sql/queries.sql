@@ -1010,38 +1010,70 @@ SELECT COALESCE(SUM(bonus_amount), 0) FROM referral_bonuses WHERE referrer_id = 
 -- =============================================================================
 
 -- name: CreateQuestion :one
-INSERT INTO questions (user_id, title, body) VALUES (?, ?, ?)
+INSERT INTO questions (user_id, title, body, topic_id) VALUES (?, ?, ?, ?)
 RETURNING id;
+
+-- name: SetQuestionTopic :exec
+UPDATE questions SET topic_id = ? WHERE id = ?;
 
 -- name: CountRecentQuestions :one
 SELECT COUNT(*) FROM questions
 WHERE user_id = ? AND created_at > datetime('now', '-1 day');
 
 -- Most votes first; the handler re-sorts for newest first. Show is 'all',
--- 'answered' or 'open'.
+-- 'answered' or 'open'; topic 0 means every topic.
 -- name: ListQuestions :many
 SELECT q.id, q.user_id, q.title, q.body, q.answer, q.answered_at, q.created_at,
+       u.name AS user_name,
+       COALESCE(t.name, '') AS topic_name, COALESCE(t.slug, '') AS topic_slug,
+       q.answer_video_id IS NOT NULL AS has_video,
+       (SELECT COUNT(*) FROM question_votes v WHERE v.question_id = q.id) AS votes,
+       EXISTS (SELECT 1 FROM question_votes v WHERE v.question_id = q.id AND v.user_id = sqlc.arg(viewer)) AS voted
+FROM questions q
+JOIN users u ON u.id = q.user_id
+LEFT JOIN topics t ON t.id = q.topic_id
+WHERE q.hidden = 0
+  AND (CAST(sqlc.arg(show) AS TEXT) = 'all'
+       OR (sqlc.arg(show) = 'answered' AND q.answer != '')
+       OR (sqlc.arg(show) = 'open' AND q.answer = ''))
+  AND (CAST(sqlc.arg(topic) AS INTEGER) = 0 OR q.topic_id = sqlc.arg(topic))
+ORDER BY votes DESC, q.created_at DESC
+LIMIT 100;
+
+-- The live Q&A queue: open questions, most votes first.
+-- name: ListLiveQueue :many
+SELECT q.id, q.user_id, q.title, q.body, q.created_at,
        u.name AS user_name,
        (SELECT COUNT(*) FROM question_votes v WHERE v.question_id = q.id) AS votes,
        EXISTS (SELECT 1 FROM question_votes v WHERE v.question_id = q.id AND v.user_id = sqlc.arg(viewer)) AS voted
 FROM questions q
 JOIN users u ON u.id = q.user_id
-WHERE q.hidden = 0
-  AND (CAST(sqlc.arg(show) AS TEXT) = 'all'
-       OR (sqlc.arg(show) = 'answered' AND q.answer != '')
-       OR (sqlc.arg(show) = 'open' AND q.answer = ''))
-ORDER BY votes DESC, q.created_at DESC
-LIMIT 100;
+WHERE q.hidden = 0 AND q.answer = ''
+ORDER BY votes DESC, q.created_at
+LIMIT 20;
+
+-- Questions answered during a stream.
+-- name: ListLiveAnswered :many
+SELECT q.id, q.title, q.answer_seconds FROM questions q
+WHERE q.live_event_id = ? AND q.hidden = 0
+ORDER BY q.answer_seconds;
 
 -- name: GetQuestion :one
 SELECT q.id, q.user_id, q.title, q.body, q.answer, q.answered_at, q.created_at,
        u.name AS user_name,
        COALESCE(a.name, '') AS answered_by_name,
+       q.topic_id, COALESCE(t.name, '') AS topic_name, COALESCE(t.slug, '') AS topic_slug,
+       q.answer_video_id, q.answer_seconds, q.live_event_id,
+       COALESCE(av.title, '') AS video_title, COALESCE(av.embed_url, '') AS video_embed_url,
+       COALESCE(av.url, '') AS video_url, COALESCE(av.vertical, 0) AS video_vertical,
+       COALESCE(av.thumb_url, '') AS video_thumb_url,
        (SELECT COUNT(*) FROM question_votes v WHERE v.question_id = q.id) AS votes,
        EXISTS (SELECT 1 FROM question_votes v WHERE v.question_id = q.id AND v.user_id = sqlc.arg(viewer)) AS voted
 FROM questions q
 JOIN users u ON u.id = q.user_id
 LEFT JOIN users a ON a.id = q.answered_by
+LEFT JOIN topics t ON t.id = q.topic_id
+LEFT JOIN videos av ON av.id = q.answer_video_id
 WHERE q.id = sqlc.arg(id) AND q.hidden = 0;
 
 -- name: AddQuestionVote :exec
@@ -1054,6 +1086,42 @@ DELETE FROM question_votes WHERE question_id = ? AND user_id = ?;
 UPDATE questions SET answer = ?, answered_by = ?,
     answered_at = COALESCE(answered_at, datetime('now'))
 WHERE id = ?;
+
+-- Points the answer at a video, from a given second.
+-- name: SetQuestionVideo :exec
+UPDATE questions SET answer_video_id = ?, answer_seconds = ? WHERE id = ?;
+
+-- Marks a question answered during a live stream. Its followers are emailed
+-- once the stream is over (answer_mailed = 0 until then).
+-- name: AnswerOnAir :exec
+UPDATE questions SET live_event_id = sqlc.arg(live_event_id), answer_seconds = sqlc.arg(answer_seconds),
+    answer = CASE WHEN answer = '' THEN sqlc.arg(answer) ELSE answer END,
+    answered_by = sqlc.arg(answered_by), answered_at = COALESCE(answered_at, datetime('now')),
+    answer_mailed = 0
+WHERE id = sqlc.arg(id);
+
+-- On-air answers whose stream has ended. A YouTube stream waits for its
+-- recording, so the email can link to the moment.
+-- name: ListOnAirAnswersToMail :many
+SELECT q.id, q.user_id, q.title, q.answer, q.answer_seconds, e.video_id AS event_video_id,
+       e.title AS event_title, e.platform AS event_platform,
+       COALESCE(a.name, '') AS answered_by_name
+FROM questions q
+JOIN live_events e ON e.id = q.live_event_id
+LEFT JOIN users a ON a.id = q.answered_by
+WHERE q.answer_mailed = 0 AND q.hidden = 0 AND e.status = 'ended'
+  AND (e.source != 'youtube' OR e.video_id IS NOT NULL);
+
+-- name: MarkAnswerMailed :exec
+UPDATE questions SET answer_mailed = 1 WHERE id = ?;
+
+-- name: ListTopicQuestions :many
+SELECT q.id, q.title, q.answer != '' AS answered,
+       (SELECT COUNT(*) FROM question_votes v WHERE v.question_id = q.id) AS votes
+FROM questions q
+WHERE q.topic_id = ? AND q.hidden = 0
+ORDER BY answered DESC, votes DESC
+LIMIT 10;
 
 -- name: HideQuestion :exec
 UPDATE questions SET hidden = 1 WHERE id = ?;
@@ -1138,3 +1206,301 @@ DELETE FROM lesson_progress WHERE user_id = ? AND lesson_id = ?;
 
 -- name: ListActiveUserIDs :many
 SELECT id FROM users WHERE deleted_at IS NULL ORDER BY id;
+
+-- =============================================================================
+-- Learn: videos, topics and live streams
+-- =============================================================================
+
+-- name: GetMediaState :one
+SELECT value FROM media_state WHERE key = ?;
+
+-- name: SetMediaState :exec
+INSERT INTO media_state (key, value) VALUES (?, ?)
+ON CONFLICT(key) DO UPDATE SET value = excluded.value;
+
+-- A changed title or description sends the video back to Claude.
+-- name: UpsertVideo :one
+INSERT INTO videos (platform, external_id, url, embed_url, title, description, thumb_url,
+                    published_at, duration_seconds, vertical, live_status, was_live, view_count)
+VALUES (sqlc.arg(platform), sqlc.arg(external_id), sqlc.arg(url), sqlc.arg(embed_url), sqlc.arg(title),
+        sqlc.arg(description), sqlc.arg(thumb_url), sqlc.arg(published_at), sqlc.arg(duration_seconds),
+        sqlc.arg(vertical), sqlc.arg(live_status), sqlc.arg(was_live), sqlc.arg(view_count))
+ON CONFLICT(platform, external_id) DO UPDATE SET
+    url = excluded.url,
+    embed_url = excluded.embed_url,
+    title = excluded.title,
+    description = excluded.description,
+    thumb_url = excluded.thumb_url,
+    published_at = excluded.published_at,
+    duration_seconds = excluded.duration_seconds,
+    vertical = excluded.vertical,
+    live_status = excluded.live_status,
+    was_live = excluded.was_live,
+    view_count = excluded.view_count,
+    classified_at = CASE WHEN videos.title != excluded.title OR videos.description != excluded.description
+                         THEN NULL ELSE videos.classified_at END
+RETURNING id;
+
+-- name: GetVideo :one
+SELECT * FROM videos WHERE id = ?;
+
+-- name: GetVideoByExternalID :one
+SELECT * FROM videos WHERE platform = ? AND external_id = ?;
+
+-- Videos for the Watch page rows. Streams still upcoming or live are on the
+-- Live tab instead.
+-- name: ListLatestVideos :many
+SELECT * FROM videos
+WHERE hidden = 0 AND live_status = '' AND vertical = sqlc.arg(vertical)
+ORDER BY published_at DESC
+LIMIT sqlc.arg(lim);
+
+-- name: ListFeaturedVideos :many
+SELECT * FROM videos
+WHERE hidden = 0 AND live_status = '' AND featured = 1
+ORDER BY published_at DESC
+LIMIT 6;
+
+-- name: ListTopicVideos :many
+SELECT v.* FROM videos v
+JOIN video_topics vt ON vt.video_id = v.id
+WHERE vt.topic_id = sqlc.arg(topic_id) AND v.hidden = 0 AND v.live_status = ''
+ORDER BY v.published_at DESC
+LIMIT sqlc.arg(lim) OFFSET sqlc.arg(off);
+
+-- name: CountTopicVideos :one
+SELECT COUNT(*) FROM videos v
+JOIN video_topics vt ON vt.video_id = v.id
+WHERE vt.topic_id = ? AND v.hidden = 0 AND v.live_status = '';
+
+-- Newest first; the handler moves title matches to the top.
+-- name: SearchVideos :many
+SELECT * FROM videos
+WHERE hidden = 0 AND live_status = ''
+  AND (title LIKE '%' || CAST(sqlc.arg(q) AS TEXT) || '%' OR description LIKE '%' || CAST(sqlc.arg(q) AS TEXT) || '%')
+ORDER BY published_at DESC
+LIMIT 60;
+
+-- Videos sharing the most topics with this one, newest first.
+-- name: ListRelatedVideos :many
+SELECT v.*, COUNT(*) AS shared FROM videos v
+JOIN video_topics vt ON vt.video_id = v.id
+WHERE vt.topic_id IN (SELECT x.topic_id FROM video_topics x WHERE x.video_id = sqlc.arg(id))
+  AND v.id != sqlc.arg(id) AND v.hidden = 0 AND v.live_status = ''
+GROUP BY v.id
+ORDER BY shared DESC, v.published_at DESC
+LIMIT 8;
+
+-- name: ListTopics :many
+SELECT t.*,
+       (SELECT COUNT(*) FROM video_topics vt JOIN videos v ON v.id = vt.video_id
+        WHERE vt.topic_id = t.id AND v.hidden = 0 AND v.live_status = '') AS videos
+FROM topics t
+ORDER BY t.sort_order, t.name;
+
+-- name: GetTopicBySlug :one
+SELECT * FROM topics WHERE slug = ?;
+
+-- name: GetTopic :one
+SELECT * FROM topics WHERE id = ?;
+
+-- name: CreateTopic :exec
+INSERT INTO topics (slug, name, description, sort_order)
+VALUES (?, ?, ?, (SELECT COALESCE(MAX(t.sort_order), 0) + 1 FROM topics t));
+
+-- name: UpdateTopic :exec
+UPDATE topics SET name = ?, description = ?, sort_order = ? WHERE id = ?;
+
+-- name: DeleteTopic :exec
+DELETE FROM topics WHERE id = ?;
+
+-- name: ListVideoTopics :many
+SELECT t.id, t.slug, t.name, vt.source FROM topics t
+JOIN video_topics vt ON vt.topic_id = t.id
+WHERE vt.video_id = ?
+ORDER BY t.sort_order;
+
+-- name: AddVideoTopic :exec
+INSERT INTO video_topics (video_id, topic_id, source) VALUES (?, ?, ?)
+ON CONFLICT(video_id, topic_id) DO NOTHING;
+
+-- name: RemoveVideoTopic :exec
+DELETE FROM video_topics WHERE video_id = ? AND topic_id = ?;
+
+-- Clears Claude's picks before it picks again. An admin's stay.
+-- name: ClearClaudeVideoTopics :exec
+DELETE FROM video_topics WHERE video_id = ? AND source = 'claude';
+
+-- name: ListUnclassifiedVideos :many
+SELECT * FROM videos
+WHERE classified_at IS NULL AND hidden = 0 AND live_status = ''
+ORDER BY published_at DESC
+LIMIT ?;
+
+-- name: SetVideoClassified :exec
+UPDATE videos SET classified_at = datetime('now') WHERE id = ?;
+
+-- name: ResetVideoClassified :exec
+UPDATE videos SET classified_at = NULL WHERE id = ?;
+
+-- name: ClearVideoStocks :exec
+DELETE FROM video_stocks WHERE video_id = ?;
+
+-- name: AddVideoStockBySymbol :exec
+INSERT OR IGNORE INTO video_stocks (video_id, stock_id)
+SELECT sqlc.arg(video_id), s.id FROM stocks s WHERE s.symbol = sqlc.arg(symbol);
+
+-- name: ListStockVideos :many
+SELECT v.* FROM videos v
+JOIN video_stocks vs ON vs.video_id = v.id
+WHERE vs.stock_id = ? AND v.hidden = 0 AND v.live_status = ''
+ORDER BY v.published_at DESC
+LIMIT 6;
+
+-- The admin list. Platform '' means every platform.
+-- name: ListVideosAdmin :many
+SELECT v.id, v.platform, v.title, v.url, v.thumb_url, v.published_at, v.hidden, v.featured,
+       v.vertical, v.live_status, v.classified_at,
+       CAST(COALESCE((SELECT GROUP_CONCAT(t.name, ', ') FROM video_topics vt JOIN topics t ON t.id = vt.topic_id
+                      WHERE vt.video_id = v.id), '') AS TEXT) AS topic_names
+FROM videos v
+WHERE (CAST(sqlc.arg(platform) AS TEXT) = '' OR v.platform = sqlc.arg(platform))
+  AND (CAST(sqlc.arg(q) AS TEXT) = '' OR v.title LIKE '%' || sqlc.arg(q) || '%')
+ORDER BY v.published_at DESC
+LIMIT sqlc.arg(lim) OFFSET sqlc.arg(off);
+
+-- name: CountVideosByPlatform :many
+SELECT platform, COUNT(*) AS videos, CAST(SUM(classified_at IS NULL) AS INTEGER) AS unclassified
+FROM videos GROUP BY platform ORDER BY platform;
+
+-- name: SetVideoHidden :exec
+UPDATE videos SET hidden = ? WHERE id = ?;
+
+-- name: SetVideoFeatured :exec
+UPDATE videos SET featured = ? WHERE id = ?;
+
+-- name: DeleteVideo :exec
+DELETE FROM videos WHERE id = ?;
+
+-- name: DeleteVideoByExternalID :exec
+DELETE FROM videos WHERE platform = ? AND external_id = ?;
+
+-- name: ListPlatformVideoIDs :many
+SELECT id, external_id FROM videos WHERE platform = ?;
+
+-- name: UpsertVideoThumb :exec
+INSERT INTO video_thumbs (video_id, content_type, data) VALUES (?, ?, ?)
+ON CONFLICT(video_id) DO UPDATE SET content_type = excluded.content_type, data = excluded.data;
+
+-- name: GetVideoThumb :one
+SELECT content_type, data FROM video_thumbs WHERE video_id = ?;
+
+-- YouTube streams still upcoming or live, for the sync to re-check.
+-- name: ListLiveYouTubeVideoIDs :many
+SELECT external_id FROM videos WHERE platform = 'youtube' AND live_status != '';
+
+-- Videos to pick from when answering a question with one.
+-- name: PickVideos :many
+SELECT id, platform, title, published_at FROM videos
+WHERE hidden = 0 AND live_status = '' AND (CAST(sqlc.arg(q) AS TEXT) = '' OR title LIKE '%' || sqlc.arg(q) || '%')
+ORDER BY published_at DESC
+LIMIT 30;
+
+-- name: UpsertYouTubeLiveEvent :exec
+INSERT INTO live_events (platform, url, embed_url, video_id, title, description, scheduled_at,
+                         started_at, ended_at, status, source)
+VALUES ('youtube', sqlc.arg(url), sqlc.arg(embed_url), sqlc.arg(video_id), sqlc.arg(title), sqlc.arg(description),
+        sqlc.arg(scheduled_at), sqlc.arg(started_at), sqlc.arg(ended_at), sqlc.arg(status), 'youtube')
+ON CONFLICT(video_id) DO UPDATE SET
+    url = excluded.url,
+    embed_url = excluded.embed_url,
+    title = excluded.title,
+    description = excluded.description,
+    scheduled_at = excluded.scheduled_at,
+    started_at = COALESCE(excluded.started_at, live_events.started_at),
+    ended_at = COALESCE(excluded.ended_at, live_events.ended_at),
+    status = CASE WHEN live_events.status = 'cancelled' THEN 'cancelled' ELSE excluded.status END;
+
+-- name: CreateLiveEvent :one
+INSERT INTO live_events (platform, url, embed_url, title, description, scheduled_at, status, source)
+VALUES (?, ?, ?, ?, ?, ?, ?, 'admin')
+RETURNING id;
+
+-- name: UpdateLiveEvent :exec
+UPDATE live_events SET platform = ?, url = ?, embed_url = ?, title = ?, description = ?, scheduled_at = ?
+WHERE id = ?;
+
+-- name: GoLive :exec
+UPDATE live_events SET status = 'live', started_at = COALESCE(started_at, datetime('now')) WHERE id = ?;
+
+-- name: EndLive :exec
+UPDATE live_events SET status = 'ended', ended_at = COALESCE(ended_at, datetime('now')) WHERE id = ?;
+
+-- name: CancelLive :exec
+UPDATE live_events SET status = 'cancelled' WHERE id = ?;
+
+-- name: DeleteLiveEvent :exec
+DELETE FROM live_events WHERE id = ?;
+
+-- name: GetLiveEvent :one
+SELECT * FROM live_events WHERE id = ?;
+
+-- name: ListLiveNow :many
+SELECT * FROM live_events WHERE status = 'live' ORDER BY started_at DESC;
+
+-- Upcoming streams. One an hour overdue without starting has probably been
+-- abandoned, so it drops off.
+-- name: ListUpcomingLive :many
+SELECT * FROM live_events
+WHERE status = 'upcoming' AND (scheduled_at IS NULL OR scheduled_at > datetime('now', '-1 hour'))
+ORDER BY scheduled_at
+LIMIT 20;
+
+-- name: ListPastLive :many
+SELECT * FROM live_events WHERE status = 'ended'
+ORDER BY COALESCE(started_at, scheduled_at) DESC
+LIMIT ?;
+
+-- name: ListAllLiveEvents :many
+SELECT * FROM live_events ORDER BY COALESCE(scheduled_at, created_at) DESC LIMIT 100;
+
+-- name: ListLiveToAnnounce :many
+SELECT * FROM live_events WHERE status = 'upcoming' AND announced = 0;
+
+-- name: MarkLiveAnnounced :exec
+UPDATE live_events SET announced = 1 WHERE id = ?;
+
+-- name: ListLiveToNotifyStart :many
+SELECT * FROM live_events WHERE status = 'live' AND start_notified = 0;
+
+-- name: MarkLiveStartNotified :exec
+UPDATE live_events SET start_notified = 1, announced = 1 WHERE id = ?;
+
+-- name: AddLiveReminder :exec
+INSERT OR IGNORE INTO live_reminders (event_id, user_id) VALUES (?, ?);
+
+-- name: RemoveLiveReminder :exec
+DELETE FROM live_reminders WHERE event_id = ? AND user_id = ?;
+
+-- name: ListUserLiveReminders :many
+SELECT event_id FROM live_reminders WHERE user_id = ?;
+
+-- name: ListLiveReminderUserIDs :many
+SELECT user_id FROM live_reminders WHERE event_id = ?;
+
+-- name: GetOAuthToken :one
+SELECT * FROM oauth_tokens WHERE provider = ?;
+
+-- name: SaveOAuthToken :exec
+INSERT INTO oauth_tokens (provider, account, access_token, refresh_token, access_expires_at, refresh_expires_at)
+VALUES (?, ?, ?, ?, ?, ?)
+ON CONFLICT(provider) DO UPDATE SET
+    account = excluded.account,
+    access_token = excluded.access_token,
+    refresh_token = excluded.refresh_token,
+    access_expires_at = excluded.access_expires_at,
+    refresh_expires_at = excluded.refresh_expires_at,
+    updated_at = datetime('now');
+
+-- name: DeleteOAuthToken :exec
+DELETE FROM oauth_tokens WHERE provider = ?;

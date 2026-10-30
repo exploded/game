@@ -1,0 +1,69 @@
+{{template "base" .}}
+
+{{define "content"}}
+{{template "learntabs" .}}
+{{$rem := index .Extra "Reminders"}}
+
+{{range index .Extra "Now"}}
+<a href="/learn/live/{{.ID}}" class="live-card live-card-on">
+    <span class="live-pill"><span class="live-dot"></span> LIVE</span>
+    <span class="live-card-title">{{.Title}}</span>
+    <span class="text-muted">On {{platform .Platform}} now. Watch here and vote on the questions.</span>
+</a>
+{{end}}
+
+<section class="learn-section">
+    <h2 class="learn-h2">Coming up</h2>
+    {{range index .Extra "Upcoming"}}
+    <div class="event-row">
+        <a href="/learn/live/{{.ID}}" class="event-main">
+            <span class="event-when">{{with .ScheduledAt.String}}{{when .}}{{else}}Soon{{end}}</span>
+            <span class="event-title">{{.Title}}</span>
+            <span class="text-muted">{{platform .Platform}}{{with .ScheduledAt.String}} &middot; {{until .}}{{end}}</span>
+        </a>
+        <div class="event-actions">
+            {{if $.User}}
+            <form method="POST" action="/learn/live/{{.ID}}/remind">
+                <input type="hidden" name="back" value="/learn/live">
+                {{if index $rem .ID}}
+                <input type="hidden" name="on" value="0">
+                <button type="submit" class="btn btn-sm btn-secondary">&#10003; Reminder set</button>
+                {{else}}
+                <input type="hidden" name="on" value="1">
+                <button type="submit" class="btn btn-sm btn-primary">Remind me</button>
+                {{end}}
+            </form>
+            {{else}}
+            <a href="{{index $.Extra "SignIn"}}" class="btn btn-sm btn-primary">Remind me</a>
+            {{end}}
+            {{if .ScheduledAt.Valid}}<a href="/learn/live/{{.ID}}/calendar.ics" class="btn btn-sm btn-secondary">Add to calendar</a>{{end}}
+        </div>
+    </div>
+    {{else}}
+    <p class="text-muted">No streams booked right now. Rob streams on YouTube and TikTok; <a href="/settings">turn on Live streams email</a> and we'll tell you when the next one is booked.</p>
+    {{end}}
+</section>
+
+<section class="learn-section">
+    <h2 class="learn-h2">Ask before the stream</h2>
+    <p style="margin-bottom:12px">Rob takes the most-voted questions on air. <a href="/learn/questions?show=open">See what people are asking</a> and vote for the ones you want answered.</p>
+</section>
+
+{{with index .Extra "Past"}}
+<section class="learn-section">
+    <h2 class="learn-h2">Past streams</h2>
+    <div class="vlist">
+        {{range .}}
+        <a href="/learn/live/{{.ID}}" class="event-past">
+            <span class="event-title">{{.Title}}</span>
+            <span class="text-muted">{{day .StartedAt}} &middot; {{platform .Platform}}</span>
+        </a>
+        {{end}}
+    </div>
+</section>
+{{end}}
+
+{{if and .User .User.IsAdmin}}<p style="margin-top:16px"><a href="/admin/learn/live" class="btn btn-secondary">Add a stream</a></p>{{end}}
+
+{{template "disclaimer" .}}
+{{end}}

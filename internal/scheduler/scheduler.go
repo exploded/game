@@ -11,6 +11,7 @@ import (
 	"github.com/exploded/game/internal/db"
 	"github.com/exploded/game/internal/mail"
 	"github.com/exploded/game/internal/market"
+	"github.com/exploded/game/internal/media"
 	"github.com/exploded/game/internal/notify"
 )
 
@@ -29,7 +30,8 @@ func SignalPricesChanged() { pricesChanged.Store(true) }
 
 // Start launches the background scheduler that runs every minute.
 // loc is the timezone used for game date comparisons (start/end dates).
-func Start(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, m *mail.Mailer) {
+// med runs the Learn jobs (video sync, topics, live stream emails).
+func Start(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, m *mail.Mailer, med *media.Service) {
 	// Kick off historical backfill in the background if no prices exist yet.
 	// Runs once at startup, independent of the hour gate used for daily updates.
 	go startupBackfill(ctx, q, rawDB)
@@ -49,6 +51,7 @@ func Start(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location
 			return
 		case <-ticker.C:
 			run(ctx, q, rawDB, loc, m)
+			med.Run(ctx, time.Now())
 		}
 	}
 }

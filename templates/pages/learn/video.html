@@ -1,0 +1,45 @@
+{{template "base" .}}
+
+{{define "content"}}
+{{template "learntabs" .}}
+{{$v := .Item}}
+
+<div class="watch">
+    <div class="watch-main">
+        {{template "player" (dict "Embed" (index .Extra "Embed") "Thumb" (thumb $v.ThumbUrl $v.ID) "Title" $v.Title "Vertical" $v.Vertical)}}
+
+        <h1 class="watch-title">{{$v.Title}}</h1>
+        <p class="text-muted watch-meta">
+            {{day $v.PublishedAt}}{{with duration $v.DurationSeconds}} &middot; {{.}}{{end}}{{if $v.WasLive}} &middot; Recorded live{{end}}
+            &middot; <a href="{{$v.Url}}" target="_blank" rel="noopener">Watch on {{platform $v.Platform}}</a>
+        </p>
+
+        {{with index .Extra "Topics"}}
+        <div class="chips chips-wrap">
+            {{range .}}<a href="/learn/topics/{{.Slug}}" class="chip">{{.Name}}</a>{{end}}
+        </div>
+        {{end}}
+
+        <div class="watch-actions">
+            <a href="/learn/questions?video={{$v.ID}}#ask" class="btn btn-primary">Ask Rob about this</a>
+            {{if and $.User $.User.IsAdmin}}<a href="/admin/learn/videos/{{$v.ID}}" class="btn btn-secondary">Edit</a>{{end}}
+        </div>
+
+        {{with $v.Description}}
+        <details class="watch-desc">
+            <summary>Description</summary>
+            {{range paragraphs .}}<p>{{.}}</p>{{end}}
+        </details>
+        {{end}}
+    </div>
+
+    {{with index .Extra "Related"}}
+    <aside class="watch-side">
+        <h2 class="learn-h2">More like this</h2>
+        <div class="vlist">{{range .}}{{template "videocard" .}}{{end}}</div>
+    </aside>
+    {{end}}
+</div>
+
+{{template "disclaimer" .}}
+{{end}}

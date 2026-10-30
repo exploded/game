@@ -1,0 +1,15 @@
+{{/* D is media.liveEmail. */}}
+{{define "subject"}}Rob is going live{{with .D.When}} {{.}}{{end}}: {{.D.Title}}{{end}}
+
+{{define "text"}}Rob is going live on {{.D.Platform}}{{with .D.When}}, {{.}}{{end}}:
+
+"{{.D.Title}}"
+
+Send in your questions beforehand and vote for the ones you want answered on air. Tap "Remind me" and we'll email you when it starts.
+
+{{.BaseURL}}{{.D.URL}}{{end}}
+
+{{define "html"}}<p style="margin:0 0 16px;">Rob is going live on {{.D.Platform}}{{with .D.When}}, <strong>{{.}}</strong>{{end}}:</p>
+<p style="margin:0 0 16px;font-size:18px;font-weight:600;">{{.D.Title}}</p>
+<p style="margin:0 0 24px;">Send in your questions beforehand and vote for the ones you want answered on air. Tap <strong>Remind me</strong> and we'll email you when it starts.</p>
+<p style="margin:0;"><a href="{{.BaseURL}}{{.D.URL}}" style="display:inline-block;background:#007994;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:6px;">Ask a question or set a reminder</a></p>{{end}}

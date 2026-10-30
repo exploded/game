@@ -1,0 +1,103 @@
+{{template "base" .}}
+
+{{define "content"}}
+{{$st := index .Extra "Status"}}
+<div class="page-header">
+    <h1>Learn</h1>
+    <div class="page-header-actions">
+        <a href="/admin/learn/topics" class="btn btn-sm btn-secondary">Topics</a>
+        <a href="/admin/learn/live" class="btn btn-sm btn-secondary">Live streams</a>
+        <a href="/learn" class="btn btn-sm">View Learn</a>
+        <a href="/admin" class="btn btn-sm">&larr; Admin</a>
+    </div>
+</div>
+
+<div class="settings-card">
+    <h2>Sources</h2>
+    <ul class="admin-status">
+        <li>{{if $st.YouTube}}&#10003; YouTube syncs every 10 minutes, and the whole channel nightly.{{else}}&#10007; YouTube is off. Set <code>YOUTUBE_API_KEY</code> in <code>.env</code>.{{end}}</li>
+        <li>{{if $st.Claude}}&#10003; Claude sorts new videos into topics.{{else}}&#10007; Topics are off. Set <code>ANTHROPIC_API_KEY</code> in <code>.env</code>, or tick topics by hand.{{end}}</li>
+        <li>
+            {{if not $st.TikTok}}&#10007; TikTok is off. Set <code>TIKTOK_CLIENT_KEY</code> and <code>TIKTOK_CLIENT_SECRET</code> in <code>.env</code>.
+            {{else}}{{with index .Extra "TikTok"}}
+                &#10003; TikTok connected{{with .Account}} as {{.}}{{end}}. Syncs hourly.
+                {{if index $.Extra "TikTokExpiring"}}<strong style="color:var(--color-warning)">The connection expires {{day .RefreshExpiresAt}}: connect again before then.</strong>{{end}}
+            {{else}}
+                TikTok isn't connected yet. Rob needs to sign in to TikTok once.
+            {{end}}{{end}}
+        </li>
+    </ul>
+    <div class="btn-group" style="flex-wrap:wrap;margin-top:12px">
+        <form method="POST" action="/admin/learn/sync"><button type="submit" class="btn btn-primary">Sync now</button></form>
+        <form method="POST" action="/admin/learn/sync"><input type="hidden" name="full" value="1"><button type="submit" class="btn btn-secondary">Re-read every video</button></form>
+        {{if $st.TikTok}}
+        <a href="/admin/learn/tiktok/connect" class="btn btn-secondary">{{if index .Extra "TikTok"}}Reconnect{{else}}Connect{{end}} TikTok</a>
+        {{if index .Extra "TikTok"}}<form method="POST" action="/admin/learn/tiktok/disconnect" data-confirm="Disconnect TikTok? Its videos stay."><button type="submit" class="btn btn-secondary">Disconnect TikTok</button></form>{{end}}
+        {{end}}
+    </div>
+    {{with index .Extra "Counts"}}
+    <p class="text-muted" style="margin-top:12px">
+        {{range $i, $c := .}}{{if $i}} &middot; {{end}}{{platform $c.Platform}}: {{$c.Videos}} videos{{if $c.Unclassified}} ({{$c.Unclassified}} waiting for topics){{end}}{{end}}
+    </p>
+    {{end}}
+</div>
+
+<div class="settings-card">
+    <h2>Add a video by link</h2>
+    <p class="text-muted" style="margin-bottom:12px">For Facebook and Instagram videos, or a TikTok or YouTube video that isn't synced. YouTube and TikTok titles are looked up for you.</p>
+    <form method="POST" action="/admin/learn/videos">
+        <div class="form-group">
+            <label for="url">Video link</label>
+            <input type="url" id="url" name="url" required placeholder="https://www.instagram.com/reel/...">
+        </div>
+        <div class="form-row">
+            <div class="form-group" style="flex:2">
+                <label for="vtitle">Title (needed for Facebook and Instagram)</label>
+                <input type="text" id="vtitle" name="title" maxlength="200">
+            </div>
+            <div class="form-group" style="flex:1">
+                <label for="published">Posted on</label>
+                <input type="date" id="published" name="published">
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Add video</button>
+    </form>
+</div>
+
+<form method="GET" action="/admin/learn" class="learn-search">
+    <select name="platform" aria-label="Platform" data-autosubmit>
+        <option value="">All platforms</option>
+        {{$p := index .Extra "Platform"}}
+        <option value="youtube"{{if eq $p "youtube"}} selected{{end}}>YouTube</option>
+        <option value="tiktok"{{if eq $p "tiktok"}} selected{{end}}>TikTok</option>
+        <option value="facebook"{{if eq $p "facebook"}} selected{{end}}>Facebook</option>
+        <option value="instagram"{{if eq $p "instagram"}} selected{{end}}>Instagram</option>
+    </select>
+    <input type="search" name="q" value="{{index .Extra "Q"}}" placeholder="Search titles" aria-label="Search titles">
+    <button type="submit" class="btn btn-secondary">Filter</button>
+</form>
+
+<div class="table-wrap">
+<table class="rtable">
+    <thead><tr><th>Video</th><th>Topics</th><th>Posted</th><th>Status</th></tr></thead>
+    <tbody>
+    {{range .Items}}
+    <tr>
+        <td class="c-main"><a href="/admin/learn/videos/{{.ID}}" class="stretch">{{.Title}}</a> <span class="text-muted">{{platform .Platform}}{{if .Vertical}} short{{end}}</span></td>
+        <td data-label="Topics">{{if .TopicNames}}{{.TopicNames}}{{else if .ClassifiedAt.Valid}}<span class="text-muted">None</span>{{else}}<span class="text-muted">Waiting</span>{{end}}</td>
+        <td data-label="Posted">{{day .PublishedAt}}</td>
+        <td class="c-end">{{if .LiveStatus}}<span style="color:var(--color-danger)">{{.LiveStatus}}</span>{{else if .Hidden}}Hidden{{else if .Featured}}Pinned{{else}}Shown{{end}}</td>
+    </tr>
+    {{else}}
+    <tr><td colspan="4" class="text-muted">No videos yet.</td></tr>
+    {{end}}
+    </tbody>
+</table>
+</div>
+
+<div class="pagination">
+    {{with index .Extra "Prev"}}<a href="?page={{.}}&platform={{index $.Extra "Platform"}}&q={{index $.Extra "Q"}}" class="btn btn-sm btn-secondary">&larr; Newer</a>{{end}}
+    <span class="text-muted">Page {{index .Extra "Page"}}</span>
+    {{with index .Extra "Next"}}<a href="?page={{.}}&platform={{index $.Extra "Platform"}}&q={{index $.Extra "Q"}}" class="btn btn-sm btn-secondary">Older &rarr;</a>{{end}}
+</div>
+{{end}}

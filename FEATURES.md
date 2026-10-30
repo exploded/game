@@ -74,11 +74,21 @@ Public feed of recent trades and joins in a game. Shows player name, action (buy
 - **Routes:** `/games/{id}/activity`
 - **Files:** `internal/handler/activity.go`, `templates/pages/activity/index.html`
 
-### 11a. Ask a Question
-A permanent, site-wide section where members ask questions and vote for the ones they want answered. Sorted by votes or newest, filtered by answered or not. Admins (Rob) answer, which emails the asker and everyone who voted (Community email). Askers can delete a question until it's answered; admins can remove any question.
+### 11a. Ask Rob (questions)
+The Questions tab of Learn (11c). Members ask questions, pick a topic (or Claude picks one) and vote for the ones they want answered. Sorted by votes or newest, filtered by topic and by answered or not. Anyone can read them. Admins (Rob) answer in writing, with a video from a given time, or live on air from a stream page; the asker and everyone who voted get the answer by email (Community email). On-air answers are emailed once the stream ends, with a link to the moment in the recording. Askers can delete a question until it's answered; admins can remove any question. The old `/questions` links redirect.
 
-- **Routes:** `/questions`, `/questions/{qid}`, `/questions/{qid}/vote`, `/questions/{qid}/answer` (admin), `/questions/{qid}/hide` (admin), `/questions/{qid}/delete`
-- **Files:** `internal/handler/questions.go`, `templates/pages/questions/`
+- **Routes:** `/learn/questions`, `/learn/questions/{qid}`, `.../vote`, `.../delete`, `.../answer` (admin), `.../onair` (admin), `.../hide` (admin)
+- **Files:** `internal/handler/questions.go`, `templates/pages/learn/questions.html`, `templates/pages/learn/question.html`
+
+### 11c. Learn: Rob's videos and live streams
+A public hub at `/learn` with tabs Watch, Live, Ask Rob and Courses. Built phones first: rows of cards scroll sideways, players load only when tapped.
+
+- **Watch:** Rob's YouTube channel (`YOUTUBE_API_KEY`) and TikTok account (Display API, connected once from `/admin/learn`) sync automatically; Facebook and Instagram videos are added by pasting a link. Claude (`ANTHROPIC_API_KEY`) sorts each video into topics such as Retirement, Superannuation and Buying a home, and notes stocks it discusses, which then show on those stock pages. Rows by topic, Shorts, search, topic pages, video pages with related videos and "Ask Rob about this".
+- **Live:** YouTube streams are picked up from the sync and checked every 2 minutes; TikTok, Facebook and Instagram streams are added by an admin, or started with "I'm live now". A "Rob is live" banner shows site-wide. Visitors can add a stream to their calendar (.ics); members can ask to be reminded. Live streams email: L1 when a stream is booked, L2 to reminder users when it starts.
+- **Live Q&A queue:** a stream's page lists the most-voted open questions, refreshing every 20 seconds while live. Rob taps **Answered** as he answers each one.
+- **Admin:** `/admin/learn` (sources, sync, paste a link, the video list), `/admin/learn/videos/{vid}` (topics, pin, hide), `/admin/learn/topics`, `/admin/learn/live`.
+- Every Learn page ends with a general advice warning (`LEARN_DISCLAIMER`).
+- **Files:** `internal/media/` (sync, classifier, live emails), `internal/handler/learn.go`, `internal/handler/admin_learn.go`, `internal/handler/video.go`, `templates/pages/learn/`, `templates/pages/admin/learn*.html`
 
 ### 11b. Courses
 Pre-recorded video lessons for signed-in members. Videos are hosted on YouTube (unlisted), Vimeo or Bunny Stream and embedded; the CSP's `frame-src` allows only those players. Members see their progress and mark lessons done. Admins build courses as drafts on `/admin/courses`, preview them, and publish; the first publish can email members (Community email).

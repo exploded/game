@@ -1,0 +1,125 @@
+{{template "base" .}}
+
+{{define "content"}}
+{{template "learntabs" .}}
+{{$e := .Item}}
+
+<div class="watch">
+    <div class="watch-main">
+        {{if eq $e.Status "live"}}<span class="live-pill"><span class="live-dot"></span> LIVE on {{platform $e.Platform}}</span>
+        {{else if eq $e.Status "upcoming"}}<span class="live-pill live-pill-soon">{{with $e.ScheduledAt.String}}{{when .}} &middot; {{until .}}{{else}}Coming up{{end}}</span>
+        {{else if eq $e.Status "cancelled"}}<span class="live-pill live-pill-off">Cancelled</span>
+        {{else}}<span class="live-pill live-pill-off">Recorded {{day $e.StartedAt}}</span>{{end}}
+
+        <h1 class="watch-title">{{$e.Title}}</h1>
+
+        {{if and $e.EmbedUrl (ne $e.Status "cancelled")}}
+            {{with index .Extra "Video"}}
+            {{template "player" (dict "Embed" $e.EmbedUrl "Thumb" (thumb .ThumbUrl .ID) "Title" $e.Title "Vertical" false)}}
+            {{else}}
+            {{template "player" (dict "Embed" $e.EmbedUrl "Thumb" "" "Title" $e.Title "Vertical" false)}}
+            {{end}}
+        {{end}}
+
+        <div class="watch-actions">
+            <a href="{{$e.Url}}" class="btn btn-primary" target="_blank" rel="noopener">{{if eq $e.Status "ended"}}Watch on {{platform $e.Platform}}{{else}}Open in {{platform $e.Platform}}{{end}}</a>
+            {{if eq $e.Status "upcoming"}}
+                {{template "remind" .}}
+                {{if $e.ScheduledAt.Valid}}<a href="/learn/live/{{$e.ID}}/calendar.ics" class="btn btn-secondary">Add to calendar</a>{{end}}
+            {{end}}
+        </div>
+
+        {{with $e.Description}}
+        <details class="watch-desc">
+            <summary>About this stream</summary>
+            {{range paragraphs .}}<p>{{.}}</p>{{end}}
+        </details>
+        {{end}}
+
+        {{with index .Extra "Answered"}}
+        <section class="learn-section">
+            <h2 class="learn-h2">Answered on air</h2>
+            {{range .}}
+            <a href="/learn/questions/{{.ID}}" class="qline">
+                {{if $e.VideoID.Valid}}<span class="qline-votes mono">{{mmss .AnswerSeconds}}</span>{{end}}
+                <span>{{.Title}}</span>
+            </a>
+            {{end}}
+        </section>
+        {{end}}
+
+        {{if and $.User $.User.IsAdmin}}
+        <details class="settings-card admin-box">
+            <summary><strong>Admin: run this stream</strong></summary>
+            <div class="btn-group" style="flex-wrap:wrap;margin:12px 0">
+                {{if ne $e.Status "live"}}<form method="POST" action="/admin/learn/live/{{$e.ID}}/start"><button class="btn btn-primary">Go live now</button></form>{{end}}
+                {{if eq $e.Status "live"}}<form method="POST" action="/admin/learn/live/{{$e.ID}}/end" data-confirm="End the stream? Voters on answered questions get their email."><button class="btn btn-primary">End stream</button></form>{{end}}
+                {{if eq $e.Status "upcoming"}}<form method="POST" action="/admin/learn/live/{{$e.ID}}/cancel" data-confirm="Cancel this stream?"><button class="btn btn-secondary">Cancel</button></form>{{end}}
+                <form method="POST" action="/admin/learn/live/{{$e.ID}}/delete" data-confirm="Delete this stream?"><button class="btn btn-danger">Delete</button></form>
+            </div>
+            {{if eq $e.Source "admin"}}
+            <form method="POST" action="/admin/learn/live/{{$e.ID}}/save">
+                {{template "liveform" $e}}
+                <button type="submit" class="btn btn-primary">Save</button>
+            </form>
+            {{else}}
+            <p class="text-muted">This stream comes from YouTube; change it there.</p>
+            {{end}}
+            <p class="text-muted" style="margin-top:8px">While you're live, tap <strong>Answered</strong> on a question below as you answer it. It records the moment, and voters get the link after the stream.</p>
+        </details>
+        {{end}}
+    </div>
+
+    <aside class="watch-side">
+        <h2 class="learn-h2">{{if eq $e.Status "ended"}}Open questions{{else}}Up next: your questions{{end}}</h2>
+        {{if $.User}}
+        <form method="POST" action="/learn/questions" class="ask-inline">
+            <input type="hidden" name="back" value="/learn/live/{{$e.ID}}">
+            <label for="title" class="sr-only">Your question</label>
+            <input type="text" id="title" name="title" maxlength="150" required placeholder="Ask Rob a question">
+            <button type="submit" class="btn btn-primary">Ask</button>
+        </form>
+        {{else}}
+        <p style="margin-bottom:12px"><a href="{{index .Extra "SignIn"}}">Sign in</a> to ask and vote. It's free.</p>
+        {{end}}
+        {{template "queue" .}}
+    </aside>
+</div>
+
+{{template "disclaimer" .}}
+{{end}}
+
+{{/* The question queue. It polls while the stream is live. . is PageData
+with Item (the stream) and Extra.Queue. */}}
+{{define "queue"}}{{$e := .Item}}<div id="queue" class="queue"{{if eq $e.Status "live"}} hx-get="/learn/live/{{$e.ID}}/queue" hx-trigger="every 20s" hx-swap="outerHTML"{{end}}>
+    {{range index .Extra "Queue"}}
+    <div class="queue-item">
+        {{template "vote" (dict "Q" . "User" $.User "SignIn" (index $.Extra "SignIn"))}}
+        <div class="queue-text">
+            <a href="/learn/questions/{{.ID}}">{{.Title}}</a>
+            <span class="text-muted">{{.UserName}}</span>
+        </div>
+        {{if and $.User $.User.IsAdmin (eq $e.Status "live")}}
+        <form method="POST" action="/learn/questions/{{.ID}}/onair" hx-post="/learn/questions/{{.ID}}/onair" hx-target="#queue" hx-swap="outerHTML">
+            <input type="hidden" name="event_id" value="{{$e.ID}}">
+            <input type="hidden" name="back" value="/learn/live/{{$e.ID}}">
+            <button type="submit" class="btn btn-sm btn-secondary">Answered</button>
+        </form>
+        {{end}}
+    </div>
+    {{else}}
+    <p class="text-muted">No open questions. Be the first to ask.</p>
+    {{end}}
+</div>{{end}}
+
+{{/* The Remind me button. . is PageData with Item (the stream) and
+Extra.Reminded. */}}
+{{define "remind"}}{{$e := .Item}}{{if .User}}<form method="POST" action="/learn/live/{{$e.ID}}/remind" hx-post="/learn/live/{{$e.ID}}/remind" hx-swap="outerHTML">
+    {{if index .Extra "Reminded"}}
+    <input type="hidden" name="on" value="0">
+    <button type="submit" class="btn btn-secondary">&#10003; We'll remind you</button>
+    {{else}}
+    <input type="hidden" name="on" value="1">
+    <button type="submit" class="btn btn-secondary">Remind me</button>
+    {{end}}
+</form>{{else}}<a href="{{index .Extra "SignIn"}}" class="btn btn-secondary">Remind me</a>{{end}}{{end}}

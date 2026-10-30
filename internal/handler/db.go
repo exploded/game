@@ -95,6 +95,11 @@ var addedColumns = []struct{ table, column, ddl string }{
 	{"limit_orders", "kind", "TEXT NOT NULL DEFAULT 'limit'"},
 	{"notifications", "emailed", "INTEGER NOT NULL DEFAULT 0"},
 	{"games", "quarter", "TEXT DEFAULT NULL"},
+	{"questions", "topic_id", "INTEGER DEFAULT NULL REFERENCES topics(id) ON DELETE SET NULL"},
+	{"questions", "answer_video_id", "INTEGER DEFAULT NULL REFERENCES videos(id) ON DELETE SET NULL"},
+	{"questions", "answer_seconds", "INTEGER NOT NULL DEFAULT 0"},
+	{"questions", "live_event_id", "INTEGER DEFAULT NULL REFERENCES live_events(id) ON DELETE SET NULL"},
+	{"questions", "answer_mailed", "INTEGER NOT NULL DEFAULT 1"},
 }
 
 // onceMigrations run exactly once per database, in order. Each is recorded in
@@ -116,6 +121,25 @@ var onceMigrations = []struct{ name, stmt string }{
 	// One game per quarter. Not in schema.sql, which runs before addedColumns
 	// adds quarter.
 	{"idx-games-quarter", "CREATE UNIQUE INDEX IF NOT EXISTS idx_games_quarter ON games(quarter) WHERE quarter IS NOT NULL"},
+	// The Learn topics. Admins rename or add them on /admin/learn/topics;
+	// Claude reads each description when it sorts a video.
+	{"seed-topics", `INSERT OR IGNORE INTO topics (slug, name, description, sort_order) VALUES
+		('retirement', 'Retirement', 'Planning for and living in retirement: how much is enough, drawing an income, the Age Pension, when to retire.', 1),
+		('super', 'Superannuation', 'Super funds, contributions, salary sacrifice, transfer balance caps, SMSFs, choosing a fund.', 2),
+		('investing', 'Investing basics', 'Getting started, risk and return, diversification, balanced vs growth portfolios, compounding, investor behaviour.', 3),
+		('shares', 'Shares and ETFs', 'Individual stocks, ETFs, managed funds, dividends, the ASX and overseas markets.', 4),
+		('property', 'Property and real estate', 'Investment property, negative gearing, property vs shares, REITs.', 5),
+		('first-home', 'Buying a home', 'Saving a deposit, first home buyer schemes, borrowing, renting vs buying.', 6),
+		('saving', 'Saving and budgeting', 'Budgets, emergency funds, saving habits, money for young people.', 7),
+		('debt', 'Debt and mortgages', 'Paying off the mortgage vs investing, offset accounts, credit cards, personal debt.', 8),
+		('estate', 'Inheritance and estate planning', 'Wills, inheritances, passing on wealth, death benefits, powers of attorney.', 9),
+		('tax', 'Tax', 'Capital gains, tax on super and investments, franking credits, structures.', 10),
+		('insurance', 'Insurance', 'Life, TPD, income protection, insurance inside super.', 11),
+		('markets', 'Markets and the economy', 'Market volatility and crashes, interest rates, inflation, market news.', 12),
+		('aged-care', 'Aged care', 'Aged care costs, accommodation deposits, helping ageing parents.', 13),
+		('advice', 'Financial advice', 'Working with an adviser, fees, DIY vs professional advice.', 14)`},
+	// Not in schema.sql, which runs before addedColumns adds them.
+	{"idx-questions-topic", "CREATE INDEX IF NOT EXISTS idx_questions_topic ON questions(topic_id) WHERE topic_id IS NOT NULL"},
 }
 
 func runMigrations(db *sql.DB) error {

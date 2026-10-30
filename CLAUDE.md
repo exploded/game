@@ -7,7 +7,8 @@
 - Go 1.26 / Chi router / htmx 4 / SQLite (modernc.org/sqlite) / sqlc / Go html/template
 
 ### Dev server
-- **NEVER start the server.** It runs on port 8888 (`PORT` in `.env`). The user always starts and stops it themselves. Claude should only build (`go build`) and run `go test`, never run the binary.
+- **Never touch James's server.** It runs on port 8888 (`PORT` in `.env`), and he starts and stops it himself with `build.bat`. Don't run `build.bat` or `run.bat`, and don't kill or restart anything on 8888.
+- **Claude may run its own instance to check a change in a browser:** build to a scratch binary, run it on a different unused port (for example `PORT=8999`), test it (Chrome DevTools MCP), then stop the process and close the browser page before ending the turn. Check the port is free afterwards. Never leave a process holding a port.
 
 ### Key conventions
 - **Money**: All monetary values stored as INTEGER cents. Never use floats for money.
@@ -22,6 +23,7 @@
 - **After-hours orders**: while `market.QuoteStatus()` says the US market is closed, an S&P 500 market order is stored in `limit_orders` with `kind = 'market'` instead of filling at the stale price. `ProcessLimitOrders` fills it at the first quote dated today once the market opens. `market.QueuesMarketOrder` holds the rule; handler tests override `queuesMarketOrder`.
 - **htmx 4**: use htmx 4 spellings (`hx-disable`, `:inherited`, `htmx:after:request`). The CSRF header is on `<body hx-headers:inherited=...>`. Error responses (4xx/5xx) don't swap (`noSwap` in base.html); `app.js` shows a toast instead.
 - **Auth**: email sign-in, no passwords (`internal/handler/login.go`). `/login` emails a link and a 6-digit code (15 minutes, single use); an unknown address creates the account. Sessions in SQLite, 30-day expiry (`internal/auth/`).
+- **Learn** (`/learn`, public): Rob's videos, live streams and Ask Rob. `internal/media` syncs YouTube (Data API, `YOUTUBE_API_KEY`) and TikTok (Display API, OAuth tokens in `oauth_tokens`), asks Claude for topics (`ANTHROPIC_API_KEY`, structured output), and sends the live stream emails; the scheduler calls `media.Run` every minute. Handlers are in `learn.go`, `questions.go` and `admin_learn.go`; templates in `templates/pages/learn/` share `_parts.html` (video cards, click-to-play player, vote button). Public pages use `OptionalAuth`, so `.User` can be nil: guard with `{{if .User}}`, and use `viewerID(r)`. Admin-ticked topics (`video_topics.source = 'admin'`) survive reclassifying. Pasted links go through `parseVideo` in `video.go`.
 - **Email**: `internal/mail` renders templates from `internal/mail/templates/` into the `email_outbox` table; a worker sends them through SES. Send with `mailer.ToUser(ctx, userID, category, template, data)`, which skips users who turned the category off. `docs/emails.md` is the plan for every email: update it when you add one.
 - **Price API**: Twelve Data (twelvedata.com). ASX symbols use `:ASX` suffix.
 - **Build for Linux**: `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o game ./cmd/server/`

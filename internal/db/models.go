@@ -221,6 +221,30 @@ type LimitOrder struct {
 	Kind          string
 }
 
+type LiveEvent struct {
+	ID            int64
+	Platform      string
+	Url           string
+	EmbedUrl      string
+	VideoID       sql.NullInt64
+	Title         string
+	Description   string
+	ScheduledAt   sql.NullString
+	StartedAt     sql.NullString
+	EndedAt       sql.NullString
+	Status        string
+	Source        string
+	Announced     int64
+	StartNotified int64
+	CreatedAt     string
+}
+
+type LiveReminder struct {
+	EventID   int64
+	UserID    int64
+	CreatedAt string
+}
+
 type LobbyMessage struct {
 	ID        int64
 	UserID    int64
@@ -239,6 +263,11 @@ type LoginRequest struct {
 	CreatedAt string
 }
 
+type MediaState struct {
+	Key   string
+	Value string
+}
+
 type Notification struct {
 	ID        int64
 	UserID    int64
@@ -249,6 +278,16 @@ type Notification struct {
 	IsRead    int64
 	CreatedAt string
 	Emailed   int64
+}
+
+type OauthToken struct {
+	Provider         string
+	Account          string
+	AccessToken      string
+	RefreshToken     string
+	AccessExpiresAt  string
+	RefreshExpiresAt string
+	UpdatedAt        string
 }
 
 type Participant struct {
@@ -281,15 +320,20 @@ type PriceFetchLog struct {
 }
 
 type Question struct {
-	ID         int64
-	UserID     int64
-	Title      string
-	Body       string
-	Answer     string
-	AnsweredBy sql.NullInt64
-	AnsweredAt sql.NullString
-	Hidden     int64
-	CreatedAt  string
+	ID            int64
+	UserID        int64
+	Title         string
+	Body          string
+	Answer        string
+	AnsweredBy    sql.NullInt64
+	AnsweredAt    sql.NullString
+	Hidden        int64
+	CreatedAt     string
+	TopicID       sql.NullInt64
+	AnswerVideoID sql.NullInt64
+	AnswerSeconds int64
+	LiveEventID   sql.NullInt64
+	AnswerMailed  int64
 }
 
 type QuestionVote struct {
@@ -438,6 +482,14 @@ type StockRecommendation struct {
 	StrongSell int64
 }
 
+type Topic struct {
+	ID          int64
+	Slug        string
+	Name        string
+	Description string
+	SortOrder   int64
+}
+
 type Transaction struct {
 	ID               int64
 	ParticipantID    int64
@@ -472,6 +524,44 @@ type UserAchievement struct {
 	AchievementID int64
 	GameID        sql.NullInt64
 	EarnedAt      string
+}
+
+type Video struct {
+	ID              int64
+	Platform        string
+	ExternalID      string
+	Url             string
+	EmbedUrl        string
+	Title           string
+	Description     string
+	ThumbUrl        string
+	PublishedAt     string
+	DurationSeconds int64
+	Vertical        int64
+	LiveStatus      string
+	WasLive         int64
+	ViewCount       int64
+	Hidden          int64
+	Featured        int64
+	ClassifiedAt    sql.NullString
+	CreatedAt       string
+}
+
+type VideoStock struct {
+	VideoID int64
+	StockID int64
+}
+
+type VideoThumb struct {
+	VideoID     int64
+	ContentType string
+	Data        []byte
+}
+
+type VideoTopic struct {
+	VideoID int64
+	TopicID int64
+	Source  string
 }
 
 type Watchlist struct {

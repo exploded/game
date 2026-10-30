@@ -107,3 +107,18 @@ document.addEventListener("DOMContentLoaded", function() {
         el.remove();
     });
 });
+
+// data-play on a video's button: swap in the player only when it's tapped,
+// so a page of videos doesn't load a dozen third-party players up front.
+document.addEventListener("click", function(e) {
+    const btn = e.target.closest("[data-play]");
+    if (!btn) return;
+    const src = new URL(btn.getAttribute("data-play"));
+    src.searchParams.set("autoplay", "1");
+    const frame = document.createElement("iframe");
+    frame.src = src.toString();
+    frame.title = btn.getAttribute("data-title") || "Video";
+    frame.allow = "accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen";
+    frame.referrerPolicy = "strict-origin-when-cross-origin";
+    btn.replaceWith(frame);
+});

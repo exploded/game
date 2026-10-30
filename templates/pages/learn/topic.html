@@ -1,0 +1,45 @@
+{{template "base" .}}
+
+{{define "content"}}
+{{template "learntabs" .}}
+{{$t := index .Extra "Topic"}}
+
+<div class="chips" aria-label="Topics">
+    {{range index .Extra "Topics"}}{{if .Videos}}<a href="/learn/topics/{{.Slug}}" class="chip{{if eq .ID $t.ID}} chip-on{{end}}"{{if eq .ID $t.ID}} aria-current="page"{{end}}>{{.Name}}</a>{{end}}{{end}}
+</div>
+
+<div class="learn-section-head">
+    <h1 class="learn-h1">{{$t.Name}}</h1>
+    <span class="text-muted">{{index .Extra "Total"}} videos</span>
+</div>
+{{with $t.Description}}<p class="text-muted" style="margin-bottom:16px">{{.}}</p>{{end}}
+
+{{with .Items}}{{template "videogrid" .}}{{else}}<p class="text-muted">No videos in this topic yet.</p>{{end}}
+
+{{if or (index .Extra "Prev") (index .Extra "Next")}}
+<div class="pagination">
+    {{with index .Extra "Prev"}}<a href="?page={{.}}" class="btn btn-sm btn-secondary">&larr; Newer</a>{{end}}
+    <span class="text-muted">Page {{index .Extra "Page"}}</span>
+    {{with index .Extra "Next"}}<a href="?page={{.}}" class="btn btn-sm btn-secondary">Older &rarr;</a>{{end}}
+</div>
+{{end}}
+
+<section class="learn-section">
+    <div class="learn-section-head">
+        <h2 class="learn-h2">Questions about {{$t.Name}}</h2>
+        <a href="/learn/questions?topic={{$t.Slug}}" class="learn-more">All &rarr;</a>
+    </div>
+    {{range index .Extra "Questions"}}
+    <a href="/learn/questions/{{.ID}}" class="qline">
+        <span class="qline-votes">{{.Votes}}</span>
+        <span>{{.Title}}</span>
+        {{if .Answered}}<span class="qline-tag">Answered</span>{{end}}
+    </a>
+    {{else}}
+    <p class="text-muted">No questions here yet.</p>
+    {{end}}
+    <p style="margin-top:12px"><a href="/learn/questions?topic={{$t.Slug}}#ask" class="btn btn-primary">Ask Rob about {{$t.Name}}</a></p>
+</section>
+
+{{template "disclaimer" .}}
+{{end}}

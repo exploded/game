@@ -10,6 +10,20 @@ import (
 	"database/sql"
 )
 
+const addLiveReminder = `-- name: AddLiveReminder :exec
+INSERT OR IGNORE INTO live_reminders (event_id, user_id) VALUES (?, ?)
+`
+
+type AddLiveReminderParams struct {
+	EventID int64
+	UserID  int64
+}
+
+func (q *Queries) AddLiveReminder(ctx context.Context, arg AddLiveReminderParams) error {
+	_, err := q.db.ExecContext(ctx, addLiveReminder, arg.EventID, arg.UserID)
+	return err
+}
+
 const addLoginAttempt = `-- name: AddLoginAttempt :one
 UPDATE login_requests SET attempts = attempts + 1 WHERE id = ?
 RETURNING attempts
@@ -74,6 +88,37 @@ func (q *Queries) AddToWatchlist(ctx context.Context, arg AddToWatchlistParams) 
 	return err
 }
 
+const addVideoStockBySymbol = `-- name: AddVideoStockBySymbol :exec
+INSERT OR IGNORE INTO video_stocks (video_id, stock_id)
+SELECT ?1, s.id FROM stocks s WHERE s.symbol = ?2
+`
+
+type AddVideoStockBySymbolParams struct {
+	VideoID int64
+	Symbol  string
+}
+
+func (q *Queries) AddVideoStockBySymbol(ctx context.Context, arg AddVideoStockBySymbolParams) error {
+	_, err := q.db.ExecContext(ctx, addVideoStockBySymbol, arg.VideoID, arg.Symbol)
+	return err
+}
+
+const addVideoTopic = `-- name: AddVideoTopic :exec
+INSERT INTO video_topics (video_id, topic_id, source) VALUES (?, ?, ?)
+ON CONFLICT(video_id, topic_id) DO NOTHING
+`
+
+type AddVideoTopicParams struct {
+	VideoID int64
+	TopicID int64
+	Source  string
+}
+
+func (q *Queries) AddVideoTopic(ctx context.Context, arg AddVideoTopicParams) error {
+	_, err := q.db.ExecContext(ctx, addVideoTopic, arg.VideoID, arg.TopicID, arg.Source)
+	return err
+}
+
 const advancePendingGames = `-- name: AdvancePendingGames :exec
 UPDATE games SET status = 'active', updated_at = datetime('now')
 WHERE status = 'pending' AND start_date <= ?
@@ -81,6 +126,35 @@ WHERE status = 'pending' AND start_date <= ?
 
 func (q *Queries) AdvancePendingGames(ctx context.Context, startDate string) error {
 	_, err := q.db.ExecContext(ctx, advancePendingGames, startDate)
+	return err
+}
+
+const answerOnAir = `-- name: AnswerOnAir :exec
+UPDATE questions SET live_event_id = ?1, answer_seconds = ?2,
+    answer = CASE WHEN answer = '' THEN ?3 ELSE answer END,
+    answered_by = ?4, answered_at = COALESCE(answered_at, datetime('now')),
+    answer_mailed = 0
+WHERE id = ?5
+`
+
+type AnswerOnAirParams struct {
+	LiveEventID   sql.NullInt64
+	AnswerSeconds int64
+	Answer        string
+	AnsweredBy    sql.NullInt64
+	ID            int64
+}
+
+// Marks a question answered during a live stream. Its followers are emailed
+// once the stream is over (answer_mailed = 0 until then).
+func (q *Queries) AnswerOnAir(ctx context.Context, arg AnswerOnAirParams) error {
+	_, err := q.db.ExecContext(ctx, answerOnAir,
+		arg.LiveEventID,
+		arg.AnswerSeconds,
+		arg.Answer,
+		arg.AnsweredBy,
+		arg.ID,
+	)
 	return err
 }
 
@@ -110,6 +184,15 @@ func (q *Queries) CancelLimitOrder(ctx context.Context, id int64) error {
 	return err
 }
 
+const cancelLive = `-- name: CancelLive :exec
+UPDATE live_events SET status = 'cancelled' WHERE id = ?
+`
+
+func (q *Queries) CancelLive(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, cancelLive, id)
+	return err
+}
+
 const claimGameEmail = `-- name: ClaimGameEmail :execrows
 INSERT OR IGNORE INTO game_emails (game_id, kind) VALUES (?, ?)
 `
@@ -127,12 +210,31 @@ func (q *Queries) ClaimGameEmail(ctx context.Context, arg ClaimGameEmailParams) 
 	return result.RowsAffected()
 }
 
+const clearClaudeVideoTopics = `-- name: ClearClaudeVideoTopics :exec
+DELETE FROM video_topics WHERE video_id = ? AND source = 'claude'
+`
+
+// Clears Claude's picks before it picks again. An admin's stay.
+func (q *Queries) ClearClaudeVideoTopics(ctx context.Context, videoID int64) error {
+	_, err := q.db.ExecContext(ctx, clearClaudeVideoTopics, videoID)
+	return err
+}
+
 const clearUserAvatar = `-- name: ClearUserAvatar :exec
 UPDATE users SET avatar_id = NULL WHERE id = ?
 `
 
 func (q *Queries) ClearUserAvatar(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, clearUserAvatar, id)
+	return err
+}
+
+const clearVideoStocks = `-- name: ClearVideoStocks :exec
+DELETE FROM video_stocks WHERE video_id = ?
+`
+
+func (q *Queries) ClearVideoStocks(ctx context.Context, videoID int64) error {
+	_, err := q.db.ExecContext(ctx, clearVideoStocks, videoID)
 	return err
 }
 
@@ -297,6 +399,19 @@ func (q *Queries) CountStocksMissingPrices(ctx context.Context, targetDate strin
 	return count, err
 }
 
+const countTopicVideos = `-- name: CountTopicVideos :one
+SELECT COUNT(*) FROM videos v
+JOIN video_topics vt ON vt.video_id = v.id
+WHERE vt.topic_id = ? AND v.hidden = 0 AND v.live_status = ''
+`
+
+func (q *Queries) CountTopicVideos(ctx context.Context, topicID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countTopicVideos, topicID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countTransactions = `-- name: CountTransactions :one
 SELECT COUNT(*) FROM transactions WHERE participant_id = ?
 `
@@ -328,6 +443,40 @@ func (q *Queries) CountUnreadNotifications(ctx context.Context, userID int64) (i
 	var count int64
 	err := row.Scan(&count)
 	return count, err
+}
+
+const countVideosByPlatform = `-- name: CountVideosByPlatform :many
+SELECT platform, COUNT(*) AS videos, CAST(SUM(classified_at IS NULL) AS INTEGER) AS unclassified
+FROM videos GROUP BY platform ORDER BY platform
+`
+
+type CountVideosByPlatformRow struct {
+	Platform     string
+	Videos       int64
+	Unclassified int64
+}
+
+func (q *Queries) CountVideosByPlatform(ctx context.Context) ([]CountVideosByPlatformRow, error) {
+	rows, err := q.db.QueryContext(ctx, countVideosByPlatform)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CountVideosByPlatformRow
+	for rows.Next() {
+		var i CountVideosByPlatformRow
+		if err := rows.Scan(&i.Platform, &i.Videos, &i.Unclassified); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const createBroadcast = `-- name: CreateBroadcast :exec
@@ -605,6 +754,37 @@ func (q *Queries) CreateLimitOrder(ctx context.Context, arg CreateLimitOrderPara
 	return i, err
 }
 
+const createLiveEvent = `-- name: CreateLiveEvent :one
+INSERT INTO live_events (platform, url, embed_url, title, description, scheduled_at, status, source)
+VALUES (?, ?, ?, ?, ?, ?, ?, 'admin')
+RETURNING id
+`
+
+type CreateLiveEventParams struct {
+	Platform    string
+	Url         string
+	EmbedUrl    string
+	Title       string
+	Description string
+	ScheduledAt sql.NullString
+	Status      string
+}
+
+func (q *Queries) CreateLiveEvent(ctx context.Context, arg CreateLiveEventParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, createLiveEvent,
+		arg.Platform,
+		arg.Url,
+		arg.EmbedUrl,
+		arg.Title,
+		arg.Description,
+		arg.ScheduledAt,
+		arg.Status,
+	)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const createLobbyMessage = `-- name: CreateLobbyMessage :one
 
 INSERT INTO lobby_messages (user_id, message)
@@ -756,21 +936,27 @@ func (q *Queries) CreateNotification(ctx context.Context, arg CreateNotification
 
 const createQuestion = `-- name: CreateQuestion :one
 
-INSERT INTO questions (user_id, title, body) VALUES (?, ?, ?)
+INSERT INTO questions (user_id, title, body, topic_id) VALUES (?, ?, ?, ?)
 RETURNING id
 `
 
 type CreateQuestionParams struct {
-	UserID int64
-	Title  string
-	Body   string
+	UserID  int64
+	Title   string
+	Body    string
+	TopicID sql.NullInt64
 }
 
 // =============================================================================
 // Ask a Question
 // =============================================================================
 func (q *Queries) CreateQuestion(ctx context.Context, arg CreateQuestionParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, createQuestion, arg.UserID, arg.Title, arg.Body)
+	row := q.db.QueryRowContext(ctx, createQuestion,
+		arg.UserID,
+		arg.Title,
+		arg.Body,
+		arg.TopicID,
+	)
 	var id int64
 	err := row.Scan(&id)
 	return id, err
@@ -802,6 +988,22 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const createTopic = `-- name: CreateTopic :exec
+INSERT INTO topics (slug, name, description, sort_order)
+VALUES (?, ?, ?, (SELECT COALESCE(MAX(t.sort_order), 0) + 1 FROM topics t))
+`
+
+type CreateTopicParams struct {
+	Slug        string
+	Name        string
+	Description string
+}
+
+func (q *Queries) CreateTopic(ctx context.Context, arg CreateTopicParams) error {
+	_, err := q.db.ExecContext(ctx, createTopic, arg.Slug, arg.Name, arg.Description)
+	return err
 }
 
 const createUser = `-- name: CreateUser :one
@@ -880,6 +1082,24 @@ func (q *Queries) DeleteLesson(ctx context.Context, id int64) error {
 	return err
 }
 
+const deleteLiveEvent = `-- name: DeleteLiveEvent :exec
+DELETE FROM live_events WHERE id = ?
+`
+
+func (q *Queries) DeleteLiveEvent(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteLiveEvent, id)
+	return err
+}
+
+const deleteOAuthToken = `-- name: DeleteOAuthToken :exec
+DELETE FROM oauth_tokens WHERE provider = ?
+`
+
+func (q *Queries) DeleteOAuthToken(ctx context.Context, provider string) error {
+	_, err := q.db.ExecContext(ctx, deleteOAuthToken, provider)
+	return err
+}
+
 const deleteOldEmails = `-- name: DeleteOldEmails :exec
 DELETE FROM email_outbox WHERE status != 'pending' AND created_at < datetime('now', '-90 days')
 `
@@ -942,12 +1162,53 @@ func (q *Queries) DeleteStockNews(ctx context.Context, stockID int64) error {
 	return err
 }
 
+const deleteTopic = `-- name: DeleteTopic :exec
+DELETE FROM topics WHERE id = ?
+`
+
+func (q *Queries) DeleteTopic(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteTopic, id)
+	return err
+}
+
 const deleteUserSessions = `-- name: DeleteUserSessions :exec
 DELETE FROM sessions WHERE user_id = ?
 `
 
 func (q *Queries) DeleteUserSessions(ctx context.Context, userID int64) error {
 	_, err := q.db.ExecContext(ctx, deleteUserSessions, userID)
+	return err
+}
+
+const deleteVideo = `-- name: DeleteVideo :exec
+DELETE FROM videos WHERE id = ?
+`
+
+func (q *Queries) DeleteVideo(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteVideo, id)
+	return err
+}
+
+const deleteVideoByExternalID = `-- name: DeleteVideoByExternalID :exec
+DELETE FROM videos WHERE platform = ? AND external_id = ?
+`
+
+type DeleteVideoByExternalIDParams struct {
+	Platform   string
+	ExternalID string
+}
+
+func (q *Queries) DeleteVideoByExternalID(ctx context.Context, arg DeleteVideoByExternalIDParams) error {
+	_, err := q.db.ExecContext(ctx, deleteVideoByExternalID, arg.Platform, arg.ExternalID)
+	return err
+}
+
+const endLive = `-- name: EndLive :exec
+UPDATE live_events SET status = 'ended', ended_at = COALESCE(ended_at, datetime('now')) WHERE id = ?
+`
+
+func (q *Queries) EndLive(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, endLive, id)
 	return err
 }
 
@@ -1404,6 +1665,33 @@ func (q *Queries) GetLimitOrder(ctx context.Context, id int64) (LimitOrder, erro
 	return i, err
 }
 
+const getLiveEvent = `-- name: GetLiveEvent :one
+SELECT id, platform, url, embed_url, video_id, title, description, scheduled_at, started_at, ended_at, status, source, announced, start_notified, created_at FROM live_events WHERE id = ?
+`
+
+func (q *Queries) GetLiveEvent(ctx context.Context, id int64) (LiveEvent, error) {
+	row := q.db.QueryRowContext(ctx, getLiveEvent, id)
+	var i LiveEvent
+	err := row.Scan(
+		&i.ID,
+		&i.Platform,
+		&i.Url,
+		&i.EmbedUrl,
+		&i.VideoID,
+		&i.Title,
+		&i.Description,
+		&i.ScheduledAt,
+		&i.StartedAt,
+		&i.EndedAt,
+		&i.Status,
+		&i.Source,
+		&i.Announced,
+		&i.StartNotified,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getLoginRequest = `-- name: GetLoginRequest :one
 SELECT id, email, token_hash, code_hash, attempts, expires_at, used_at, created_at FROM login_requests
 WHERE id = ? AND used_at IS NULL AND expires_at > datetime('now')
@@ -1442,6 +1730,40 @@ func (q *Queries) GetLoginRequestByToken(ctx context.Context, tokenHash string) 
 		&i.ExpiresAt,
 		&i.UsedAt,
 		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getMediaState = `-- name: GetMediaState :one
+
+SELECT value FROM media_state WHERE key = ?
+`
+
+// =============================================================================
+// Learn: videos, topics and live streams
+// =============================================================================
+func (q *Queries) GetMediaState(ctx context.Context, key string) (string, error) {
+	row := q.db.QueryRowContext(ctx, getMediaState, key)
+	var value string
+	err := row.Scan(&value)
+	return value, err
+}
+
+const getOAuthToken = `-- name: GetOAuthToken :one
+SELECT provider, account, access_token, refresh_token, access_expires_at, refresh_expires_at, updated_at FROM oauth_tokens WHERE provider = ?
+`
+
+func (q *Queries) GetOAuthToken(ctx context.Context, provider string) (OauthToken, error) {
+	row := q.db.QueryRowContext(ctx, getOAuthToken, provider)
+	var i OauthToken
+	err := row.Scan(
+		&i.Provider,
+		&i.Account,
+		&i.AccessToken,
+		&i.RefreshToken,
+		&i.AccessExpiresAt,
+		&i.RefreshExpiresAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -1531,11 +1853,18 @@ const getQuestion = `-- name: GetQuestion :one
 SELECT q.id, q.user_id, q.title, q.body, q.answer, q.answered_at, q.created_at,
        u.name AS user_name,
        COALESCE(a.name, '') AS answered_by_name,
+       q.topic_id, COALESCE(t.name, '') AS topic_name, COALESCE(t.slug, '') AS topic_slug,
+       q.answer_video_id, q.answer_seconds, q.live_event_id,
+       COALESCE(av.title, '') AS video_title, COALESCE(av.embed_url, '') AS video_embed_url,
+       COALESCE(av.url, '') AS video_url, COALESCE(av.vertical, 0) AS video_vertical,
+       COALESCE(av.thumb_url, '') AS video_thumb_url,
        (SELECT COUNT(*) FROM question_votes v WHERE v.question_id = q.id) AS votes,
        EXISTS (SELECT 1 FROM question_votes v WHERE v.question_id = q.id AND v.user_id = ?1) AS voted
 FROM questions q
 JOIN users u ON u.id = q.user_id
 LEFT JOIN users a ON a.id = q.answered_by
+LEFT JOIN topics t ON t.id = q.topic_id
+LEFT JOIN videos av ON av.id = q.answer_video_id
 WHERE q.id = ?2 AND q.hidden = 0
 `
 
@@ -1554,6 +1883,17 @@ type GetQuestionRow struct {
 	CreatedAt      string
 	UserName       string
 	AnsweredByName string
+	TopicID        sql.NullInt64
+	TopicName      string
+	TopicSlug      string
+	AnswerVideoID  sql.NullInt64
+	AnswerSeconds  int64
+	LiveEventID    sql.NullInt64
+	VideoTitle     string
+	VideoEmbedUrl  string
+	VideoUrl       string
+	VideoVertical  int64
+	VideoThumbUrl  string
 	Votes          int64
 	Voted          bool
 }
@@ -1571,6 +1911,17 @@ func (q *Queries) GetQuestion(ctx context.Context, arg GetQuestionParams) (GetQu
 		&i.CreatedAt,
 		&i.UserName,
 		&i.AnsweredByName,
+		&i.TopicID,
+		&i.TopicName,
+		&i.TopicSlug,
+		&i.AnswerVideoID,
+		&i.AnswerSeconds,
+		&i.LiveEventID,
+		&i.VideoTitle,
+		&i.VideoEmbedUrl,
+		&i.VideoUrl,
+		&i.VideoVertical,
+		&i.VideoThumbUrl,
 		&i.Votes,
 		&i.Voted,
 	)
@@ -1742,6 +2093,40 @@ func (q *Queries) GetStockProfile(ctx context.Context, stockID int64) (StockProf
 	return i, err
 }
 
+const getTopic = `-- name: GetTopic :one
+SELECT id, slug, name, description, sort_order FROM topics WHERE id = ?
+`
+
+func (q *Queries) GetTopic(ctx context.Context, id int64) (Topic, error) {
+	row := q.db.QueryRowContext(ctx, getTopic, id)
+	var i Topic
+	err := row.Scan(
+		&i.ID,
+		&i.Slug,
+		&i.Name,
+		&i.Description,
+		&i.SortOrder,
+	)
+	return i, err
+}
+
+const getTopicBySlug = `-- name: GetTopicBySlug :one
+SELECT id, slug, name, description, sort_order FROM topics WHERE slug = ?
+`
+
+func (q *Queries) GetTopicBySlug(ctx context.Context, slug string) (Topic, error) {
+	row := q.db.QueryRowContext(ctx, getTopicBySlug, slug)
+	var i Topic
+	err := row.Scan(
+		&i.ID,
+		&i.Slug,
+		&i.Name,
+		&i.Description,
+		&i.SortOrder,
+	)
+	return i, err
+}
+
 const getUser = `-- name: GetUser :one
 SELECT id, email, name, picture_url, is_admin, avatar_id, created_at, last_login, deleted_at, last_game_id, email_token FROM users WHERE id = ?
 `
@@ -1840,6 +2225,96 @@ func (q *Queries) GetUserTradeCount(ctx context.Context, userID int64) (int64, e
 	var count int64
 	err := row.Scan(&count)
 	return count, err
+}
+
+const getVideo = `-- name: GetVideo :one
+SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, classified_at, created_at FROM videos WHERE id = ?
+`
+
+func (q *Queries) GetVideo(ctx context.Context, id int64) (Video, error) {
+	row := q.db.QueryRowContext(ctx, getVideo, id)
+	var i Video
+	err := row.Scan(
+		&i.ID,
+		&i.Platform,
+		&i.ExternalID,
+		&i.Url,
+		&i.EmbedUrl,
+		&i.Title,
+		&i.Description,
+		&i.ThumbUrl,
+		&i.PublishedAt,
+		&i.DurationSeconds,
+		&i.Vertical,
+		&i.LiveStatus,
+		&i.WasLive,
+		&i.ViewCount,
+		&i.Hidden,
+		&i.Featured,
+		&i.ClassifiedAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getVideoByExternalID = `-- name: GetVideoByExternalID :one
+SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, classified_at, created_at FROM videos WHERE platform = ? AND external_id = ?
+`
+
+type GetVideoByExternalIDParams struct {
+	Platform   string
+	ExternalID string
+}
+
+func (q *Queries) GetVideoByExternalID(ctx context.Context, arg GetVideoByExternalIDParams) (Video, error) {
+	row := q.db.QueryRowContext(ctx, getVideoByExternalID, arg.Platform, arg.ExternalID)
+	var i Video
+	err := row.Scan(
+		&i.ID,
+		&i.Platform,
+		&i.ExternalID,
+		&i.Url,
+		&i.EmbedUrl,
+		&i.Title,
+		&i.Description,
+		&i.ThumbUrl,
+		&i.PublishedAt,
+		&i.DurationSeconds,
+		&i.Vertical,
+		&i.LiveStatus,
+		&i.WasLive,
+		&i.ViewCount,
+		&i.Hidden,
+		&i.Featured,
+		&i.ClassifiedAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getVideoThumb = `-- name: GetVideoThumb :one
+SELECT content_type, data FROM video_thumbs WHERE video_id = ?
+`
+
+type GetVideoThumbRow struct {
+	ContentType string
+	Data        []byte
+}
+
+func (q *Queries) GetVideoThumb(ctx context.Context, videoID int64) (GetVideoThumbRow, error) {
+	row := q.db.QueryRowContext(ctx, getVideoThumb, videoID)
+	var i GetVideoThumbRow
+	err := row.Scan(&i.ContentType, &i.Data)
+	return i, err
+}
+
+const goLive = `-- name: GoLive :exec
+UPDATE live_events SET status = 'live', started_at = COALESCE(started_at, datetime('now')) WHERE id = ?
+`
+
+func (q *Queries) GoLive(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, goLive, id)
+	return err
 }
 
 const grantAchievement = `-- name: GrantAchievement :exec
@@ -2535,6 +3010,49 @@ func (q *Queries) ListAllCourses(ctx context.Context) ([]ListAllCoursesRow, erro
 	return items, nil
 }
 
+const listAllLiveEvents = `-- name: ListAllLiveEvents :many
+SELECT id, platform, url, embed_url, video_id, title, description, scheduled_at, started_at, ended_at, status, source, announced, start_notified, created_at FROM live_events ORDER BY COALESCE(scheduled_at, created_at) DESC LIMIT 100
+`
+
+func (q *Queries) ListAllLiveEvents(ctx context.Context) ([]LiveEvent, error) {
+	rows, err := q.db.QueryContext(ctx, listAllLiveEvents)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []LiveEvent
+	for rows.Next() {
+		var i LiveEvent
+		if err := rows.Scan(
+			&i.ID,
+			&i.Platform,
+			&i.Url,
+			&i.EmbedUrl,
+			&i.VideoID,
+			&i.Title,
+			&i.Description,
+			&i.ScheduledAt,
+			&i.StartedAt,
+			&i.EndedAt,
+			&i.Status,
+			&i.Source,
+			&i.Announced,
+			&i.StartNotified,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listAllOpenOrders = `-- name: ListAllOpenOrders :many
 SELECT lo.id, lo.participant_id, lo.stock_id, lo.type, lo.quantity, lo.limit_price, lo.status, lo.created_at, lo.expires_at, lo.filled_at, lo.kind, s.symbol, s.market, s.currency, p.game_id
 FROM limit_orders lo
@@ -2984,6 +3502,55 @@ func (q *Queries) ListEmailPrefs(ctx context.Context, userID int64) ([]EmailPref
 	return items, nil
 }
 
+const listFeaturedVideos = `-- name: ListFeaturedVideos :many
+SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, classified_at, created_at FROM videos
+WHERE hidden = 0 AND live_status = '' AND featured = 1
+ORDER BY published_at DESC
+LIMIT 6
+`
+
+func (q *Queries) ListFeaturedVideos(ctx context.Context) ([]Video, error) {
+	rows, err := q.db.QueryContext(ctx, listFeaturedVideos)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Video
+	for rows.Next() {
+		var i Video
+		if err := rows.Scan(
+			&i.ID,
+			&i.Platform,
+			&i.ExternalID,
+			&i.Url,
+			&i.EmbedUrl,
+			&i.Title,
+			&i.Description,
+			&i.ThumbUrl,
+			&i.PublishedAt,
+			&i.DurationSeconds,
+			&i.Vertical,
+			&i.LiveStatus,
+			&i.WasLive,
+			&i.ViewCount,
+			&i.Hidden,
+			&i.Featured,
+			&i.ClassifiedAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listFetchLogs = `-- name: ListFetchLogs :many
 SELECT id, market, status, stocks_updated, error_msg, duration_ms, created_at FROM price_fetch_log
 ORDER BY created_at DESC LIMIT 50
@@ -3416,6 +3983,62 @@ func (q *Queries) ListLatestPrices(ctx context.Context, stockID int64) ([]StockP
 	return items, nil
 }
 
+const listLatestVideos = `-- name: ListLatestVideos :many
+SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, classified_at, created_at FROM videos
+WHERE hidden = 0 AND live_status = '' AND vertical = ?1
+ORDER BY published_at DESC
+LIMIT ?2
+`
+
+type ListLatestVideosParams struct {
+	Vertical int64
+	Lim      int64
+}
+
+// Videos for the Watch page rows. Streams still upcoming or live are on the
+// Live tab instead.
+func (q *Queries) ListLatestVideos(ctx context.Context, arg ListLatestVideosParams) ([]Video, error) {
+	rows, err := q.db.QueryContext(ctx, listLatestVideos, arg.Vertical, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Video
+	for rows.Next() {
+		var i Video
+		if err := rows.Scan(
+			&i.ID,
+			&i.Platform,
+			&i.ExternalID,
+			&i.Url,
+			&i.EmbedUrl,
+			&i.Title,
+			&i.Description,
+			&i.ThumbUrl,
+			&i.PublishedAt,
+			&i.DurationSeconds,
+			&i.Vertical,
+			&i.LiveStatus,
+			&i.WasLive,
+			&i.ViewCount,
+			&i.Hidden,
+			&i.Featured,
+			&i.ClassifiedAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listLessons = `-- name: ListLessons :many
 SELECT l.id, l.course_id, l.title, l.description, l.video_url, l.embed_url, l.minutes, l.sort_order, l.created_at,
        EXISTS (SELECT 1 FROM lesson_progress p WHERE p.lesson_id = l.id AND p.user_id = ?1) AS completed
@@ -3466,6 +4089,282 @@ func (q *Queries) ListLessons(ctx context.Context, arg ListLessonsParams) ([]Lis
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listLiveAnswered = `-- name: ListLiveAnswered :many
+SELECT q.id, q.title, q.answer_seconds FROM questions q
+WHERE q.live_event_id = ? AND q.hidden = 0
+ORDER BY q.answer_seconds
+`
+
+type ListLiveAnsweredRow struct {
+	ID            int64
+	Title         string
+	AnswerSeconds int64
+}
+
+// Questions answered during a stream.
+func (q *Queries) ListLiveAnswered(ctx context.Context, liveEventID sql.NullInt64) ([]ListLiveAnsweredRow, error) {
+	rows, err := q.db.QueryContext(ctx, listLiveAnswered, liveEventID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListLiveAnsweredRow
+	for rows.Next() {
+		var i ListLiveAnsweredRow
+		if err := rows.Scan(&i.ID, &i.Title, &i.AnswerSeconds); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listLiveNow = `-- name: ListLiveNow :many
+SELECT id, platform, url, embed_url, video_id, title, description, scheduled_at, started_at, ended_at, status, source, announced, start_notified, created_at FROM live_events WHERE status = 'live' ORDER BY started_at DESC
+`
+
+func (q *Queries) ListLiveNow(ctx context.Context) ([]LiveEvent, error) {
+	rows, err := q.db.QueryContext(ctx, listLiveNow)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []LiveEvent
+	for rows.Next() {
+		var i LiveEvent
+		if err := rows.Scan(
+			&i.ID,
+			&i.Platform,
+			&i.Url,
+			&i.EmbedUrl,
+			&i.VideoID,
+			&i.Title,
+			&i.Description,
+			&i.ScheduledAt,
+			&i.StartedAt,
+			&i.EndedAt,
+			&i.Status,
+			&i.Source,
+			&i.Announced,
+			&i.StartNotified,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listLiveQueue = `-- name: ListLiveQueue :many
+SELECT q.id, q.user_id, q.title, q.body, q.created_at,
+       u.name AS user_name,
+       (SELECT COUNT(*) FROM question_votes v WHERE v.question_id = q.id) AS votes,
+       EXISTS (SELECT 1 FROM question_votes v WHERE v.question_id = q.id AND v.user_id = ?1) AS voted
+FROM questions q
+JOIN users u ON u.id = q.user_id
+WHERE q.hidden = 0 AND q.answer = ''
+ORDER BY votes DESC, q.created_at
+LIMIT 20
+`
+
+type ListLiveQueueRow struct {
+	ID        int64
+	UserID    int64
+	Title     string
+	Body      string
+	CreatedAt string
+	UserName  string
+	Votes     int64
+	Voted     bool
+}
+
+// The live Q&A queue: open questions, most votes first.
+func (q *Queries) ListLiveQueue(ctx context.Context, viewer int64) ([]ListLiveQueueRow, error) {
+	rows, err := q.db.QueryContext(ctx, listLiveQueue, viewer)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListLiveQueueRow
+	for rows.Next() {
+		var i ListLiveQueueRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Title,
+			&i.Body,
+			&i.CreatedAt,
+			&i.UserName,
+			&i.Votes,
+			&i.Voted,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listLiveReminderUserIDs = `-- name: ListLiveReminderUserIDs :many
+SELECT user_id FROM live_reminders WHERE event_id = ?
+`
+
+func (q *Queries) ListLiveReminderUserIDs(ctx context.Context, eventID int64) ([]int64, error) {
+	rows, err := q.db.QueryContext(ctx, listLiveReminderUserIDs, eventID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int64
+	for rows.Next() {
+		var user_id int64
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listLiveToAnnounce = `-- name: ListLiveToAnnounce :many
+SELECT id, platform, url, embed_url, video_id, title, description, scheduled_at, started_at, ended_at, status, source, announced, start_notified, created_at FROM live_events WHERE status = 'upcoming' AND announced = 0
+`
+
+func (q *Queries) ListLiveToAnnounce(ctx context.Context) ([]LiveEvent, error) {
+	rows, err := q.db.QueryContext(ctx, listLiveToAnnounce)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []LiveEvent
+	for rows.Next() {
+		var i LiveEvent
+		if err := rows.Scan(
+			&i.ID,
+			&i.Platform,
+			&i.Url,
+			&i.EmbedUrl,
+			&i.VideoID,
+			&i.Title,
+			&i.Description,
+			&i.ScheduledAt,
+			&i.StartedAt,
+			&i.EndedAt,
+			&i.Status,
+			&i.Source,
+			&i.Announced,
+			&i.StartNotified,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listLiveToNotifyStart = `-- name: ListLiveToNotifyStart :many
+SELECT id, platform, url, embed_url, video_id, title, description, scheduled_at, started_at, ended_at, status, source, announced, start_notified, created_at FROM live_events WHERE status = 'live' AND start_notified = 0
+`
+
+func (q *Queries) ListLiveToNotifyStart(ctx context.Context) ([]LiveEvent, error) {
+	rows, err := q.db.QueryContext(ctx, listLiveToNotifyStart)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []LiveEvent
+	for rows.Next() {
+		var i LiveEvent
+		if err := rows.Scan(
+			&i.ID,
+			&i.Platform,
+			&i.Url,
+			&i.EmbedUrl,
+			&i.VideoID,
+			&i.Title,
+			&i.Description,
+			&i.ScheduledAt,
+			&i.StartedAt,
+			&i.EndedAt,
+			&i.Status,
+			&i.Source,
+			&i.Announced,
+			&i.StartNotified,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listLiveYouTubeVideoIDs = `-- name: ListLiveYouTubeVideoIDs :many
+SELECT external_id FROM videos WHERE platform = 'youtube' AND live_status != ''
+`
+
+// YouTube streams still upcoming or live, for the sync to re-check.
+func (q *Queries) ListLiveYouTubeVideoIDs(ctx context.Context) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listLiveYouTubeVideoIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var external_id string
+		if err := rows.Scan(&external_id); err != nil {
+			return nil, err
+		}
+		items = append(items, external_id)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
@@ -3714,6 +4613,64 @@ func (q *Queries) ListNotifications(ctx context.Context, arg ListNotificationsPa
 	return items, nil
 }
 
+const listOnAirAnswersToMail = `-- name: ListOnAirAnswersToMail :many
+SELECT q.id, q.user_id, q.title, q.answer, q.answer_seconds, e.video_id AS event_video_id,
+       e.title AS event_title, e.platform AS event_platform,
+       COALESCE(a.name, '') AS answered_by_name
+FROM questions q
+JOIN live_events e ON e.id = q.live_event_id
+LEFT JOIN users a ON a.id = q.answered_by
+WHERE q.answer_mailed = 0 AND q.hidden = 0 AND e.status = 'ended'
+  AND (e.source != 'youtube' OR e.video_id IS NOT NULL)
+`
+
+type ListOnAirAnswersToMailRow struct {
+	ID             int64
+	UserID         int64
+	Title          string
+	Answer         string
+	AnswerSeconds  int64
+	EventVideoID   sql.NullInt64
+	EventTitle     string
+	EventPlatform  string
+	AnsweredByName string
+}
+
+// On-air answers whose stream has ended. A YouTube stream waits for its
+// recording, so the email can link to the moment.
+func (q *Queries) ListOnAirAnswersToMail(ctx context.Context) ([]ListOnAirAnswersToMailRow, error) {
+	rows, err := q.db.QueryContext(ctx, listOnAirAnswersToMail)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListOnAirAnswersToMailRow
+	for rows.Next() {
+		var i ListOnAirAnswersToMailRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Title,
+			&i.Answer,
+			&i.AnswerSeconds,
+			&i.EventVideoID,
+			&i.EventTitle,
+			&i.EventPlatform,
+			&i.AnsweredByName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listOpenLimitOrders = `-- name: ListOpenLimitOrders :many
 SELECT lo.id, lo.participant_id, lo.stock_id, lo.type, lo.quantity, lo.limit_price, lo.status, lo.created_at, lo.expires_at, lo.filled_at, lo.kind, s.symbol, s.name AS stock_name, s.market, s.currency
 FROM limit_orders lo
@@ -3819,6 +4776,83 @@ func (q *Queries) ListParticipantsByGame(ctx context.Context, gameID int64) ([]L
 			&i.UserName,
 			&i.UserPicture,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPastLive = `-- name: ListPastLive :many
+SELECT id, platform, url, embed_url, video_id, title, description, scheduled_at, started_at, ended_at, status, source, announced, start_notified, created_at FROM live_events WHERE status = 'ended'
+ORDER BY COALESCE(started_at, scheduled_at) DESC
+LIMIT ?
+`
+
+func (q *Queries) ListPastLive(ctx context.Context, limit int64) ([]LiveEvent, error) {
+	rows, err := q.db.QueryContext(ctx, listPastLive, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []LiveEvent
+	for rows.Next() {
+		var i LiveEvent
+		if err := rows.Scan(
+			&i.ID,
+			&i.Platform,
+			&i.Url,
+			&i.EmbedUrl,
+			&i.VideoID,
+			&i.Title,
+			&i.Description,
+			&i.ScheduledAt,
+			&i.StartedAt,
+			&i.EndedAt,
+			&i.Status,
+			&i.Source,
+			&i.Announced,
+			&i.StartNotified,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPlatformVideoIDs = `-- name: ListPlatformVideoIDs :many
+SELECT id, external_id FROM videos WHERE platform = ?
+`
+
+type ListPlatformVideoIDsRow struct {
+	ID         int64
+	ExternalID string
+}
+
+func (q *Queries) ListPlatformVideoIDs(ctx context.Context, platform string) ([]ListPlatformVideoIDsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listPlatformVideoIDs, platform)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPlatformVideoIDsRow
+	for rows.Next() {
+		var i ListPlatformVideoIDsRow
+		if err := rows.Scan(&i.ID, &i.ExternalID); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -4020,14 +5054,18 @@ func (q *Queries) ListQuestionFollowers(ctx context.Context, id int64) ([]int64,
 const listQuestions = `-- name: ListQuestions :many
 SELECT q.id, q.user_id, q.title, q.body, q.answer, q.answered_at, q.created_at,
        u.name AS user_name,
+       COALESCE(t.name, '') AS topic_name, COALESCE(t.slug, '') AS topic_slug,
+       q.answer_video_id IS NOT NULL AS has_video,
        (SELECT COUNT(*) FROM question_votes v WHERE v.question_id = q.id) AS votes,
        EXISTS (SELECT 1 FROM question_votes v WHERE v.question_id = q.id AND v.user_id = ?1) AS voted
 FROM questions q
 JOIN users u ON u.id = q.user_id
+LEFT JOIN topics t ON t.id = q.topic_id
 WHERE q.hidden = 0
   AND (CAST(?2 AS TEXT) = 'all'
        OR (?2 = 'answered' AND q.answer != '')
        OR (?2 = 'open' AND q.answer = ''))
+  AND (CAST(?3 AS INTEGER) = 0 OR q.topic_id = ?3)
 ORDER BY votes DESC, q.created_at DESC
 LIMIT 100
 `
@@ -4035,6 +5073,7 @@ LIMIT 100
 type ListQuestionsParams struct {
 	Viewer int64
 	Show   string
+	Topic  int64
 }
 
 type ListQuestionsRow struct {
@@ -4046,14 +5085,17 @@ type ListQuestionsRow struct {
 	AnsweredAt sql.NullString
 	CreatedAt  string
 	UserName   string
+	TopicName  string
+	TopicSlug  string
+	HasVideo   bool
 	Votes      int64
 	Voted      bool
 }
 
 // Most votes first; the handler re-sorts for newest first. Show is 'all',
-// 'answered' or 'open'.
+// 'answered' or 'open'; topic 0 means every topic.
 func (q *Queries) ListQuestions(ctx context.Context, arg ListQuestionsParams) ([]ListQuestionsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listQuestions, arg.Viewer, arg.Show)
+	rows, err := q.db.QueryContext(ctx, listQuestions, arg.Viewer, arg.Show, arg.Topic)
 	if err != nil {
 		return nil, err
 	}
@@ -4070,6 +5112,9 @@ func (q *Queries) ListQuestions(ctx context.Context, arg ListQuestionsParams) ([
 			&i.AnsweredAt,
 			&i.CreatedAt,
 			&i.UserName,
+			&i.TopicName,
+			&i.TopicSlug,
+			&i.HasVideo,
 			&i.Votes,
 			&i.Voted,
 		); err != nil {
@@ -4128,6 +5173,82 @@ func (q *Queries) ListReferralBonuses(ctx context.Context, arg ListReferralBonus
 			&i.BonusAmount,
 			&i.CreatedAt,
 			&i.ReferredName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRelatedVideos = `-- name: ListRelatedVideos :many
+SELECT v.id, v.platform, v.external_id, v.url, v.embed_url, v.title, v.description, v.thumb_url, v.published_at, v.duration_seconds, v.vertical, v.live_status, v.was_live, v.view_count, v.hidden, v.featured, v.classified_at, v.created_at, COUNT(*) AS shared FROM videos v
+JOIN video_topics vt ON vt.video_id = v.id
+WHERE vt.topic_id IN (SELECT x.topic_id FROM video_topics x WHERE x.video_id = ?1)
+  AND v.id != ?1 AND v.hidden = 0 AND v.live_status = ''
+GROUP BY v.id
+ORDER BY shared DESC, v.published_at DESC
+LIMIT 8
+`
+
+type ListRelatedVideosRow struct {
+	ID              int64
+	Platform        string
+	ExternalID      string
+	Url             string
+	EmbedUrl        string
+	Title           string
+	Description     string
+	ThumbUrl        string
+	PublishedAt     string
+	DurationSeconds int64
+	Vertical        int64
+	LiveStatus      string
+	WasLive         int64
+	ViewCount       int64
+	Hidden          int64
+	Featured        int64
+	ClassifiedAt    sql.NullString
+	CreatedAt       string
+	Shared          int64
+}
+
+// Videos sharing the most topics with this one, newest first.
+func (q *Queries) ListRelatedVideos(ctx context.Context, id int64) ([]ListRelatedVideosRow, error) {
+	rows, err := q.db.QueryContext(ctx, listRelatedVideos, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListRelatedVideosRow
+	for rows.Next() {
+		var i ListRelatedVideosRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Platform,
+			&i.ExternalID,
+			&i.Url,
+			&i.EmbedUrl,
+			&i.Title,
+			&i.Description,
+			&i.ThumbUrl,
+			&i.PublishedAt,
+			&i.DurationSeconds,
+			&i.Vertical,
+			&i.LiveStatus,
+			&i.WasLive,
+			&i.ViewCount,
+			&i.Hidden,
+			&i.Featured,
+			&i.ClassifiedAt,
+			&i.CreatedAt,
+			&i.Shared,
 		); err != nil {
 			return nil, err
 		}
@@ -4360,6 +5481,56 @@ func (q *Queries) ListStockRecommendations(ctx context.Context, arg ListStockRec
 	return items, nil
 }
 
+const listStockVideos = `-- name: ListStockVideos :many
+SELECT v.id, v.platform, v.external_id, v.url, v.embed_url, v.title, v.description, v.thumb_url, v.published_at, v.duration_seconds, v.vertical, v.live_status, v.was_live, v.view_count, v.hidden, v.featured, v.classified_at, v.created_at FROM videos v
+JOIN video_stocks vs ON vs.video_id = v.id
+WHERE vs.stock_id = ? AND v.hidden = 0 AND v.live_status = ''
+ORDER BY v.published_at DESC
+LIMIT 6
+`
+
+func (q *Queries) ListStockVideos(ctx context.Context, stockID int64) ([]Video, error) {
+	rows, err := q.db.QueryContext(ctx, listStockVideos, stockID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Video
+	for rows.Next() {
+		var i Video
+		if err := rows.Scan(
+			&i.ID,
+			&i.Platform,
+			&i.ExternalID,
+			&i.Url,
+			&i.EmbedUrl,
+			&i.Title,
+			&i.Description,
+			&i.ThumbUrl,
+			&i.PublishedAt,
+			&i.DurationSeconds,
+			&i.Vertical,
+			&i.LiveStatus,
+			&i.WasLive,
+			&i.ViewCount,
+			&i.Hidden,
+			&i.Featured,
+			&i.ClassifiedAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listStocksByMarket = `-- name: ListStocksByMarket :many
 SELECT id, symbol, name, market, sector, currency, is_active, created_at FROM stocks
 WHERE is_active = 1 AND (market = ? OR ? = 'both')
@@ -4537,6 +5708,153 @@ func (q *Queries) ListStocksWithoutHistory(ctx context.Context, market string) (
 	return items, nil
 }
 
+const listTopicQuestions = `-- name: ListTopicQuestions :many
+SELECT q.id, q.title, q.answer != '' AS answered,
+       (SELECT COUNT(*) FROM question_votes v WHERE v.question_id = q.id) AS votes
+FROM questions q
+WHERE q.topic_id = ? AND q.hidden = 0
+ORDER BY answered DESC, votes DESC
+LIMIT 10
+`
+
+type ListTopicQuestionsRow struct {
+	ID       int64
+	Title    string
+	Answered bool
+	Votes    int64
+}
+
+func (q *Queries) ListTopicQuestions(ctx context.Context, topicID sql.NullInt64) ([]ListTopicQuestionsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listTopicQuestions, topicID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListTopicQuestionsRow
+	for rows.Next() {
+		var i ListTopicQuestionsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Answered,
+			&i.Votes,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTopicVideos = `-- name: ListTopicVideos :many
+SELECT v.id, v.platform, v.external_id, v.url, v.embed_url, v.title, v.description, v.thumb_url, v.published_at, v.duration_seconds, v.vertical, v.live_status, v.was_live, v.view_count, v.hidden, v.featured, v.classified_at, v.created_at FROM videos v
+JOIN video_topics vt ON vt.video_id = v.id
+WHERE vt.topic_id = ?1 AND v.hidden = 0 AND v.live_status = ''
+ORDER BY v.published_at DESC
+LIMIT ?3 OFFSET ?2
+`
+
+type ListTopicVideosParams struct {
+	TopicID int64
+	Off     int64
+	Lim     int64
+}
+
+func (q *Queries) ListTopicVideos(ctx context.Context, arg ListTopicVideosParams) ([]Video, error) {
+	rows, err := q.db.QueryContext(ctx, listTopicVideos, arg.TopicID, arg.Off, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Video
+	for rows.Next() {
+		var i Video
+		if err := rows.Scan(
+			&i.ID,
+			&i.Platform,
+			&i.ExternalID,
+			&i.Url,
+			&i.EmbedUrl,
+			&i.Title,
+			&i.Description,
+			&i.ThumbUrl,
+			&i.PublishedAt,
+			&i.DurationSeconds,
+			&i.Vertical,
+			&i.LiveStatus,
+			&i.WasLive,
+			&i.ViewCount,
+			&i.Hidden,
+			&i.Featured,
+			&i.ClassifiedAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTopics = `-- name: ListTopics :many
+SELECT t.id, t.slug, t.name, t.description, t.sort_order,
+       (SELECT COUNT(*) FROM video_topics vt JOIN videos v ON v.id = vt.video_id
+        WHERE vt.topic_id = t.id AND v.hidden = 0 AND v.live_status = '') AS videos
+FROM topics t
+ORDER BY t.sort_order, t.name
+`
+
+type ListTopicsRow struct {
+	ID          int64
+	Slug        string
+	Name        string
+	Description string
+	SortOrder   int64
+	Videos      int64
+}
+
+func (q *Queries) ListTopics(ctx context.Context) ([]ListTopicsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listTopics)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListTopicsRow
+	for rows.Next() {
+		var i ListTopicsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Slug,
+			&i.Name,
+			&i.Description,
+			&i.SortOrder,
+			&i.Videos,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTransactions = `-- name: ListTransactions :many
 SELECT t.id, t.participant_id, t.stock_id, t.type, t.quantity, t.price, t.total, t.converted_total, t.exchange_rate_used, t.fee, t.created_at, s.symbol, s.name AS stock_name, s.market, s.currency
 FROM transactions t
@@ -4595,6 +5913,55 @@ func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsPara
 			&i.StockName,
 			&i.Market,
 			&i.Currency,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUnclassifiedVideos = `-- name: ListUnclassifiedVideos :many
+SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, classified_at, created_at FROM videos
+WHERE classified_at IS NULL AND hidden = 0 AND live_status = ''
+ORDER BY published_at DESC
+LIMIT ?
+`
+
+func (q *Queries) ListUnclassifiedVideos(ctx context.Context, limit int64) ([]Video, error) {
+	rows, err := q.db.QueryContext(ctx, listUnclassifiedVideos, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Video
+	for rows.Next() {
+		var i Video
+		if err := rows.Scan(
+			&i.ID,
+			&i.Platform,
+			&i.ExternalID,
+			&i.Url,
+			&i.EmbedUrl,
+			&i.Title,
+			&i.Description,
+			&i.ThumbUrl,
+			&i.PublishedAt,
+			&i.DurationSeconds,
+			&i.Vertical,
+			&i.LiveStatus,
+			&i.WasLive,
+			&i.ViewCount,
+			&i.Hidden,
+			&i.Featured,
+			&i.ClassifiedAt,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -4686,6 +6053,54 @@ func (q *Queries) ListUnreadNotifications(ctx context.Context, userID int64) ([]
 			&i.IsRead,
 			&i.CreatedAt,
 			&i.Emailed,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUpcomingLive = `-- name: ListUpcomingLive :many
+SELECT id, platform, url, embed_url, video_id, title, description, scheduled_at, started_at, ended_at, status, source, announced, start_notified, created_at FROM live_events
+WHERE status = 'upcoming' AND (scheduled_at IS NULL OR scheduled_at > datetime('now', '-1 hour'))
+ORDER BY scheduled_at
+LIMIT 20
+`
+
+// Upcoming streams. One an hour overdue without starting has probably been
+// abandoned, so it drops off.
+func (q *Queries) ListUpcomingLive(ctx context.Context) ([]LiveEvent, error) {
+	rows, err := q.db.QueryContext(ctx, listUpcomingLive)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []LiveEvent
+	for rows.Next() {
+		var i LiveEvent
+		if err := rows.Scan(
+			&i.ID,
+			&i.Platform,
+			&i.Url,
+			&i.EmbedUrl,
+			&i.VideoID,
+			&i.Title,
+			&i.Description,
+			&i.ScheduledAt,
+			&i.StartedAt,
+			&i.EndedAt,
+			&i.Status,
+			&i.Source,
+			&i.Announced,
+			&i.StartNotified,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -4855,6 +6270,33 @@ func (q *Queries) ListUserGames(ctx context.Context, userID int64) ([]Game, erro
 	return items, nil
 }
 
+const listUserLiveReminders = `-- name: ListUserLiveReminders :many
+SELECT event_id FROM live_reminders WHERE user_id = ?
+`
+
+func (q *Queries) ListUserLiveReminders(ctx context.Context, userID int64) ([]int64, error) {
+	rows, err := q.db.QueryContext(ctx, listUserLiveReminders, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int64
+	for rows.Next() {
+		var event_id int64
+		if err := rows.Scan(&event_id); err != nil {
+			return nil, err
+		}
+		items = append(items, event_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUserParticipations = `-- name: ListUserParticipations :many
 SELECT p.joined_at, p.cash_balance, p.portfolio_value,
     g.name AS game_name, g.status AS game_status
@@ -4940,6 +6382,124 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
+const listVideoTopics = `-- name: ListVideoTopics :many
+SELECT t.id, t.slug, t.name, vt.source FROM topics t
+JOIN video_topics vt ON vt.topic_id = t.id
+WHERE vt.video_id = ?
+ORDER BY t.sort_order
+`
+
+type ListVideoTopicsRow struct {
+	ID     int64
+	Slug   string
+	Name   string
+	Source string
+}
+
+func (q *Queries) ListVideoTopics(ctx context.Context, videoID int64) ([]ListVideoTopicsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listVideoTopics, videoID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListVideoTopicsRow
+	for rows.Next() {
+		var i ListVideoTopicsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Slug,
+			&i.Name,
+			&i.Source,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listVideosAdmin = `-- name: ListVideosAdmin :many
+SELECT v.id, v.platform, v.title, v.url, v.thumb_url, v.published_at, v.hidden, v.featured,
+       v.vertical, v.live_status, v.classified_at,
+       CAST(COALESCE((SELECT GROUP_CONCAT(t.name, ', ') FROM video_topics vt JOIN topics t ON t.id = vt.topic_id
+                      WHERE vt.video_id = v.id), '') AS TEXT) AS topic_names
+FROM videos v
+WHERE (CAST(?1 AS TEXT) = '' OR v.platform = ?1)
+  AND (CAST(?2 AS TEXT) = '' OR v.title LIKE '%' || ?2 || '%')
+ORDER BY v.published_at DESC
+LIMIT ?4 OFFSET ?3
+`
+
+type ListVideosAdminParams struct {
+	Platform string
+	Q        string
+	Off      int64
+	Lim      int64
+}
+
+type ListVideosAdminRow struct {
+	ID           int64
+	Platform     string
+	Title        string
+	Url          string
+	ThumbUrl     string
+	PublishedAt  string
+	Hidden       int64
+	Featured     int64
+	Vertical     int64
+	LiveStatus   string
+	ClassifiedAt sql.NullString
+	TopicNames   string
+}
+
+// The admin list. Platform ” means every platform.
+func (q *Queries) ListVideosAdmin(ctx context.Context, arg ListVideosAdminParams) ([]ListVideosAdminRow, error) {
+	rows, err := q.db.QueryContext(ctx, listVideosAdmin,
+		arg.Platform,
+		arg.Q,
+		arg.Off,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListVideosAdminRow
+	for rows.Next() {
+		var i ListVideosAdminRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Platform,
+			&i.Title,
+			&i.Url,
+			&i.ThumbUrl,
+			&i.PublishedAt,
+			&i.Hidden,
+			&i.Featured,
+			&i.Vertical,
+			&i.LiveStatus,
+			&i.ClassifiedAt,
+			&i.TopicNames,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listWatchlist = `-- name: ListWatchlist :many
 SELECT w.id, w.participant_id, w.stock_id, w.created_at, s.symbol, s.name AS stock_name, s.market, s.sector, s.currency
 FROM watchlist w
@@ -5002,6 +6562,15 @@ func (q *Queries) MarkAllNotificationsRead(ctx context.Context, userID int64) er
 	return err
 }
 
+const markAnswerMailed = `-- name: MarkAnswerMailed :exec
+UPDATE questions SET answer_mailed = 1 WHERE id = ?
+`
+
+func (q *Queries) MarkAnswerMailed(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, markAnswerMailed, id)
+	return err
+}
+
 const markContactMessageRead = `-- name: MarkContactMessageRead :exec
 UPDATE contact_messages SET is_read = 1 WHERE id = ?
 `
@@ -5052,6 +6621,24 @@ func (q *Queries) MarkEmailSent(ctx context.Context, id int64) error {
 	return err
 }
 
+const markLiveAnnounced = `-- name: MarkLiveAnnounced :exec
+UPDATE live_events SET announced = 1 WHERE id = ?
+`
+
+func (q *Queries) MarkLiveAnnounced(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, markLiveAnnounced, id)
+	return err
+}
+
+const markLiveStartNotified = `-- name: MarkLiveStartNotified :exec
+UPDATE live_events SET start_notified = 1, announced = 1 WHERE id = ?
+`
+
+func (q *Queries) MarkLiveStartNotified(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, markLiveStartNotified, id)
+	return err
+}
+
 const markNotificationEmailed = `-- name: MarkNotificationEmailed :exec
 UPDATE notifications SET emailed = 1 WHERE id = ?
 `
@@ -5073,6 +6660,49 @@ type MarkNotificationReadParams struct {
 func (q *Queries) MarkNotificationRead(ctx context.Context, arg MarkNotificationReadParams) error {
 	_, err := q.db.ExecContext(ctx, markNotificationRead, arg.ID, arg.UserID)
 	return err
+}
+
+const pickVideos = `-- name: PickVideos :many
+SELECT id, platform, title, published_at FROM videos
+WHERE hidden = 0 AND live_status = '' AND (CAST(?1 AS TEXT) = '' OR title LIKE '%' || ?1 || '%')
+ORDER BY published_at DESC
+LIMIT 30
+`
+
+type PickVideosRow struct {
+	ID          int64
+	Platform    string
+	Title       string
+	PublishedAt string
+}
+
+// Videos to pick from when answering a question with one.
+func (q *Queries) PickVideos(ctx context.Context, q_ string) ([]PickVideosRow, error) {
+	rows, err := q.db.QueryContext(ctx, pickVideos, q_)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PickVideosRow
+	for rows.Next() {
+		var i PickVideosRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Platform,
+			&i.Title,
+			&i.PublishedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const pruneEmailOutbox = `-- name: PruneEmailOutbox :exec
@@ -5133,6 +6763,20 @@ func (q *Queries) RemoveFromWatchlist(ctx context.Context, arg RemoveFromWatchli
 	return err
 }
 
+const removeLiveReminder = `-- name: RemoveLiveReminder :exec
+DELETE FROM live_reminders WHERE event_id = ? AND user_id = ?
+`
+
+type RemoveLiveReminderParams struct {
+	EventID int64
+	UserID  int64
+}
+
+func (q *Queries) RemoveLiveReminder(ctx context.Context, arg RemoveLiveReminderParams) error {
+	_, err := q.db.ExecContext(ctx, removeLiveReminder, arg.EventID, arg.UserID)
+	return err
+}
+
 const removeQuestionVote = `-- name: RemoveQuestionVote :exec
 DELETE FROM question_votes WHERE question_id = ? AND user_id = ?
 `
@@ -5144,6 +6788,62 @@ type RemoveQuestionVoteParams struct {
 
 func (q *Queries) RemoveQuestionVote(ctx context.Context, arg RemoveQuestionVoteParams) error {
 	_, err := q.db.ExecContext(ctx, removeQuestionVote, arg.QuestionID, arg.UserID)
+	return err
+}
+
+const removeVideoTopic = `-- name: RemoveVideoTopic :exec
+DELETE FROM video_topics WHERE video_id = ? AND topic_id = ?
+`
+
+type RemoveVideoTopicParams struct {
+	VideoID int64
+	TopicID int64
+}
+
+func (q *Queries) RemoveVideoTopic(ctx context.Context, arg RemoveVideoTopicParams) error {
+	_, err := q.db.ExecContext(ctx, removeVideoTopic, arg.VideoID, arg.TopicID)
+	return err
+}
+
+const resetVideoClassified = `-- name: ResetVideoClassified :exec
+UPDATE videos SET classified_at = NULL WHERE id = ?
+`
+
+func (q *Queries) ResetVideoClassified(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, resetVideoClassified, id)
+	return err
+}
+
+const saveOAuthToken = `-- name: SaveOAuthToken :exec
+INSERT INTO oauth_tokens (provider, account, access_token, refresh_token, access_expires_at, refresh_expires_at)
+VALUES (?, ?, ?, ?, ?, ?)
+ON CONFLICT(provider) DO UPDATE SET
+    account = excluded.account,
+    access_token = excluded.access_token,
+    refresh_token = excluded.refresh_token,
+    access_expires_at = excluded.access_expires_at,
+    refresh_expires_at = excluded.refresh_expires_at,
+    updated_at = datetime('now')
+`
+
+type SaveOAuthTokenParams struct {
+	Provider         string
+	Account          string
+	AccessToken      string
+	RefreshToken     string
+	AccessExpiresAt  string
+	RefreshExpiresAt string
+}
+
+func (q *Queries) SaveOAuthToken(ctx context.Context, arg SaveOAuthTokenParams) error {
+	_, err := q.db.ExecContext(ctx, saveOAuthToken,
+		arg.Provider,
+		arg.Account,
+		arg.AccessToken,
+		arg.RefreshToken,
+		arg.AccessExpiresAt,
+		arg.RefreshExpiresAt,
+	)
 	return err
 }
 
@@ -5186,6 +6886,57 @@ func (q *Queries) SearchStocks(ctx context.Context, arg SearchStocksParams) ([]S
 			&i.Sector,
 			&i.Currency,
 			&i.IsActive,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchVideos = `-- name: SearchVideos :many
+SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, classified_at, created_at FROM videos
+WHERE hidden = 0 AND live_status = ''
+  AND (title LIKE '%' || CAST(?1 AS TEXT) || '%' OR description LIKE '%' || CAST(?1 AS TEXT) || '%')
+ORDER BY published_at DESC
+LIMIT 60
+`
+
+// Newest first; the handler moves title matches to the top.
+func (q *Queries) SearchVideos(ctx context.Context, q_ string) ([]Video, error) {
+	rows, err := q.db.QueryContext(ctx, searchVideos, q_)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Video
+	for rows.Next() {
+		var i Video
+		if err := rows.Scan(
+			&i.ID,
+			&i.Platform,
+			&i.ExternalID,
+			&i.Url,
+			&i.EmbedUrl,
+			&i.Title,
+			&i.Description,
+			&i.ThumbUrl,
+			&i.PublishedAt,
+			&i.DurationSeconds,
+			&i.Vertical,
+			&i.LiveStatus,
+			&i.WasLive,
+			&i.ViewCount,
+			&i.Hidden,
+			&i.Featured,
+			&i.ClassifiedAt,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -5262,6 +7013,88 @@ type SetLastGameParams struct {
 
 func (q *Queries) SetLastGame(ctx context.Context, arg SetLastGameParams) error {
 	_, err := q.db.ExecContext(ctx, setLastGame, arg.LastGameID, arg.ID)
+	return err
+}
+
+const setMediaState = `-- name: SetMediaState :exec
+INSERT INTO media_state (key, value) VALUES (?, ?)
+ON CONFLICT(key) DO UPDATE SET value = excluded.value
+`
+
+type SetMediaStateParams struct {
+	Key   string
+	Value string
+}
+
+func (q *Queries) SetMediaState(ctx context.Context, arg SetMediaStateParams) error {
+	_, err := q.db.ExecContext(ctx, setMediaState, arg.Key, arg.Value)
+	return err
+}
+
+const setQuestionTopic = `-- name: SetQuestionTopic :exec
+UPDATE questions SET topic_id = ? WHERE id = ?
+`
+
+type SetQuestionTopicParams struct {
+	TopicID sql.NullInt64
+	ID      int64
+}
+
+func (q *Queries) SetQuestionTopic(ctx context.Context, arg SetQuestionTopicParams) error {
+	_, err := q.db.ExecContext(ctx, setQuestionTopic, arg.TopicID, arg.ID)
+	return err
+}
+
+const setQuestionVideo = `-- name: SetQuestionVideo :exec
+UPDATE questions SET answer_video_id = ?, answer_seconds = ? WHERE id = ?
+`
+
+type SetQuestionVideoParams struct {
+	AnswerVideoID sql.NullInt64
+	AnswerSeconds int64
+	ID            int64
+}
+
+// Points the answer at a video, from a given second.
+func (q *Queries) SetQuestionVideo(ctx context.Context, arg SetQuestionVideoParams) error {
+	_, err := q.db.ExecContext(ctx, setQuestionVideo, arg.AnswerVideoID, arg.AnswerSeconds, arg.ID)
+	return err
+}
+
+const setVideoClassified = `-- name: SetVideoClassified :exec
+UPDATE videos SET classified_at = datetime('now') WHERE id = ?
+`
+
+func (q *Queries) SetVideoClassified(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, setVideoClassified, id)
+	return err
+}
+
+const setVideoFeatured = `-- name: SetVideoFeatured :exec
+UPDATE videos SET featured = ? WHERE id = ?
+`
+
+type SetVideoFeaturedParams struct {
+	Featured int64
+	ID       int64
+}
+
+func (q *Queries) SetVideoFeatured(ctx context.Context, arg SetVideoFeaturedParams) error {
+	_, err := q.db.ExecContext(ctx, setVideoFeatured, arg.Featured, arg.ID)
+	return err
+}
+
+const setVideoHidden = `-- name: SetVideoHidden :exec
+UPDATE videos SET hidden = ? WHERE id = ?
+`
+
+type SetVideoHiddenParams struct {
+	Hidden int64
+	ID     int64
+}
+
+func (q *Queries) SetVideoHidden(ctx context.Context, arg SetVideoHiddenParams) error {
+	_, err := q.db.ExecContext(ctx, setVideoHidden, arg.Hidden, arg.ID)
 	return err
 }
 
@@ -5451,6 +7284,34 @@ func (q *Queries) UpdateLesson(ctx context.Context, arg UpdateLessonParams) erro
 	return err
 }
 
+const updateLiveEvent = `-- name: UpdateLiveEvent :exec
+UPDATE live_events SET platform = ?, url = ?, embed_url = ?, title = ?, description = ?, scheduled_at = ?
+WHERE id = ?
+`
+
+type UpdateLiveEventParams struct {
+	Platform    string
+	Url         string
+	EmbedUrl    string
+	Title       string
+	Description string
+	ScheduledAt sql.NullString
+	ID          int64
+}
+
+func (q *Queries) UpdateLiveEvent(ctx context.Context, arg UpdateLiveEventParams) error {
+	_, err := q.db.ExecContext(ctx, updateLiveEvent,
+		arg.Platform,
+		arg.Url,
+		arg.EmbedUrl,
+		arg.Title,
+		arg.Description,
+		arg.ScheduledAt,
+		arg.ID,
+	)
+	return err
+}
+
 const updateParticipantVisibility = `-- name: UpdateParticipantVisibility :exec
 UPDATE participants SET is_public = ? WHERE id = ?
 `
@@ -5490,6 +7351,27 @@ type UpdateStockLogoParams struct {
 
 func (q *Queries) UpdateStockLogo(ctx context.Context, arg UpdateStockLogoParams) error {
 	_, err := q.db.ExecContext(ctx, updateStockLogo, arg.Logo, arg.StockID)
+	return err
+}
+
+const updateTopic = `-- name: UpdateTopic :exec
+UPDATE topics SET name = ?, description = ?, sort_order = ? WHERE id = ?
+`
+
+type UpdateTopicParams struct {
+	Name        string
+	Description string
+	SortOrder   int64
+	ID          int64
+}
+
+func (q *Queries) UpdateTopic(ctx context.Context, arg UpdateTopicParams) error {
+	_, err := q.db.ExecContext(ctx, updateTopic,
+		arg.Name,
+		arg.Description,
+		arg.SortOrder,
+		arg.ID,
+	)
 	return err
 }
 
@@ -5950,6 +7832,126 @@ func (q *Queries) UpsertStockStatistics(ctx context.Context, arg UpsertStockStat
 		arg.LastSplitDate,
 		arg.FiscalYearEnds,
 		arg.MostRecentQuarter,
+	)
+	return err
+}
+
+const upsertVideo = `-- name: UpsertVideo :one
+INSERT INTO videos (platform, external_id, url, embed_url, title, description, thumb_url,
+                    published_at, duration_seconds, vertical, live_status, was_live, view_count)
+VALUES (?1, ?2, ?3, ?4, ?5,
+        ?6, ?7, ?8, ?9,
+        ?10, ?11, ?12, ?13)
+ON CONFLICT(platform, external_id) DO UPDATE SET
+    url = excluded.url,
+    embed_url = excluded.embed_url,
+    title = excluded.title,
+    description = excluded.description,
+    thumb_url = excluded.thumb_url,
+    published_at = excluded.published_at,
+    duration_seconds = excluded.duration_seconds,
+    vertical = excluded.vertical,
+    live_status = excluded.live_status,
+    was_live = excluded.was_live,
+    view_count = excluded.view_count,
+    classified_at = CASE WHEN videos.title != excluded.title OR videos.description != excluded.description
+                         THEN NULL ELSE videos.classified_at END
+RETURNING id
+`
+
+type UpsertVideoParams struct {
+	Platform        string
+	ExternalID      string
+	Url             string
+	EmbedUrl        string
+	Title           string
+	Description     string
+	ThumbUrl        string
+	PublishedAt     string
+	DurationSeconds int64
+	Vertical        int64
+	LiveStatus      string
+	WasLive         int64
+	ViewCount       int64
+}
+
+// A changed title or description sends the video back to Claude.
+func (q *Queries) UpsertVideo(ctx context.Context, arg UpsertVideoParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, upsertVideo,
+		arg.Platform,
+		arg.ExternalID,
+		arg.Url,
+		arg.EmbedUrl,
+		arg.Title,
+		arg.Description,
+		arg.ThumbUrl,
+		arg.PublishedAt,
+		arg.DurationSeconds,
+		arg.Vertical,
+		arg.LiveStatus,
+		arg.WasLive,
+		arg.ViewCount,
+	)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
+const upsertVideoThumb = `-- name: UpsertVideoThumb :exec
+INSERT INTO video_thumbs (video_id, content_type, data) VALUES (?, ?, ?)
+ON CONFLICT(video_id) DO UPDATE SET content_type = excluded.content_type, data = excluded.data
+`
+
+type UpsertVideoThumbParams struct {
+	VideoID     int64
+	ContentType string
+	Data        []byte
+}
+
+func (q *Queries) UpsertVideoThumb(ctx context.Context, arg UpsertVideoThumbParams) error {
+	_, err := q.db.ExecContext(ctx, upsertVideoThumb, arg.VideoID, arg.ContentType, arg.Data)
+	return err
+}
+
+const upsertYouTubeLiveEvent = `-- name: UpsertYouTubeLiveEvent :exec
+INSERT INTO live_events (platform, url, embed_url, video_id, title, description, scheduled_at,
+                         started_at, ended_at, status, source)
+VALUES ('youtube', ?1, ?2, ?3, ?4, ?5,
+        ?6, ?7, ?8, ?9, 'youtube')
+ON CONFLICT(video_id) DO UPDATE SET
+    url = excluded.url,
+    embed_url = excluded.embed_url,
+    title = excluded.title,
+    description = excluded.description,
+    scheduled_at = excluded.scheduled_at,
+    started_at = COALESCE(excluded.started_at, live_events.started_at),
+    ended_at = COALESCE(excluded.ended_at, live_events.ended_at),
+    status = CASE WHEN live_events.status = 'cancelled' THEN 'cancelled' ELSE excluded.status END
+`
+
+type UpsertYouTubeLiveEventParams struct {
+	Url         string
+	EmbedUrl    string
+	VideoID     sql.NullInt64
+	Title       string
+	Description string
+	ScheduledAt sql.NullString
+	StartedAt   sql.NullString
+	EndedAt     sql.NullString
+	Status      string
+}
+
+func (q *Queries) UpsertYouTubeLiveEvent(ctx context.Context, arg UpsertYouTubeLiveEventParams) error {
+	_, err := q.db.ExecContext(ctx, upsertYouTubeLiveEvent,
+		arg.Url,
+		arg.EmbedUrl,
+		arg.VideoID,
+		arg.Title,
+		arg.Description,
+		arg.ScheduledAt,
+		arg.StartedAt,
+		arg.EndedAt,
+		arg.Status,
 	)
 	return err
 }

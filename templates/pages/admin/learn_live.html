@@ -1,0 +1,39 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Live streams</h1>
+    <a href="/admin/learn" class="btn btn-sm">&larr; Learn</a>
+</div>
+
+<p style="margin-bottom:16px">YouTube streams appear here by themselves once Rob schedules them on YouTube. TikTok, Facebook and Instagram can't tell us, so add those here. Everyone with Live streams email on hears about a stream added at least an hour ahead.</p>
+
+<div class="settings-card">
+    <h2>Add a stream</h2>
+    <form method="POST" action="/admin/learn/live">
+        {{template "liveform"}}
+        <div class="btn-group" style="flex-wrap:wrap">
+            <button type="submit" class="btn btn-primary">Add stream</button>
+            <button type="submit" name="now" value="1" class="btn btn-danger">I'm live now</button>
+        </div>
+    </form>
+</div>
+
+<div class="table-wrap">
+<table class="rtable">
+    <thead><tr><th>Stream</th><th>When</th><th>Where</th><th>Status</th></tr></thead>
+    <tbody>
+    {{range .Items}}
+    <tr>
+        <td class="c-main"><a href="/learn/live/{{.ID}}" class="stretch">{{.Title}}</a></td>
+        <td data-label="When">{{if .StartedAt.Valid}}{{when .StartedAt}}{{else}}{{when .ScheduledAt}}{{end}}</td>
+        <td data-label="Where">{{platform .Platform}}{{if eq .Source "youtube"}} (synced){{end}}</td>
+        <td class="c-end">{{.Status}}</td>
+    </tr>
+    {{else}}
+    <tr><td colspan="4" class="text-muted">No streams yet.</td></tr>
+    {{end}}
+    </tbody>
+</table>
+</div>
+{{end}}

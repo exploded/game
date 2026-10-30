@@ -16,4 +16,29 @@
     {{end}}
     <p style="margin-top:12px"><a href="/games">Past games and results</a></p>
 </section>
+
+{{if or (index .Extra "RobVideos") (index .Extra "NextLive")}}
+<section class="section">
+    <div class="learn-section-head">
+        <h2 class="learn-h2">New from Rob</h2>
+        <a href="/learn" class="learn-more">All videos &rarr;</a>
+    </div>
+    {{with index .Extra "NextLive"}}
+    <a href="/learn/live/{{.ID}}" class="live-card">
+        <span class="live-pill live-pill-soon">NEXT LIVE</span>
+        <span class="live-card-title">{{.Title}}</span>
+        <span class="text-muted">{{with .ScheduledAt.String}}{{when .}} &middot; {{end}}{{platform .Platform}}. Send your questions now.</span>
+    </a>
+    {{end}}
+    <div class="vrow">
+        {{range index .Extra "RobVideos"}}
+        <a href="/learn/v/{{.ID}}" class="vcard">
+            <span class="vthumb"><img src="{{thumb .ThumbUrl .ID}}" alt="" loading="lazy">{{with duration .DurationSeconds}}<span class="vbadge">{{.}}</span>{{end}}</span>
+            <span class="vtitle">{{.Title}}</span>
+            <span class="vmeta">{{day .PublishedAt}}</span>
+        </a>
+        {{end}}
+    </div>
+</section>
+{{end}}
 {{end}}

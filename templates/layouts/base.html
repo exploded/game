@@ -25,6 +25,13 @@
      forms and buttons inside and every htmx POST is rejected. -->
 <body hx-headers:inherited='{"X-CSRF-Token": "{{.CSRFToken}}"}'>
     {{template "nav" .}}
+    {{with .LiveNow}}{{if ne (printf "%v" (index $.Extra "Tab")) "live"}}
+    <a href="/learn/live/{{.ID}}" class="live-banner">
+        <span class="live-dot" aria-hidden="true"></span>
+        <span class="live-banner-text"><strong>Rob is live</strong> on {{platform .Platform}}: {{.Title}}</span>
+        <span class="live-banner-cta">Watch &rarr;</span>
+    </a>
+    {{end}}{{end}}
     {{with .GameBar}}{{template "gamebar" .}}{{end}}
 
     {{if .Flash}}

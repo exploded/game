@@ -48,6 +48,12 @@ All settings come from `.env` (or the environment, which takes priority):
 | `TIMEZONE` | IANA zone for game start and end dates. Default `UTC`. |
 | `TWELVEDATA_API_KEY` | Price data |
 | `TWELVEDATA_SYMBOLS` | Limits the Twelve Data jobs to these symbols, such as `MSFT,AMZN,BRK.B,IBM`. Set it in dev: dev and production share the key's 610 credits a minute. Unset in production. |
+| `YOUTUBE_API_KEY` | YouTube Data API v3 key. Syncs Rob's channel into Learn and spots live streams. Off without it. |
+| `YOUTUBE_CHANNEL` | Handle or channel id. Default `@ConsortiumPW`. |
+| `ANTHROPIC_API_KEY` | Claude API key. Sorts videos and questions into topics. Without it, admins tick topics by hand. |
+| `CLAUDE_MODEL` | Model for sorting. Default `claude-opus-5-5`. |
+| `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET` | TikTok app with Login Kit and the Display API (`user.info.basic`, `video.list`). Its redirect URI is `BASE_URL/admin/learn/tiktok/callback`. Rob then clicks **Connect TikTok** on `/admin/learn`. |
+| `LEARN_DISCLAIMER` | Replaces the general advice warning under every Learn page with Rob's licensee wording. |
 | `MONITOR_URL`, `MONITOR_API_KEY` | Ship warnings and errors to monitor.mchugh.au |
 
 ## Deploy

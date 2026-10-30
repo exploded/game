@@ -1,0 +1,50 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Topics</h1>
+    <a href="/admin/learn" class="btn btn-sm">&larr; Learn</a>
+</div>
+
+<p style="margin-bottom:16px">Claude reads each description when it sorts a video, so say what belongs in the topic. Renaming a topic keeps its web address. A new topic only gets older videos when they're sorted again.</p>
+
+{{range .Items}}
+<div class="settings-card">
+    <form method="POST" action="/admin/learn/topics/{{.ID}}">
+        <div class="form-row">
+            <div class="form-group" style="flex:3">
+                <label for="name-{{.ID}}">Name <span class="text-muted">({{.Videos}} videos, /learn/topics/{{.Slug}})</span></label>
+                <input type="text" id="name-{{.ID}}" name="name" maxlength="60" required value="{{.Name}}">
+            </div>
+            <div class="form-group" style="flex:1">
+                <label for="order-{{.ID}}">Order</label>
+                <input type="number" id="order-{{.ID}}" name="sort_order" value="{{.SortOrder}}">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="desc-{{.ID}}">What belongs here</label>
+            <textarea id="desc-{{.ID}}" name="description" rows="2" maxlength="400">{{.Description}}</textarea>
+        </div>
+        <div class="btn-group">
+            <button type="submit" class="btn btn-sm btn-primary">Save</button>
+            <button type="submit" formaction="/admin/learn/topics/{{.ID}}/delete" class="btn btn-sm btn-danger" data-confirm="Delete {{.Name}}? Its videos stay in their other topics.">Delete</button>
+        </div>
+    </form>
+</div>
+{{end}}
+
+<div class="settings-card">
+    <h2>Add a topic</h2>
+    <form method="POST" action="/admin/learn/topics">
+        <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text" id="name" name="name" maxlength="60" required>
+        </div>
+        <div class="form-group">
+            <label for="description">What belongs here</label>
+            <textarea id="description" name="description" rows="2" maxlength="400"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Add topic</button>
+    </form>
+</div>
+{{end}}

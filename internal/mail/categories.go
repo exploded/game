@@ -11,6 +11,7 @@ const (
 	Games     Category = "games"     // game started, ending soon, results
 	Digest    Category = "digest"    // the weekly summary
 	Community Category = "community" // answers to your questions, new courses
+	Live      Category = "live"      // Rob's live streams
 	News      Category = "news"      // marketing from Rob; opt-in only
 )
 
@@ -29,6 +30,7 @@ var Optional = []CategoryInfo{
 	// Digest joins this list when the weekly summary (D1 in docs/emails.md)
 	// is built: {Digest, "Weekly summary", "A Monday email with how each of your games went last week.", true},
 	{Community, "Community", "Answers to your questions and new courses.", true},
+	{Live, "Live streams", "When Rob schedules a live stream, and a reminder when one you asked about starts.", true},
 	{News, "News from Rob", "Tips, courses and announcements. Sent only if you opt in.", false},
 }
 

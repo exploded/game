@@ -120,6 +120,9 @@ func (h *Handler) StockDetail(w http.ResponseWriter, r *http.Request) {
 	// The order ticket shows only for players in the game; anyone can view.
 	trade, _ := h.loadTradeContext(r.Context(), game, stock, latestPrice, auth.UserFromContext(r.Context()).ID)
 
+	// Rob's videos that talk about this stock (picked by the classifier).
+	robVideos, _ := h.q.ListStockVideos(r.Context(), stock.ID)
+
 	h.render(w, r, "stocks/detail", "", PageData{
 		Title: stock.Symbol + " - " + stock.Name,
 		Item:  stock,
@@ -133,6 +136,7 @@ func (h *Handler) StockDetail(w http.ResponseWriter, r *http.Request) {
 			"Recommendations": recs,
 			"Peers":           peers,
 			"Trade":           trade,
+			"RobVideos":       robVideos,
 		},
 	})
 }

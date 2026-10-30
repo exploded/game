@@ -1,0 +1,18 @@
+{{/* D is media.liveEmail. */}}
+{{define "subject"}}Rob is live now: {{.D.Title}}{{end}}
+
+{{define "text"}}Rob is live on {{.D.Platform}} now:
+
+"{{.D.Title}}"
+
+Watch and vote on the questions: {{.BaseURL}}{{.D.URL}}
+
+Or watch on {{.D.Platform}}: {{.D.WatchURL}}
+
+You're getting this because you asked for a reminder.{{end}}
+
+{{define "html"}}<p style="margin:0 0 16px;">Rob is live on {{.D.Platform}} now:</p>
+<p style="margin:0 0 24px;font-size:18px;font-weight:600;">{{.D.Title}}</p>
+<p style="margin:0 0 16px;"><a href="{{.BaseURL}}{{.D.URL}}" style="display:inline-block;background:#007994;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:6px;">Watch and vote on questions</a></p>
+<p style="margin:0 0 16px;">Or <a href="{{.D.WatchURL}}" style="color:#007994;">watch on {{.D.Platform}}</a>.</p>
+<p style="margin:0;color:#666666;font-size:13px;">You're getting this because you asked for a reminder.</p>{{end}}

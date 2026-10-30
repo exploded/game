@@ -32,6 +32,7 @@ header, which Gmail and Apple Mail show as an Unsubscribe button).
 | Games | `games` | On | Yes |
 | Weekly summary | `digest` | On | Yes. Hidden in Settings until D1 is built. |
 | Community | `community` | On | Yes |
+| Live streams | `live` | On | Yes |
 | News from Rob | `news` | **Off** | Yes. Opt-in only. |
 
 ## The emails
@@ -102,6 +103,25 @@ worked out but aren't written yet.
 - C2 is optional on first publish only. It counts as Community email while
   courses are free. If Rob starts charging for courses, a new-course email
   promotes something for sale, so it must move to News (opt-in).
+
+- C1 also goes when Rob answers a question during a live stream ("Answered
+  on air" on the stream page). It waits until the stream ends and, for
+  YouTube, until the recording is in, so the email links to the moment.
+
+### Live streams
+
+| # | Email | Trigger | Status |
+|---|---|---|---|
+| L1 | Rob is going live | A stream is first seen (YouTube sync or an admin adds one) at least an hour before it starts | Built |
+| L2 | Rob is live now | A stream starts; only to people who tapped **Remind me** on it | Built |
+
+- Category **Live streams**, on by default. Sent by `internal/media`
+  (`live.go`); the scheduler runs it every minute.
+- L2 also adds an in-app notification. It isn't sent for a stream found more
+  than 30 minutes after it started.
+- Like C2, this counts as service email while the streams are free. If a
+  stream sells something (a paid course, Rob's advice service), its
+  announcement is marketing and must go through News instead.
 
 ### News from Rob (marketing)
 

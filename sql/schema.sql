@@ -588,7 +588,12 @@ CREATE TABLE IF NOT EXISTS questions (
     answered_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
     answered_at TEXT,
     hidden      INTEGER NOT NULL DEFAULT 0,             -- 1 = removed by an admin
-    created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+    topic_id        INTEGER REFERENCES topics(id) ON DELETE SET NULL,
+    answer_video_id INTEGER REFERENCES videos(id) ON DELETE SET NULL, -- answered in this video
+    answer_seconds  INTEGER NOT NULL DEFAULT 0,         -- from this point in it
+    live_event_id   INTEGER REFERENCES live_events(id) ON DELETE SET NULL, -- answered on air
+    answer_mailed   INTEGER NOT NULL DEFAULT 1          -- 0 = answered on air, followers not emailed yet
 );
 CREATE INDEX IF NOT EXISTS idx_questions_created ON questions(hidden, created_at DESC);
 
@@ -632,4 +637,110 @@ CREATE TABLE IF NOT EXISTS lesson_progress (
     lesson_id    INTEGER NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
     completed_at TEXT    NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (user_id, lesson_id)
+);
+
+--------------------------------------------------------------------------------
+-- Learn: Rob's videos and live streams from YouTube, TikTok, Facebook and
+-- Instagram, sorted into topics. internal/media syncs them and asks Claude
+-- which topics each video belongs to. Videos are embedded, never served.
+--------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS topics (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug        TEXT    NOT NULL UNIQUE,               -- the URL: /learn/topics/{slug}
+    name        TEXT    NOT NULL,
+    description TEXT    NOT NULL DEFAULT '',           -- what belongs here; Claude reads it
+    sort_order  INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS videos (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    platform         TEXT    NOT NULL,                 -- 'youtube' | 'tiktok' | 'facebook' | 'instagram'
+    external_id      TEXT    NOT NULL,                 -- the platform's id for the video
+    url              TEXT    NOT NULL,                 -- the video on the platform
+    embed_url        TEXT    NOT NULL,                 -- the player (handler/video.go)
+    title            TEXT    NOT NULL,
+    description      TEXT    NOT NULL DEFAULT '',
+    thumb_url        TEXT    NOT NULL DEFAULT '',      -- '' when the cover is in video_thumbs
+    published_at     TEXT    NOT NULL,                 -- UTC, 'YYYY-MM-DD HH:MM:SS'
+    duration_seconds INTEGER NOT NULL DEFAULT 0,
+    vertical         INTEGER NOT NULL DEFAULT 0,       -- 1 = a short (9:16)
+    live_status      TEXT    NOT NULL DEFAULT '',      -- 'upcoming' | 'live' while a stream; then ''
+    was_live         INTEGER NOT NULL DEFAULT 0,       -- 1 = a recorded live stream
+    view_count       INTEGER NOT NULL DEFAULT 0,
+    hidden           INTEGER NOT NULL DEFAULT 0,       -- 1 = removed by an admin
+    featured         INTEGER NOT NULL DEFAULT 0,       -- 1 = pinned to the top of /learn
+    classified_at    TEXT,                             -- NULL until Claude has picked its topics
+    created_at       TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(platform, external_id)
+);
+CREATE INDEX IF NOT EXISTS idx_videos_published ON videos(hidden, published_at DESC);
+
+-- Covers for platforms whose image links expire (TikTok), served from
+-- /learn/thumb/{id}.
+CREATE TABLE IF NOT EXISTS video_thumbs (
+    video_id     INTEGER PRIMARY KEY REFERENCES videos(id) ON DELETE CASCADE,
+    content_type TEXT    NOT NULL,
+    data         BLOB    NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS video_topics (
+    video_id INTEGER NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
+    topic_id INTEGER NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
+    source   TEXT    NOT NULL DEFAULT 'claude',        -- 'claude' | 'admin'; reclassifying keeps admin rows
+    PRIMARY KEY (video_id, topic_id)
+);
+CREATE INDEX IF NOT EXISTS idx_video_topics_topic ON video_topics(topic_id);
+
+-- Stocks a video talks about, from the classifier.
+CREATE TABLE IF NOT EXISTS video_stocks (
+    video_id INTEGER NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
+    stock_id INTEGER NOT NULL REFERENCES stocks(id) ON DELETE CASCADE,
+    PRIMARY KEY (video_id, stock_id)
+);
+CREATE INDEX IF NOT EXISTS idx_video_stocks_stock ON video_stocks(stock_id);
+
+-- Live streams. YouTube ones come from the sync (video_id set); TikTok,
+-- Facebook and Instagram have no schedule API, so an admin adds those.
+CREATE TABLE IF NOT EXISTS live_events (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    platform       TEXT    NOT NULL,
+    url            TEXT    NOT NULL,                   -- where to watch
+    embed_url      TEXT    NOT NULL DEFAULT '',        -- '' when it can't be embedded
+    video_id       INTEGER UNIQUE REFERENCES videos(id) ON DELETE SET NULL,
+    title          TEXT    NOT NULL,
+    description    TEXT    NOT NULL DEFAULT '',
+    scheduled_at   TEXT,                               -- UTC
+    started_at     TEXT,
+    ended_at       TEXT,
+    status         TEXT    NOT NULL DEFAULT 'upcoming', -- 'upcoming' | 'live' | 'ended' | 'cancelled'
+    source         TEXT    NOT NULL DEFAULT 'admin',    -- 'youtube' | 'admin'
+    announced      INTEGER NOT NULL DEFAULT 0,          -- 1 once the "coming up" email is queued
+    start_notified INTEGER NOT NULL DEFAULT 0,          -- 1 once the "live now" email is queued
+    created_at     TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_live_events_status ON live_events(status, scheduled_at);
+
+CREATE TABLE IF NOT EXISTS live_reminders (
+    event_id   INTEGER NOT NULL REFERENCES live_events(id) ON DELETE CASCADE,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (event_id, user_id)
+);
+
+-- OAuth tokens for the platforms Rob connects (TikTok).
+CREATE TABLE IF NOT EXISTS oauth_tokens (
+    provider           TEXT PRIMARY KEY,
+    account            TEXT NOT NULL DEFAULT '',       -- the connected account's display name
+    access_token       TEXT NOT NULL,
+    refresh_token      TEXT NOT NULL,
+    access_expires_at  TEXT NOT NULL,                  -- UTC
+    refresh_expires_at TEXT NOT NULL,                  -- UTC
+    updated_at         TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Small values the sync keeps between runs (the YouTube uploads playlist,
+-- whether the backfill finished).
+CREATE TABLE IF NOT EXISTS media_state (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
 );

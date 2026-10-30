@@ -1,0 +1,61 @@
+{{/* Shared pieces of the Learn pages. */}}
+
+{{/* The hub's header and tabs. . is PageData. */}}
+{{define "learntabs"}}{{$tab := index .Extra "Tab"}}
+<div class="learn-head">
+    <a href="/learn" class="learn-brand">Learn with Rob</a>
+    <nav class="learn-tabs" aria-label="Learn">
+        <a href="/learn"{{if eq $tab "watch"}} class="active" aria-current="page"{{end}}>Watch</a>
+        <a href="/learn/live"{{if eq $tab "live"}} class="active" aria-current="page"{{end}}>Live{{with .LiveNow}} <span class="live-dot" aria-label="on now"></span>{{end}}</a>
+        <a href="/learn/questions"{{if eq $tab "questions"}} class="active" aria-current="page"{{end}}>Ask Rob</a>
+        <a href="/learn/courses">Courses</a>
+    </nav>
+</div>
+{{end}}
+
+{{/* The general advice warning under every Learn page. */}}
+{{define "disclaimer"}}<p class="learn-disclaimer">{{index .Extra "Disclaimer"}}</p>{{end}}
+
+{{/* One video card. . is a video row (db.Video or a row with the same
+fields). */}}
+{{define "videocard"}}<a href="/learn/v/{{.ID}}" class="vcard{{if .Vertical}} vcard-tall{{end}}">
+    <span class="vthumb">
+        <img src="{{thumb .ThumbUrl .ID}}" alt="" loading="lazy" decoding="async">
+        {{with duration .DurationSeconds}}<span class="vbadge">{{.}}</span>{{end}}
+        {{if ne .Platform "youtube"}}<span class="vplatform vplatform-{{.Platform}}">{{platform .Platform}}</span>{{end}}
+    </span>
+    <span class="vtitle">{{.Title}}</span>
+    <span class="vmeta">{{day .PublishedAt}}</span>
+</a>{{end}}
+
+{{/* A sideways-scrolling row of cards. . is a slice of videos. */}}
+{{define "videorow"}}<div class="vrow">{{range .}}{{template "videocard" .}}{{end}}</div>{{end}}
+
+{{/* A grid of cards. . is a slice of videos. */}}
+{{define "videogrid"}}<div class="vgrid">{{range .}}{{template "videocard" .}}{{end}}</div>{{end}}
+
+{{/* A player that loads only when tapped, so a page of videos doesn't load a
+dozen third-party players. . is a dict with Embed, Thumb, Title and
+Vertical. */}}
+{{define "player"}}<div class="player{{if .Vertical}} player-tall{{end}}">
+    <button type="button" class="player-start" data-play="{{.Embed}}" data-title="{{.Title}}" aria-label="Play {{.Title}}">
+        {{with .Thumb}}<img src="{{.}}" alt="">{{end}}
+        <span class="player-icon" aria-hidden="true"></span>
+    </button>
+</div>{{end}}
+
+{{/* The vote button. . is a dict with Q (a question row with ID, Votes and
+Voted) and User. Works without JavaScript; htmx swaps in the new button. A
+visitor gets a sign-in link. */}}
+{{define "vote"}}{{$q := .Q}}{{if .User}}<form method="POST" action="/learn/questions/{{$q.ID}}/vote" hx-post="/learn/questions/{{$q.ID}}/vote" hx-swap="outerHTML" class="vote-form">
+    <button type="submit" class="vote{{if $q.Voted}} vote-on{{end}}" aria-pressed="{{$q.Voted}}" aria-label="{{$q.Votes}} votes. {{if $q.Voted}}Remove your vote{{else}}Vote for this question{{end}}" title="{{if $q.Voted}}Remove your vote{{else}}Vote for this question{{end}}">
+        <span aria-hidden="true" class="vote-arrow">&#9650;</span>
+        <span class="vote-count">{{$q.Votes}}</span>
+    </button>
+</form>{{else}}<a href="{{.SignIn}}" class="vote" title="Sign in to vote" aria-label="{{$q.Votes}} votes. Sign in to vote">
+    <span aria-hidden="true" class="vote-arrow">&#9650;</span>
+    <span class="vote-count">{{$q.Votes}}</span>
+</a>{{end}}{{end}}
+
+{{/* The htmx response to a vote: render passes PageData. */}}
+{{define "vote-response"}}{{template "vote" (dict "Q" .Item "User" .User)}}{{end}}

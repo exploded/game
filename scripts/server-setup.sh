@@ -36,6 +36,11 @@ PROD=1
 TWELVEDATA_API_KEY=
 MONITOR_URL=https://monitor.mchugh.au
 MONITOR_API_KEY=
+YOUTUBE_API_KEY=
+ANTHROPIC_API_KEY=
+TIKTOK_CLIENT_KEY=
+TIKTOK_CLIENT_SECRET=
+LEARN_DISCLAIMER=
 ENVEOF
     chmod 600 "$APP_DIR/.env"
     echo "Created $APP_DIR/.env — edit with your credentials."

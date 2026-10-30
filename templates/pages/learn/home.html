@@ -1,0 +1,82 @@
+{{template "base" .}}
+
+{{define "content"}}
+{{template "learntabs" .}}
+
+<form method="GET" action="/learn" class="learn-search" role="search">
+    <input type="search" name="q" value="{{index .Extra "Query"}}" placeholder="Search Rob's videos" aria-label="Search Rob's videos">
+    <button type="submit" class="btn btn-primary">Search</button>
+</form>
+
+<div class="chips" aria-label="Topics">
+    {{range index .Extra "Topics"}}{{if .Videos}}<a href="/learn/topics/{{.Slug}}" class="chip">{{.Name}}</a>{{end}}{{end}}
+</div>
+
+{{with index .Extra "Query"}}
+<section class="learn-section">
+    <h2 class="learn-h2">Videos matching &ldquo;{{.}}&rdquo;</h2>
+    {{with index $.Extra "Results"}}{{template "videogrid" .}}{{else}}<p class="text-muted">Nothing matches that. Try fewer words, or <a href="/learn/questions">ask Rob</a>.</p>{{end}}
+</section>
+{{else}}
+
+{{with $.LiveNow}}
+<a href="/learn/live/{{.ID}}" class="live-card live-card-on">
+    <span class="live-pill"><span class="live-dot"></span> LIVE</span>
+    <span class="live-card-title">{{.Title}}</span>
+    <span class="text-muted">On {{platform .Platform}} now. Watch and vote on the questions.</span>
+</a>
+{{else}}{{with index $.Extra "Next"}}
+<a href="/learn/live/{{.ID}}" class="live-card">
+    <span class="live-pill live-pill-soon">NEXT LIVE</span>
+    <span class="live-card-title">{{.Title}}</span>
+    <span class="text-muted">{{with .ScheduledAt.String}}{{when .}} ({{until .}}) &middot; {{end}}{{platform .Platform}}. Send your questions now.</span>
+</a>
+{{end}}{{end}}
+
+{{with index $.Extra "Featured"}}
+<section class="learn-section">
+    <h2 class="learn-h2">Start here</h2>
+    {{template "videorow" .}}
+</section>
+{{end}}
+
+{{with index $.Extra "Latest"}}
+<section class="learn-section">
+    <h2 class="learn-h2">Latest</h2>
+    {{template "videorow" .}}
+</section>
+{{end}}
+
+{{with index $.Extra "Shorts"}}
+<section class="learn-section">
+    <h2 class="learn-h2">Shorts</h2>
+    <div class="vrow vrow-shorts">{{range .}}{{template "videocard" .}}{{end}}</div>
+</section>
+{{end}}
+
+{{range index $.Extra "Rows"}}
+<section class="learn-section">
+    <div class="learn-section-head">
+        <h2 class="learn-h2">{{.Topic.Name}}</h2>
+        <a href="/learn/topics/{{.Topic.Slug}}" class="learn-more">All {{.Topic.Videos}} &rarr;</a>
+    </div>
+    {{template "videorow" .Videos}}
+</section>
+{{end}}
+
+{{if not (or (index $.Extra "Latest") (index $.Extra "Shorts"))}}
+<div class="empty-state">
+    <p>Rob's videos will appear here soon.</p>
+</div>
+{{end}}
+
+<section class="learn-section">
+    <h2 class="learn-h2">Follow Rob</h2>
+    <div class="socials">
+        {{range index $.Extra "Socials"}}<a href="{{.URL}}" class="social social-{{.Class}}" target="_blank" rel="noopener">{{.Name}}</a>{{end}}
+    </div>
+</section>
+{{end}}
+
+{{template "disclaimer" .}}
+{{end}}

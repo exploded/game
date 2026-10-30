@@ -39,6 +39,45 @@ Built on 2026-10-29 and merged into `master` on 2026-10-30. Not deployed yet.
   `*.googleusercontent.com` entry in the CSP `img-src`, and "Use Google Photo"
   on the Profile page.
 
+## Learn: Rob's videos, live streams and questions (2026-10-30)
+
+Built on 2026-10-30. Not deployed yet. `/learn` is public; asking, voting and
+reminders need an account.
+
+- [x] **Watch.** Rob's YouTube channel syncs every 10 minutes (whole channel
+  nightly). Claude sorts each video into topics (retirement, super, buying a
+  home and so on); admins can retick them. Rows by topic, Shorts, search,
+  click-to-play players, related videos, "Ask Rob about this".
+- [x] **Live.** YouTube streams appear by themselves; admins add TikTok,
+  Facebook and Instagram streams or tap "I'm live now". Site-wide "Rob is
+  live" banner, Remind me, Add to calendar, and Live streams email (L1, L2 in
+  `docs/emails.md`).
+- [x] **Live Q&A queue.** The stream page lists the most-voted open questions
+  and refreshes every 20 seconds. Rob taps **Answered** as he goes; voters get
+  an email with a link to that moment once the recording is in.
+- [x] **Questions moved into Learn** (`/questions` redirects), with topics,
+  and answers can be a video from a given time.
+- [x] **TikTok through TikTok's API.** Rob connects once from `/admin/learn`;
+  the access token refreshes itself and lasts a year. Covers are cached
+  because TikTok's links expire after six hours.
+- [x] **Stock pages show Rob's videos** about that stock, and the dashboard
+  shows new videos and the next stream.
+- [ ] **Go live:** add `YOUTUBE_API_KEY` and `ANTHROPIC_API_KEY` to the server
+  `.env`. Sorting the first 1,600 videos takes about 90 minutes and costs
+  roughly US$5 to US$10.
+- [ ] **TikTok app:** register at developers.tiktok.com (Login Kit, Display
+  API), pass TikTok's app review, set `TIKTOK_CLIENT_KEY` and
+  `TIKTOK_CLIENT_SECRET`, then Rob clicks **Connect TikTok**. Reconnect
+  before the year is up; the admin page warns 30 days ahead.
+- [ ] **From Rob:** his licensee's general advice wording
+  (`LEARN_DISCLAIMER`), his X and podcast links, and whether the topic list
+  suits him (`/admin/learn/topics`).
+- [ ] **Later:** Facebook and Instagram sync and Facebook live detection
+  through Meta's Graph API (needs Rob's Page connected to a Meta app). TikTok
+  LIVE has no API, so TikTok streams stay manual. Web push notifications.
+- [ ] **Check on a phone:** `/learn`, a video, `/learn/live`, and a stream
+  page while live.
+
 ## One game per quarter (2026-10-30)
 
 Built on 2026-10-30. Not deployed yet.
@@ -81,7 +120,8 @@ Highest impact for the effort first.
   movers.
 - [ ] **Moderation:** hide chat messages, suspend users, link
   `/admin/messages` from the Admin page and email contact-form messages.
-- [ ] **Promote courses and Questions** on the dashboard and in emails.
+- [ ] **Promote courses and Questions** on the dashboard and in emails. The
+  dashboard now shows Rob's new videos and next stream (Learn).
 - [ ] **Live chat:** poll every 15 seconds and show relative times.
 - [ ] **Benchmark against the S&P 500** rather than a flat line.
 - [ ] **Shorter nav:** fold Achievements into another page. Templates and

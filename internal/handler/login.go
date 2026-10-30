@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"math/big"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -32,6 +33,7 @@ const (
 	maxCodeAttempts  = 5
 	maxLoginsPerHour = 5
 	loginCookie      = "login_req"
+	nextCookie       = "login_next" // the page to return to after signing in
 )
 
 // loginEmail is the data for the login email template.
@@ -41,9 +43,27 @@ type loginEmail struct {
 	Minutes int
 }
 
-// LoginPage renders the sign-in form.
+// LoginPage renders the sign-in form. ?next= is remembered in a cookie, so
+// signing in (by link or code, in this browser) returns to that page.
 func (h *Handler) LoginPage(w http.ResponseWriter, r *http.Request) {
+	if next := localPath(r.URL.Query().Get("next"), ""); next != "" {
+		http.SetCookie(w, &http.Cookie{
+			Name: nextCookie, Value: url.QueryEscape(next), Path: "/",
+			MaxAge: int(loginTTL.Seconds()) * 2, HttpOnly: true, Secure: SecurityHeadersProd, SameSite: http.SameSiteLaxMode,
+		})
+	}
 	h.render(w, r, "auth/login", "", PageData{Title: "Sign in"})
+}
+
+// takeNext returns the page saved by LoginPage, or fallback, and forgets it.
+func takeNext(w http.ResponseWriter, r *http.Request, fallback string) string {
+	c, err := r.Cookie(nextCookie)
+	if err != nil {
+		return fallback
+	}
+	http.SetCookie(w, &http.Cookie{Name: nextCookie, Value: "", Path: "/", MaxAge: -1})
+	next, _ := url.QueryUnescape(c.Value)
+	return localPath(next, fallback)
 }
 
 // LoginSubmit emails a sign-in link and code to the address entered.
@@ -238,7 +258,7 @@ func (h *Handler) finishLogin(w http.ResponseWriter, r *http.Request, req db.Log
 		http.Redirect(w, r, "/welcome", http.StatusSeeOther)
 		return
 	}
-	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+	http.Redirect(w, r, takeNext(w, r, "/dashboard"), http.StatusSeeOther)
 }
 
 // WelcomePage asks a new player for a display name and whether they want
@@ -276,6 +296,12 @@ func (h *Handler) WelcomeSubmit(w http.ResponseWriter, r *http.Request) {
 		UserID: user.ID, Category: string(mail.News), Enabled: news,
 	}); err != nil {
 		h.serverError(w, "set news pref", err)
+		return
+	}
+	if next := takeNext(w, r, ""); next != "" {
+		// Signed up from Learn: go back there.
+		setFlashCookie(w, "You're all set.", "success")
+		http.Redirect(w, r, next, http.StatusSeeOther)
 		return
 	}
 	setFlashCookie(w, "You're all set. Join a game to get your $1,000,000.", "success")
