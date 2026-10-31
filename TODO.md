@@ -158,6 +158,22 @@ Highest impact for the effort first.
 
 ## Ideas for Rob to approve
 
+- [ ] **Learn: public or behind sign-in?** (2026-10-31). Today anyone can
+  read `/learn`: videos, topics, live streams and Ask Rob questions with their
+  answers. Asking, voting and reminders need an account. The sitemap lists the
+  topics, the latest videos and every answered question, so Google can find
+  them. Courses (`/courses`, the 94 CPW lessons) need sign-in. For Rob to
+  decide:
+  - **Keep it public (as now).** Search engines can index it, so people
+    searching for super, retirement or home-buying questions can land on the
+    site. Answered questions help most, because they're Rob's own words; the
+    videos are on YouTube already.
+  - **Put it behind sign-in.** Everyone who watches has an account and can be
+    emailed, but Google sees only the sign-in page, and a shared video link
+    asks for sign-in first.
+  - **Courses public too?** Only if CPW is happy for its eLearning to be
+    indexed here as well as on consortiumpw.com.au.
+
 - [ ] **Share your result on social media** (2026-10-31). A Share button on
   the game's home page: the phone's own share sheet on a phone, and Copy link,
   X, Facebook, LinkedIn and WhatsApp on a computer. Game pages need a sign-in,
