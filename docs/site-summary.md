@@ -116,10 +116,11 @@ figures, recent news, and any of Rob's videos that mention it.
 
 ### Inviting friends
 
-From the game's home page a player can email a friend an invitation. If the
-friend makes an account, they join the game and the player gets a bonus of 1%
-of the starting money ($10,000), once per game. A player can send up to 10
-invitations a day. People who already have an account can't be invited.
+From the game's home page a player can email one friend an invitation per
+game. When the friend makes an account, they join the game and the player
+gets a bonus of 1% of the starting money ($10,000) in game money, in that
+game, or in the current month's game if that one has ended. People who already
+have an account can't be invited.
 
 ### Achievements and avatars
 

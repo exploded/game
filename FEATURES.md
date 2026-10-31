@@ -129,15 +129,16 @@ with the less-used ones under **More**.
 
 ### Inviting friends
 
-From the game's home page a player can email a friend an invitation. If the
-friend makes an account, they join the game and the player earns a bonus of 1%
-of the starting cash ($10,000), once per game.
+From the game's home page a player can email a friend an invitation. When the
+friend makes an account, they join the game and the player earns a bonus of
+1% of the starting cash ($10,000) in that game. If the game has ended by then,
+both happen in the current month's game instead. The bonus is game money, not
+real money, and a player can get more than one in a game.
 
-- Each player can send up to 10 invitations a day.
-- An address can be invited once per game.
+- Each player can send one invitation per game. Once it's sent, they can't
+  invite anyone else until the next game, even if the friend never signs up.
+- If two players invite the same friend, only the first invitation is sent.
 - People who already have an account can't be invited.
-- Friends who join after the bonus is paid still join the game, but earn the
-  player nothing more.
 
 Admins set the bonus for each game, and a bonus of 0 turns invitations off.
 

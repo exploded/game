@@ -13,6 +13,7 @@ import (
 	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/db"
 	"github.com/exploded/game/internal/mail"
+	"github.com/exploded/game/internal/market"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -173,7 +174,7 @@ func TestInviteRules(t *testing.T) {
 		{"1", "Alice@Example.com", "your own address"},
 		{"1", "bob@example.com", "already has a Wealth Lab account"},
 		{"1", "friend@example.com", "success|Invite sent to friend@example.com."},
-		{"1", "FRIEND@example.com", "already been invited"},
+		{"1", "other@example.com", "used your invite"},
 	} {
 		if got := invite(t, srv, tc.user, tc.email); !strings.Contains(got, tc.want) {
 			t.Errorf("invite %q: flash %q, want %q", tc.email, got, tc.want)
@@ -190,12 +191,10 @@ func TestInviteRules(t *testing.T) {
 		t.Errorf("non-player invite: %d, want 403", w.Code)
 	}
 
-	// Ten a day.
-	for i := 1; i < maxInvitesPerDay; i++ {
-		invite(t, srv, "1", "f"+string(rune('a'+i))+"@example.com")
-	}
-	if got := invite(t, srv, "1", "late@example.com"); !strings.Contains(got, "invites a day") {
-		t.Errorf("invite %d: flash %q, want the daily limit", maxInvitesPerDay+1, got)
+	// Once Bob plays, he can't invite the friend Alice invited.
+	d.Exec("INSERT INTO participants (game_id, user_id, cash_balance, portfolio_value) VALUES (1, 2, 100000000, 100000000)")
+	if got := invite(t, srv, "2", "FRIEND@example.com"); !strings.Contains(got, "already been invited") {
+		t.Errorf("invite someone already invited: flash %q", got)
 	}
 
 	// No bonus, no invites.
@@ -208,35 +207,62 @@ func TestInviteRules(t *testing.T) {
 	}
 }
 
-func TestOneReferralBonusPerGame(t *testing.T) {
+func TestOneInvitePerGame(t *testing.T) {
 	srv, d := inviteServer(t)
-	first := openInvite(t, srv, d, "first@example.com")
-	second := openInvite(t, srv, d, "second@example.com")
+	inv := openInvite(t, srv, d, "friend@example.com")
 
-	for _, f := range []struct {
-		email string
-		inv   *http.Cookie
-	}{{"first@example.com", first}, {"second@example.com", second}} {
-		req, code, _ := requestLogin(t, srv, d, f.email)
-		if w := post(srv, "/login/code", url.Values{"code": {code}}, req, f.inv); w.Header().Get("Location") != "/welcome" {
-			t.Fatalf("%s sign up: %d to %q", f.email, w.Code, w.Header().Get("Location"))
-		}
-	}
-	if got, want := cash(t, d, 1), int64(100000000+1000000); got != want {
-		t.Errorf("Alice's cash = %d, want %d: one bonus, not two", got, want)
-	}
-	var joined, used int
-	d.QueryRow("SELECT COUNT(*) FROM participants p JOIN users u ON u.id = p.user_id WHERE p.game_id = 1 AND u.email = 'second@example.com'").Scan(&joined)
-	d.QueryRow("SELECT use_count FROM game_invites WHERE email = 'second@example.com'").Scan(&used)
-	if joined != 1 || used != 1 {
-		t.Errorf("second friend: joined %d, invite used %d; want 1 and 1", joined, used)
-	}
-
-	if got := invite(t, srv, "1", "third@example.com"); !strings.Contains(got, "had your referral bonus") {
-		t.Errorf("invite after the bonus: flash %q", got)
+	// The invite is used up while the friend hasn't signed up yet.
+	if got := invite(t, srv, "1", "other@example.com"); !strings.Contains(got, "used your invite") {
+		t.Errorf("second invite: flash %q", got)
 	}
 	body := getPage(t, srv, "/games/1", "1")
-	if !strings.Contains(body, "had your $10,000 referral bonus") || strings.Contains(body, `action="/games/1/invite"`) {
-		t.Error("home page still offers invites after the bonus")
+	if !strings.Contains(body, "used your invite for this game") || strings.Contains(body, `action="/games/1/invite"`) {
+		t.Error("home page still offers an invite after one was sent")
+	}
+
+	// The friend signs up later, and Alice is paid in this game.
+	req, code, _ := requestLogin(t, srv, d, "friend@example.com")
+	if w := post(srv, "/login/code", url.Values{"code": {code}}, req, inv); w.Header().Get("Location") != "/welcome" {
+		t.Fatalf("sign up: %d to %q", w.Code, w.Header().Get("Location"))
+	}
+	if got, want := cash(t, d, 1), int64(100000000+1000000); got != want {
+		t.Errorf("Alice's cash = %d, want %d", got, want)
+	}
+	body = getPage(t, srv, "/games/1", "1")
+	if !strings.Contains(body, "Your friend signed up") || strings.Contains(body, `action="/games/1/invite"`) {
+		t.Error("home page doesn't show the bonus was paid")
+	}
+}
+
+// A friend who signs up after the game has ended joins this month's game,
+// and Alice is paid there, on top of any bonus she's had in it already.
+func TestInviteAfterGameEndsPaysCurrentGame(t *testing.T) {
+	srv, d := inviteServer(t)
+	inv := openInvite(t, srv, d, "friend@example.com")
+
+	month := market.MonthOf(time.Now().UTC()).Key()
+	for _, stmt := range []string{
+		`UPDATE games SET status = 'finished', quarter = '2000-01' WHERE id = 1`,
+		`INSERT INTO games (id, created_by, name, status, start_date, end_date, referral_bonus_pct, quarter)
+		 VALUES (2, 1, 'This Month', 'active', '2026-01-01', '2099-12-31', 1, '` + month + `')`,
+		`INSERT INTO participants (game_id, user_id, cash_balance, portfolio_value) VALUES (2, 1, 101000000, 101000000)`,
+	} {
+		if _, err := d.Exec(stmt); err != nil {
+			t.Fatalf("%v\n%s", err, stmt)
+		}
+	}
+
+	req, code, _ := requestLogin(t, srv, d, "friend@example.com")
+	if w := post(srv, "/login/code", url.Values{"code": {code}}, req, inv); w.Header().Get("Location") != "/welcome" {
+		t.Fatalf("sign up: %d to %q", w.Code, w.Header().Get("Location"))
+	}
+	var aliceCash, friendIn int64
+	d.QueryRow("SELECT cash_balance FROM participants WHERE game_id = 2 AND user_id = 1").Scan(&aliceCash)
+	d.QueryRow("SELECT COUNT(*) FROM participants p JOIN users u ON u.id = p.user_id WHERE p.game_id = 2 AND u.email = 'friend@example.com'").Scan(&friendIn)
+	if want := int64(101000000 + 1000000); aliceCash != want || friendIn != 1 {
+		t.Errorf("game 2: Alice's cash %d (want %d), friend joined %d (want 1)", aliceCash, want, friendIn)
+	}
+	if got := cash(t, d, 1); got != 100000000 {
+		t.Errorf("Alice's cash in the ended game = %d, want it unchanged", got)
 	}
 }

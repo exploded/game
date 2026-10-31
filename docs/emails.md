@@ -56,8 +56,7 @@ worked out but aren't written yet.
 - **A2** explains how a game works and links to the dashboard and help.
 - **A4** goes to someone who isn't a user yet, so it has no unsubscribe link.
   It's sent once per address per game, only to addresses with no account,
-  and each player can send 10 a day, until they've had the game's one
-  referral bonus. It says who entered the address and that
+  and each player can send one per game. It says who entered the address and that
   we haven't added them to a mailing list.
 
 ### Trades

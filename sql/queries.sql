@@ -809,10 +809,10 @@ WHERE id = ? AND (max_uses IS NULL OR use_count < max_uses);
 -- name: InviteSentTo :one
 SELECT COUNT(*) FROM game_invites WHERE game_id = ? AND email = ?;
 
--- name: CountInvitesSentToday :one
--- Invites the user emailed in the last 24 hours, in any game.
+-- name: CountInvitesSentInGame :one
+-- Invites the user emailed in the game.
 SELECT COUNT(*) FROM game_invites
-WHERE created_by = ? AND email IS NOT NULL AND created_at > datetime('now', '-1 day');
+WHERE game_id = ? AND created_by = ? AND email IS NOT NULL;
 
 -- name: ListInvitesSent :many
 SELECT gi.email, gi.use_count, gi.created_at
@@ -1067,8 +1067,6 @@ WHERE u.blocked_at IS NULL;
 INSERT OR IGNORE INTO referral_bonuses (invite_id, referrer_id, referred_id, game_id, bonus_amount)
 VALUES (?, ?, ?, ?, ?);
 
--- name: CountReferralBonuses :one
-SELECT COUNT(*) FROM referral_bonuses WHERE referrer_id = ? AND game_id = ?;
 
 -- name: CountAllReferralBonuses :one
 SELECT COUNT(*) FROM referral_bonuses WHERE referrer_id = ?;

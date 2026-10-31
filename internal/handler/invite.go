@@ -18,13 +18,13 @@ import (
 // Inviting friends. A player enters a friend's email on the game's home page
 // and we email them a link to /invite/{code}. The link remembers the code in
 // a cookie; if the friend then signs up, they join the game and the player
-// who invited them gets the game's referral bonus. Existing accounts don't
-// earn a bonus, and each player earns it once per game.
+// who invited them gets the game's referral bonus in that game, or in this
+// month's game if that one has ended. Existing accounts can't be invited, and
+// each player sends one invite per game.
 const (
-	inviteCookie        = "invite"
-	inviteCookieAge     = 30 * 24 * 60 * 60 // seconds
-	maxInvitesPerDay    = 10                // per player, so the site can't be used to spam
-	maxReferralsPerGame = 1                 // paid referrals per player per game
+	inviteCookie      = "invite"
+	inviteCookieAge   = 30 * 24 * 60 * 60 // seconds
+	maxInvitesPerGame = 1                 // emailed invites per player per game
 )
 
 // invitesOpen reports whether players can invite friends to the game: it
@@ -36,13 +36,6 @@ func invitesOpen(g db.Game) bool {
 // referralBonus is what a player earns for a friend who signs up.
 func referralBonus(g db.Game) int64 {
 	return g.StartingBalance * g.ReferralBonusPct / 100
-}
-
-// referralsUsed reports whether the user has had all the referral bonuses
-// the game pays.
-func (h *Handler) referralsUsed(ctx context.Context, gameID, userID int64) bool {
-	n, err := h.q.CountReferralBonuses(ctx, db.CountReferralBonusesParams{ReferrerID: userID, GameID: gameID})
-	return err != nil || n >= maxReferralsPerGame
 }
 
 // inviteEmail is the data for the invite email template.
@@ -82,8 +75,10 @@ func (h *Handler) InviteSend(w http.ResponseWriter, r *http.Request) {
 		fail("This game doesn't take invites.")
 		return
 	}
-	if h.referralsUsed(ctx, game.ID, user.ID) {
-		fail("You've had your referral bonus for this game. You can invite another friend in the next game.")
+	if n, err := h.q.CountInvitesSentInGame(ctx, db.CountInvitesSentInGameParams{
+		GameID: game.ID, CreatedBy: user.ID,
+	}); err != nil || n >= maxInvitesPerGame {
+		fail("You've used your invite for this game. You can invite another friend in the next game.")
 		return
 	}
 
@@ -107,10 +102,6 @@ func (h *Handler) InviteSend(w http.ResponseWriter, r *http.Request) {
 		GameID: game.ID, Email: sql.NullString{String: email, Valid: true},
 	}); err != nil || n > 0 {
 		fail(email + " has already been invited to this game.")
-		return
-	}
-	if n, err := h.q.CountInvitesSentToday(ctx, user.ID); err != nil || n >= maxInvitesPerDay {
-		fail(fmt.Sprintf("You can send %d invites a day. Try again tomorrow.", maxInvitesPerDay))
 		return
 	}
 
@@ -190,16 +181,27 @@ func takeInvite(w http.ResponseWriter, r *http.Request) string {
 }
 
 // acceptInvite runs when a new account signs up from an invite: it joins
-// them to the game and pays the player who invited them, unless that player
-// has already had the game's referral bonus.
+// them to the game and pays the player who invited them the bonus that game
+// offered. If the game has ended, both happen in this month's game instead.
 func (h *Handler) acceptInvite(ctx context.Context, code string, user db.User) {
 	invite, err := h.q.GetInviteByCode(ctx, code)
 	if err != nil || invite.CreatedBy == user.ID {
 		return
 	}
 	game, err := h.q.GetGame(ctx, invite.GameID)
-	if err != nil || !invitesOpen(game) {
+	if err != nil {
 		return
+	}
+	bonus := referralBonus(game)
+	if bonus <= 0 {
+		return
+	}
+	if game.Status != "pending" && game.Status != "active" {
+		cur, ok := h.currentGame(ctx, invite.CreatedBy)
+		if !ok || cur.ID == game.ID {
+			return
+		}
+		game = cur
 	}
 	referrer, err := h.q.GetParticipantByGameAndUser(ctx, db.GetParticipantByGameAndUserParams{
 		GameID: game.ID, UserID: invite.CreatedBy,
@@ -212,7 +214,6 @@ func (h *Handler) acceptInvite(ctx context.Context, code string, user db.User) {
 		return
 	}
 
-	bonus := referralBonus(game)
 	tx, err := h.rawDB.BeginTx(ctx, nil)
 	if err != nil {
 		slog.Error("invite: begin", "error", err)
@@ -221,16 +222,6 @@ func (h *Handler) acceptInvite(ctx context.Context, code string, user db.User) {
 	defer tx.Rollback()
 	qtx := h.q.WithTx(tx)
 	if n, err := qtx.UseInvite(ctx, invite.ID); err != nil || n == 0 {
-		return
-	}
-	// Counted inside the transaction, so two friends signing up at once
-	// can't both pay.
-	if n, err := qtx.CountReferralBonuses(ctx, db.CountReferralBonusesParams{
-		ReferrerID: invite.CreatedBy, GameID: game.ID,
-	}); err != nil || n >= maxReferralsPerGame {
-		if err := tx.Commit(); err != nil { // the invite still shows as joined
-			slog.Error("invite: commit", "error", err)
-		}
 		return
 	}
 	if err := qtx.CreditCash(ctx, db.CreditCashParams{Amount: bonus, ID: referrer.ID}); err != nil {
@@ -258,13 +249,13 @@ func (h *Handler) acceptInvite(ctx context.Context, code string, user db.User) {
 		GameID:  nint64(game.ID),
 		Type:    "referral_bonus",
 		Title:   "Referral bonus",
-		Message: fmt.Sprintf("You earned %s because %s signed up and joined %s.", fmtDollars(bonus), friend, game.Name),
+		Message: fmt.Sprintf("You earned %s of game money to invest in %s because %s signed up.", fmtDollars(bonus), game.Name, friend),
 	})
 	_ = h.q.InsertActivity(ctx, db.InsertActivityParams{
 		GameID: game.ID,
 		UserID: invite.CreatedBy,
 		Action: "referral",
-		Detail: fmt.Sprintf("earned a %s referral bonus", fmtDollars(bonus)),
+		Detail: fmt.Sprintf("earned a %s referral bonus in game money", fmtDollars(bonus)),
 	})
 	// Recruiter: 3 referrals, in any games.
 	if n, _ := h.q.CountAllReferralBonuses(ctx, invite.CreatedBy); n >= 3 {

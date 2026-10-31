@@ -230,8 +230,12 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 	}
 	interest, _ := h.q.TotalInterest(ctx, participant.ID)
 	var invites []db.ListInvitesSentRow
+	var inviteJoined bool
 	if invitesOpen(game) {
 		invites, _ = h.q.ListInvitesSent(ctx, db.ListInvitesSentParams{GameID: game.ID, CreatedBy: participant.UserID})
+		for _, inv := range invites {
+			inviteJoined = inviteJoined || inv.UseCount > 0
+		}
 	}
 
 	h.render(w, r, "portfolio/index", "", PageData{
@@ -239,17 +243,17 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 		Item:  game,
 		Items: rows,
 		Extra: map[string]any{
-			"Participant": participant,
-			"Snapshots":   snapshots,
-			"Over":        over,
-			"Today":       today,
-			"Total":       change{participant.PortfolioValue - game.StartingBalance, game.StartingBalance},
-			"Standing":    rankPlayer(participant, board),
-			"Interest":    interest,
-			"InvitesOpen": invitesOpen(game),
-			"InviteUsed":  invitesOpen(game) && h.referralsUsed(ctx, game.ID, participant.UserID),
-			"Bonus":       fmtDollars(referralBonus(game)),
-			"Invites":     invites,
+			"Participant":  participant,
+			"Snapshots":    snapshots,
+			"Over":         over,
+			"Today":        today,
+			"Total":        change{participant.PortfolioValue - game.StartingBalance, game.StartingBalance},
+			"Standing":     rankPlayer(participant, board),
+			"Interest":     interest,
+			"InvitesOpen":  invitesOpen(game),
+			"InviteJoined": inviteJoined,
+			"Bonus":        fmtDollars(referralBonus(game)),
+			"Invites":      invites,
 		},
 	})
 }

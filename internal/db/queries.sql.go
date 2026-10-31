@@ -318,14 +318,19 @@ func (q *Queries) CountHistory(ctx context.Context, participantID int64) (int64,
 	return column_1, err
 }
 
-const countInvitesSentToday = `-- name: CountInvitesSentToday :one
+const countInvitesSentInGame = `-- name: CountInvitesSentInGame :one
 SELECT COUNT(*) FROM game_invites
-WHERE created_by = ? AND email IS NOT NULL AND created_at > datetime('now', '-1 day')
+WHERE game_id = ? AND created_by = ? AND email IS NOT NULL
 `
 
-// Invites the user emailed in the last 24 hours, in any game.
-func (q *Queries) CountInvitesSentToday(ctx context.Context, createdBy int64) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countInvitesSentToday, createdBy)
+type CountInvitesSentInGameParams struct {
+	GameID    int64
+	CreatedBy int64
+}
+
+// Invites the user emailed in the game.
+func (q *Queries) CountInvitesSentInGame(ctx context.Context, arg CountInvitesSentInGameParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countInvitesSentInGame, arg.GameID, arg.CreatedBy)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -374,22 +379,6 @@ WHERE user_id = ? AND created_at > datetime('now', '-1 day')
 
 func (q *Queries) CountRecentQuestions(ctx context.Context, userID int64) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countRecentQuestions, userID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countReferralBonuses = `-- name: CountReferralBonuses :one
-SELECT COUNT(*) FROM referral_bonuses WHERE referrer_id = ? AND game_id = ?
-`
-
-type CountReferralBonusesParams struct {
-	ReferrerID int64
-	GameID     int64
-}
-
-func (q *Queries) CountReferralBonuses(ctx context.Context, arg CountReferralBonusesParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countReferralBonuses, arg.ReferrerID, arg.GameID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
