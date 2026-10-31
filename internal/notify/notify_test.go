@@ -81,7 +81,7 @@ func TestNotificationsAreBatchedByCategory(t *testing.T) {
 		(1, 1, 'order_filled', 'Limit Order Filled', 'buy 10 shares of AAPL filled at $200.00'),
 		(1, 1, 'order_filled', 'Queued Order Filled', 'sell 5 shares of MSFT filled at the open at $400.00'),
 		(1, 1, 'achievement', 'Achievement Unlocked!', 'First Trade'),
-		(2, 1, 'dividend', 'Dividend Received', 'AAPL paid $0.25 per share')`)
+		(2, 1, 'stock_split', 'NVDA split', 'NVDA split 10 for 1: you now hold 100 shares')`)
 
 	before := now.Add(-5 * time.Hour) // 5 am: no game emails, but notifications still go
 	notify.Run(context.Background(), q, m, before, loc)
@@ -100,7 +100,7 @@ func TestNotificationsAreBatchedByCategory(t *testing.T) {
 	if strings.Contains(alice.text, "First Trade") {
 		t.Error("an achievement was emailed")
 	}
-	if got[1].subject != "Dividend Received: Spring Cup" {
+	if got[1].subject != "NVDA split: Spring Cup" {
 		t.Errorf("Bob's subject = %q", got[1].subject)
 	}
 	var left int

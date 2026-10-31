@@ -108,6 +108,20 @@ func TestOpenDBUpgradesLatestDeploy(t *testing.T) {
 	if cost != 200*4567 {
 		t.Errorf("old holding's cost_basis = %d, want %d", cost, 200*4567)
 	}
+	for _, c := range droppedColumns {
+		var n int
+		d.QueryRow("SELECT COUNT(*) FROM pragma_table_info(?) WHERE name = ?", c.table, c.column).Scan(&n)
+		if n != 0 {
+			t.Errorf("%s.%s wasn't dropped", c.table, c.column)
+		}
+	}
+	for _, table := range []string{"game_templates", "game_starting_stocks"} {
+		var n int
+		d.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?", table).Scan(&n)
+		if n != 0 {
+			t.Errorf("table %s wasn't dropped", table)
+		}
+	}
 
 	// Games went monthly: Oct–Dec ends on 31 October, and Jan–Mar goes.
 	var key, name, end, desc string

@@ -7,7 +7,7 @@ type Category string
 
 const (
 	Account   Category = "account"   // sign-in, welcome; can't be turned off
-	Trades    Category = "trades"    // orders filled or expired, dividends, splits
+	Trades    Category = "trades"    // orders filled or expired, splits
 	Games     Category = "games"     // game started, ending soon, results
 	Digest    Category = "digest"    // the weekly summary
 	Community Category = "community" // answers to your questions, new courses
@@ -25,7 +25,7 @@ type CategoryInfo struct {
 
 // Optional lists the categories people can turn off, in Settings order.
 var Optional = []CategoryInfo{
-	{Trades, "Trades", "When an order fills or expires, and dividends or splits on stocks you hold.", true},
+	{Trades, "Trades", "When an order fills or expires, and splits in stocks you hold.", true},
 	{Games, "Games", "When a game you're in starts, is about to end, and the final results.", true},
 	// Digest joins this list when the weekly summary (D1 in docs/emails.md)
 	// is built: {Digest, "Weekly summary", "A Monday email with how each of your games went last week.", true},

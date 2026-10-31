@@ -79,7 +79,6 @@ func (h *Handler) AdminGameUpdate(w http.ResponseWriter, r *http.Request) {
 		ID:               g.ID,
 		Name:             strings.TrimSpace(r.FormValue("name")),
 		Description:      strings.TrimSpace(r.FormValue("description")),
-		Markets:          r.FormValue("markets"),
 		StartingBalance:  g.StartingBalance,
 		BaseCurrency:     g.BaseCurrency,
 		MaxParticipants:  g.MaxParticipants,
@@ -88,9 +87,6 @@ func (h *Handler) AdminGameUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	if p.Name == "" {
 		errs["name"] = "Enter a name"
-	}
-	if p.Markets != "both" && p.Markets != "asx" && p.Markets != "sp500" {
-		errs["markets"] = "Choose the markets"
 	}
 	if r.FormValue("allow_short") == "1" {
 		p.AllowShort = 1
@@ -140,7 +136,7 @@ func (h *Handler) AdminGameUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(errs) > 0 {
-		g.Name, g.Description, g.Markets = p.Name, p.Description, p.Markets
+		g.Name, g.Description = p.Name, p.Description
 		h.renderAdminGame(w, r, g, errs)
 		return
 	}

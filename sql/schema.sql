@@ -24,7 +24,6 @@ CREATE TABLE IF NOT EXISTS users (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     email       TEXT    NOT NULL UNIQUE,                    -- lower case
     name        TEXT    NOT NULL,
-    picture_url TEXT,
     is_admin    INTEGER NOT NULL DEFAULT 0,
     avatar_id   INTEGER REFERENCES avatars(id),
     created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
@@ -123,17 +122,8 @@ CREATE TABLE IF NOT EXISTS games (
     allow_short          INTEGER NOT NULL DEFAULT 0,
     trade_fee            INTEGER NOT NULL DEFAULT 0,            -- per-trade fee in cents
     referral_bonus_pct   INTEGER NOT NULL DEFAULT 1,            -- % of starting_balance as referral reward
-    recurring_interval   TEXT,                                   -- 'weekly' | 'monthly' | NULL
-    parent_game_id       INTEGER REFERENCES games(id),
-    template_id          INTEGER REFERENCES game_templates(id),
     credit_interest_rate INTEGER NOT NULL DEFAULT 525,           -- basis points (525 = 5.25%)
-    leverage_interest_rate INTEGER NOT NULL DEFAULT 500,         -- basis points (500 = 5.00%)
-    min_stock_price      INTEGER,                                -- minimum stock price in cents, NULL = no limit
-    max_stock_price      INTEGER,                                -- maximum stock price in cents, NULL = no limit
-    margin_trading       INTEGER NOT NULL DEFAULT 0,             -- 1 = enabled
     limit_orders         INTEGER NOT NULL DEFAULT 0,             -- 1 = enabled
-    stop_loss            INTEGER NOT NULL DEFAULT 0,             -- 1 = enabled
-    fractional_shares    INTEGER NOT NULL DEFAULT 0,             -- 1 = enabled
     after_hours_trading  INTEGER NOT NULL DEFAULT 1,             -- 1 = market orders fill at the last price while the market is closed
     quarter              TEXT,                                   -- the month's key, '2026-11', for a monthly game; NULL for older games
     created_at           TEXT    NOT NULL DEFAULT (datetime('now')),
@@ -365,35 +355,6 @@ CREATE TABLE IF NOT EXISTS activity_feed (
 CREATE INDEX IF NOT EXISTS idx_activity_game ON activity_feed(game_id, created_at DESC);
 
 --------------------------------------------------------------------------------
--- Game Templates (Feature 16)
---------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS game_templates (
-    id               INTEGER PRIMARY KEY AUTOINCREMENT,
-    name             TEXT    NOT NULL,
-    description      TEXT    NOT NULL DEFAULT '',
-    markets          TEXT    NOT NULL DEFAULT 'both',
-    starting_balance INTEGER NOT NULL DEFAULT 100000000,
-    base_currency    TEXT    NOT NULL DEFAULT 'AUD',
-    duration_days    INTEGER NOT NULL DEFAULT 30,
-    allow_short      INTEGER NOT NULL DEFAULT 0,
-    trade_fee        INTEGER NOT NULL DEFAULT 0,
-    is_builtin       INTEGER NOT NULL DEFAULT 0,
-    created_by       INTEGER REFERENCES users(id),
-    created_at       TEXT    NOT NULL DEFAULT (datetime('now'))
-);
-
---------------------------------------------------------------------------------
--- Starting Portfolio (Feature 18)
---------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS game_starting_stocks (
-    id       INTEGER PRIMARY KEY AUTOINCREMENT,
-    game_id  INTEGER NOT NULL REFERENCES games(id) ON DELETE CASCADE,
-    stock_id INTEGER NOT NULL REFERENCES stocks(id),
-    quantity INTEGER NOT NULL,
-    UNIQUE(game_id, stock_id)
-);
-
---------------------------------------------------------------------------------
 -- Notifications (Feature 19)
 --------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS notifications (
@@ -530,16 +491,7 @@ CREATE TABLE IF NOT EXISTS stock_profiles (
     beta                  INTEGER NOT NULL DEFAULT 0,   -- * 100
     day_50_ma             INTEGER NOT NULL DEFAULT 0,   -- cents
     day_200_ma            INTEGER NOT NULL DEFAULT 0,   -- cents
-    -- Dividends & splits
-    forward_div_rate      INTEGER NOT NULL DEFAULT 0,   -- * 100 (cents)
-    forward_div_yield     INTEGER NOT NULL DEFAULT 0,   -- * 10000
-    trailing_div_rate     INTEGER NOT NULL DEFAULT 0,   -- * 100 (cents)
-    trailing_div_yield    INTEGER NOT NULL DEFAULT 0,   -- * 10000
-    avg_div_yield_5y      INTEGER NOT NULL DEFAULT 0,   -- * 100
-    payout_ratio          INTEGER NOT NULL DEFAULT 0,   -- * 10000
-    dividend_frequency    TEXT    NOT NULL DEFAULT '',
-    dividend_date         TEXT    NOT NULL DEFAULT '',
-    ex_dividend_date      TEXT    NOT NULL DEFAULT '',
+    -- Splits
     last_split_factor     TEXT    NOT NULL DEFAULT '',
     last_split_date       TEXT    NOT NULL DEFAULT '',
     -- Fiscal dates

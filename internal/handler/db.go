@@ -72,20 +72,11 @@ func OpenDB(dbPath, schema string) (*sql.DB, error) {
 // addedColumns are columns added after their table was first created.
 // schema.sql already has them, so they only matter for older databases.
 var addedColumns = []struct{ table, column, ddl string }{
-	{"games", "recurring_interval", "TEXT DEFAULT NULL"},
-	{"games", "parent_game_id", "INTEGER DEFAULT NULL REFERENCES games(id)"},
-	{"games", "template_id", "INTEGER DEFAULT NULL REFERENCES game_templates(id)"},
 	{"users", "deleted_at", "TEXT DEFAULT NULL"},
 	{"users", "avatar_id", "INTEGER DEFAULT NULL REFERENCES avatars(id)"},
 	{"games", "referral_bonus_pct", "INTEGER NOT NULL DEFAULT 1"},
 	{"games", "credit_interest_rate", "INTEGER NOT NULL DEFAULT 525"},
-	{"games", "leverage_interest_rate", "INTEGER NOT NULL DEFAULT 500"},
-	{"games", "min_stock_price", "INTEGER DEFAULT NULL"},
-	{"games", "max_stock_price", "INTEGER DEFAULT NULL"},
-	{"games", "margin_trading", "INTEGER NOT NULL DEFAULT 0"},
 	{"games", "limit_orders", "INTEGER NOT NULL DEFAULT 0"},
-	{"games", "stop_loss", "INTEGER NOT NULL DEFAULT 0"},
-	{"games", "fractional_shares", "INTEGER NOT NULL DEFAULT 0"},
 	{"stock_profiles", "logo", "TEXT NOT NULL DEFAULT ''"},
 	{"stock_profiles", "ipo_date", "TEXT NOT NULL DEFAULT ''"},
 	{"stock_profiles", "peers", "TEXT NOT NULL DEFAULT ''"},
@@ -195,7 +186,6 @@ var onceMigrations = []struct{ name, stmt string }{
 			UNION SELECT participant_id FROM holdings WHERE stock_id IN (SELECT id FROM stocks WHERE market = 'asx')
 			UNION SELECT participant_id FROM limit_orders WHERE stock_id IN (SELECT id FROM stocks WHERE market = 'asx')))`},
 	{"drop-asx-watchlist", "DELETE FROM watchlist WHERE stock_id IN (SELECT id FROM stocks WHERE market = 'asx')"},
-	{"drop-asx-starting-stocks", "DELETE FROM game_starting_stocks WHERE stock_id IN (SELECT id FROM stocks WHERE market = 'asx')"},
 	{"drop-asx-stocks", `DELETE FROM stocks WHERE market = 'asx'
 		AND id NOT IN (SELECT stock_id FROM transactions)
 		AND id NOT IN (SELECT stock_id FROM holdings)
@@ -214,6 +204,10 @@ var onceMigrations = []struct{ name, stmt string }{
 	{"drop-contact-spam", "DELETE FROM contact_messages WHERE id <= 13"},
 	// Game chat went on 31 October 2026; players talk in the lobby instead.
 	{"drop-game-chat", "DROP TABLE IF EXISTS game_messages"},
+	// Unused since monthly games: nothing could add a starting stock or a
+	// game template. Dropped on 31 October 2026.
+	{"drop-starting-stocks", "DROP TABLE IF EXISTS game_starting_stocks"},
+	{"drop-game-templates", "DROP TABLE IF EXISTS game_templates"},
 }
 
 // droppedColumns are columns taken out of schema.sql. Older databases still
@@ -225,6 +219,31 @@ var droppedColumns = []struct{ table, column string }{
 	{"games", "portfolio_visibility"},
 	{"participants", "is_public"},
 	{"activity_feed", "is_public"},
+	// Game settings that were stored and copied but never did anything, and
+	// game templates and recurring games (replaced by monthly games). Dropped
+	// on 31 October 2026.
+	{"games", "recurring_interval"},
+	{"games", "parent_game_id"},
+	{"games", "template_id"},
+	{"games", "leverage_interest_rate"},
+	{"games", "min_stock_price"},
+	{"games", "max_stock_price"},
+	{"games", "margin_trading"},
+	{"games", "stop_loss"},
+	{"games", "fractional_shares"},
+	// Google profile photos, from before email sign-in.
+	{"users", "picture_url"},
+	// Company dividend figures from Twelve Data. Players get no dividends,
+	// so the stock page doesn't show them.
+	{"stock_profiles", "forward_div_rate"},
+	{"stock_profiles", "forward_div_yield"},
+	{"stock_profiles", "trailing_div_rate"},
+	{"stock_profiles", "trailing_div_yield"},
+	{"stock_profiles", "avg_div_yield_5y"},
+	{"stock_profiles", "payout_ratio"},
+	{"stock_profiles", "dividend_frequency"},
+	{"stock_profiles", "dividend_date"},
+	{"stock_profiles", "ex_dividend_date"},
 }
 
 func runMigrations(db *sql.DB) error {
@@ -382,7 +401,6 @@ func rebuildUsersTable(db *sql.DB) error {
 			id          INTEGER PRIMARY KEY AUTOINCREMENT,
 			email       TEXT    NOT NULL UNIQUE,
 			name        TEXT    NOT NULL,
-			picture_url TEXT,
 			is_admin    INTEGER NOT NULL DEFAULT 0,
 			avatar_id   INTEGER REFERENCES avatars(id),
 			created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
@@ -393,9 +411,9 @@ func rebuildUsersTable(db *sql.DB) error {
 			email_token TEXT    NOT NULL UNIQUE,
 			blocked_at  TEXT
 		)`,
-		`INSERT INTO users_new (id, email, name, picture_url, is_admin, avatar_id,
+		`INSERT INTO users_new (id, email, name, is_admin, avatar_id,
 			created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at)
-		 SELECT id, lower(email), name, picture_url, is_admin, avatar_id,
+		 SELECT id, lower(email), name, is_admin, avatar_id,
 			created_at, last_login, last_seen, deleted_at, last_game_id, lower(hex(randomblob(16))), blocked_at
 		 FROM users`,
 		`DROP TABLE users`,

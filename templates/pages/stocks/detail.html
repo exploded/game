@@ -343,44 +343,8 @@ app.js goes back through history when it can. */}}
     </div>{{end}}
 </div>
 
-<h2 style="margin-top:2rem">Dividends &amp; Splits</h2>
+<h2 style="margin-top:2rem">Splits</h2>
 <div class="info-grid">
-    {{if $p.ForwardDivRate}}<div class="info-item">
-        <span class="info-label">Forward Div Rate</span>
-        <span class="info-value">{{cents $p.ForwardDivRate}}</span>
-    </div>{{end}}
-    {{if $p.ForwardDivYield}}<div class="info-item">
-        <span class="info-label">Forward Div Yield</span>
-        <span class="info-value">{{bps $p.ForwardDivYield}}</span>
-    </div>{{end}}
-    {{if $p.TrailingDivRate}}<div class="info-item">
-        <span class="info-label">Trailing Div Rate</span>
-        <span class="info-value">{{cents $p.TrailingDivRate}}</span>
-    </div>{{end}}
-    {{if $p.TrailingDivYield}}<div class="info-item">
-        <span class="info-label">Trailing Div Yield</span>
-        <span class="info-value">{{bps $p.TrailingDivYield}}</span>
-    </div>{{end}}
-    {{if $p.AvgDivYield5y}}<div class="info-item">
-        <span class="info-label">5-Year Avg Yield</span>
-        <span class="info-value">{{ratio100 $p.AvgDivYield5y}}%</span>
-    </div>{{end}}
-    {{if $p.PayoutRatio}}<div class="info-item">
-        <span class="info-label">Payout Ratio</span>
-        <span class="info-value">{{bps $p.PayoutRatio}}</span>
-    </div>{{end}}
-    {{if $p.DividendFrequency}}<div class="info-item">
-        <span class="info-label">Dividend Frequency</span>
-        <span class="info-value">{{$p.DividendFrequency}}</span>
-    </div>{{end}}
-    {{if $p.DividendDate}}<div class="info-item">
-        <span class="info-label">Dividend Date</span>
-        <span class="info-value">{{$p.DividendDate}}</span>
-    </div>{{end}}
-    {{if $p.ExDividendDate}}<div class="info-item">
-        <span class="info-label">Ex-Dividend Date</span>
-        <span class="info-value">{{$p.ExDividendDate}}</span>
-    </div>{{end}}
     {{if $p.LastSplitFactor}}<div class="info-item">
         <span class="info-label">Last Split</span>
         <span class="info-value">{{$p.LastSplitFactor}}</span>

@@ -71,7 +71,8 @@ func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, 
 
 	// 1. Make sure this month's game and the next exist, pay yesterday's
 	// interest on cash, then advance game statuses. Interest comes first so a
-	// game's last day is paid before the game finishes.
+	// game's last day is paid before the game finishes. A game that finishes
+	// gives Champion and Podium Finish to its top players.
 	market.EnsureMonthlyGames(ctx, q, now.In(loc))
 	if err := market.CreditInterest(ctx, q, rawDB, now.In(loc)); err != nil {
 		slog.Error("credit interest", "error", err)
@@ -80,7 +81,13 @@ func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, 
 	if err := q.CancelOrdersInExpiredGames(ctx, today); err != nil {
 		slog.Error("cancel orders in ended games", "error", err)
 	}
-	q.FinishExpiredGames(ctx, today)
+	finished, err := q.FinishExpiredGames(ctx, today)
+	if err != nil {
+		slog.Error("finish expired games", "error", err)
+	}
+	for _, g := range finished {
+		market.AwardPlaces(ctx, q, g)
+	}
 
 	// 2. Fetch prices (skip weekends; use UTC for market hours).
 	utcNow := now.UTC()

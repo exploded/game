@@ -233,8 +233,6 @@ func main() {
 		r.Get("/learn/courses", h.LearnCourses)
 		// An emailed invite: signed-out visitors get the sign-up form.
 		r.Get("/invite/{code}", h.InviteLanding)
-		r.Get("/questions", handler.OldQuestionsRedirect)
-		r.Get("/questions/{qid}", handler.OldQuestionsRedirect)
 	})
 
 	// Authenticated routes.
@@ -256,9 +254,6 @@ func main() {
 		// Games: one per month, created by the scheduler. Admins change
 		// their settings under /admin/games.
 		r.Get("/games", h.GamesList)
-		r.Get("/history", func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, "/games", http.StatusMovedPermanently)
-		})
 		// Everything inside one game. GameContext adds the game bar.
 		r.Route("/games/{id}", func(r chi.Router) {
 			r.Use(h.GameContext)
@@ -267,8 +262,7 @@ func main() {
 			r.Get("/rules", h.GameRules)
 			r.Post("/join", h.GameJoin)
 
-			// Portfolio
-			r.Get("/portfolio", h.Portfolio)
+			// Every trade the player has made
 			r.Get("/history", h.TransactionHistory)
 
 			// Stocks & Trading
@@ -276,7 +270,6 @@ func main() {
 			r.Get("/stocks/{sid}", h.StockDetail)
 			r.Get("/stocks/{sid}/price", h.StockPrice)
 			r.Get("/search", h.StockSearch)
-			r.Get("/trade/{sid}", h.TradeForm)
 			r.Post("/trade/{sid}", h.TradeExecute)
 
 			// Leaderboard
@@ -303,10 +296,6 @@ func main() {
 			r.Get("/sectors", h.SectorBreakdown)
 			r.Get("/compare", h.PortfolioComparison)
 			r.Get("/benchmark", h.BenchmarkComparison)
-
-			// Export CSV (Feature 23)
-			r.Get("/export/transactions", h.ExportTransactionsCSV)
-			r.Get("/export/snapshots", h.ExportSnapshotsCSV)
 		})
 
 		// Learn: asking, voting and stream reminders
@@ -366,7 +355,6 @@ func main() {
 			r.Post("/picks/{sid}", h.AdminPickUpdate)
 			r.Post("/picks/{sid}/delete", h.AdminPickDelete)
 			r.Get("/prices", h.AdminPrices)
-			r.Get("/activity", http.RedirectHandler("/admin/users?sort=trades", http.StatusMovedPermanently).ServeHTTP) // merged into /admin/users
 			r.Get("/messages", h.AdminContactMessages)
 			r.Get("/email", h.AdminEmail)
 			r.Get("/courses", h.AdminCourses)
@@ -406,7 +394,7 @@ func main() {
 		Handler:           r,
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
-		WriteTimeout:      60 * time.Second, // CSV exports can take a while
+		WriteTimeout:      60 * time.Second, // the personal data export can take a while
 		IdleTimeout:       120 * time.Second,
 	}
 

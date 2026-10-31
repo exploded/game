@@ -83,7 +83,7 @@ func gameTab(path string) string {
 		return "home"
 	}
 	switch parts[2] {
-	case "portfolio", "history":
+	case "history":
 		return "portfolio"
 	case "rules":
 		return "rules"

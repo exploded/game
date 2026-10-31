@@ -186,7 +186,7 @@ func TestCoverAllDoesntBuyMoreOfALong(t *testing.T) {
 func TestFinishedGameIsFrozen(t *testing.T) {
 	srv, q := gameServer(t)
 	hold(t, q, 10, 9000, 10000)
-	if err := q.FinishExpiredGames(t.Context(), "2027-01-01"); err != nil {
+	if _, err := q.FinishExpiredGames(t.Context(), "2027-01-01"); err != nil {
 		t.Fatal(err)
 	}
 

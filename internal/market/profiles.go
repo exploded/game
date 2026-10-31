@@ -223,18 +223,9 @@ type tdStatistics struct {
 			Day50MA      float64 `json:"day_50_ma"`
 			Day200MA     float64 `json:"day_200_ma"`
 		} `json:"stock_price_summary"`
-		Dividends struct {
-			ForwardRate     float64 `json:"forward_annual_dividend_rate"`
-			ForwardYield    float64 `json:"forward_annual_dividend_yield"`
-			TrailingRate    float64 `json:"trailing_annual_dividend_rate"`
-			TrailingYield   float64 `json:"trailing_annual_dividend_yield"`
-			AvgYield5y      float64 `json:"5_year_average_dividend_yield"` // a percentage
-			PayoutRatio     float64 `json:"payout_ratio"`
-			Frequency       string  `json:"dividend_frequency"`
-			DividendDate    string  `json:"dividend_date"`
-			ExDividendDate  string  `json:"ex_dividend_date"`
-			LastSplitFactor string  `json:"last_split_factor"`
-			LastSplitDate   string  `json:"last_split_date"`
+		Splits struct { // Twelve Data's section also has dividends, which the game doesn't use
+			LastSplitFactor string `json:"last_split_factor"`
+			LastSplitDate   string `json:"last_split_date"`
 		} `json:"dividends_and_splits"`
 	} `json:"statistics"`
 }
@@ -247,7 +238,7 @@ func bps(v float64) int64   { return int64(math.Round(v * 10000)) } // fractions
 func (t tdStatistics) params(stockID int64) db.UpsertStockStatisticsParams {
 	s := t.Statistics
 	v, fin, inc, bal, cf := s.Valuations, s.Financials, s.Financials.Income, s.Financials.Balance, s.Financials.CashFlow
-	st, pr, dv := s.Stock, s.Price, s.Dividends
+	st, pr, sp := s.Stock, s.Price, s.Splits
 	return db.UpsertStockStatisticsParams{
 		StockID:             stockID,
 		MarketCap:           whole(v.MarketCap),
@@ -295,17 +286,8 @@ func (t tdStatistics) params(stockID int64) db.UpsertStockStatisticsParams {
 		Beta:                x100(pr.Beta),
 		Day50Ma:             x100(pr.Day50MA),
 		Day200Ma:            x100(pr.Day200MA),
-		ForwardDivRate:      x100(dv.ForwardRate),
-		ForwardDivYield:     bps(dv.ForwardYield),
-		TrailingDivRate:     x100(dv.TrailingRate),
-		TrailingDivYield:    bps(dv.TrailingYield),
-		AvgDivYield5y:       x100(dv.AvgYield5y),
-		PayoutRatio:         bps(dv.PayoutRatio),
-		DividendFrequency:   dv.Frequency,
-		DividendDate:        dv.DividendDate,
-		ExDividendDate:      dv.ExDividendDate,
-		LastSplitFactor:     dv.LastSplitFactor,
-		LastSplitDate:       dv.LastSplitDate,
+		LastSplitFactor:     sp.LastSplitFactor,
+		LastSplitDate:       sp.LastSplitDate,
 		FiscalYearEnds:      fin.FiscalYearEnds,
 		MostRecentQuarter:   fin.MostRecentQuarter,
 	}

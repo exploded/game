@@ -1,204 +1,284 @@
-# The Wealth Lab Features
-
-## Trading & Market Mechanics
-
-### 1. Limit Orders
-Place buy/sell orders at a target price. Orders are automatically checked against latest prices by the background scheduler and filled when the condition is met. Orders can be cancelled or set to expire on a date.
-
-- **Routes:** `/games/{id}/orders`, `/games/{id}/orders/{sid}` (create), `/games/{id}/orders/{oid}/cancel`
-- **Files:** `internal/handler/limitorders.go`, `templates/pages/orders/list.html`, `internal/market/orders.go`
-
-### 2. Watchlist
-Bookmark stocks you're tracking without buying. Add/remove via HTMX toggle buttons on stock detail pages. View all watched stocks with latest prices from the watchlist page.
-
-- **Routes:** `/games/{id}/watchlist`, `/games/{id}/watchlist/{sid}` (add/remove)
-- **Files:** `internal/handler/watchlist.go`, `templates/pages/watchlist/index.html`
-
-### 3. Short Selling
-When a game has `allow_short` enabled, players can sell shares they don't own to open short positions (negative holdings). Short positions are tracked with negative quantities and revalued like normal holdings. A short's cost is the negative of what the sale raised, so its return is up when the price falls.
-
-- **Files:** Updated `internal/handler/trade.go`, updated `templates/pages/trade/form.html`
-
-### 5. Stock Splits
-Applied automatically. Each US weekday from 10:00 UTC, after the daily fetch and before the open, `market.CheckSplits` reads the last week of Twelve Data's US splits calendar (one call, 40 credits) and applies any split in a game stock once (`stock_splits`). Shares held before the split's open are multiplied (a reverse split's part share is paid out in cash), stored prices from before it are divided, open orders placed before it are rescaled, and holders get a notification. Splits applied late scale only what came before the open.
-
-- **Files:** `internal/market/splits.go`, `internal/scheduler/scheduler.go`
-
----
-
-## Social & Competition
-
-### 6. Invite a Friend
-Any player can invite a friend by email from the game's home page while the game's referral bonus is above 0. The friend gets a link to `/invite/{code}`, which remembers the invite and shows the sign-up form. If they create an account, they join the game and the inviter gets the referral bonus (`referral_bonus_pct` of the starting cash). Existing accounts earn nothing. Each player gets the bonus once per game (so once a month); each invite pays once, each player can send 10 a day, and each address is invited once per game.
-
-- **Routes:** `POST /games/{id}/invite` (send), `/invite/{code}` (landing, public)
-- **Files:** `internal/handler/invite.go`, `internal/mail/templates/invite.tmpl`
-
-### 7. Chat
-Removed on 31 October 2026: players talk in the site-wide lobby (`/lobby`) instead. The `drop-game-chat` migration deleted the old game messages.
-
-### 8. Achievements
-11 achievements that are automatically granted after trades:
-- **First Trade** — execute your first trade
-- **Active Trader** / **Trading Machine** — 10 / 50 trades
-- **Rising Star** / **Market Wizard** — 10% / 25% return
-- **Diversified** / **Portfolio Manager** — hold 5 / 10 stocks
-- **Champion** / **Podium Finish** — 1st place / top 3
-- **Social Player** — join 3+ games
-- **Market Watcher** — add 10 stocks to watchlist
-
-Achievements are seeded on startup. Players get in-app notifications when earned.
-
-- **Routes:** `/achievements`
-- **Files:** `internal/handler/achievements.go`, `templates/pages/achievements/index.html`
-
-### 9. Portfolio Comparison
-Side-by-side view of two players' holdings in the same game. Select any other player to compare against. Includes a Chart.js overlay of both portfolios' value over time.
-
-- **Routes:** `/games/{id}/compare?vs={participantID}`
-- **Files:** `internal/handler/analytics.go` (PortfolioComparison), `templates/pages/analytics/compare.html`
-
-### 10. Activity Feed
-Every player's trades and joins in a game, newest first, labelled "All trades" in the game bar ("All players' trades" in the phone's More menu). Trades are recorded when they fill: straight away in `trade.go`, or later in `market.fillLimitOrder` for limit orders and orders queued for the open. There are no private players: on 31 October 2026 the per-player privacy flag and the unused private-game settings were dropped (`droppedColumns` in `db.go`).
-
-- **Routes:** `/games/{id}/activity`
-- **Files:** `internal/handler/activity.go`, `templates/pages/activity/index.html`
-
-### 11a. Ask Rob (questions)
-The Questions tab of Learn (11c). Members ask questions, pick a topic (or Claude picks one) and vote for the ones they want answered. Sorted by votes or newest, filtered by topic and by answered or not. Anyone can read them. Admins (Rob) answer in writing, with a video from a given time, or live on air from a stream page; the asker and everyone who voted get the answer by email (Community email). On-air answers are emailed once the stream ends, with a link to the moment in the recording. Askers can delete a question until it's answered; admins can remove any question. The old `/questions` links redirect.
-
-- **Routes:** `/learn/questions`, `/learn/questions/{qid}`, `.../vote`, `.../delete`, `.../answer` (admin), `.../onair` (admin), `.../hide` (admin)
-- **Files:** `internal/handler/questions.go`, `templates/pages/learn/questions.html`, `templates/pages/learn/question.html`
-
-### 11c. Learn: Rob's videos and live streams
-A public hub at `/learn` with tabs Watch, Live, Ask Rob and Courses. Built phones first: rows of cards scroll sideways, players load only when tapped.
-
-- **Watch:** Rob's YouTube channel (`YOUTUBE_API_KEY`) and TikTok account (Display API, connected once from `/admin/learn`) sync automatically; Facebook and Instagram videos are added by pasting a link. Claude (`ANTHROPIC_API_KEY`) sorts each video into topics such as Retirement, Superannuation and Buying a home, and notes stocks it discusses, which then show on those stock pages. Rows by topic, Shorts, search, topic pages, video pages with related videos and "Ask Rob about this".
-- **Live:** YouTube streams are picked up from the sync and checked every 2 minutes; TikTok, Facebook and Instagram streams are added by an admin, or started with "I'm live now". A "Rob is live" banner shows site-wide. Visitors can add a stream to their calendar (.ics); members can ask to be reminded. Live streams email: L1 when a stream is booked, L2 to reminder users when it starts.
-- **Live Q&A queue:** a stream's page lists the most-voted open questions, refreshing every 20 seconds while live. Rob taps **Answered** as he answers each one.
-- **Admin:** `/admin/learn` (sources, sync, paste a link, the video list), `/admin/learn/videos/{vid}` (topics, pin, hide), `/admin/learn/topics`, `/admin/learn/live`.
-- Every Learn page ends with Rob's licensee's general advice warning (`learnDisclaimer` in `learn.go`; `LEARN_DISCLAIMER` overrides it).
-- **Files:** `internal/media/` (sync, classifier, live emails), `internal/handler/learn.go`, `internal/handler/admin_learn.go`, `internal/handler/video.go`, `templates/pages/learn/`, `templates/pages/admin/learn*.html`
-
-### 11b. Courses
-Pre-recorded video lessons for signed-in members. Videos are hosted on YouTube (unlisted), Vimeo or Bunny Stream and embedded; the CSP's `frame-src` allows only those players. Members see their progress and mark lessons done. Admins build courses as drafts on `/admin/courses`, preview them, and publish; the first publish can email members (Community email).
-
-- **Routes:** `/courses`, `/courses/{slug}`, `/courses/{slug}/{lid}`, `/admin/courses`, `/admin/courses/{cid}`, `/admin/lessons/{lid}`
-- **Content:** Rob's 7 courses from the CPW site (consortiumpw.com.au/elearning) are loaded once by seed migrations from `internal/handler/courses_cpw.go`.
-- **Files:** `internal/handler/courses.go`, `internal/handler/courses_cpw.go`, `internal/handler/video.go`, `templates/pages/courses/`, `templates/pages/admin/course*.html`
-
----
-
-## Analytics & Insights
-
-### 11. Portfolio Performance Chart
-Line chart of portfolio value over time using daily snapshot data. Already built into the portfolio page using Chart.js. Shows value trend with filled area.
-
-- **Files:** `templates/pages/portfolio/index.html` (existing)
-
-### 12. Sector Allocation Breakdown
-Doughnut chart showing holdings distribution across sectors. Built with Chart.js. Shows sector name and value in a legend alongside the chart.
-
-- **Routes:** `/games/{id}/sectors`
-- **Files:** `internal/handler/analytics.go` (SectorBreakdown), `templates/pages/analytics/sectors.html`
-
-### 13. Gain/Loss Per Holding
-Table showing unrealised P&L for each holding — current value vs cost basis, with absolute and percentage gain/loss. Displayed on the sectors page alongside the sector chart.
-
-- **Files:** `internal/handler/analytics.go` (SectorBreakdown), `templates/pages/analytics/sectors.html`
-
-### 14. Benchmark Comparison
-Line chart overlaying portfolio performance against the starting balance (flat line). Shows how the portfolio has performed relative to holding cash. Uses Chart.js with a dashed benchmark line.
-
-- **Routes:** `/games/{id}/benchmark`
-- **Files:** `internal/handler/analytics.go` (BenchmarkComparison), `templates/pages/analytics/benchmark.html`
-
-### 15. Trade Analytics
-Dashboard showing trade statistics: total trades, buy/sell counts, win rate, total bought/sold, realised P&L, best/worst trade by stock, and a closed positions table.
-
-- **Routes:** `/games/{id}/analytics`
-- **Files:** `internal/handler/analytics.go` (TradeAnalytics), `templates/pages/analytics/index.html`
-
----
-
-## Game Enhancements
-
-### 16. One game per month
-There's one game each calendar month (quarterly until 31 October 2026). It starts at midnight on the 1st and ends at midnight after the month's last day, in `TIMEZONE`. Players can't create games, and they don't join this month's game: signing in takes them straight into it with their starting cash. The scheduler creates this month's game and the next one, named like "November 2026", each copying the settings of the game before it, so players can join the next game early. Admins change a game's settings at `/admin/games`: name, description, markets, player limit, trade fee, referral bonus, limit orders and short selling. Starting cash and currency are fixed once someone has joined. Finished games are listed on `/games` with their final standings.
-
-- **Schema:** `games.quarter` holds the month (`2026-11`, unique; NULL for games from before quarterly games)
-- **Routes:** `/games`, `/admin/games`, `/admin/games/{gid}` (GET/POST), `/admin/games/{gid}/cancel`
-- **Files:** `internal/market/monthly.go`, `internal/handler/games.go`, `internal/handler/admin_games.go`, `templates/pages/admin/game*.html`
-
-### 17. Game templates and recurring games (removed)
-Replaced by quarterly games on 2026-10-30. The `game_templates` table and the `recurring_interval`, `parent_game_id` and `template_id` columns are still in the schema but unused.
-
-### 18. Starting Portfolio
-Game creators can configure a set of stocks that every player starts with when joining. Starting stocks are granted with zero cost basis (free). Managed via `game_starting_stocks` table.
-
-- **Schema:** `game_starting_stocks` table
-- **Files:** Updated `internal/handler/games.go` (GameJoin)
-
-### 19. Notifications
-In-app notification system. Users are notified about:
-- Achievements earned
-- Limit orders filled
-- Dividends received
-- Stock splits applied
-
-Unread count shown as a badge in the nav bar (HTMX polled on page load). Mark individual or all notifications as read.
-
-- **Routes:** `/notifications`, `/notifications/count`, `/notifications/{nid}/read`, `/notifications/read-all`
-- **Files:** `internal/handler/notifications.go`, `templates/pages/notifications/index.html`
-
-### 20. Past games
-Finished and cancelled games are listed under Past games on `/games`. `/history` redirects there.
-
----
-
-## Accounts & Email
-
-### Email sign-in
-No passwords and no Google account. `/login` emails a link and a 6-digit code that work once for 15 minutes; an unknown address creates the account, and `/welcome` asks for a display name and opt-in to news from Rob.
-
-- **Routes:** `/login`, `/login/check`, `/login/code`, `/login/verify`, `/welcome`
-- **Files:** `internal/handler/login.go`, `internal/auth/session.go`, `templates/pages/auth/`
-
-### Email
-Every email goes through an outbox (`email_outbox`) and Amazon SES. People choose categories on Settings, and every non-account email has a one-click unsubscribe link. Trade and game emails come from `internal/notify`, which the scheduler runs each minute. Admins send newsletters from `/admin/email`. `docs/emails.md` lists every email.
-
-- **Routes:** `/settings/email`, `/email/unsubscribe`, `/admin/email`
-- **Files:** `internal/mail/`, `internal/notify/`, `internal/handler/email.go`, `internal/handler/admin_email.go`
-
----
-
-## Admin & Data
-
-### 21. Prices status
-One admin page saying whether prices are up to date: the US market open or closed and the last quote, how many stocks have prices for the latest trading day (and a table of those behind), the AUD/USD rate, how fresh company profiles are, and the last 30 daily fetches and backfills (one `price_fetch_log` row per run). Quote, profile, rate and news errors go to monitor. Everything runs on schedule; there are no fetch buttons.
-
-- **Routes:** `/admin/prices`
-- **Files:** `internal/handler/admin_prices.go`, `templates/pages/admin/prices.html`
-
-### 22. Users and activity
-One admin page listing every user with their games, trades, join date and when they were last seen, sorted newest, last seen or most trades. Each user has buttons to make them an admin or block them. A blocked user (`users.blocked_at`) is signed out everywhere, can't sign in again and gets no email. They're left off leaderboards, ranks and the game emails' standings, and their lobby messages are hidden; unblocking brings it all back. Admins can't be blocked until their admin is removed. `/admin/activity` now redirects here.
-
-- **Routes:** `/admin/users`, `POST /admin/users/{id}/admin`, `POST /admin/users/{id}/block`
-- **Files:** `internal/handler/admin.go`, `templates/pages/admin/users.html`
-
-### 23. Export to CSV
-Download transaction history or portfolio snapshots as CSV files. Available from the game detail page for any game the user has joined.
-
-- **Routes:** `/games/{id}/export/transactions`, `/games/{id}/export/snapshots`
-- **Files:** `internal/handler/export.go`
-
----
-
-## UI Enhancements
-
-- **Responsive nav** — hamburger menu on mobile with all new links
-- **Notification badge** — HTMX-polled unread count in nav
-- **Game detail** — action buttons for all new features (orders, watchlist, analytics, activity, CSV export, invite)
-- **Trade form** — limit order section, short selling indicator
-- **Stock detail** — HTMX watch/unwatch toggle button
-- **Admin dashboard** — dividend/split simulation forms, links to price health and user activity
+# The Wealth Lab features
+
+The Wealth Lab is Rob Goudie's investing community, run by Consortium Private
+Wealth. It has a monthly share game, where players invest pretend money in real
+shares, and Learn, where Rob teaches through videos, live streams, questions
+and courses.
+
+## The share game
+
+### Monthly games
+
+- There is one game each calendar month, named after the month (for example,
+  "November 2026"). It runs from midnight on the 1st to midnight after the last
+  day of the month, Melbourne time.
+- Players start with $1,000,000 of pretend money, in Australian dollars.
+- Players don't have to join this month's game. Signing in takes them straight
+  into it.
+- Next month's game opens early, and players can join it with one button.
+- The player with the most valuable portfolio when the month ends wins.
+- Each new game copies the settings of the game before it, so a change an admin
+  makes carries forward.
+
+### Shares and prices
+
+- Players can buy shares in the S&P 500 (the 500 biggest US companies), plus
+  Australian and other overseas companies listed in the US, such as ASML, TSMC,
+  Novo Nordisk and Shopify.
+- Prices are real, from Twelve Data. While the US market is open, they update
+  every 2 minutes. Each evening the day's closing prices are saved.
+- US shares are priced in US dollars. The game converts them to Australian
+  dollars at the real exchange rate, updated every 15 minutes. If no exchange
+  rate is available, trades in US-dollar shares are refused rather than use a
+  wrong rate.
+- The site knows the New York trading timetable, including holidays and early
+  closes, so it can tell players when the market next opens or closes.
+
+### Finding shares
+
+The **Stocks** page lists shares with each company's logo, latest price, today's
+move and a small 30-day chart. Quick filters pick a list:
+
+- **Rob's Picks** (the default, chosen by Rob, with his notes)
+- **Mag 7** (Apple, Microsoft, Amazon, Nvidia, Alphabet, Meta and Tesla)
+- **Tech**, **Gainers**, **Losers**, **Biggest** and **Most traded**
+- **Aussie** and **International**
+- **Players' favourites** (the shares most held by players in the game)
+- **All A–Z**
+
+Players can also search every share by name or code, and filter by industry.
+The page remembers the filter and search when a player comes back to it.
+
+Each share has its own page with a long-term price chart, company details and
+key figures, its last share split, recent news, and any of Rob's videos that
+mention it. The **Back** link returns to wherever the player came from.
+
+### Trading
+
+- Players trade from the order panel on a share's page. On a phone it slides up
+  from the bottom when they tap **Buy** or **Sell**. A trade confirms on the
+  same page, without leaving it.
+- **Market orders** buy or sell at the latest price.
+- **Limit orders** wait until the price reaches a level the player sets, then
+  fill by themselves. A limit order can have an expiry date, and players can
+  cancel it at any time.
+- **After-hours trading:** while the US market is closed (most of the
+  Australian day), a market order fills straight away at the last closing
+  price. If an admin turns this off for a game, market orders wait and fill at
+  the first price after the market opens. Limit orders always wait for the
+  market to open.
+- **Short selling** (selling shares you don't own, betting the price will fall)
+  is allowed only if an admin turns it on for the game.
+- **Fees:** a game can charge a fee per trade. The standard game has none.
+- **Close position** on the home page sells everything held in a share, or buys
+  back a short, in one tap. Tapping it twice can't trade twice.
+- An order can't spend more cash than the player has. An order that can't fill
+  is cancelled, and the player is told.
+- Orders still open when a game ends are cancelled.
+
+### Share splits
+
+When a company splits its shares (for example, 10 for 1), the game adjusts
+players' holdings, past prices and open orders automatically, and tells the
+holders. In a reverse split, part shares are paid out in cash.
+
+### Interest on cash
+
+Uninvested cash earns interest each day, at 5.25% a year unless an admin sets a
+different rate for the game. It's paid just after midnight for the day before.
+
+### The player's home page
+
+- What the portfolio is worth, how much it moved today, and how much since the
+  game started.
+- The player's place on the leaderboard, and how far behind the player above
+  they are.
+- A chart of the portfolio's value across the month.
+- Each share held, with today's move and the overall gain or loss, and a
+  **Close position** button.
+- A search box to find a share to buy.
+- **Invite a friend**.
+
+When a game is over, its home page shows the final values from the end of the
+game.
+
+### Other game pages
+
+- **Orders**: open orders, with a **Cancel** button on each.
+- **Watchlist**: shares a player wants to follow, starred from a share's page,
+  with their latest prices.
+- **Leaderboard**: every player in the game, ranked by portfolio value.
+- **All trades**: every player's trades in the game, newest first, with their
+  avatars.
+- **My trade history**: the player's own trades and interest payments.
+- **Analytics**:
+  - Trade statistics: number of trades, buys and sells, how many made money,
+    total bought and sold, profit on closed trades, and the best and worst
+    trades.
+  - **Sectors**: a chart of holdings by industry, with the gain or loss on each
+    holding.
+  - **Benchmark**: the portfolio's value against holding the starting cash.
+  - **Compare**: the player's portfolio side by side with any other player's,
+    with both values on one chart.
+- **Rules**: the game's settings and dates.
+- **Games**: this month's game, next month's game and past games with their
+  final standings.
+
+On a phone the game's pages are in a tab bar along the bottom of the screen,
+with the less-used ones under **More**.
+
+### Inviting friends
+
+From the game's home page a player can email a friend an invitation. If the
+friend makes an account, they join the game and the player earns a bonus of 1%
+of the starting cash ($10,000), once per game.
+
+- Each player can send up to 10 invitations a day.
+- An address can be invited once per game.
+- People who already have an account can't be invited.
+- Friends who join after the bonus is paid still join the game, but earn the
+  player nothing more.
+
+Admins set the bonus for each game, and a bonus of 0 turns invitations off.
+
+### Achievements and avatars
+
+Players earn badges for what they do:
+
+| Badge | How to earn it |
+|---|---|
+| First Trade | Make a first trade |
+| Active Trader | 10 trades in a game |
+| Trading Machine | 50 trades in a game |
+| Rising Star | A 10% return |
+| Market Wizard | A 25% return |
+| Diversified | Hold 5 different shares |
+| Portfolio Manager | Hold 10 different shares |
+| Champion | Finish a game in 1st place |
+| Podium Finish | Finish a game in the top 3 |
+| Social Player | Play in 3 games |
+| Market Watcher | Put 10 shares on a game's watchlist |
+| Recruiter | Invite 3 friends who sign up and earn the bonus |
+
+Champion and Podium Finish count only players who made at least one trade, and
+players who finish level share the place. Each badge comes with a
+notification.
+
+On the **Profile** page players choose an avatar. Nine are free, and four
+unlock with a badge: Crown (Champion), Trophy (Podium Finish), Wizard (Market
+Wizard) and On Fire (Trading Machine).
+
+## Learn
+
+Learn is open to everyone, signed in or not, and has four tabs. Every Learn
+page ends with the licensee's general advice warning.
+
+### Watch
+
+- Rob's YouTube videos appear by themselves, and his TikTok videos do too once
+  his account is connected. Admins add Facebook and Instagram videos by pasting
+  a link.
+- Each video is sorted into topics such as retirement, superannuation and buying
+  a home. Admins can change a video's topics.
+- Visitors browse by topic, watch Shorts, search, and play videos on the page.
+  Each video page shows related videos and an **Ask Rob about this** button.
+- Videos that discuss a share also appear on that share's page.
+
+### Live
+
+- Rob's upcoming and current live streams. YouTube streams appear by
+  themselves; admins add TikTok, Facebook and Instagram streams, or tap **I'm
+  live now**.
+- A "Rob is live" banner shows across the whole site while he's on air.
+- Visitors can add a stream to their calendar, and members can ask for a
+  reminder email.
+- During a stream, its page lists the most-voted open questions and refreshes
+  every 20 seconds. Rob taps **Answered** as he answers each one.
+
+### Ask Rob
+
+- Members ask questions, choose a topic (or let the site choose one), and vote
+  for the questions they want answered. Anyone can read them.
+- Questions can be sorted by votes or newest, and filtered by topic and by
+  whether they're answered.
+- Rob answers in writing, with a video from a given moment, or live on air. The
+  asker and everyone who voted get the answer by email. An answer given on air
+  is emailed after the stream, with a link to that moment in the recording.
+- Askers can delete their question until it's answered. Admins can hide or
+  delete any question.
+
+### Courses
+
+- Rob's video courses, with lessons in order. Courses need an account.
+- Members mark lessons as done and see their progress through each course.
+- Admins build courses as drafts, preview them, then publish. Publishing a
+  course for the first time can email members.
+
+## Community
+
+- **Lobby**: a chat room for all signed-in players.
+- **Notifications**: badges earned, orders filled, cancelled or expired, share
+  splits and referral bonuses. The menu shows how many are unread, and players
+  can mark them read one at a time or all at once.
+
+## Accounts and email
+
+### Signing in
+
+- There are no passwords. A player enters their email address, and the site
+  emails a link and a 6-digit code. Either one signs them in, once, within 15
+  minutes.
+- A new address creates an account. New players pick a display name and choose
+  whether to get news from Rob.
+- Players stay signed in for 30 days on each device.
+
+### Settings
+
+Players can change their display name, choose which emails they get, download
+a copy of all their data, and delete their account.
+
+### Emails
+
+| Kind | What's sent |
+|---|---|
+| Account | Sign-in codes, welcome, account deleted, invitations from a friend. These can't be turned off. |
+| Trades | An order filled, cancelled or expired; a share split. |
+| Games | A game started, a game ends in 3 days and in 1 day, final results, a referral bonus earned. |
+| Community | An answer to your question; a new course. |
+| Live streams | Rob has booked a stream; a reminder when it starts. |
+| News from Rob | Newsletters, only to people who opted in. |
+
+- Several updates of the same kind are combined into one email.
+- Game emails aren't sent before 8 AM.
+- Every email except account emails has a one-click unsubscribe link.
+
+### Site pages
+
+The footer links to About, Help, Contact, Privacy and Terms. The Contact form
+is for signed-in players.
+
+## Admin tools
+
+Admins have an **Admin** menu with these pages:
+
+- **Games**: change a game's name, description, player limit, starting cash,
+  currency, fee per trade, referral bonus and interest rate, and turn limit
+  orders, short selling and after-hours trading on or off. Starting cash and
+  currency are fixed once someone has joined. A game can also be cancelled.
+- **Picks**: choose and order Rob's Picks, with a note on each.
+- **Users**: everyone who has signed up, with their games, trades, join date
+  and last visit, sorted by newest, last seen or most trades. Admins can make
+  someone an admin, or block them. A blocked person is signed out, can't sign
+  in, gets no email, and is left off leaderboards and the lobby. An admin must
+  lose admin access before they can be blocked.
+- **Prices**: whether prices are up to date, including whether the US market is
+  open, which shares are behind, the exchange rate, how fresh the company
+  details are, and the last 30 price updates. Prices update on a schedule, so
+  there's nothing to press.
+- **Email**: write a newsletter, send a test to yourself, then send it to
+  everyone who opted in.
+- **Courses**: build, edit, publish and delete courses and lessons.
+- **Learn**: sync videos, add a video by pasting its link, edit each video's
+  topics, pin or hide videos, manage topics, schedule live streams, and connect
+  TikTok.
+- **Messages**: read and delete Contact form messages.

@@ -44,15 +44,14 @@ func (m Month) first() time.Time { return time.Date(m.Year, m.M, 1, 0, 0, 0, 0, 
 // defaultGame is the settings for the first monthly game. Later games copy
 // the one before, so an admin's changes carry forward.
 var defaultGame = db.Game{
-	Description:          "One month to grow $1,000,000. The biggest portfolio when the game ends wins.",
-	Markets:              "both",
-	StartingBalance:      100000000,
-	BaseCurrency:         "AUD",
-	ReferralBonusPct:     1,
-	CreditInterestRate:   525,
-	LeverageInterestRate: 500,
-	LimitOrders:          1,
-	AfterHoursTrading:    1,
+	Description:        "One month to grow $1,000,000. The biggest portfolio when the game ends wins.",
+	Markets:            "both",
+	StartingBalance:    100000000,
+	BaseCurrency:       "AUD",
+	ReferralBonusPct:   1,
+	CreditInterestRate: 525,
+	LimitOrders:        1,
+	AfterHoursTrading:  1,
 }
 
 // EnsureMonthlyGames creates the games for now's month and the next one if
@@ -87,28 +86,22 @@ func ensureMonthGame(ctx context.Context, q *db.Queries, m Month) error {
 		return err
 	}
 	g, err := q.CreateGame(ctx, db.CreateGameParams{
-		CreatedBy:            owner,
-		Name:                 m.Name(),
-		Description:          prev.Description,
-		Markets:              prev.Markets,
-		StartingBalance:      prev.StartingBalance,
-		BaseCurrency:         prev.BaseCurrency,
-		MaxParticipants:      prev.MaxParticipants,
-		StartDate:            m.StartDate(),
-		EndDate:              m.EndDate(),
-		AllowShort:           prev.AllowShort,
-		TradeFee:             prev.TradeFee,
-		ReferralBonusPct:     prev.ReferralBonusPct,
-		CreditInterestRate:   prev.CreditInterestRate,
-		LeverageInterestRate: prev.LeverageInterestRate,
-		MinStockPrice:        prev.MinStockPrice,
-		MaxStockPrice:        prev.MaxStockPrice,
-		MarginTrading:        prev.MarginTrading,
-		LimitOrders:          prev.LimitOrders,
-		StopLoss:             prev.StopLoss,
-		FractionalShares:     prev.FractionalShares,
-		AfterHoursTrading:    prev.AfterHoursTrading,
-		Quarter:              sql.NullString{String: m.Key(), Valid: true},
+		CreatedBy:          owner,
+		Name:               m.Name(),
+		Description:        prev.Description,
+		Markets:            prev.Markets,
+		StartingBalance:    prev.StartingBalance,
+		BaseCurrency:       prev.BaseCurrency,
+		MaxParticipants:    prev.MaxParticipants,
+		StartDate:          m.StartDate(),
+		EndDate:            m.EndDate(),
+		AllowShort:         prev.AllowShort,
+		TradeFee:           prev.TradeFee,
+		ReferralBonusPct:   prev.ReferralBonusPct,
+		CreditInterestRate: prev.CreditInterestRate,
+		LimitOrders:        prev.LimitOrders,
+		AfterHoursTrading:  prev.AfterHoursTrading,
+		Quarter:            sql.NullString{String: m.Key(), Valid: true},
 	})
 	if err != nil {
 		return err

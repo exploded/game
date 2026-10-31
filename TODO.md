@@ -15,7 +15,7 @@ Built on 2026-10-29 and merged into `master` on 2026-10-30. Not deployed yet.
   settings on Settings, one-click unsubscribe. Every email is planned in
   `docs/emails.md`.
 - [x] **Trade and game emails:** orders filled, cancelled or expired,
-  dividends, splits, game started, ending in 3 days and 1 day, final results,
+  splits, game started, ending in 3 days and 1 day, final results,
   next round ready and referral bonus.
 - [x] **Newsletters from Rob.** `/admin/email`: write, send a test to
   yourself, then send to everyone who opted in to news.
@@ -46,9 +46,10 @@ Built on 2026-10-29 and merged into `master` on 2026-10-30. Not deployed yet.
   wide screen, under it on a phone (`static/img/team.jpg`, 2026-10-30).
 - [ ] **Weekly summary and "we miss you" emails** (D1 and N2 in
   `docs/emails.md`). The Weekly summary setting is hidden until D1 exists.
-- [ ] **Remove Google leftovers:** `users.picture_url`, the
+- [x] **Remove Google leftovers:** `users.picture_url`, the
   `*.googleusercontent.com` entry in the CSP `img-src`, and "Use Google Photo"
-  on the Profile page.
+  on the Profile page. Done on 31 October 2026, with the rest of the cleanup
+  in `docs/site-summary.md`.
 
 ## Learn: Rob's videos, live streams and questions (2026-10-30)
 
@@ -136,8 +137,8 @@ Highest impact for the effort first.
 - [ ] **Benchmark against the S&P 500** rather than a flat line.
 - [ ] **Shorter nav:** fold Achievements into another page. Templates and
   History are gone.
-- [ ] **Real splits and dividends from Twelve Data**, so holdings don't break when
-  a real split happens.
+- [x] **Real splits from Twelve Data**, so holdings don't break when a real
+  split happens (`market.CheckSplits`).
 - [ ] **Small fixes:** the leaderboard rank skips hidden players; the lobby cuts
   messages at 500 bytes, not characters (can split an emoji).
 

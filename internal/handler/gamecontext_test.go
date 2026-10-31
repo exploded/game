@@ -19,11 +19,9 @@ func TestGameTab(t *testing.T) {
 		"/games/7":                "home",
 		"/games/7/":               "home",
 		"/games/7/rules":          "rules",
-		"/games/7/portfolio":      "portfolio",
 		"/games/7/history":        "portfolio",
 		"/games/7/stocks":         "stocks",
 		"/games/7/stocks/12":      "stocks",
-		"/games/7/trade/12":       "stocks",
 		"/games/7/orders":         "orders",
 		"/games/7/watchlist":      "watchlist",
 		"/games/7/leaderboard":    "leaderboard",
@@ -84,12 +82,10 @@ func gameServerDB(t *testing.T) (http.Handler, *db.Queries, *sql.DB) {
 		r.Use(h.GameContext)
 		r.Get("/", h.GameDetail)
 		r.Get("/rules", h.GameRules)
-		r.Get("/portfolio", h.Portfolio)
 		r.Get("/history", h.TransactionHistory)
 		r.Get("/activity", h.ActivityFeed)
 		r.Get("/stocks", h.StocksBrowse)
 		r.Get("/stocks/{sid}", h.StockDetail)
-		r.Get("/trade/{sid}", h.TradeForm)
 		r.Post("/trade/{sid}", h.TradeExecute)
 	})
 	return r, q, d
@@ -229,15 +225,6 @@ func TestRulesPage(t *testing.T) {
 	}
 }
 
-func TestPortfolioRedirectsHome(t *testing.T) {
-	srv, _ := gameServer(t)
-	w := httptest.NewRecorder()
-	srv.ServeHTTP(w, httptest.NewRequest("GET", "/games/1/portfolio", nil))
-	if w.Code != http.StatusMovedPermanently || w.Header().Get("Location") != "/games/1" {
-		t.Fatalf("got %d to %q, want 301 to /games/1", w.Code, w.Header().Get("Location"))
-	}
-}
-
 func TestRankPlayer(t *testing.T) {
 	board := []db.ListParticipantsByGameRow{
 		{ID: 1, PortfolioValue: 300, UserName: "Ann"},
@@ -320,15 +307,6 @@ func TestDayMove(t *testing.T) {
 	}
 }
 
-func TestTradePageRedirectsToStockPage(t *testing.T) {
-	srv, _ := gameServer(t)
-	w := httptest.NewRecorder()
-	srv.ServeHTTP(w, httptest.NewRequest("GET", "/games/1/trade/1", nil))
-	if w.Code != http.StatusSeeOther || w.Header().Get("Location") != "/games/1/stocks/1" {
-		t.Fatalf("got %d to %q, want 303 to /games/1/stocks/1", w.Code, w.Header().Get("Location"))
-	}
-}
-
 func TestStockPageHasGameBarAndTicket(t *testing.T) {
 	srv, q := gameServer(t)
 	w := httptest.NewRecorder()
@@ -399,7 +377,7 @@ func noAfterHours(t *testing.T, q *db.Queries) {
 		t.Fatal(err)
 	}
 	if err := q.UpdateGameSettings(t.Context(), db.UpdateGameSettingsParams{
-		ID: g.ID, Name: g.Name, Description: g.Description, Markets: g.Markets,
+		ID: g.ID, Name: g.Name, Description: g.Description,
 		StartingBalance: g.StartingBalance, BaseCurrency: g.BaseCurrency, MaxParticipants: g.MaxParticipants,
 		TradeFee: g.TradeFee, AllowShort: g.AllowShort, LimitOrders: g.LimitOrders,
 		ReferralBonusPct: g.ReferralBonusPct, CreditInterestRate: g.CreditInterestRate,

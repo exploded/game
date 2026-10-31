@@ -407,12 +407,3 @@ func (h *Handler) QuestionDelete(w http.ResponseWriter, r *http.Request) {
 	setFlashCookie(w, "Question deleted.", "success")
 	http.Redirect(w, r, questionsPath, http.StatusSeeOther)
 }
-
-// OldQuestionsRedirect sends the old /questions URLs to Learn.
-func OldQuestionsRedirect(w http.ResponseWriter, r *http.Request) {
-	target := "/learn" + r.URL.Path
-	if r.URL.RawQuery != "" {
-		target += "?" + r.URL.RawQuery
-	}
-	http.Redirect(w, r, target, http.StatusMovedPermanently)
-}

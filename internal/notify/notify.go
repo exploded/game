@@ -1,5 +1,5 @@
 // Package notify sends the emails for things that happen in games: the
-// in-app notifications (orders, dividends, splits, referral bonuses) and the
+// in-app notifications (orders, splits, referral bonuses) and the
 // game lifecycle (started, ending soon, final results). The scheduler runs
 // it every minute. docs/emails.md lists the emails.
 package notify
@@ -25,7 +25,6 @@ var notificationCategory = map[string]mail.Category{
 	"order_filled":    mail.Trades,
 	"order_cancelled": mail.Trades,
 	"order_expired":   mail.Trades,
-	"dividend":        mail.Trades,
 	"stock_split":     mail.Trades,
 	"referral_bonus":  mail.Games,
 }

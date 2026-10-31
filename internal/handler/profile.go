@@ -34,22 +34,7 @@ func (h *Handler) ProfileUpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	r.ParseForm()
 
-	avatarIDStr := r.FormValue("avatar_id")
-
-	// Clear avatar (use Google pic).
-	if avatarIDStr == "" || avatarIDStr == "0" {
-		_ = h.q.ClearUserAvatar(r.Context(), user.ID)
-		if isHTMX(r) {
-			triggerToast(w, "Avatar cleared — using Google photo", "success")
-			w.Header().Set("HX-Refresh", "true")
-			return
-		}
-		setFlashCookie(w, "Avatar cleared", "success")
-		http.Redirect(w, r, "/profile", http.StatusSeeOther)
-		return
-	}
-
-	avatarID, err := strconv.ParseInt(avatarIDStr, 10, 64)
+	avatarID, err := strconv.ParseInt(r.FormValue("avatar_id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid avatar", http.StatusBadRequest)
 		return
@@ -63,16 +48,15 @@ func (h *Handler) ProfileUpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if avatar.Category == "achievement" && avatar.AchievementKey.Valid {
-		// Check user has the required achievement.
+		// Check user has the required achievement, earned in any game.
 		ach, err := h.q.GetAchievementByKey(r.Context(), avatar.AchievementKey.String)
 		if err != nil {
 			http.Error(w, "Achievement not found", http.StatusBadRequest)
 			return
 		}
-		has, _ := h.q.HasAchievement(r.Context(), db.HasAchievementParams{
+		has, _ := h.q.HasAchievementInAnyGame(r.Context(), db.HasAchievementInAnyGameParams{
 			UserID:        user.ID,
 			AchievementID: ach.ID,
-			GameID:        sql.NullInt64{},
 		})
 		if has == 0 {
 			if isHTMX(r) {

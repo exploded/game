@@ -129,8 +129,8 @@ var (
 	errGameFull   = errors.New("game full")
 )
 
-// joinGame adds the user to the game with its starting cash and any
-// starting stocks, and posts it to the game's activity feed.
+// joinGame adds the user to the game with its starting cash, and posts it to
+// the game's activity feed.
 func (h *Handler) joinGame(ctx context.Context, game db.Game, userID int64) (db.Participant, error) {
 	if game.Status != "pending" && game.Status != "active" {
 		return db.Participant{}, errGameClosed
@@ -151,25 +151,16 @@ func (h *Handler) joinGame(ctx context.Context, game db.Game, userID int64) (db.
 		return db.Participant{}, err
 	}
 
-	// Grant starting stocks if configured.
-	startingStocks, _ := h.q.ListStartingStocks(ctx, game.ID)
-	for _, ss := range startingStocks {
-		_ = h.q.UpsertHolding(ctx, db.UpsertHoldingParams{
-			ParticipantID: participant.ID,
-			StockID:       ss.StockID,
-			Quantity:      ss.Quantity,
-			AvgCost:       0, // given for free
-			CostBasis:     0,
-			CurrentValue:  0, // revaluation will update
-		})
-	}
-
 	_ = h.q.InsertActivity(ctx, db.InsertActivityParams{
 		GameID: game.ID,
 		UserID: userID,
 		Action: "join",
 		Detail: "joined the game",
 	})
+	// Social Player: 3 games.
+	if n, _ := h.q.CountUserGames(ctx, userID); n >= 3 {
+		h.grantIfNew(ctx, userID, "joined_3_games", game.ID)
+	}
 	return participant, nil
 }
 

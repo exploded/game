@@ -24,12 +24,6 @@ func queuesMarketOrder(g db.Game, stockMarket string) bool {
 	return g.AfterHoursTrading == 0 && marketClosed(stockMarket)
 }
 
-// TradeForm used to be a separate trade page. Trading now happens in the
-// order ticket on the stock page, so old links land there.
-func (h *Handler) TradeForm(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, fmt.Sprintf("/games/%s/stocks/%s", r.PathValue("id"), r.PathValue("sid")), http.StatusSeeOther)
-}
-
 // tradeContext is what the order ticket needs to know about the user's
 // position in one stock.
 type tradeContext struct {

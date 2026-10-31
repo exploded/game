@@ -10,10 +10,11 @@
 <table class="rtable">
     <thead>
         <tr>
-            <th>Trade</th>
-            <th class="num">Total</th>
             <th>Date</th>
+            <th>Trade</th>
             <th class="num">Price</th>
+            <th class="num">Qty</th>
+            <th class="num">Total</th>
             <th class="num">Fee</th>
         </tr>
     </thead>
@@ -21,24 +22,27 @@
         {{range .Items}}
         {{if eq .Kind "interest"}}
         <tr>
+            <td class="text-muted">{{.CreatedAt}}</td>
             <td class="c-main">
                 <span class="badge badge-pending">interest</span>
                 for {{longDate .Day}}
+                <span class="c-sub">on {{cents .Quantity}} cash</span>
             </td>
-            <td class="c-end num">+{{cents .Amount}}</td>
-            <td class="text-muted">{{.CreatedAt}}</td>
-            <td data-label="on">{{cents .Quantity}} cash</td>
+            <td></td>
+            <td></td>
+            <td class="c-end num">+{{cents .Amount}} <span class="text-muted c-cur">AUD</span></td>
             <td class="num" data-label="Fee">-</td>
         </tr>
         {{else}}
         <tr>
+            <td class="text-muted">{{.CreatedAt}}</td>
             <td class="c-main">
                 <span class="badge {{if eq .Kind "buy"}}badge-active{{else}}badge-cancelled{{end}}">{{.Kind}}</span>
-                {{.Quantity}} <strong>{{.Symbol}}</strong>
+                <span class="show-sm">{{.Quantity}}</span> <strong>{{.Symbol}}</strong>
             </td>
-            <td class="c-end num">{{cents .Amount}}</td>
-            <td class="text-muted">{{.CreatedAt}}</td>
             <td class="num" data-label="at">{{cents .Price}} <span class="text-muted">{{.Currency}}</span></td>
+            <td class="num hide-sm">{{.Quantity}}</td>
+            <td class="c-end num">{{cents .Amount}} <span class="text-muted c-cur">AUD</span></td>
             <td class="num" data-label="Fee">{{if .Fee}}{{cents .Fee}}{{else}}-{{end}}</td>
         </tr>
         {{end}}

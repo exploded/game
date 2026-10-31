@@ -11,11 +11,6 @@ import (
 	"github.com/exploded/game/internal/market"
 )
 
-// Portfolio redirects old links: the portfolio is now the game's home page.
-func (h *Handler) Portfolio(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/games/"+r.PathValue("id"), http.StatusMovedPermanently)
-}
-
 // change is a gain or loss, and the amount it's measured against.
 type change struct {
 	Amount int64
@@ -135,9 +130,9 @@ func (s standing) Place() string {
 	return strconv.Itoa(s.Rank) + suffix
 }
 
-// rankPlayer places p among the players on the public leaderboard, which
-// is sorted by value, best first. A private player is counted in too, so
-// they still see their spot.
+// rankPlayer places p among the players on the leaderboard, which is sorted
+// by value, best first. A player missing from it (blocked) is counted in too,
+// so they still see their spot.
 func rankPlayer(p db.Participant, board []db.ListParticipantsByGameRow) standing {
 	s := standing{Rank: 1, Of: len(board)}
 	listed := false

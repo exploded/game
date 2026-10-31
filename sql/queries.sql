@@ -36,7 +36,7 @@ SELECT * FROM users ORDER BY created_at DESC;
 
 -- Every user with how much they've played, for /admin/users.
 -- name: ListUsersWithActivity :many
-SELECT u.id, u.name, u.email, u.picture_url, u.avatar_id, u.is_admin,
+SELECT u.id, u.name, u.email, u.avatar_id, u.is_admin,
     u.created_at, u.last_seen, u.deleted_at, u.blocked_at,
     (SELECT COUNT(*) FROM participants p WHERE p.user_id = u.id) AS game_count,
     (SELECT COUNT(*) FROM transactions t JOIN participants p ON p.id = t.participant_id WHERE p.user_id = u.id) AS trade_count
@@ -53,7 +53,6 @@ UPDATE users SET blocked_at = NULL WHERE id = ?;
 UPDATE users SET
     name = 'Deleted User',
     email = 'deleted-' || CAST(id AS TEXT) || '@deleted.local',
-    picture_url = NULL,
     deleted_at = datetime('now')
 WHERE id = ?;
 
@@ -177,8 +176,8 @@ DELETE FROM email_outbox WHERE status != 'pending' AND created_at < datetime('no
 -- =============================================================================
 
 -- name: CreateGame :one
-INSERT INTO games (created_by, name, description, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, after_hours_trading, quarter)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO games (created_by, name, description, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: GetGame :one
@@ -202,6 +201,9 @@ SELECT g.*, (SELECT COUNT(*) FROM participants p WHERE p.game_id = g.id) AS play
 FROM games g
 ORDER BY g.start_date DESC, g.id DESC;
 
+-- name: CountUserGames :one
+SELECT COUNT(*) FROM participants WHERE user_id = ?;
+
 -- name: ListUserGames :many
 SELECT g.* FROM games g
 JOIN participants p ON p.game_id = g.id
@@ -214,7 +216,7 @@ UPDATE games SET status = ?, updated_at = datetime('now') WHERE id = ?;
 -- The settings admins can change. Dates come from the quarter.
 -- name: UpdateGameSettings :exec
 UPDATE games SET
-    name = ?, description = ?, markets = ?, starting_balance = ?,
+    name = ?, description = ?, starting_balance = ?,
     base_currency = ?, max_participants = ?, trade_fee = ?, allow_short = ?,
     limit_orders = ?, referral_bonus_pct = ?, credit_interest_rate = ?,
     after_hours_trading = ?, updated_at = datetime('now')
@@ -238,9 +240,11 @@ WHERE status = 'open' AND participant_id IN (
     WHERE g.status = 'active' AND g.end_date < ?
 );
 
--- name: FinishExpiredGames :exec
+-- The games it finishes, for market.AwardPlaces.
+-- name: FinishExpiredGames :many
 UPDATE games SET status = 'finished', updated_at = datetime('now')
-WHERE status = 'active' AND end_date < ?;
+WHERE status = 'active' AND end_date < ?
+RETURNING *;
 
 -- =============================================================================
 -- Participants
@@ -260,7 +264,7 @@ SELECT * FROM participants WHERE game_id = ? AND user_id = ?;
 -- Blocked players are left out of standings, as their messages are from
 -- ListLobbyMessages.
 -- name: ListParticipantsByGame :many
-SELECT p.*, u.name AS user_name, u.picture_url AS user_picture
+SELECT p.*, u.name AS user_name
 FROM participants p
 JOIN users u ON u.id = p.user_id
 WHERE p.game_id = ? AND u.blocked_at IS NULL
@@ -285,21 +289,6 @@ SELECT * FROM stocks WHERE id = ?;
 
 -- name: GetStockBySymbol :one
 SELECT * FROM stocks WHERE symbol = ? AND market = ?;
-
--- name: SearchStocks :many
-SELECT * FROM stocks
-WHERE is_active = 1
-  AND (market = ? OR ? = 'both')
-  AND (symbol LIKE ? OR name LIKE ?)
-  AND id IN (SELECT DISTINCT stock_id FROM stock_prices)
-ORDER BY symbol ASC
-LIMIT 20;
-
--- name: ListStocksByMarket :many
-SELECT * FROM stocks
-WHERE is_active = 1 AND (market = ? OR ? = 'both')
-  AND id IN (SELECT DISTINCT stock_id FROM stock_prices)
-ORDER BY symbol ASC;
 
 -- name: ListAllStocksByMarket :many
 SELECT * FROM stocks
@@ -348,10 +337,6 @@ SELECT * FROM stock_prices
 WHERE stock_id = ?
 ORDER BY date DESC LIMIT 2;
 
--- name: GetPriceOnDate :one
-SELECT * FROM stock_prices
-WHERE stock_id = ? AND date = ?;
-
 -- name: ListPriceHistory :many
 SELECT * FROM stock_prices
 WHERE stock_id = ? AND date >= ? AND date <= ?
@@ -378,10 +363,6 @@ ORDER BY s.symbol ASC;
 SELECT stock_id, date, close, volume FROM stock_prices
 WHERE date >= (SELECT date(MAX(date), '-45 days') FROM stock_prices)
 ORDER BY stock_id, date;
-
--- name: GetLatestPriceDate :one
-SELECT MAX(date) AS latest_date FROM stock_prices
-WHERE stock_id IN (SELECT id FROM stocks WHERE market = ?);
 
 -- =============================================================================
 -- Stock Profiles
@@ -414,9 +395,6 @@ UPDATE stock_picks SET note = ?, sort_order = ? WHERE stock_id = ?;
 
 -- name: DeleteStockPick :exec
 DELETE FROM stock_picks WHERE stock_id = ?;
-
--- name: CountStockProfiles :one
-SELECT COUNT(*) FROM stock_profiles;
 
 -- name: CountStockProfilesWithLogo :one
 -- Logos pages can show: the CSP allows only Twelve Data's (logoURL in
@@ -461,9 +439,7 @@ INSERT INTO stock_profiles (
     shares_outstanding, float_shares, avg_10_volume, avg_90_volume, shares_short,
     short_ratio, short_pct_outstanding, pct_held_insiders, pct_held_institutions,
     week_52_high, week_52_low, week_52_change, beta, day_50_ma, day_200_ma,
-    forward_div_rate, forward_div_yield, trailing_div_rate, trailing_div_yield,
-    avg_div_yield_5y, payout_ratio, dividend_frequency, dividend_date,
-    ex_dividend_date, last_split_factor, last_split_date,
+    last_split_factor, last_split_date,
     fiscal_year_ends, most_recent_quarter, updated_at
 ) VALUES (
     ?,
@@ -477,9 +453,7 @@ INSERT INTO stock_profiles (
     ?, ?, ?, ?, ?,
     ?, ?, ?, ?,
     ?, ?, ?, ?, ?, ?,
-    ?, ?, ?, ?,
-    ?, ?, ?, ?,
-    ?, ?, ?,
+    ?, ?,
     ?, ?, datetime('now')
 )
 ON CONFLICT(stock_id) DO UPDATE SET
@@ -511,13 +485,6 @@ ON CONFLICT(stock_id) DO UPDATE SET
     week_52_high = excluded.week_52_high, week_52_low = excluded.week_52_low,
     week_52_change = excluded.week_52_change, beta = excluded.beta,
     day_50_ma = excluded.day_50_ma, day_200_ma = excluded.day_200_ma,
-    forward_div_rate = excluded.forward_div_rate,
-    forward_div_yield = excluded.forward_div_yield,
-    trailing_div_rate = excluded.trailing_div_rate,
-    trailing_div_yield = excluded.trailing_div_yield,
-    avg_div_yield_5y = excluded.avg_div_yield_5y, payout_ratio = excluded.payout_ratio,
-    dividend_frequency = excluded.dividend_frequency,
-    dividend_date = excluded.dividend_date, ex_dividend_date = excluded.ex_dividend_date,
     last_split_factor = excluded.last_split_factor,
     last_split_date = excluded.last_split_date,
     fiscal_year_ends = excluded.fiscal_year_ends,
@@ -557,9 +524,6 @@ ON CONFLICT(date) DO UPDATE SET rate_aud_usd = excluded.rate_aud_usd;
 
 -- name: GetLatestExchangeRate :one
 SELECT * FROM exchange_rates ORDER BY date DESC LIMIT 1;
-
--- name: GetExchangeRateOnDate :one
-SELECT * FROM exchange_rates WHERE date = ?;
 
 -- =============================================================================
 -- Holdings
@@ -802,9 +766,6 @@ UPDATE limit_orders SET status = 'expired'
 WHERE status = 'open' AND expires_at IS NOT NULL AND expires_at < sqlc.arg(today)
 RETURNING participant_id, stock_id, type, quantity, limit_price;
 
--- name: CountOpenOrders :one
-SELECT COUNT(*) FROM limit_orders WHERE participant_id = ? AND status = 'open';
-
 -- =============================================================================
 -- Watchlist (Feature 2)
 -- =============================================================================
@@ -818,15 +779,15 @@ DELETE FROM watchlist WHERE participant_id = ? AND stock_id = ?;
 -- name: IsWatching :one
 SELECT COUNT(*) FROM watchlist WHERE participant_id = ? AND stock_id = ?;
 
+-- name: CountWatchlist :one
+SELECT COUNT(*) FROM watchlist WHERE participant_id = ?;
+
 -- name: ListWatchlist :many
 SELECT w.*, s.symbol, s.name AS stock_name, s.market, s.sector, s.currency
 FROM watchlist w
 JOIN stocks s ON s.id = w.stock_id
 WHERE w.participant_id = ?
 ORDER BY w.created_at DESC;
-
--- name: IsOnWatchlist :one
-SELECT COUNT(*) FROM watchlist WHERE participant_id = ? AND stock_id = ?;
 
 -- =============================================================================
 -- Invite Links (Feature 6)
@@ -873,6 +834,9 @@ ON CONFLICT(key) DO UPDATE SET name = excluded.name, description = excluded.desc
 -- name: ListAchievements :many
 SELECT * FROM achievements ORDER BY id;
 
+-- name: HasAchievementInAnyGame :one
+SELECT COUNT(*) FROM user_achievements WHERE user_id = ? AND achievement_id = ?;
+
 -- name: GrantAchievement :exec
 INSERT OR IGNORE INTO user_achievements (user_id, achievement_id, game_id)
 VALUES (?, ?, ?);
@@ -900,29 +864,14 @@ INSERT INTO activity_feed (game_id, user_id, action, detail)
 VALUES (?, ?, ?, ?);
 
 -- name: ListActivityFeed :many
-SELECT af.*, u.name AS user_name, u.picture_url AS user_picture
+SELECT af.*, u.name AS user_name,
+    COALESCE(a.image_path, '') AS avatar_path
 FROM activity_feed af
 JOIN users u ON u.id = af.user_id
+LEFT JOIN avatars a ON a.id = u.avatar_id
 WHERE af.game_id = ?
 ORDER BY af.created_at DESC
 LIMIT ? OFFSET ?;
-
--- =============================================================================
--- Starting Portfolio (Feature 18)
--- =============================================================================
-
--- name: AddStartingStock :exec
-INSERT OR REPLACE INTO game_starting_stocks (game_id, stock_id, quantity)
-VALUES (?, ?, ?);
-
--- name: ListStartingStocks :many
-SELECT gss.*, s.symbol, s.name AS stock_name, s.market, s.currency
-FROM game_starting_stocks gss
-JOIN stocks s ON s.id = gss.stock_id
-WHERE gss.game_id = ?;
-
--- name: DeleteStartingStocks :exec
-DELETE FROM game_starting_stocks WHERE game_id = ?;
 
 -- =============================================================================
 -- Notifications (Feature 19)
@@ -955,12 +904,6 @@ SELECT * FROM games WHERE status = 'active' AND end_date = ?;
 
 -- name: ListFinishedGamesEndedSince :many
 SELECT * FROM games WHERE status = 'finished' AND end_date >= ?;
-
--- name: ListUnreadNotifications :many
-SELECT * FROM notifications
-WHERE user_id = ? AND is_read = 0
-ORDER BY created_at DESC
-LIMIT 20;
 
 -- name: ListNotifications :many
 SELECT * FROM notifications
@@ -1004,11 +947,6 @@ ORDER BY s.symbol;
 -- Admin - User Activity (Feature 22)
 -- =============================================================================
 
--- name: GetUserTradeCount :one
-SELECT COUNT(*) FROM transactions t
-JOIN participants p ON p.id = t.participant_id
-WHERE p.user_id = ?;
-
 -- =============================================================================
 -- Trade Analytics (Feature 15)
 -- =============================================================================
@@ -1041,24 +979,6 @@ WHERE p.game_id = ? AND h.quantity > 0
 GROUP BY h.stock_id;
 
 -- =============================================================================
--- CSV Export Helpers (Feature 23)
--- =============================================================================
-
--- name: ListAllTransactionsForExport :many
-SELECT t.created_at, t.type, s.symbol, s.name AS stock_name, s.market,
-    t.quantity, t.price, t.total, t.converted_total, t.exchange_rate_used, t.fee
-FROM transactions t
-JOIN stocks s ON s.id = t.stock_id
-WHERE t.participant_id = ?
-ORDER BY t.created_at ASC;
-
--- name: ListSnapshotsForExport :many
-SELECT date, cash_balance, holdings_value, total_value
-FROM portfolio_snapshots
-WHERE participant_id = ?
-ORDER BY date ASC;
-
--- =============================================================================
 -- Contact Messages
 -- =============================================================================
 
@@ -1070,9 +990,6 @@ VALUES (?, ?, ?, ?);
 SELECT * FROM contact_messages
 ORDER BY created_at DESC
 LIMIT ? OFFSET ?;
-
--- name: CountContactMessages :one
-SELECT COUNT(*) FROM contact_messages;
 
 -- name: CountUnreadContactMessages :one
 SELECT COUNT(*) FROM contact_messages WHERE is_read = 0;
@@ -1112,9 +1029,6 @@ SELECT * FROM avatars WHERE id = ?;
 -- name: UpdateUserAvatar :exec
 UPDATE users SET avatar_id = ? WHERE id = ?;
 
--- name: ClearUserAvatar :exec
-UPDATE users SET avatar_id = NULL WHERE id = ?;
-
 -- name: GetUserAvatarPath :one
 SELECT COALESCE(a.image_path, '') AS avatar_path
 FROM users u
@@ -1131,7 +1045,7 @@ VALUES (?, ?)
 RETURNING *;
 
 -- name: ListLobbyMessages :many
-SELECT lm.*, u.name AS user_name, u.picture_url AS user_picture,
+SELECT lm.*, u.name AS user_name,
     COALESCE(a.image_path, '') AS avatar_path
 FROM lobby_messages lm
 JOIN users u ON u.id = lm.user_id
@@ -1153,21 +1067,11 @@ WHERE u.blocked_at IS NULL;
 INSERT OR IGNORE INTO referral_bonuses (invite_id, referrer_id, referred_id, game_id, bonus_amount)
 VALUES (?, ?, ?, ?, ?);
 
--- name: ListReferralBonuses :many
-SELECT rb.*, u.name AS referred_name
-FROM referral_bonuses rb
-JOIN users u ON u.id = rb.referred_id
-WHERE rb.referrer_id = ? AND rb.game_id = ?
-ORDER BY rb.created_at DESC;
-
 -- name: CountReferralBonuses :one
 SELECT COUNT(*) FROM referral_bonuses WHERE referrer_id = ? AND game_id = ?;
 
 -- name: CountAllReferralBonuses :one
 SELECT COUNT(*) FROM referral_bonuses WHERE referrer_id = ?;
-
--- name: TotalReferralBonus :one
-SELECT COALESCE(SUM(bonus_amount), 0) FROM referral_bonuses WHERE referrer_id = ? AND game_id = ?;
 
 -- =============================================================================
 -- Ask a Question
@@ -1465,9 +1369,6 @@ ORDER BY t.sort_order, t.name;
 -- name: GetTopicBySlug :one
 SELECT * FROM topics WHERE slug = ?;
 
--- name: GetTopic :one
-SELECT * FROM topics WHERE id = ?;
-
 -- name: CreateTopic :exec
 INSERT INTO topics (slug, name, description, sort_order)
 VALUES (?, ?, ?, (SELECT COALESCE(MAX(t.sort_order), 0) + 1 FROM topics t));
@@ -1503,9 +1404,6 @@ LIMIT ?;
 
 -- name: SetVideoClassified :exec
 UPDATE videos SET classified_at = datetime('now') WHERE id = ?;
-
--- name: ResetVideoClassified :exec
-UPDATE videos SET classified_at = NULL WHERE id = ?;
 
 -- name: ClearVideoStocks :exec
 DELETE FROM video_stocks WHERE video_id = ?;

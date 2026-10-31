@@ -104,35 +104,26 @@ type ExchangeRate struct {
 }
 
 type Game struct {
-	ID                   int64
-	CreatedBy            int64
-	Name                 string
-	Description          string
-	Status               string
-	Markets              string
-	StartingBalance      int64
-	BaseCurrency         string
-	MaxParticipants      sql.NullInt64
-	StartDate            string
-	EndDate              string
-	AllowShort           int64
-	TradeFee             int64
-	ReferralBonusPct     int64
-	RecurringInterval    sql.NullString
-	ParentGameID         sql.NullInt64
-	TemplateID           sql.NullInt64
-	CreditInterestRate   int64
-	LeverageInterestRate int64
-	MinStockPrice        sql.NullInt64
-	MaxStockPrice        sql.NullInt64
-	MarginTrading        int64
-	LimitOrders          int64
-	StopLoss             int64
-	FractionalShares     int64
-	AfterHoursTrading    int64
-	Quarter              sql.NullString
-	CreatedAt            string
-	UpdatedAt            string
+	ID                 int64
+	CreatedBy          int64
+	Name               string
+	Description        string
+	Status             string
+	Markets            string
+	StartingBalance    int64
+	BaseCurrency       string
+	MaxParticipants    sql.NullInt64
+	StartDate          string
+	EndDate            string
+	AllowShort         int64
+	TradeFee           int64
+	ReferralBonusPct   int64
+	CreditInterestRate int64
+	LimitOrders        int64
+	AfterHoursTrading  int64
+	Quarter            sql.NullString
+	CreatedAt          string
+	UpdatedAt          string
 }
 
 type GameEmail struct {
@@ -151,28 +142,6 @@ type GameInvite struct {
 	ExpiresAt sql.NullString
 	Email     sql.NullString
 	CreatedAt string
-}
-
-type GameStartingStock struct {
-	ID       int64
-	GameID   int64
-	StockID  int64
-	Quantity int64
-}
-
-type GameTemplate struct {
-	ID              int64
-	Name            string
-	Description     string
-	Markets         string
-	StartingBalance int64
-	BaseCurrency    string
-	DurationDays    int64
-	AllowShort      int64
-	TradeFee        int64
-	IsBuiltin       int64
-	CreatedBy       sql.NullInt64
-	CreatedAt       string
 }
 
 type Holding struct {
@@ -469,15 +438,6 @@ type StockProfile struct {
 	Beta                int64
 	Day50Ma             int64
 	Day200Ma            int64
-	ForwardDivRate      int64
-	ForwardDivYield     int64
-	TrailingDivRate     int64
-	TrailingDivYield    int64
-	AvgDivYield5y       int64
-	PayoutRatio         int64
-	DividendFrequency   string
-	DividendDate        string
-	ExDividendDate      string
 	LastSplitFactor     string
 	LastSplitDate       string
 	FiscalYearEnds      string
@@ -534,7 +494,6 @@ type User struct {
 	ID         int64
 	Email      string
 	Name       string
-	PictureUrl sql.NullString
 	IsAdmin    int64
 	AvatarID   sql.NullInt64
 	CreatedAt  string

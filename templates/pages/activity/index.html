@@ -11,8 +11,8 @@
     {{range .Items}}
     <div class="activity-item">
         <div class="activity-avatar">
-            {{if .UserPicture.Valid}}
-            <img src="{{.UserPicture.String}}" alt="" class="avatar-sm">
+            {{if .AvatarPath}}
+            <img src="{{.AvatarPath}}" alt="" class="avatar-sm">
             {{else}}
             <div class="avatar-placeholder-sm">{{slice .UserName 0 1}}</div>
             {{end}}

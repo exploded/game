@@ -120,12 +120,6 @@ func (s *Service) notifyLive(ctx context.Context, now time.Time) {
 	}
 }
 
-// GoLive marks an admin-added stream live now, so the banner shows and the
-// reminders go out on the next tick.
-func (s *Service) GoLive(ctx context.Context, id int64) error {
-	return s.q.GoLive(ctx, id)
-}
-
 func (s *Service) mailEach(ctx context.Context, ids []int64, template string, data any) int {
 	n := 0
 	for _, id := range ids {

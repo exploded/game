@@ -60,7 +60,7 @@ func (h *Handler) LobbySend(w http.ResponseWriter, r *http.Request) {
 	if isHTMX(r) {
 		escaped := html.EscapeString(msg)
 		avatarPath, _ := h.q.GetUserAvatarPath(r.Context(), user.ID)
-		avatarHTML := avatarImg(user.Name, user.PictureUrl.String, avatarPath)
+		avatarHTML := avatarImg(user.Name, avatarPath)
 		w.Header().Set("Content-Type", "text/html")
 		w.Write([]byte(fmt.Sprintf(`<div class="chat-message" hx-swap-oob="afterbegin target:#messages-list strip:false">
 	<div class="chat-meta">
@@ -76,12 +76,10 @@ func (h *Handler) LobbySend(w http.ResponseWriter, r *http.Request) {
 }
 
 // avatarImg returns HTML for a user's avatar image.
-func avatarImg(name, pictureURL, avatarPath string) string {
+func avatarImg(name, avatarPath string) string {
 	src := "/static/avatars/default.svg"
 	if avatarPath != "" {
 		src = avatarPath
-	} else if pictureURL != "" {
-		src = pictureURL
 	}
 	return fmt.Sprintf(`<img src="%s" alt="%s" class="avatar-sm">`,
 		html.EscapeString(src), html.EscapeString(name))

@@ -22,7 +22,7 @@
             <a href="/admin">Admin</a>
             {{end}}
             <a href="/profile" class="nav-user-link" title="Profile">
-                <img src="{{avatarURL .User.PictureUrl .User.AvatarID}}" alt="" class="avatar-nav">
+                <img src="{{avatarURL .User.AvatarID}}" alt="" class="avatar-nav">
                 <span class="nav-user">{{.User.Name}}</span>
             </a>
             <a href="/settings" class="nav-settings" title="Account Settings">Settings</a>

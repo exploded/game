@@ -90,7 +90,7 @@ func postSettings(srv http.Handler, game string, form url.Values) *httptest.Resp
 func TestAdminChangesGameSettings(t *testing.T) {
 	srv, d := monthServer(t)
 	form := url.Values{
-		"name": {"Summer Cup"}, "markets": {"sp500"}, "starting_balance": {"500000"},
+		"name": {"Summer Cup"}, "starting_balance": {"500000"},
 		"base_currency": {"USD"}, "trade_fee": {"9.95"}, "referral_bonus_pct": {"2"},
 		"credit_interest_rate": {"4.35"}, "allow_short": {"1"}, // limit_orders and after_hours_trading unticked
 	}
@@ -113,10 +113,10 @@ func TestAdminChangesGameSettings(t *testing.T) {
 		return s
 	}
 	// Game 1 has a player, so its starting cash and currency stay put.
-	if got, want := get(1), (settings{"Summer Cup", "sp500", "AUD", 100000000, 995, 2, 1, 0, 435, 0}); got != want {
+	if got, want := get(1), (settings{"Summer Cup", "both", "AUD", 100000000, 995, 2, 1, 0, 435, 0}); got != want {
 		t.Errorf("running game with a player: got %+v, want %+v", got, want)
 	}
-	if got, want := get(2), (settings{"Summer Cup", "sp500", "USD", 50000000, 995, 2, 1, 0, 435, 0}); got != want {
+	if got, want := get(2), (settings{"Summer Cup", "both", "USD", 50000000, 995, 2, 1, 0, 435, 0}); got != want {
 		t.Errorf("next game: got %+v, want %+v", got, want)
 	}
 	// A finished game can't change.

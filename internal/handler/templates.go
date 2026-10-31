@@ -145,17 +145,12 @@ func LoadTemplates(fsys fs.FS, static *Static) (PageTemplates, error) {
 		},
 		"subtract": func(a, b int64) int64 { return a - b },
 		"multiply": func(a, b int64) int64 { return a * b },
-		"avatarURL": func(pictureURL sql.NullString, avatarID sql.NullInt64) string {
-			// Avatar lookup is done via a simple static path convention.
-			// The actual avatar_id -> image_path mapping is handled by the
-			// avatarPathMap which is populated at template load time.
+		"avatarURL": func(avatarID sql.NullInt64) string {
+			// avatarPathMap maps avatar ids to image paths; SeedAvatars fills it.
 			if avatarID.Valid && avatarID.Int64 > 0 {
 				if path, ok := avatarPathMap[avatarID.Int64]; ok {
 					return path
 				}
-			}
-			if pictureURL.Valid && pictureURL.String != "" {
-				return pictureURL.String
 			}
 			return "/static/avatars/default.svg"
 		},

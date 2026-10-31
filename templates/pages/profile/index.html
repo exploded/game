@@ -9,16 +9,10 @@
 <div class="profile-section">
     <h2>Current Avatar</h2>
     <div class="current-avatar">
-        <img src="{{avatarURL .User.PictureUrl .User.AvatarID}}" alt="Current avatar" class="avatar-lg">
+        <img src="{{avatarURL .User.AvatarID}}" alt="Current avatar" class="avatar-lg">
         <div>
             <p>{{.User.Name}}</p>
             <p class="text-muted" style="font-size:0.85rem">{{.User.Email}}</p>
-            {{if .User.AvatarID.Valid}}
-            <form method="POST" action="/profile/avatar" style="margin-top:0.5rem">
-                <input type="hidden" name="avatar_id" value="0">
-                <button type="submit" class="btn btn-sm">Use Google Photo</button>
-            </form>
-            {{end}}
         </div>
     </div>
 </div>

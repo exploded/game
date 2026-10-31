@@ -27,21 +27,10 @@
         <textarea id="description" name="description" rows="3">{{$g.Description}}</textarea>
     </div>
 
-    <div class="form-row">
-        <div class="form-group">
-            <label for="markets">Markets</label>
-            <select id="markets" name="markets">
-                <option value="both"{{if eq $g.Markets "both"}} selected{{end}}>Both</option>
-                <option value="sp500"{{if eq $g.Markets "sp500"}} selected{{end}}>S&amp;P 500 only</option>
-                <option value="asx"{{if eq $g.Markets "asx"}} selected{{end}}>ASX only</option>
-            </select>
-            {{if .Errors.markets}}<div class="form-error">{{.Errors.markets}}</div>{{end}}
-        </div>
-        <div class="form-group">
-            <label for="max_participants">Most players (blank for no limit)</label>
-            <input type="number" id="max_participants" name="max_participants" min="1" value="{{if $g.MaxParticipants.Valid}}{{$g.MaxParticipants.Int64}}{{end}}">
-            {{if .Errors.max_participants}}<div class="form-error">{{.Errors.max_participants}}</div>{{end}}
-        </div>
+    <div class="form-group">
+        <label for="max_participants">Most players (blank for no limit)</label>
+        <input type="number" id="max_participants" name="max_participants" min="1" value="{{if $g.MaxParticipants.Valid}}{{$g.MaxParticipants.Int64}}{{end}}">
+        {{if .Errors.max_participants}}<div class="form-error">{{.Errors.max_participants}}</div>{{end}}
     </div>
 
     <div class="form-row">

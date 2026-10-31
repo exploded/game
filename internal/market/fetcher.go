@@ -90,40 +90,6 @@ func limitSymbols() map[string]bool {
 	return only
 }
 
-// fetchSingleStock fetches time_series for a single symbol and saves all values.
-func (f *Fetcher) fetchSingleStock(ctx context.Context, q *db.Queries, s db.Stock, outputSize int) error {
-	if err := takeCredits(ctx, 1); err != nil {
-		return err
-	}
-	url := fmt.Sprintf("https://api.twelvedata.com/time_series?symbol=%s&interval=1day&outputsize=%d&apikey=%s",
-		s.Symbol, outputSize, f.apiKey)
-
-	resp, err := f.client.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	var td twelveDataResponse
-	if err := json.NewDecoder(resp.Body).Decode(&td); err != nil {
-		return err
-	}
-	if td.Status == "error" {
-		return fmt.Errorf("API error for %s (code %d)", s.Symbol, td.Code)
-	}
-
-	rows := make([]priceRow, len(td.Values))
-	for i, v := range td.Values {
-		rows[i] = priceRow{stockID: s.ID, v: v}
-	}
-	saved, err := f.saveRows(ctx, q, rows)
-	if err != nil {
-		return err
-	}
-	slog.Debug("backfill prices saved", "symbol", s.Symbol, "days", saved[s.ID])
-	return nil
-}
-
 // fetchMarketBatch fetches prices for every stock in a market. Used for daily
 // updates. For resumable backfill use fetchStocksBatch directly
 // with a pre-filtered list of stocks from ListStocksWithoutHistory.

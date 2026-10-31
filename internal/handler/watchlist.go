@@ -85,6 +85,10 @@ func (h *Handler) WatchlistAdd(w http.ResponseWriter, r *http.Request) {
 		ParticipantID: participant.ID,
 		StockID:       stockID,
 	})
+	// Market Watcher: 10 stocks on one game's watchlist.
+	if n, _ := h.q.CountWatchlist(r.Context(), participant.ID); n >= 10 {
+		h.grantIfNew(r.Context(), user.ID, "watchlist_10", gameID)
+	}
 
 	if isHTMX(r) {
 		h.renderWatch(w, r, gameID, stockID, true)

@@ -56,8 +56,6 @@ func questionServer(t *testing.T) (http.Handler, *sql.DB) {
 	r.With(auth.RequireAdmin).Post("/learn/questions/{qid}/onair", h.QuestionOnAir)
 	r.With(auth.RequireAdmin).Post("/learn/questions/{qid}/hide", h.QuestionHide)
 	r.Get("/learn/live/{eid}", h.LearnLiveEvent)
-	r.Get("/questions", OldQuestionsRedirect)
-	r.Get("/questions/{qid}", OldQuestionsRedirect)
 	return r, d
 }
 
@@ -85,7 +83,7 @@ func ask(t *testing.T, srv http.Handler, user, title string) string {
 
 func TestAskVoteAndList(t *testing.T) {
 	srv, _ := questionServer(t)
-	ask(t, srv, "2", "How do dividends work?")
+	ask(t, srv, "2", "How do ETFs work?")
 	second := ask(t, srv, "3", "What is a stock split?")
 
 	// Alice votes for Bob's question, so it has 2 votes to her own 1.
@@ -94,11 +92,11 @@ func TestAskVoteAndList(t *testing.T) {
 		t.Fatalf("vote fragment:\n%s", body)
 	}
 	top := as(srv, "2", "GET", "/learn/questions", nil, false).Body.String()
-	if strings.Index(top, "What is a stock split?") > strings.Index(top, "How do dividends work?") {
+	if strings.Index(top, "What is a stock split?") > strings.Index(top, "How do ETFs work?") {
 		t.Error("most votes isn't first")
 	}
 	newest := as(srv, "2", "GET", "/learn/questions?sort=new", nil, false).Body.String()
-	if strings.Index(newest, "What is a stock split?") > strings.Index(newest, "How do dividends work?") {
+	if strings.Index(newest, "What is a stock split?") > strings.Index(newest, "How do ETFs work?") {
 		t.Error("newest isn't first")
 	}
 
@@ -111,7 +109,7 @@ func TestAskVoteAndList(t *testing.T) {
 
 func TestAnswerEmailsAskerAndVotersOnce(t *testing.T) {
 	srv, d := questionServer(t)
-	q := ask(t, srv, "2", "How do dividends work?")
+	q := ask(t, srv, "2", "How do ETFs work?")
 	as(srv, "3", "POST", q+"/vote", nil, true)
 
 	if w := as(srv, "2", "POST", q+"/answer", url.Values{"answer": {"Not you."}}, false); w.Code != http.StatusForbidden {
@@ -129,8 +127,8 @@ func TestAnswerEmailsAskerAndVotersOnce(t *testing.T) {
 		got = append(got, to+": "+subject)
 	}
 	want := []string{
-		"alice@x.com: Your question was answered: How do dividends work?",
-		"bob@x.com: A question you voted for was answered: How do dividends work?",
+		"alice@x.com: Your question was answered: How do ETFs work?",
+		"bob@x.com: A question you voted for was answered: How do ETFs work?",
 	}
 	if strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Errorf("emails:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
@@ -176,11 +174,6 @@ func TestVisitorsCanReadQuestions(t *testing.T) {
 	}
 	if w := as(srv, "", "GET", q, nil, false); w.Code != http.StatusOK {
 		t.Errorf("visitor question page: %d", w.Code)
-	}
-
-	w := as(srv, "", "GET", "/questions/1?x=1", nil, false)
-	if w.Code != http.StatusMovedPermanently || w.Header().Get("Location") != "/learn/questions/1?x=1" {
-		t.Errorf("old link: %d to %q", w.Code, w.Header().Get("Location"))
 	}
 }
 

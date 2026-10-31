@@ -27,8 +27,6 @@
             <div class="chat-meta">
                 {{if .AvatarPath}}
                 <img src="{{.AvatarPath}}" alt="{{.UserName}}" class="avatar-sm">
-                {{else if .UserPicture.Valid}}
-                <img src="{{.UserPicture.String}}" alt="{{.UserName}}" class="avatar-sm">
                 {{else}}
                 <img src="/static/avatars/default.svg" alt="{{.UserName}}" class="avatar-sm">
                 {{end}}

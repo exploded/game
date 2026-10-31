@@ -8,6 +8,7 @@ import (
 
 	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/db"
+	"github.com/exploded/game/internal/market"
 )
 
 // SeedAchievements inserts all achievement definitions.
@@ -135,40 +136,7 @@ func (h *Handler) CheckAndGrantAchievements(ctx context.Context, userID, gameID,
 }
 
 func (h *Handler) grantIfNew(ctx context.Context, userID int64, key string, gameID int64) {
-	ach, err := h.q.GetAchievementByKey(ctx, key)
-	if err != nil {
-		slog.Error("achievement: get by key", "key", key, "error", err)
-		return
-	}
-	gid := sql.NullInt64{Int64: gameID, Valid: true}
-	already, err := h.q.HasAchievement(ctx, db.HasAchievementParams{
-		UserID: userID, AchievementID: ach.ID, GameID: gid,
-	})
-	if err != nil {
-		slog.Error("achievement: has check", "key", key, "error", err)
-		return
-	}
-	if already > 0 {
-		return
-	}
-	if err := h.q.GrantAchievement(ctx, db.GrantAchievementParams{
-		UserID: userID, AchievementID: ach.ID, GameID: gid,
-	}); err != nil {
-		slog.Error("achievement: grant", "key", key, "error", err)
-		return
-	}
-	slog.Info("achievement: granted", "key", key, "user", userID)
-
-	// Also create a notification.
-	if err := h.q.CreateNotification(ctx, db.CreateNotificationParams{
-		UserID:  userID,
-		GameID:  gid,
-		Type:    "achievement",
-		Title:   "Achievement Unlocked!",
-		Message: ach.Icon + " " + ach.Name + " - " + ach.Description,
-	}); err != nil {
-		slog.Error("achievement: notification", "key", key, "error", err)
-	}
+	market.GrantAchievement(ctx, h.q, userID, key, gameID)
 }
 
 func (h *Handler) AchievementsPage(w http.ResponseWriter, r *http.Request) {

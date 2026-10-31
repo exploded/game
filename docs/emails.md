@@ -66,8 +66,7 @@ worked out but aren't written yet.
 |---|---|---|---|
 | T1 | Order filled | A limit order, or a market order queued after hours, fills | Built |
 | T2 | Order cancelled or expired | An order can't fill (no cash, game over) or passes its expiry date | Built |
-| T3 | Dividend paid | Admin runs a dividend on a stock you hold | Built |
-| T4 | Stock split | Admin runs a split on a stock you hold | Built |
+| T4 | Stock split | A split in a stock you hold is applied (`market.CheckSplits`) | Built |
 
 - These follow the in-app notifications. Each minute, `internal/notify` emails
   any new ones, one email per person and category, so five orders filling at
@@ -80,7 +79,7 @@ worked out but aren't written yet.
 | G1 | Game started | A game you joined moves from pending to active | Built |
 | G2 | Game ending soon | 3 days and 1 day before a game you're in ends | Built |
 | G3 | Final results | A game you're in finishes: your rank, return and the top 3 | Built |
-| G4 | Next round ready | A recurring game you created starts its next round | Removed: recurring games were replaced by one game per quarter |
+| G4 | Next round ready | A recurring game you created starts its next round | Removed: recurring games were replaced by one game a month |
 | G5 | Referral bonus | A friend you invited signs up, and you get the game's referral bonus | Built |
 
 - G2 and G3 matter most to Rob: they bring people back before a game ends.
