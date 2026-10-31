@@ -391,6 +391,27 @@ func (q *Queries) CountParticipants(ctx context.Context, gameID int64) (int64, e
 	return count, err
 }
 
+const countRecentLobbyPosts = `-- name: CountRecentLobbyPosts :one
+SELECT CAST(COALESCE(SUM(created_at > datetime('now', '-1 minute')), 0) AS INTEGER) AS last_minute,
+    COUNT(*) AS last_day
+FROM lobby_messages
+WHERE user_id = ? AND created_at > datetime('now', '-1 day')
+`
+
+type CountRecentLobbyPostsRow struct {
+	LastMinute int64
+	LastDay    int64
+}
+
+// CountRecentLobbyPosts counts a player's messages, posted or blocked, in the
+// last minute and the last day, for the lobby's rate limit.
+func (q *Queries) CountRecentLobbyPosts(ctx context.Context, userID int64) (CountRecentLobbyPostsRow, error) {
+	row := q.db.QueryRowContext(ctx, countRecentLobbyPosts, userID)
+	var i CountRecentLobbyPostsRow
+	err := row.Scan(&i.LastMinute, &i.LastDay)
+	return i, err
+}
+
 const countRecentLoginRequests = `-- name: CountRecentLoginRequests :one
 SELECT COUNT(*) FROM login_requests
 WHERE email = ? AND created_at > datetime('now', '-1 hour')

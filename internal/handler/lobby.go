@@ -12,6 +12,14 @@ import (
 	"github.com/exploded/game/internal/db"
 )
 
+// The lobby's limits. The rate limits stop one account running up the
+// moderation bill or flooding the chat.
+const (
+	maxLobbyMessage   = 500 // characters, as the input's maxlength
+	maxLobbyPerMinute = 5
+	maxLobbyPerDay    = 100
+)
+
 func (h *Handler) LobbyPage(w http.ResponseWriter, r *http.Request) {
 	page, _ := strconv.ParseInt(r.URL.Query().Get("page"), 10, 64)
 	if page < 1 {
@@ -70,8 +78,24 @@ func (h *Handler) LobbySend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(msg) > 500 {
-		msg = msg[:500]
+	if runes := []rune(msg); len(runes) > maxLobbyMessage {
+		msg = string(runes[:maxLobbyMessage])
+	}
+
+	// Checked before moderation, since every check is a paid API call.
+	// Blocked messages count too.
+	recent, err := h.q.CountRecentLobbyPosts(r.Context(), user.ID)
+	if err != nil {
+		h.serverError(w, "count lobby posts", err)
+		return
+	}
+	switch {
+	case recent.LastMinute >= maxLobbyPerMinute:
+		tradeError(w, r, "Not posted. You're sending messages too fast. Wait a minute and try again.", "/lobby")
+		return
+	case recent.LastDay >= maxLobbyPerDay:
+		tradeError(w, r, "Not posted. You can send "+strconv.Itoa(maxLobbyPerDay)+" messages a day. Try again tomorrow.", "/lobby")
+		return
 	}
 
 	if h.moderator != nil {

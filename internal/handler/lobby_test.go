@@ -2,13 +2,16 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/db"
@@ -34,7 +37,15 @@ func (f *fakeModerator) Check(_ context.Context, msg string) (moderate.Verdict, 
 // every lobby route, and as(id) to make requests as one of them.
 func lobbyServer(t *testing.T) (as func(int64) http.Handler, q *db.Queries, mod *fakeModerator) {
 	t.Helper()
-	d := openTestDB(t)
+	as, _, q, mod = lobbyServerDB(t)
+	return as, q, mod
+}
+
+// lobbyServerDB is lobbyServer with the database, for tests that change
+// times.
+func lobbyServerDB(t *testing.T) (as func(int64) http.Handler, d *sql.DB, q *db.Queries, mod *fakeModerator) {
+	t.Helper()
+	d = openTestDB(t)
 	if _, err := d.Exec(`INSERT INTO users (id, email, name, email_token, is_admin) VALUES
 		(1, 'admin@x.com', 'Admin', 't1', 1),
 		(2, 'bob@x.com', 'Bob', 't2', 0),
@@ -61,7 +72,7 @@ func lobbyServer(t *testing.T) (as func(int64) http.Handler, q *db.Queries, mod 
 		r.Post("/admin/lobby/{mid}/block-user", h.AdminLobbyBlockUser)
 		return r
 	}
-	return as, q, mod
+	return as, d, q, mod
 }
 
 func lobbyGet(t *testing.T, srv http.Handler, path string) string {
@@ -147,6 +158,62 @@ func TestLobbyModeration(t *testing.T) {
 	}
 	if n := posted(); n != 2 {
 		t.Errorf("%d messages posted after an outage, want 2: it should post unchecked", n)
+	}
+}
+
+func TestLobbyRateLimit(t *testing.T) {
+	as, d, q, mod := lobbyServerDB(t)
+	bob := as(2)
+	tooFast := func(msg, want string) {
+		t.Helper()
+		checked := len(mod.seen)
+		w := sendLobby(bob, msg)
+		if w.Code != http.StatusNoContent || !strings.Contains(w.Header().Get("HX-Trigger"), want) {
+			t.Errorf("%q = %d, HX-Trigger %q, want a toast saying %q", msg, w.Code, w.Header().Get("HX-Trigger"), want)
+		}
+		if len(mod.seen) != checked {
+			t.Errorf("%q went to moderation past the limit", msg)
+		}
+	}
+
+	// Blocked messages count towards the limit.
+	for i := range maxLobbyPerMinute {
+		msg := "hello " + strconv.Itoa(i)
+		if i == 0 {
+			msg = "join my telegram"
+		}
+		sendLobby(bob, msg)
+	}
+	tooFast("one more", "too fast")
+	// Other players aren't held up.
+	if w := sendLobby(as(3), "hi bob"); w.Code != http.StatusOK {
+		t.Errorf("Cat's message = %d, want it posted", w.Code)
+	}
+
+	// An hour later the minute's limit has passed, but not the day's.
+	if _, err := d.Exec(`UPDATE lobby_messages SET created_at = datetime('now', '-1 hour')`); err != nil {
+		t.Fatal(err)
+	}
+	if w := sendLobby(bob, "back again"); w.Code != http.StatusOK {
+		t.Fatalf("message after an hour = %d, want it posted", w.Code)
+	}
+	for range maxLobbyPerDay - maxLobbyPerMinute - 1 {
+		if _, err := q.CreateLobbyMessage(t.Context(), db.CreateLobbyMessageParams{UserID: 2, Message: "x"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := d.Exec(`UPDATE lobby_messages SET created_at = datetime('now', '-1 hour')`); err != nil {
+		t.Fatal(err)
+	}
+	tooFast("message 101", "100 messages a day")
+}
+
+func TestLobbyCutsLongMessagesOnCharacters(t *testing.T) {
+	as, _, mod := lobbyServer(t)
+	sendLobby(as(2), strings.Repeat("é", maxLobbyMessage+10))
+	got := mod.seen[0]
+	if !utf8.ValidString(got) || utf8.RuneCountInString(got) != maxLobbyMessage {
+		t.Errorf("checked %d characters (valid UTF-8 %v), want %d", utf8.RuneCountInString(got), utf8.ValidString(got), maxLobbyMessage)
 	}
 }
 

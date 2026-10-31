@@ -1078,6 +1078,14 @@ SELECT COUNT(*) FROM lobby_messages lm
 JOIN users u ON u.id = lm.user_id
 WHERE u.blocked_at IS NULL AND lm.blocked_reason != '';
 
+-- CountRecentLobbyPosts counts a player's messages, posted or blocked, in the
+-- last minute and the last day, for the lobby's rate limit.
+-- name: CountRecentLobbyPosts :one
+SELECT CAST(COALESCE(SUM(created_at > datetime('now', '-1 minute')), 0) AS INTEGER) AS last_minute,
+    COUNT(*) AS last_day
+FROM lobby_messages
+WHERE user_id = ? AND created_at > datetime('now', '-1 day');
+
 -- name: GetLobbyMessage :one
 SELECT * FROM lobby_messages WHERE id = ?;
 

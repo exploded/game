@@ -405,6 +405,7 @@ CREATE TABLE IF NOT EXISTS lobby_messages (
     blocked_reason TEXT NOT NULL DEFAULT '' -- why moderation blocked it; '' is posted. Only admins see blocked ones.
 );
 CREATE INDEX IF NOT EXISTS idx_lobby_messages_created ON lobby_messages(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_lobby_messages_user ON lobby_messages(user_id, created_at);
 
 --------------------------------------------------------------------------------
 -- Referral Bonuses
