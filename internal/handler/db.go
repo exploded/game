@@ -78,8 +78,6 @@ var addedColumns = []struct{ table, column, ddl string }{
 	{"users", "deleted_at", "TEXT DEFAULT NULL"},
 	{"users", "avatar_id", "INTEGER DEFAULT NULL REFERENCES avatars(id)"},
 	{"games", "referral_bonus_pct", "INTEGER NOT NULL DEFAULT 1"},
-	{"games", "is_public", "INTEGER NOT NULL DEFAULT 1"},
-	{"games", "portfolio_visibility", "TEXT NOT NULL DEFAULT 'public'"},
 	{"games", "credit_interest_rate", "INTEGER NOT NULL DEFAULT 525"},
 	{"games", "leverage_interest_rate", "INTEGER NOT NULL DEFAULT 500"},
 	{"games", "min_stock_price", "INTEGER DEFAULT NULL"},
@@ -218,7 +216,33 @@ var onceMigrations = []struct{ name, stmt string }{
 	{"drop-game-chat", "DROP TABLE IF EXISTS game_messages"},
 }
 
+// droppedColumns are columns taken out of schema.sql. Older databases still
+// have them until runMigrations drops them.
+var droppedColumns = []struct{ table, column string }{
+	// Private players and private games went on 31 October 2026: everyone's
+	// standing and trades are shown to the other players.
+	{"games", "is_public"},
+	{"games", "portfolio_visibility"},
+	{"participants", "is_public"},
+	{"activity_feed", "is_public"},
+}
+
 func runMigrations(db *sql.DB) error {
+	for _, c := range droppedColumns {
+		var n int
+		if err := db.QueryRow(
+			"SELECT COUNT(*) FROM pragma_table_info(?) WHERE name = ?", c.table, c.column,
+		).Scan(&n); err != nil {
+			return fmt.Errorf("checking %s.%s: %w", c.table, c.column, err)
+		}
+		if n == 0 {
+			continue
+		}
+		if _, err := db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN %s", c.table, c.column)); err != nil {
+			return fmt.Errorf("dropping %s.%s: %w", c.table, c.column, err)
+		}
+		slog.Info("dropped column", "table", c.table, "column", c.column)
+	}
 	for _, c := range addedColumns {
 		var n int
 		if err := db.QueryRow(

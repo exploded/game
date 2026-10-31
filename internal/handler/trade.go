@@ -339,7 +339,7 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Record in activity feed.
-	h.InsertTradeActivity(r, gameID, user.ID, tradeType, stock.Symbol, quantity, participant.IsPublic)
+	h.InsertTradeActivity(r, gameID, user.ID, tradeType, stock.Symbol, quantity)
 
 	// Check achievements.
 	go h.CheckAndGrantAchievements(context.Background(), user.ID, gameID, participant.ID)

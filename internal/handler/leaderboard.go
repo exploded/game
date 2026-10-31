@@ -22,7 +22,7 @@ func (h *Handler) Leaderboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	participants, _ := h.q.ListPublicParticipantsByGame(r.Context(), game.ID)
+	participants, _ := h.q.ListParticipantsByGame(r.Context(), game.ID)
 
 	// Check if current user is in the game.
 	myParticipant, _ := h.q.GetParticipantByGameAndUser(r.Context(), db.GetParticipantByGameAndUserParams{

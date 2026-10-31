@@ -126,8 +126,6 @@ CREATE TABLE IF NOT EXISTS games (
     recurring_interval   TEXT,                                   -- 'weekly' | 'monthly' | NULL
     parent_game_id       INTEGER REFERENCES games(id),
     template_id          INTEGER REFERENCES game_templates(id),
-    is_public            INTEGER NOT NULL DEFAULT 1,            -- 1 = public, 0 = private (invite only)
-    portfolio_visibility TEXT    NOT NULL DEFAULT 'public',      -- 'public' | 'private' | 'user_selectable'
     credit_interest_rate INTEGER NOT NULL DEFAULT 525,           -- basis points (525 = 5.25%)
     leverage_interest_rate INTEGER NOT NULL DEFAULT 500,         -- basis points (500 = 5.00%)
     min_stock_price      INTEGER,                                -- minimum stock price in cents, NULL = no limit
@@ -153,7 +151,6 @@ CREATE TABLE IF NOT EXISTS participants (
     user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     cash_balance    INTEGER NOT NULL,
     portfolio_value INTEGER NOT NULL DEFAULT 0,
-    is_public       INTEGER NOT NULL DEFAULT 1,
     joined_at       TEXT    NOT NULL DEFAULT (datetime('now')),
     UNIQUE(game_id, user_id)
 );
@@ -363,7 +360,6 @@ CREATE TABLE IF NOT EXISTS activity_feed (
     user_id        INTEGER NOT NULL REFERENCES users(id),
     action         TEXT    NOT NULL,                -- 'buy' | 'sell' | 'join' | 'achievement'
     detail         TEXT    NOT NULL DEFAULT '',     -- e.g. "bought 100 shares of BHP"
-    is_public      INTEGER NOT NULL DEFAULT 1,
     created_at     TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_activity_game ON activity_feed(game_id, created_at DESC);

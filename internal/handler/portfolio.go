@@ -138,7 +138,7 @@ func (s standing) Place() string {
 // rankPlayer places p among the players on the public leaderboard, which
 // is sorted by value, best first. A private player is counted in too, so
 // they still see their spot.
-func rankPlayer(p db.Participant, board []db.ListPublicParticipantsByGameRow) standing {
+func rankPlayer(p db.Participant, board []db.ListParticipantsByGameRow) standing {
 	s := standing{Rank: 1, Of: len(board)}
 	listed := false
 	for _, o := range board {
@@ -169,7 +169,7 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 		Date:          game.StartDate,
 		Date_2:        game.EndDate,
 	})
-	board, _ := h.q.ListPublicParticipantsByGame(ctx, game.ID)
+	board, _ := h.q.ListParticipantsByGame(ctx, game.ID)
 
 	var rate int64 = 1000000
 	if er, err := h.q.GetLatestExchangeRate(ctx); err == nil {
@@ -305,40 +305,4 @@ func (h *Handler) TransactionHistory(w http.ResponseWriter, r *http.Request) {
 			"TotalPages":  (total + perPage - 1) / perPage,
 		},
 	})
-}
-
-func (h *Handler) ToggleVisibility(w http.ResponseWriter, r *http.Request) {
-	user := auth.UserFromContext(r.Context())
-	gameID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-
-	participant, err := h.q.GetParticipantByGameAndUser(r.Context(), db.GetParticipantByGameAndUserParams{
-		GameID: gameID, UserID: user.ID,
-	})
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-
-	newVal := int64(1)
-	if participant.IsPublic == 1 {
-		newVal = 0
-	}
-	_ = h.q.UpdateParticipantVisibility(r.Context(), db.UpdateParticipantVisibilityParams{
-		IsPublic: newVal, ID: participant.ID,
-	})
-
-	if isHTMX(r) {
-		label := "Public"
-		if newVal == 0 {
-			label = "Private"
-		}
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(`<button hx-post="/games/` + r.PathValue("id") + `/visibility" hx-swap="outerHTML" class="btn btn-sm">` + label + `</button>`))
-		return
-	}
-	http.Redirect(w, r, "/games/"+r.PathValue("id"), http.StatusSeeOther)
 }

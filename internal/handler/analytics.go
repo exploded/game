@@ -268,10 +268,10 @@ func (h *Handler) PortfolioComparison(w http.ResponseWriter, r *http.Request) {
 	// Get the other player's participant ID from query.
 	otherPID, _ := strconv.ParseInt(r.URL.Query().Get("vs"), 10, 64)
 
-	participants, _ := h.q.ListPublicParticipantsByGame(r.Context(), gameID)
+	participants, _ := h.q.ListParticipantsByGame(r.Context(), gameID)
 
 	var otherHoldings []db.ListHoldingsRow
-	var otherParticipant db.ListPublicParticipantsByGameRow
+	var otherParticipant db.ListParticipantsByGameRow
 	if otherPID > 0 {
 		for _, p := range participants {
 			if p.ID == otherPID {

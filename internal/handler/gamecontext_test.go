@@ -212,7 +212,7 @@ func TestPortfolioRedirectsHome(t *testing.T) {
 }
 
 func TestRankPlayer(t *testing.T) {
-	board := []db.ListPublicParticipantsByGameRow{
+	board := []db.ListParticipantsByGameRow{
 		{ID: 1, PortfolioValue: 300, UserName: "Ann"},
 		{ID: 2, PortfolioValue: 200, UserName: "Ben"},
 		{ID: 3, PortfolioValue: 100, UserName: "Cat"},

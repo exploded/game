@@ -177,8 +177,8 @@ DELETE FROM email_outbox WHERE status != 'pending' AND created_at < datetime('no
 -- =============================================================================
 
 -- name: CreateGame :one
-INSERT INTO games (created_by, name, description, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, is_public, portfolio_visibility, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, after_hours_trading, quarter)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO games (created_by, name, description, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, after_hours_trading, quarter)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: GetGame :one
@@ -266,21 +266,11 @@ JOIN users u ON u.id = p.user_id
 WHERE p.game_id = ? AND u.blocked_at IS NULL
 ORDER BY p.portfolio_value DESC;
 
--- name: ListPublicParticipantsByGame :many
-SELECT p.*, u.name AS user_name, u.picture_url AS user_picture
-FROM participants p
-JOIN users u ON u.id = p.user_id
-WHERE p.game_id = ? AND p.is_public = 1 AND u.blocked_at IS NULL
-ORDER BY p.portfolio_value DESC;
-
 -- name: UpdateCashBalance :exec
 UPDATE participants SET cash_balance = ? WHERE id = ?;
 
 -- name: UpdatePortfolioValue :exec
 UPDATE participants SET portfolio_value = ? WHERE id = ?;
-
--- name: UpdateParticipantVisibility :exec
-UPDATE participants SET is_public = ? WHERE id = ?;
 
 -- =============================================================================
 -- Stocks
@@ -906,14 +896,14 @@ WHERE user_id = ? AND achievement_id = ? AND (game_id = ? OR game_id IS NULL);
 -- =============================================================================
 
 -- name: InsertActivity :exec
-INSERT INTO activity_feed (game_id, user_id, action, detail, is_public)
-VALUES (?, ?, ?, ?, ?);
+INSERT INTO activity_feed (game_id, user_id, action, detail)
+VALUES (?, ?, ?, ?);
 
 -- name: ListActivityFeed :many
 SELECT af.*, u.name AS user_name, u.picture_url AS user_picture
 FROM activity_feed af
 JOIN users u ON u.id = af.user_id
-WHERE af.game_id = ? AND af.is_public = 1
+WHERE af.game_id = ?
 ORDER BY af.created_at DESC
 LIMIT ? OFFSET ?;
 

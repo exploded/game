@@ -148,10 +148,8 @@ func TestBlockedUserIsHidden(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	board, _ := q.ListPublicParticipantsByGame(ctx, 1)
-	all, _ := q.ListParticipantsByGame(ctx, 1)
-	if len(board) != 1 || board[0].UserID != 3 || len(all) != 1 {
-		t.Errorf("standings: %d public, %d in all, want only Cat", len(board), len(all))
+	if board, _ := q.ListParticipantsByGame(ctx, 1); len(board) != 1 || board[0].UserID != 3 {
+		t.Errorf("standings: %d players, want only Cat", len(board))
 	}
 	lobby, _ := q.ListLobbyMessages(ctx, db.ListLobbyMessagesParams{Limit: 10})
 	n, _ := q.CountLobbyMessages(ctx)
@@ -163,7 +161,7 @@ func TestBlockedUserIsHidden(t *testing.T) {
 	if err := q.UnblockUser(ctx, 2); err != nil {
 		t.Fatal(err)
 	}
-	if board, _ := q.ListPublicParticipantsByGame(ctx, 1); len(board) != 2 {
+	if board, _ := q.ListParticipantsByGame(ctx, 1); len(board) != 2 {
 		t.Errorf("after unblocking, %d on the leaderboard, want 2", len(board))
 	}
 	if n, _ := q.CountLobbyMessages(ctx); n != 2 {

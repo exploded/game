@@ -270,7 +270,6 @@ func main() {
 			// Portfolio
 			r.Get("/portfolio", h.Portfolio)
 			r.Get("/history", h.TransactionHistory)
-			r.Post("/visibility", h.ToggleVisibility)
 
 			// Stocks & Trading
 			r.Get("/stocks", h.StocksBrowse)

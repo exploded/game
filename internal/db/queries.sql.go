@@ -628,9 +628,9 @@ func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (int
 
 const createGame = `-- name: CreateGame :one
 
-INSERT INTO games (created_by, name, description, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, is_public, portfolio_visibility, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, after_hours_trading, quarter)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, is_public, portfolio_visibility, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, after_hours_trading, quarter, created_at, updated_at
+INSERT INTO games (created_by, name, description, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, after_hours_trading, quarter)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, after_hours_trading, quarter, created_at, updated_at
 `
 
 type CreateGameParams struct {
@@ -646,8 +646,6 @@ type CreateGameParams struct {
 	AllowShort           int64
 	TradeFee             int64
 	ReferralBonusPct     int64
-	IsPublic             int64
-	PortfolioVisibility  string
 	CreditInterestRate   int64
 	LeverageInterestRate int64
 	MinStockPrice        sql.NullInt64
@@ -677,8 +675,6 @@ func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) (Game, e
 		arg.AllowShort,
 		arg.TradeFee,
 		arg.ReferralBonusPct,
-		arg.IsPublic,
-		arg.PortfolioVisibility,
 		arg.CreditInterestRate,
 		arg.LeverageInterestRate,
 		arg.MinStockPrice,
@@ -709,8 +705,6 @@ func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) (Game, e
 		&i.RecurringInterval,
 		&i.ParentGameID,
 		&i.TemplateID,
-		&i.IsPublic,
-		&i.PortfolioVisibility,
 		&i.CreditInterestRate,
 		&i.LeverageInterestRate,
 		&i.MinStockPrice,
@@ -1464,7 +1458,7 @@ func (q *Queries) GetExchangeRateOnDate(ctx context.Context, date string) (Excha
 }
 
 const getGame = `-- name: GetGame :one
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, is_public, portfolio_visibility, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, after_hours_trading, quarter, created_at, updated_at FROM games WHERE id = ?
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, after_hours_trading, quarter, created_at, updated_at FROM games WHERE id = ?
 `
 
 func (q *Queries) GetGame(ctx context.Context, id int64) (Game, error) {
@@ -1488,8 +1482,6 @@ func (q *Queries) GetGame(ctx context.Context, id int64) (Game, error) {
 		&i.RecurringInterval,
 		&i.ParentGameID,
 		&i.TemplateID,
-		&i.IsPublic,
-		&i.PortfolioVisibility,
 		&i.CreditInterestRate,
 		&i.LeverageInterestRate,
 		&i.MinStockPrice,
@@ -1507,7 +1499,7 @@ func (q *Queries) GetGame(ctx context.Context, id int64) (Game, error) {
 }
 
 const getGameByMonth = `-- name: GetGameByMonth :one
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, is_public, portfolio_visibility, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, after_hours_trading, quarter, created_at, updated_at FROM games WHERE quarter = ?
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, after_hours_trading, quarter, created_at, updated_at FROM games WHERE quarter = ?
 `
 
 // A month's game. The column is still called quarter: games were quarterly
@@ -1533,8 +1525,6 @@ func (q *Queries) GetGameByMonth(ctx context.Context, quarter sql.NullString) (G
 		&i.RecurringInterval,
 		&i.ParentGameID,
 		&i.TemplateID,
-		&i.IsPublic,
-		&i.PortfolioVisibility,
 		&i.CreditInterestRate,
 		&i.LeverageInterestRate,
 		&i.MinStockPrice,
@@ -1650,7 +1640,7 @@ func (q *Queries) GetLatestExchangeRate(ctx context.Context) (ExchangeRate, erro
 }
 
 const getLatestMonthlyGame = `-- name: GetLatestMonthlyGame :one
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, is_public, portfolio_visibility, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, after_hours_trading, quarter, created_at, updated_at FROM games WHERE quarter IS NOT NULL ORDER BY start_date DESC LIMIT 1
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, after_hours_trading, quarter, created_at, updated_at FROM games WHERE quarter IS NOT NULL ORDER BY start_date DESC LIMIT 1
 `
 
 // The most recent month's game, whose settings the next one copies.
@@ -1675,8 +1665,6 @@ func (q *Queries) GetLatestMonthlyGame(ctx context.Context) (Game, error) {
 		&i.RecurringInterval,
 		&i.ParentGameID,
 		&i.TemplateID,
-		&i.IsPublic,
-		&i.PortfolioVisibility,
 		&i.CreditInterestRate,
 		&i.LeverageInterestRate,
 		&i.MinStockPrice,
@@ -1876,7 +1864,7 @@ func (q *Queries) GetOAuthToken(ctx context.Context, provider string) (OauthToke
 }
 
 const getParticipant = `-- name: GetParticipant :one
-SELECT id, game_id, user_id, cash_balance, portfolio_value, is_public, joined_at FROM participants WHERE id = ?
+SELECT id, game_id, user_id, cash_balance, portfolio_value, joined_at FROM participants WHERE id = ?
 `
 
 func (q *Queries) GetParticipant(ctx context.Context, id int64) (Participant, error) {
@@ -1888,14 +1876,13 @@ func (q *Queries) GetParticipant(ctx context.Context, id int64) (Participant, er
 		&i.UserID,
 		&i.CashBalance,
 		&i.PortfolioValue,
-		&i.IsPublic,
 		&i.JoinedAt,
 	)
 	return i, err
 }
 
 const getParticipantByGameAndUser = `-- name: GetParticipantByGameAndUser :one
-SELECT id, game_id, user_id, cash_balance, portfolio_value, is_public, joined_at FROM participants WHERE game_id = ? AND user_id = ?
+SELECT id, game_id, user_id, cash_balance, portfolio_value, joined_at FROM participants WHERE game_id = ? AND user_id = ?
 `
 
 type GetParticipantByGameAndUserParams struct {
@@ -1912,7 +1899,6 @@ func (q *Queries) GetParticipantByGameAndUser(ctx context.Context, arg GetPartic
 		&i.UserID,
 		&i.CashBalance,
 		&i.PortfolioValue,
-		&i.IsPublic,
 		&i.JoinedAt,
 	)
 	return i, err
@@ -2482,16 +2468,15 @@ func (q *Queries) HideQuestion(ctx context.Context, id int64) error {
 
 const insertActivity = `-- name: InsertActivity :exec
 
-INSERT INTO activity_feed (game_id, user_id, action, detail, is_public)
-VALUES (?, ?, ?, ?, ?)
+INSERT INTO activity_feed (game_id, user_id, action, detail)
+VALUES (?, ?, ?, ?)
 `
 
 type InsertActivityParams struct {
-	GameID   int64
-	UserID   int64
-	Action   string
-	Detail   string
-	IsPublic int64
+	GameID int64
+	UserID int64
+	Action string
+	Detail string
 }
 
 // =============================================================================
@@ -2503,7 +2488,6 @@ func (q *Queries) InsertActivity(ctx context.Context, arg InsertActivityParams) 
 		arg.UserID,
 		arg.Action,
 		arg.Detail,
-		arg.IsPublic,
 	)
 	return err
 }
@@ -2752,7 +2736,7 @@ const joinGame = `-- name: JoinGame :one
 
 INSERT INTO participants (game_id, user_id, cash_balance, portfolio_value)
 VALUES (?, ?, ?, ?)
-RETURNING id, game_id, user_id, cash_balance, portfolio_value, is_public, joined_at
+RETURNING id, game_id, user_id, cash_balance, portfolio_value, joined_at
 `
 
 type JoinGameParams struct {
@@ -2779,7 +2763,6 @@ func (q *Queries) JoinGame(ctx context.Context, arg JoinGameParams) (Participant
 		&i.UserID,
 		&i.CashBalance,
 		&i.PortfolioValue,
-		&i.IsPublic,
 		&i.JoinedAt,
 	)
 	return i, err
@@ -2819,7 +2802,7 @@ func (q *Queries) ListAchievements(ctx context.Context) ([]Achievement, error) {
 }
 
 const listActiveGamesEndingOn = `-- name: ListActiveGamesEndingOn :many
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, is_public, portfolio_visibility, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, after_hours_trading, quarter, created_at, updated_at FROM games WHERE status = 'active' AND end_date = ?
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, after_hours_trading, quarter, created_at, updated_at FROM games WHERE status = 'active' AND end_date = ?
 `
 
 func (q *Queries) ListActiveGamesEndingOn(ctx context.Context, endDate string) ([]Game, error) {
@@ -2849,8 +2832,6 @@ func (q *Queries) ListActiveGamesEndingOn(ctx context.Context, endDate string) (
 			&i.RecurringInterval,
 			&i.ParentGameID,
 			&i.TemplateID,
-			&i.IsPublic,
-			&i.PortfolioVisibility,
 			&i.CreditInterestRate,
 			&i.LeverageInterestRate,
 			&i.MinStockPrice,
@@ -2878,7 +2859,7 @@ func (q *Queries) ListActiveGamesEndingOn(ctx context.Context, endDate string) (
 }
 
 const listActiveGamesStartedSince = `-- name: ListActiveGamesStartedSince :many
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, is_public, portfolio_visibility, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, after_hours_trading, quarter, created_at, updated_at FROM games WHERE status = 'active' AND start_date >= ?
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, after_hours_trading, quarter, created_at, updated_at FROM games WHERE status = 'active' AND start_date >= ?
 `
 
 func (q *Queries) ListActiveGamesStartedSince(ctx context.Context, startDate string) ([]Game, error) {
@@ -2908,8 +2889,6 @@ func (q *Queries) ListActiveGamesStartedSince(ctx context.Context, startDate str
 			&i.RecurringInterval,
 			&i.ParentGameID,
 			&i.TemplateID,
-			&i.IsPublic,
-			&i.PortfolioVisibility,
 			&i.CreditInterestRate,
 			&i.LeverageInterestRate,
 			&i.MinStockPrice,
@@ -2938,7 +2917,7 @@ func (q *Queries) ListActiveGamesStartedSince(ctx context.Context, startDate str
 
 const listActiveParticipants = `-- name: ListActiveParticipants :many
 
-SELECT p.id, p.game_id, p.user_id, p.cash_balance, p.portfolio_value, p.is_public, p.joined_at, g.base_currency
+SELECT p.id, p.game_id, p.user_id, p.cash_balance, p.portfolio_value, p.joined_at, g.base_currency
 FROM participants p
 JOIN games g ON g.id = p.game_id
 WHERE g.status = 'active'
@@ -2950,7 +2929,6 @@ type ListActiveParticipantsRow struct {
 	UserID         int64
 	CashBalance    int64
 	PortfolioValue int64
-	IsPublic       int64
 	JoinedAt       string
 	BaseCurrency   string
 }
@@ -2973,7 +2951,6 @@ func (q *Queries) ListActiveParticipants(ctx context.Context) ([]ListActiveParti
 			&i.UserID,
 			&i.CashBalance,
 			&i.PortfolioValue,
-			&i.IsPublic,
 			&i.JoinedAt,
 			&i.BaseCurrency,
 		); err != nil {
@@ -3018,10 +2995,10 @@ func (q *Queries) ListActiveUserIDs(ctx context.Context) ([]int64, error) {
 }
 
 const listActivityFeed = `-- name: ListActivityFeed :many
-SELECT af.id, af.game_id, af.user_id, af."action", af.detail, af.is_public, af.created_at, u.name AS user_name, u.picture_url AS user_picture
+SELECT af.id, af.game_id, af.user_id, af."action", af.detail, af.created_at, u.name AS user_name, u.picture_url AS user_picture
 FROM activity_feed af
 JOIN users u ON u.id = af.user_id
-WHERE af.game_id = ? AND af.is_public = 1
+WHERE af.game_id = ?
 ORDER BY af.created_at DESC
 LIMIT ? OFFSET ?
 `
@@ -3038,7 +3015,6 @@ type ListActivityFeedRow struct {
 	UserID      int64
 	Action      string
 	Detail      string
-	IsPublic    int64
 	CreatedAt   string
 	UserName    string
 	UserPicture sql.NullString
@@ -3059,7 +3035,6 @@ func (q *Queries) ListActivityFeed(ctx context.Context, arg ListActivityFeedPara
 			&i.UserID,
 			&i.Action,
 			&i.Detail,
-			&i.IsPublic,
 			&i.CreatedAt,
 			&i.UserName,
 			&i.UserPicture,
@@ -3771,7 +3746,7 @@ func (q *Queries) ListFetchLogs(ctx context.Context) ([]PriceFetchLog, error) {
 
 const listFinishedGames = `-- name: ListFinishedGames :many
 
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, is_public, portfolio_visibility, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, after_hours_trading, quarter, created_at, updated_at FROM games WHERE status IN ('finished', 'cancelled')
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, after_hours_trading, quarter, created_at, updated_at FROM games WHERE status IN ('finished', 'cancelled')
 ORDER BY end_date DESC
 LIMIT ? OFFSET ?
 `
@@ -3811,8 +3786,6 @@ func (q *Queries) ListFinishedGames(ctx context.Context, arg ListFinishedGamesPa
 			&i.RecurringInterval,
 			&i.ParentGameID,
 			&i.TemplateID,
-			&i.IsPublic,
-			&i.PortfolioVisibility,
 			&i.CreditInterestRate,
 			&i.LeverageInterestRate,
 			&i.MinStockPrice,
@@ -3840,7 +3813,7 @@ func (q *Queries) ListFinishedGames(ctx context.Context, arg ListFinishedGamesPa
 }
 
 const listFinishedGamesEndedSince = `-- name: ListFinishedGamesEndedSince :many
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, is_public, portfolio_visibility, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, after_hours_trading, quarter, created_at, updated_at FROM games WHERE status = 'finished' AND end_date >= ?
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, recurring_interval, parent_game_id, template_id, credit_interest_rate, leverage_interest_rate, min_stock_price, max_stock_price, margin_trading, limit_orders, stop_loss, fractional_shares, after_hours_trading, quarter, created_at, updated_at FROM games WHERE status = 'finished' AND end_date >= ?
 `
 
 func (q *Queries) ListFinishedGamesEndedSince(ctx context.Context, endDate string) ([]Game, error) {
@@ -3870,8 +3843,6 @@ func (q *Queries) ListFinishedGamesEndedSince(ctx context.Context, endDate strin
 			&i.RecurringInterval,
 			&i.ParentGameID,
 			&i.TemplateID,
-			&i.IsPublic,
-			&i.PortfolioVisibility,
 			&i.CreditInterestRate,
 			&i.LeverageInterestRate,
 			&i.MinStockPrice,
@@ -3936,7 +3907,7 @@ func (q *Queries) ListGameHolderCounts(ctx context.Context, gameID int64) ([]Lis
 }
 
 const listGamesWithPlayers = `-- name: ListGamesWithPlayers :many
-SELECT g.id, g.created_by, g.name, g.description, g.status, g.markets, g.starting_balance, g.base_currency, g.max_participants, g.start_date, g.end_date, g.allow_short, g.trade_fee, g.referral_bonus_pct, g.recurring_interval, g.parent_game_id, g.template_id, g.is_public, g.portfolio_visibility, g.credit_interest_rate, g.leverage_interest_rate, g.min_stock_price, g.max_stock_price, g.margin_trading, g.limit_orders, g.stop_loss, g.fractional_shares, g.after_hours_trading, g.quarter, g.created_at, g.updated_at, (SELECT COUNT(*) FROM participants p WHERE p.game_id = g.id) AS players
+SELECT g.id, g.created_by, g.name, g.description, g.status, g.markets, g.starting_balance, g.base_currency, g.max_participants, g.start_date, g.end_date, g.allow_short, g.trade_fee, g.referral_bonus_pct, g.recurring_interval, g.parent_game_id, g.template_id, g.credit_interest_rate, g.leverage_interest_rate, g.min_stock_price, g.max_stock_price, g.margin_trading, g.limit_orders, g.stop_loss, g.fractional_shares, g.after_hours_trading, g.quarter, g.created_at, g.updated_at, (SELECT COUNT(*) FROM participants p WHERE p.game_id = g.id) AS players
 FROM games g
 ORDER BY g.start_date DESC, g.id DESC
 `
@@ -3959,8 +3930,6 @@ type ListGamesWithPlayersRow struct {
 	RecurringInterval    sql.NullString
 	ParentGameID         sql.NullInt64
 	TemplateID           sql.NullInt64
-	IsPublic             int64
-	PortfolioVisibility  string
 	CreditInterestRate   int64
 	LeverageInterestRate int64
 	MinStockPrice        sql.NullInt64
@@ -4003,8 +3972,6 @@ func (q *Queries) ListGamesWithPlayers(ctx context.Context) ([]ListGamesWithPlay
 			&i.RecurringInterval,
 			&i.ParentGameID,
 			&i.TemplateID,
-			&i.IsPublic,
-			&i.PortfolioVisibility,
 			&i.CreditInterestRate,
 			&i.LeverageInterestRate,
 			&i.MinStockPrice,
@@ -5029,7 +4996,7 @@ func (q *Queries) ListOpenOrdersPlacedBefore(ctx context.Context, arg ListOpenOr
 }
 
 const listParticipantsByGame = `-- name: ListParticipantsByGame :many
-SELECT p.id, p.game_id, p.user_id, p.cash_balance, p.portfolio_value, p.is_public, p.joined_at, u.name AS user_name, u.picture_url AS user_picture
+SELECT p.id, p.game_id, p.user_id, p.cash_balance, p.portfolio_value, p.joined_at, u.name AS user_name, u.picture_url AS user_picture
 FROM participants p
 JOIN users u ON u.id = p.user_id
 WHERE p.game_id = ? AND u.blocked_at IS NULL
@@ -5042,7 +5009,6 @@ type ListParticipantsByGameRow struct {
 	UserID         int64
 	CashBalance    int64
 	PortfolioValue int64
-	IsPublic       int64
 	JoinedAt       string
 	UserName       string
 	UserPicture    sql.NullString
@@ -5065,7 +5031,6 @@ func (q *Queries) ListParticipantsByGame(ctx context.Context, gameID int64) ([]L
 			&i.UserID,
 			&i.CashBalance,
 			&i.PortfolioValue,
-			&i.IsPublic,
 			&i.JoinedAt,
 			&i.UserName,
 			&i.UserPicture,
@@ -5191,59 +5156,6 @@ func (q *Queries) ListPriceHistory(ctx context.Context, arg ListPriceHistoryPara
 			&i.Close,
 			&i.Volume,
 			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listPublicParticipantsByGame = `-- name: ListPublicParticipantsByGame :many
-SELECT p.id, p.game_id, p.user_id, p.cash_balance, p.portfolio_value, p.is_public, p.joined_at, u.name AS user_name, u.picture_url AS user_picture
-FROM participants p
-JOIN users u ON u.id = p.user_id
-WHERE p.game_id = ? AND p.is_public = 1 AND u.blocked_at IS NULL
-ORDER BY p.portfolio_value DESC
-`
-
-type ListPublicParticipantsByGameRow struct {
-	ID             int64
-	GameID         int64
-	UserID         int64
-	CashBalance    int64
-	PortfolioValue int64
-	IsPublic       int64
-	JoinedAt       string
-	UserName       string
-	UserPicture    sql.NullString
-}
-
-func (q *Queries) ListPublicParticipantsByGame(ctx context.Context, gameID int64) ([]ListPublicParticipantsByGameRow, error) {
-	rows, err := q.db.QueryContext(ctx, listPublicParticipantsByGame, gameID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListPublicParticipantsByGameRow
-	for rows.Next() {
-		var i ListPublicParticipantsByGameRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.GameID,
-			&i.UserID,
-			&i.CashBalance,
-			&i.PortfolioValue,
-			&i.IsPublic,
-			&i.JoinedAt,
-			&i.UserName,
-			&i.UserPicture,
 		); err != nil {
 			return nil, err
 		}
@@ -6688,7 +6600,7 @@ func (q *Queries) ListUserAchievements(ctx context.Context, userID int64) ([]Lis
 }
 
 const listUserGames = `-- name: ListUserGames :many
-SELECT g.id, g.created_by, g.name, g.description, g.status, g.markets, g.starting_balance, g.base_currency, g.max_participants, g.start_date, g.end_date, g.allow_short, g.trade_fee, g.referral_bonus_pct, g.recurring_interval, g.parent_game_id, g.template_id, g.is_public, g.portfolio_visibility, g.credit_interest_rate, g.leverage_interest_rate, g.min_stock_price, g.max_stock_price, g.margin_trading, g.limit_orders, g.stop_loss, g.fractional_shares, g.after_hours_trading, g.quarter, g.created_at, g.updated_at FROM games g
+SELECT g.id, g.created_by, g.name, g.description, g.status, g.markets, g.starting_balance, g.base_currency, g.max_participants, g.start_date, g.end_date, g.allow_short, g.trade_fee, g.referral_bonus_pct, g.recurring_interval, g.parent_game_id, g.template_id, g.credit_interest_rate, g.leverage_interest_rate, g.min_stock_price, g.max_stock_price, g.margin_trading, g.limit_orders, g.stop_loss, g.fractional_shares, g.after_hours_trading, g.quarter, g.created_at, g.updated_at FROM games g
 JOIN participants p ON p.game_id = g.id
 WHERE p.user_id = ?
 ORDER BY g.start_date DESC
@@ -6721,8 +6633,6 @@ func (q *Queries) ListUserGames(ctx context.Context, userID int64) ([]Game, erro
 			&i.RecurringInterval,
 			&i.ParentGameID,
 			&i.TemplateID,
-			&i.IsPublic,
-			&i.PortfolioVisibility,
 			&i.CreditInterestRate,
 			&i.LeverageInterestRate,
 			&i.MinStockPrice,
@@ -7965,20 +7875,6 @@ type UpdateOrderForSplitParams struct {
 
 func (q *Queries) UpdateOrderForSplit(ctx context.Context, arg UpdateOrderForSplitParams) error {
 	_, err := q.db.ExecContext(ctx, updateOrderForSplit, arg.Quantity, arg.LimitPrice, arg.ID)
-	return err
-}
-
-const updateParticipantVisibility = `-- name: UpdateParticipantVisibility :exec
-UPDATE participants SET is_public = ? WHERE id = ?
-`
-
-type UpdateParticipantVisibilityParams struct {
-	IsPublic int64
-	ID       int64
-}
-
-func (q *Queries) UpdateParticipantVisibility(ctx context.Context, arg UpdateParticipantVisibilityParams) error {
-	_, err := q.db.ExecContext(ctx, updateParticipantVisibility, arg.IsPublic, arg.ID)
 	return err
 }
 

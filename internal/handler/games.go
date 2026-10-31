@@ -166,11 +166,10 @@ func (h *Handler) joinGame(ctx context.Context, game db.Game, userID int64) (db.
 	}
 
 	_ = h.q.InsertActivity(ctx, db.InsertActivityParams{
-		GameID:   game.ID,
-		UserID:   userID,
-		Action:   "join",
-		Detail:   "joined the game",
-		IsPublic: 1,
+		GameID: game.ID,
+		UserID: userID,
+		Action: "join",
+		Detail: "joined the game",
 	})
 	return participant, nil
 }

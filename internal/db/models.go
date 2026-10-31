@@ -22,7 +22,6 @@ type ActivityFeed struct {
 	UserID    int64
 	Action    string
 	Detail    string
-	IsPublic  int64
 	CreatedAt string
 }
 
@@ -122,8 +121,6 @@ type Game struct {
 	RecurringInterval    sql.NullString
 	ParentGameID         sql.NullInt64
 	TemplateID           sql.NullInt64
-	IsPublic             int64
-	PortfolioVisibility  string
 	CreditInterestRate   int64
 	LeverageInterestRate int64
 	MinStockPrice        sql.NullInt64
@@ -306,7 +303,6 @@ type Participant struct {
 	UserID         int64
 	CashBalance    int64
 	PortfolioValue int64
-	IsPublic       int64
 	JoinedAt       string
 }
 

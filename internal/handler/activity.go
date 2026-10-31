@@ -45,17 +45,16 @@ func (h *Handler) ActivityFeed(w http.ResponseWriter, r *http.Request) {
 }
 
 // InsertTradeActivity records a trade in the activity feed.
-func (h *Handler) InsertTradeActivity(r *http.Request, gameID, userID int64, action, symbol string, quantity int64, isPublic int64) {
+func (h *Handler) InsertTradeActivity(r *http.Request, gameID, userID int64, action, symbol string, quantity int64) {
 	verb := "bought"
 	if action == "sell" {
 		verb = "sold"
 	}
 	detail := fmt.Sprintf("%s %s of %s", verb, shares(quantity), symbol)
 	_ = h.q.InsertActivity(r.Context(), db.InsertActivityParams{
-		GameID:   gameID,
-		UserID:   userID,
-		Action:   action,
-		Detail:   detail,
-		IsPublic: isPublic,
+		GameID: gameID,
+		UserID: userID,
+		Action: action,
+		Detail: detail,
 	})
 }

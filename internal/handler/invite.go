@@ -261,11 +261,10 @@ func (h *Handler) acceptInvite(ctx context.Context, code string, user db.User) {
 		Message: fmt.Sprintf("You earned %s because %s signed up and joined %s.", fmtDollars(bonus), friend, game.Name),
 	})
 	_ = h.q.InsertActivity(ctx, db.InsertActivityParams{
-		GameID:   game.ID,
-		UserID:   invite.CreatedBy,
-		Action:   "referral",
-		Detail:   fmt.Sprintf("earned a %s referral bonus", fmtDollars(bonus)),
-		IsPublic: 1,
+		GameID: game.ID,
+		UserID: invite.CreatedBy,
+		Action: "referral",
+		Detail: fmt.Sprintf("earned a %s referral bonus", fmtDollars(bonus)),
 	})
 	// Recruiter: 3 referrals, in any games.
 	if n, _ := h.q.CountAllReferralBonuses(ctx, invite.CreatedBy); n >= 3 {
