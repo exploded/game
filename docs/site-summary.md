@@ -159,7 +159,9 @@ Learn is open to everyone, signed in or not. It has four tabs.
 - **Watch**: Rob's YouTube videos (and TikTok, once TikTok approves the
   connection), sorted into topics such as retirement, superannuation and buying
   a home. Visitors can search, browse by topic, and watch without leaving the
-  site. Shares Rob talks about link to his videos.
+  site. A video lists the shares Rob mentions in it ("Mentioned in this
+  video"); each opens that share in this month's game, after signing in.
+  Shares Rob talks about link back to his videos.
 - **Live**: Rob's upcoming and current live streams. A "Rob is live" banner
   shows across the whole site while he's on air. Visitors can add a stream to
   their calendar, and members can ask for a reminder email.
@@ -217,7 +219,8 @@ Admins (Rob and the site team) get an **Admin** menu with:
   everyone who opted in.
 - **Courses**: build, edit, publish and remove courses and lessons.
 - **Learn**: sync videos, add a Facebook or Instagram video by pasting its link,
-  edit topics, hide or pin videos, schedule live streams, and connect TikTok.
+  edit topics, hide or pin videos, turn off a video's share links, schedule
+  live streams, and connect TikTok.
 - **Messages**: read and delete Contact form messages.
 
 ## What was cleaned up on 31 October 2026

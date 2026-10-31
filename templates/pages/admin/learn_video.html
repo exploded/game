@@ -24,6 +24,14 @@
             </label>
             {{end}}
         </div>
+        <h2 style="margin-top:16px">Stocks</h2>
+        <p class="text-muted" style="margin-bottom:8px">Claude picks these. They're listed under the video on Learn, and the video shows on each one's stock page. Ask Claude again to update them.</p>
+        {{with index .Extra "Stocks"}}
+        <p>{{range $i, $s := .}}{{if $i}}, {{end}}<strong>{{$s.Symbol}}</strong> {{$s.Name}}{{end}}</p>
+        {{else}}
+        <p class="text-muted">None.</p>
+        {{end}}
+        <label class="checkbox-label" style="padding-top:8px"><input type="checkbox" name="hide_stocks" value="1"{{if $v.HideStocks}} checked{{end}}> Don&rsquo;t link this video to stocks</label>
         <h2 style="margin-top:16px">Show</h2>
         <label class="checkbox-label" style="padding-top:0"><input type="checkbox" name="featured" value="1"{{if $v.Featured}} checked{{end}}> Pin to &ldquo;Start here&rdquo; at the top of Learn</label>
         <label class="checkbox-label" style="padding-top:8px"><input type="checkbox" name="hidden" value="1"{{if $v.Hidden}} checked{{end}}> Hide from Learn</label>

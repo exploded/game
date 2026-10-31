@@ -530,6 +530,7 @@ type Video struct {
 	ViewCount       int64
 	Hidden          int64
 	Featured        int64
+	HideStocks      int64
 	ClassifiedAt    sql.NullString
 	CreatedAt       string
 }

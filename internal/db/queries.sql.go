@@ -2165,7 +2165,7 @@ func (q *Queries) GetUserByEmailToken(ctx context.Context, emailToken string) (U
 }
 
 const getVideo = `-- name: GetVideo :one
-SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, classified_at, created_at FROM videos WHERE id = ?
+SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, hide_stocks, classified_at, created_at FROM videos WHERE id = ?
 `
 
 func (q *Queries) GetVideo(ctx context.Context, id int64) (Video, error) {
@@ -2188,6 +2188,7 @@ func (q *Queries) GetVideo(ctx context.Context, id int64) (Video, error) {
 		&i.ViewCount,
 		&i.Hidden,
 		&i.Featured,
+		&i.HideStocks,
 		&i.ClassifiedAt,
 		&i.CreatedAt,
 	)
@@ -2195,7 +2196,7 @@ func (q *Queries) GetVideo(ctx context.Context, id int64) (Video, error) {
 }
 
 const getVideoByExternalID = `-- name: GetVideoByExternalID :one
-SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, classified_at, created_at FROM videos WHERE platform = ? AND external_id = ?
+SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, hide_stocks, classified_at, created_at FROM videos WHERE platform = ? AND external_id = ?
 `
 
 type GetVideoByExternalIDParams struct {
@@ -2223,6 +2224,7 @@ func (q *Queries) GetVideoByExternalID(ctx context.Context, arg GetVideoByExtern
 		&i.ViewCount,
 		&i.Hidden,
 		&i.Featured,
+		&i.HideStocks,
 		&i.ClassifiedAt,
 		&i.CreatedAt,
 	)
@@ -3414,7 +3416,7 @@ func (q *Queries) ListEmailPrefs(ctx context.Context, userID int64) ([]EmailPref
 }
 
 const listFeaturedVideos = `-- name: ListFeaturedVideos :many
-SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, classified_at, created_at FROM videos
+SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, hide_stocks, classified_at, created_at FROM videos
 WHERE hidden = 0 AND live_status = '' AND featured = 1
 ORDER BY published_at DESC
 LIMIT 6
@@ -3446,6 +3448,7 @@ func (q *Queries) ListFeaturedVideos(ctx context.Context) ([]Video, error) {
 			&i.ViewCount,
 			&i.Hidden,
 			&i.Featured,
+			&i.HideStocks,
 			&i.ClassifiedAt,
 			&i.CreatedAt,
 		); err != nil {
@@ -4024,7 +4027,7 @@ func (q *Queries) ListLatestPrices(ctx context.Context, stockID int64) ([]StockP
 }
 
 const listLatestVideos = `-- name: ListLatestVideos :many
-SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, classified_at, created_at FROM videos
+SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, hide_stocks, classified_at, created_at FROM videos
 WHERE hidden = 0 AND live_status = '' AND vertical = ?1
 ORDER BY published_at DESC
 LIMIT ?2
@@ -4063,6 +4066,7 @@ func (q *Queries) ListLatestVideos(ctx context.Context, arg ListLatestVideosPara
 			&i.ViewCount,
 			&i.Hidden,
 			&i.Featured,
+			&i.HideStocks,
 			&i.ClassifiedAt,
 			&i.CreatedAt,
 		); err != nil {
@@ -5098,7 +5102,7 @@ func (q *Queries) ListRecentCloses(ctx context.Context) ([]ListRecentClosesRow, 
 }
 
 const listRelatedVideos = `-- name: ListRelatedVideos :many
-SELECT v.id, v.platform, v.external_id, v.url, v.embed_url, v.title, v.description, v.thumb_url, v.published_at, v.duration_seconds, v.vertical, v.live_status, v.was_live, v.view_count, v.hidden, v.featured, v.classified_at, v.created_at, COUNT(*) AS shared FROM videos v
+SELECT v.id, v.platform, v.external_id, v.url, v.embed_url, v.title, v.description, v.thumb_url, v.published_at, v.duration_seconds, v.vertical, v.live_status, v.was_live, v.view_count, v.hidden, v.featured, v.hide_stocks, v.classified_at, v.created_at, COUNT(*) AS shared FROM videos v
 JOIN video_topics vt ON vt.video_id = v.id
 WHERE vt.topic_id IN (SELECT x.topic_id FROM video_topics x WHERE x.video_id = ?1)
   AND v.id != ?1 AND v.hidden = 0 AND v.live_status = ''
@@ -5124,6 +5128,7 @@ type ListRelatedVideosRow struct {
 	ViewCount       int64
 	Hidden          int64
 	Featured        int64
+	HideStocks      int64
 	ClassifiedAt    sql.NullString
 	CreatedAt       string
 	Shared          int64
@@ -5156,6 +5161,7 @@ func (q *Queries) ListRelatedVideos(ctx context.Context, id int64) ([]ListRelate
 			&i.ViewCount,
 			&i.Hidden,
 			&i.Featured,
+			&i.HideStocks,
 			&i.ClassifiedAt,
 			&i.CreatedAt,
 			&i.Shared,
@@ -5525,9 +5531,9 @@ func (q *Queries) ListStockRecommendations(ctx context.Context, arg ListStockRec
 }
 
 const listStockVideos = `-- name: ListStockVideos :many
-SELECT v.id, v.platform, v.external_id, v.url, v.embed_url, v.title, v.description, v.thumb_url, v.published_at, v.duration_seconds, v.vertical, v.live_status, v.was_live, v.view_count, v.hidden, v.featured, v.classified_at, v.created_at FROM videos v
+SELECT v.id, v.platform, v.external_id, v.url, v.embed_url, v.title, v.description, v.thumb_url, v.published_at, v.duration_seconds, v.vertical, v.live_status, v.was_live, v.view_count, v.hidden, v.featured, v.hide_stocks, v.classified_at, v.created_at FROM videos v
 JOIN video_stocks vs ON vs.video_id = v.id
-WHERE vs.stock_id = ? AND v.hidden = 0 AND v.live_status = ''
+WHERE vs.stock_id = ? AND v.hidden = 0 AND v.hide_stocks = 0 AND v.live_status = ''
 ORDER BY v.published_at DESC
 LIMIT 6
 `
@@ -5558,6 +5564,7 @@ func (q *Queries) ListStockVideos(ctx context.Context, stockID int64) ([]Video, 
 			&i.ViewCount,
 			&i.Hidden,
 			&i.Featured,
+			&i.HideStocks,
 			&i.ClassifiedAt,
 			&i.CreatedAt,
 		); err != nil {
@@ -5714,7 +5721,7 @@ func (q *Queries) ListTopicQuestions(ctx context.Context, topicID sql.NullInt64)
 }
 
 const listTopicVideos = `-- name: ListTopicVideos :many
-SELECT v.id, v.platform, v.external_id, v.url, v.embed_url, v.title, v.description, v.thumb_url, v.published_at, v.duration_seconds, v.vertical, v.live_status, v.was_live, v.view_count, v.hidden, v.featured, v.classified_at, v.created_at FROM videos v
+SELECT v.id, v.platform, v.external_id, v.url, v.embed_url, v.title, v.description, v.thumb_url, v.published_at, v.duration_seconds, v.vertical, v.live_status, v.was_live, v.view_count, v.hidden, v.featured, v.hide_stocks, v.classified_at, v.created_at FROM videos v
 JOIN video_topics vt ON vt.video_id = v.id
 WHERE vt.topic_id = ?1 AND v.hidden = 0 AND v.live_status = ''
 ORDER BY v.published_at DESC
@@ -5753,6 +5760,7 @@ func (q *Queries) ListTopicVideos(ctx context.Context, arg ListTopicVideosParams
 			&i.ViewCount,
 			&i.Hidden,
 			&i.Featured,
+			&i.HideStocks,
 			&i.ClassifiedAt,
 			&i.CreatedAt,
 		); err != nil {
@@ -5883,7 +5891,7 @@ func (q *Queries) ListTradesSince(ctx context.Context, arg ListTradesSinceParams
 }
 
 const listUnclassifiedVideos = `-- name: ListUnclassifiedVideos :many
-SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, classified_at, created_at FROM videos
+SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, hide_stocks, classified_at, created_at FROM videos
 WHERE classified_at IS NULL AND hidden = 0 AND live_status = ''
 ORDER BY published_at DESC
 LIMIT ?
@@ -5915,6 +5923,7 @@ func (q *Queries) ListUnclassifiedVideos(ctx context.Context, limit int64) ([]Vi
 			&i.ViewCount,
 			&i.Hidden,
 			&i.Featured,
+			&i.HideStocks,
 			&i.ClassifiedAt,
 			&i.CreatedAt,
 		); err != nil {
@@ -6297,6 +6306,42 @@ func (q *Queries) ListUsersWithActivity(ctx context.Context) ([]ListUsersWithAct
 			&i.GameCount,
 			&i.TradeCount,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listVideoStocks = `-- name: ListVideoStocks :many
+SELECT s.id, s.symbol, s.name FROM stocks s
+JOIN video_stocks vs ON vs.stock_id = s.id
+WHERE vs.video_id = ?
+ORDER BY s.symbol
+`
+
+type ListVideoStocksRow struct {
+	ID     int64
+	Symbol string
+	Name   string
+}
+
+func (q *Queries) ListVideoStocks(ctx context.Context, videoID int64) ([]ListVideoStocksRow, error) {
+	rows, err := q.db.QueryContext(ctx, listVideoStocks, videoID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListVideoStocksRow
+	for rows.Next() {
+		var i ListVideoStocksRow
+		if err := rows.Scan(&i.ID, &i.Symbol, &i.Name); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -6828,7 +6873,7 @@ func (q *Queries) SaveOAuthToken(ctx context.Context, arg SaveOAuthTokenParams) 
 }
 
 const searchVideos = `-- name: SearchVideos :many
-SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, classified_at, created_at FROM videos
+SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, hide_stocks, classified_at, created_at FROM videos
 WHERE hidden = 0 AND live_status = ''
   AND (title LIKE '%' || CAST(?1 AS TEXT) || '%' OR description LIKE '%' || CAST(?1 AS TEXT) || '%')
 ORDER BY published_at DESC
@@ -6862,6 +6907,7 @@ func (q *Queries) SearchVideos(ctx context.Context, q_ string) ([]Video, error) 
 			&i.ViewCount,
 			&i.Hidden,
 			&i.Featured,
+			&i.HideStocks,
 			&i.ClassifiedAt,
 			&i.CreatedAt,
 		); err != nil {
@@ -7021,6 +7067,20 @@ type SetVideoHiddenParams struct {
 
 func (q *Queries) SetVideoHidden(ctx context.Context, arg SetVideoHiddenParams) error {
 	_, err := q.db.ExecContext(ctx, setVideoHidden, arg.Hidden, arg.ID)
+	return err
+}
+
+const setVideoHideStocks = `-- name: SetVideoHideStocks :exec
+UPDATE videos SET hide_stocks = ? WHERE id = ?
+`
+
+type SetVideoHideStocksParams struct {
+	HideStocks int64
+	ID         int64
+}
+
+func (q *Queries) SetVideoHideStocks(ctx context.Context, arg SetVideoHideStocksParams) error {
+	_, err := q.db.ExecContext(ctx, setVideoHideStocks, arg.HideStocks, arg.ID)
 	return err
 }
 

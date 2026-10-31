@@ -183,7 +183,9 @@ page ends with the licensee's general advice warning.
   a home. Admins can change a video's topics.
 - Visitors browse by topic, watch Shorts, search, and play videos on the page.
   Each video page shows related videos and an **Ask Rob about this** button.
-- Videos that discuss a share also appear on that share's page.
+- Videos that discuss a share also appear on that share's page, and the video
+  page lists those shares under **Mentioned in this video**. Each opens the
+  share in this month's game. Admins can turn a video's share links off.
 
 ### Live
 

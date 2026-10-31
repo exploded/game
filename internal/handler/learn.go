@@ -191,12 +191,17 @@ func (h *Handler) LearnVideo(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	topics, _ := h.q.ListVideoTopics(ctx, v.ID)
 	related, _ := h.q.ListRelatedVideos(ctx, v.ID)
+	var stocks []db.ListVideoStocksRow
+	if v.HideStocks == 0 {
+		stocks, _ = h.q.ListVideoStocks(ctx, v.ID)
+	}
 	start, _ := strconv.ParseInt(r.URL.Query().Get("t"), 10, 64)
 	h.render(w, r, "learn/video", "", learnPage(r, "watch", PageData{
 		Title: v.Title,
 		Item:  v,
 		Extra: map[string]any{
 			"Topics":  topics,
+			"Stocks":  stocks,
 			"Related": related,
 			"Embed":   embedAt(v.EmbedUrl, v.Platform, start),
 			"Start":   start,

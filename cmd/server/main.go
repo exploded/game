@@ -254,6 +254,8 @@ func main() {
 		// Games: one per month, created by the scheduler. Admins change
 		// their settings under /admin/games.
 		r.Get("/games", h.GamesList)
+		// A stock in this month's game: the stock chips on a Learn video.
+		r.Get("/stocks/{sid}", h.StockInCurrentGame)
 		// Everything inside one game. GameContext adds the game bar.
 		r.Route("/games/{id}", func(r chi.Router) {
 			r.Use(h.GameContext)

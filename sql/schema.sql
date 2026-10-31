@@ -652,6 +652,7 @@ CREATE TABLE IF NOT EXISTS videos (
     view_count       INTEGER NOT NULL DEFAULT 0,
     hidden           INTEGER NOT NULL DEFAULT 0,       -- 1 = removed by an admin
     featured         INTEGER NOT NULL DEFAULT 0,       -- 1 = pinned to the top of /learn
+    hide_stocks      INTEGER NOT NULL DEFAULT 0,       -- 1 = an admin turned off its stock links
     classified_at    TEXT,                             -- NULL until Claude has picked its topics
     created_at       TEXT    NOT NULL DEFAULT (datetime('now')),
     UNIQUE(platform, external_id)
@@ -674,7 +675,8 @@ CREATE TABLE IF NOT EXISTS video_topics (
 );
 CREATE INDEX IF NOT EXISTS idx_video_topics_topic ON video_topics(topic_id);
 
--- Stocks a video talks about, from the classifier.
+-- Stocks a video talks about, from the classifier. Not shown while the
+-- video's hide_stocks is set.
 CREATE TABLE IF NOT EXISTS video_stocks (
     video_id INTEGER NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
     stock_id INTEGER NOT NULL REFERENCES stocks(id) ON DELETE CASCADE,

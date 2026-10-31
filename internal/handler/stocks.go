@@ -219,13 +219,16 @@ func backLink(ref, host string, gameID, stockID int64) backTo {
 	if err != nil || ref == "" || (u.Host != "" && u.Host != host) || (u.Host == "" && u.Scheme != "") {
 		return fallback
 	}
-	rest, ok := strings.CutPrefix(u.Path, game)
-	if !ok || (rest != "" && rest[0] != '/') {
-		return fallback
-	}
 	link := u.Path
 	if u.RawQuery != "" {
 		link += "?" + u.RawQuery
+	}
+	if strings.HasPrefix(u.Path, "/learn/v/") {
+		return backTo{URL: link, Label: "Video"} // a Learn video's stock chips
+	}
+	rest, ok := strings.CutPrefix(u.Path, game)
+	if !ok || (rest != "" && rest[0] != '/') {
+		return fallback
 	}
 	parts := strings.Split(strings.Trim(rest, "/"), "/")
 	switch {

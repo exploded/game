@@ -292,6 +292,7 @@ func TestBackLink(t *testing.T) {
 		{"http://example.com/games/1/stocks/2", "/games/1/stocks/2", "Back"}, // a peer
 		{"http://example.com/games/1/stocks/1", "/games/1/stocks", "Stocks"}, // this stock
 		{"http://example.com/games/12/stocks", "/games/1/stocks", "Stocks"},  // another game
+		{"http://example.com/learn/v/7?t=90", "/learn/v/7?t=90", "Video"},
 		{"http://evil.example/games/1/stocks", "/games/1/stocks", "Stocks"},
 		{"//evil.example/games/1", "/games/1/stocks", "Stocks"},
 		{"javascript:alert(1)", "/games/1/stocks", "Stocks"},

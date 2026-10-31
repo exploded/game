@@ -115,14 +115,15 @@ func (h *Handler) AdminLearnVideo(w http.ResponseWriter, r *http.Request) {
 	for _, t := range picked {
 		set[t.ID] = t.Source
 	}
+	stocks, _ := h.q.ListVideoStocks(r.Context(), v.ID)
 	h.render(w, r, "admin/learn_video", "", PageData{
 		Title: v.Title, Item: v,
-		Extra: map[string]any{"Topics": topics, "Picked": set},
+		Extra: map[string]any{"Topics": topics, "Picked": set, "Stocks": stocks},
 	})
 }
 
 // AdminLearnVideoUpdate saves the topics ticked (as the admin's, so the
-// classifier leaves them alone), hidden and featured.
+// classifier leaves them alone), hidden, featured and hide_stocks.
 func (h *Handler) AdminLearnVideoUpdate(w http.ResponseWriter, r *http.Request) {
 	v, ok := h.adminVideo(w, r)
 	if !ok {
@@ -152,6 +153,7 @@ func (h *Handler) AdminLearnVideoUpdate(w http.ResponseWriter, r *http.Request) 
 	}
 	_ = h.q.SetVideoHidden(ctx, db.SetVideoHiddenParams{Hidden: boolFlag(r.FormValue("hidden")), ID: v.ID})
 	_ = h.q.SetVideoFeatured(ctx, db.SetVideoFeaturedParams{Featured: boolFlag(r.FormValue("featured")), ID: v.ID})
+	_ = h.q.SetVideoHideStocks(ctx, db.SetVideoHideStocksParams{HideStocks: boolFlag(r.FormValue("hide_stocks")), ID: v.ID})
 	_ = h.q.SetVideoClassified(ctx, v.ID)
 	setFlashCookie(w, "Video saved.", "success")
 	http.Redirect(w, r, "/admin/learn/videos/"+strconv.FormatInt(v.ID, 10), http.StatusSeeOther)
@@ -173,7 +175,7 @@ func (h *Handler) AdminLearnVideoReclassify(w http.ResponseWriter, r *http.Reque
 	if err := h.media.ClassifyVideo(r.Context(), v.ID); err != nil {
 		setFlashCookie(w, "Couldn't sort it: "+err.Error(), "error")
 	} else {
-		setFlashCookie(w, "Topics updated.", "success")
+		setFlashCookie(w, "Topics and stocks updated.", "success")
 	}
 	http.Redirect(w, r, "/admin/learn/videos/"+strconv.FormatInt(v.ID, 10), http.StatusSeeOther)
 }

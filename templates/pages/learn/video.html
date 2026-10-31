@@ -20,6 +20,13 @@
         </div>
         {{end}}
 
+        {{with index .Extra "Stocks"}}
+        <p class="text-muted" style="font-size:13px;margin-bottom:6px">Mentioned in this video</p>
+        <div class="chips chips-wrap">
+            {{range .}}<a href="/stocks/{{.ID}}" class="chip" title="Open {{.Name}} in the share game"><strong>{{.Symbol}}</strong> {{.Name}}</a>{{end}}
+        </div>
+        {{end}}
+
         <div class="watch-actions">
             <a href="/learn/questions?video={{$v.ID}}#ask" class="btn btn-primary">Ask Rob about this</a>
             {{if and $.User $.User.IsAdmin}}<a href="/admin/learn/videos/{{$v.ID}}" class="btn btn-secondary">Edit</a>{{end}}

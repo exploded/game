@@ -1410,10 +1410,16 @@ DELETE FROM video_stocks WHERE video_id = ?;
 INSERT OR IGNORE INTO video_stocks (video_id, stock_id)
 SELECT sqlc.arg(video_id), s.id FROM stocks s WHERE s.symbol = sqlc.arg(symbol);
 
+-- name: ListVideoStocks :many
+SELECT s.id, s.symbol, s.name FROM stocks s
+JOIN video_stocks vs ON vs.stock_id = s.id
+WHERE vs.video_id = ?
+ORDER BY s.symbol;
+
 -- name: ListStockVideos :many
 SELECT v.* FROM videos v
 JOIN video_stocks vs ON vs.video_id = v.id
-WHERE vs.stock_id = ? AND v.hidden = 0 AND v.live_status = ''
+WHERE vs.stock_id = ? AND v.hidden = 0 AND v.hide_stocks = 0 AND v.live_status = ''
 ORDER BY v.published_at DESC
 LIMIT 6;
 
@@ -1438,6 +1444,9 @@ UPDATE videos SET hidden = ? WHERE id = ?;
 
 -- name: SetVideoFeatured :exec
 UPDATE videos SET featured = ? WHERE id = ?;
+
+-- name: SetVideoHideStocks :exec
+UPDATE videos SET hide_stocks = ? WHERE id = ?;
 
 -- name: DeleteVideo :exec
 DELETE FROM videos WHERE id = ?;

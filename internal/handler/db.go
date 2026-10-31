@@ -90,6 +90,7 @@ var addedColumns = []struct{ table, column, ddl string }{
 	{"questions", "live_event_id", "INTEGER DEFAULT NULL REFERENCES live_events(id) ON DELETE SET NULL"},
 	{"questions", "answer_mailed", "INTEGER NOT NULL DEFAULT 1"},
 	{"holdings", "cost_basis", "INTEGER NOT NULL DEFAULT 0"},
+	{"videos", "hide_stocks", "INTEGER NOT NULL DEFAULT 0"},
 	{"games", "after_hours_trading", "INTEGER NOT NULL DEFAULT 1"},
 	{"game_invites", "email", "TEXT DEFAULT NULL"},
 	{"users", "last_seen", "TEXT DEFAULT NULL"},
