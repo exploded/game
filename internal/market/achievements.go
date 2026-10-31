@@ -2,43 +2,32 @@ package market
 
 import (
 	"context"
-	"database/sql"
 	"log/slog"
 
 	"github.com/exploded/game/internal/db"
 )
 
-// GrantAchievement gives the user the achievement with key for gameID, once,
-// and tells them with a notification. The achievements themselves are seeded
-// by handler.SeedAchievements.
-func GrantAchievement(ctx context.Context, q *db.Queries, userID int64, key string, gameID int64) {
+// GrantAchievement gives the user the achievement with key, once ever, and
+// tells them with a notification. The achievements themselves are seeded by
+// handler.SeedAchievements.
+func GrantAchievement(ctx context.Context, q *db.Queries, userID int64, key string) {
 	ach, err := q.GetAchievementByKey(ctx, key)
 	if err != nil {
 		slog.Error("achievement: get by key", "key", key, "error", err)
 		return
 	}
-	gid := sql.NullInt64{Int64: gameID, Valid: true}
-	already, err := q.HasAchievement(ctx, db.HasAchievementParams{
-		UserID: userID, AchievementID: ach.ID, GameID: gid,
-	})
+	n, err := q.GrantAchievement(ctx, db.GrantAchievementParams{UserID: userID, AchievementID: ach.ID})
 	if err != nil {
-		slog.Error("achievement: has check", "key", key, "error", err)
-		return
-	}
-	if already > 0 {
-		return
-	}
-	if err := q.GrantAchievement(ctx, db.GrantAchievementParams{
-		UserID: userID, AchievementID: ach.ID, GameID: gid,
-	}); err != nil {
 		slog.Error("achievement: grant", "key", key, "error", err)
 		return
+	}
+	if n == 0 {
+		return // already earned
 	}
 	slog.Info("achievement: granted", "key", key, "user", userID)
 
 	if err := q.CreateNotification(ctx, db.CreateNotificationParams{
 		UserID:  userID,
-		GameID:  gid,
 		Type:    "achievement",
 		Title:   "Achievement Unlocked!",
 		Message: ach.Icon + " " + ach.Name + " - " + ach.Description,
@@ -72,8 +61,8 @@ func AwardPlaces(ctx context.Context, q *db.Queries, game db.Game) {
 			break
 		}
 		if rank == 1 {
-			GrantAchievement(ctx, q, p.UserID, "first_place", game.ID)
+			GrantAchievement(ctx, q, p.UserID, "first_place")
 		}
-		GrantAchievement(ctx, q, p.UserID, "top_three", game.ID)
+		GrantAchievement(ctx, q, p.UserID, "top_three")
 	}
 }

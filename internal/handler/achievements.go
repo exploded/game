@@ -102,17 +102,17 @@ func (h *Handler) CheckAndGrantAchievements(ctx context.Context, userID, gameID,
 	}
 	for _, c := range tradeChecks {
 		if tradeCount >= c.threshold {
-			h.grantIfNew(ctx, userID, c.key, gameID)
+			h.grantIfNew(ctx, userID, c.key)
 		}
 	}
 
 	// Check diversification.
 	holdings, _ := h.q.ListHoldings(ctx, participantID)
 	if len(holdings) >= 5 {
-		h.grantIfNew(ctx, userID, "diversified_5", gameID)
+		h.grantIfNew(ctx, userID, "diversified_5")
 	}
 	if len(holdings) >= 10 {
-		h.grantIfNew(ctx, userID, "diversified_10", gameID)
+		h.grantIfNew(ctx, userID, "diversified_10")
 	}
 
 	// Check portfolio return.
@@ -127,16 +127,16 @@ func (h *Handler) CheckAndGrantAchievements(ctx context.Context, userID, gameID,
 	if game.StartingBalance > 0 {
 		returnPct := float64(participant.PortfolioValue-game.StartingBalance) / float64(game.StartingBalance) * 100
 		if returnPct >= 10 {
-			h.grantIfNew(ctx, userID, "ten_pct_gain", gameID)
+			h.grantIfNew(ctx, userID, "ten_pct_gain")
 		}
 		if returnPct >= 25 {
-			h.grantIfNew(ctx, userID, "twenty_five_pct_gain", gameID)
+			h.grantIfNew(ctx, userID, "twenty_five_pct_gain")
 		}
 	}
 }
 
-func (h *Handler) grantIfNew(ctx context.Context, userID int64, key string, gameID int64) {
-	market.GrantAchievement(ctx, h.q, userID, key, gameID)
+func (h *Handler) grantIfNew(ctx context.Context, userID int64, key string) {
+	market.GrantAchievement(ctx, h.q, userID, key)
 }
 
 func (h *Handler) AchievementsPage(w http.ResponseWriter, r *http.Request) {

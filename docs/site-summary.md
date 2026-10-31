@@ -100,7 +100,7 @@ figures, recent news, and any of Rob's videos that mention it.
 ### Other game pages
 
 - **Watchlist**: shares a player wants to keep an eye on, starred from a
-  share's page.
+  share's page. It carries over from one month's game to the next.
 - **Leaderboard**: every player in the game, ranked by portfolio value.
 - **All trades**: every player's trades in the game, newest first.
 - **My trade history**: the player's own trades (in the **More** menu on a
@@ -144,12 +144,12 @@ Players earn badges for things they do:
 | Champion | Finish a game in 1st place |
 | Podium Finish | Finish a game in the top 3 |
 | Social Player | Play in 3 games |
-| Market Watcher | Put 10 shares on a game's watchlist |
+| Market Watcher | Put 10 shares on your watchlist |
 | Recruiter | Invite 3 friends who sign up |
 
 Champion and Podium Finish count only players who made at least one trade, so
 someone who joined and never traded can't win on interest alone. Players who
-finish level share the place.
+finish level share the place. Each badge is earned once, not once per game.
 
 On the **Profile** page players choose an avatar picture. Nine are free; four
 (Crown, Wizard, On Fire and Trophy) unlock with a badge.
@@ -165,8 +165,13 @@ they can check them (see Admin tools). Admins can also delete any message.
 
 ## Learn
 
-Learn is open to everyone, signed in or not. It has four tabs.
+Learn is open to everyone, signed in or not. It has four tabs, which also show
+on the course pages. The menu's Learn link opens Ask Rob.
 
+- **Ask Rob**: members post questions and vote for the ones they want answered.
+  Rob answers in writing, with a video, or live on air, and the asker and
+  everyone who voted get the answer by email. During a live stream, the stream
+  page shows the most-voted questions.
 - **Watch**: Rob's YouTube videos (and TikTok, once TikTok approves the
   connection), sorted into topics such as retirement, superannuation and buying
   a home. Visitors can search, browse by topic, and watch without leaving the
@@ -176,10 +181,6 @@ Learn is open to everyone, signed in or not. It has four tabs.
 - **Live**: Rob's upcoming and current live streams. A "Rob is live" banner
   shows across the whole site while he's on air. Visitors can add a stream to
   their calendar, and members can ask for a reminder email.
-- **Ask Rob**: members post questions and vote for the ones they want answered.
-  Rob answers in writing, with a video, or live on air, and the asker and
-  everyone who voted get the answer by email. During a live stream, the stream
-  page shows the most-voted questions.
 - **Courses**: Rob's video courses (7 courses, 94 lessons, copied from the
   Consortium Private Wealth website). Members tick off lessons as they go and
   see their progress. Courses need an account.

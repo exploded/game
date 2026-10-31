@@ -82,6 +82,10 @@ func TestOpenDBUpgradesLatestDeploy(t *testing.T) {
 			(1, 3, 'Oct–Dec 2026', 'Three months to grow $1,000,000. The biggest portfolio when the game ends wins.', 'active', '2026-10-01', '2026-12-31', '2026-Q4'),
 			(2, 3, 'Jan–Mar 2027', 'Three months to grow $1,000,000. The biggest portfolio when the game ends wins.', 'pending', '2027-01-01', '2027-03-31', '2027-Q1')`,
 		"INSERT INTO participants (id, game_id, user_id, cash_balance, portfolio_value) VALUES (1, 1, 3, 100000000, 100000000), (2, 2, 3, 100000000, 100000000)",
+		"INSERT INTO watchlist (participant_id, stock_id) VALUES (1, 1)",
+		"INSERT INTO achievements (id, key, name, description) VALUES (1, 'first_trade', 'First Trade', ''), (2, 'ten_trades', 'Active Trader', '')",
+		`INSERT INTO user_achievements (user_id, achievement_id, game_id, earned_at) VALUES
+			(3, 1, 2, '2026-11-01 09:00:00'), (3, 1, 1, '2026-10-05 09:00:00'), (3, 2, 1, '2026-10-20 09:00:00')`,
 	} {
 		if _, err := raw.Exec(q); err != nil {
 			t.Fatalf("old database: %v", err)
@@ -97,6 +101,23 @@ func TestOpenDBUpgradesLatestDeploy(t *testing.T) {
 	}
 	if mailed != 1 || topic.Valid {
 		t.Errorf("old question: answer_mailed = %d, topic = %v; want 1 and none", mailed, topic)
+	}
+	// The per-game watchlist is dropped and made again per player.
+	var byUser, watched int
+	d.QueryRow("SELECT COUNT(*) FROM pragma_table_info('watchlist') WHERE name = 'user_id'").Scan(&byUser)
+	d.QueryRow("SELECT COUNT(*) FROM watchlist").Scan(&watched)
+	if byUser != 1 || watched != 0 {
+		t.Errorf("watchlist: user_id columns = %d, rows = %d; want 1 and 0", byUser, watched)
+	}
+	// Badges earned in two games collapse to one each, from the first game.
+	var badges, gameCols int
+	var firstTrade string
+	d.QueryRow("SELECT COUNT(*) FROM user_achievements").Scan(&badges)
+	d.QueryRow("SELECT earned_at FROM user_achievements WHERE achievement_id = 1").Scan(&firstTrade)
+	d.QueryRow("SELECT COUNT(*) FROM pragma_table_info('user_achievements') WHERE name = 'game_id'").Scan(&gameCols)
+	if badges != 2 || firstTrade != "2026-10-05 09:00:00" || gameCols != 0 {
+		t.Errorf("user_achievements: %d rows, First Trade earned %q, game_id columns %d; want 2, 2026-10-05 09:00:00, 0",
+			badges, firstTrade, gameCols)
 	}
 	var topics int
 	d.QueryRow("SELECT COUNT(*) FROM topics").Scan(&topics)
@@ -296,7 +317,7 @@ func TestDropASXStocks(t *testing.T) {
 		"INSERT INTO participants (id, game_id, user_id, cash_balance, portfolio_value) VALUES (1, 1, 1, 0, 0), (2, 2, 1, 0, 0), (3, 3, 1, 0, 0)",
 		"INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total, converted_total) VALUES (1, 2, 'buy', 1, 100, 100, 100), (2, 3, 'buy', 1, 100, 100, 100), (3, 1, 'buy', 1, 100, 100, 100)",
 		"INSERT INTO holdings (participant_id, stock_id, quantity, avg_cost) VALUES (1, 2, 1, 100), (2, 3, 1, 100)",
-		"INSERT INTO watchlist (participant_id, stock_id) VALUES (2, 4)",
+		"INSERT INTO watchlist (user_id, stock_id) VALUES (1, 4)",
 	} {
 		if _, err := d.Exec(q); err != nil {
 			t.Fatalf("%s: %v", q, err)

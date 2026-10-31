@@ -108,7 +108,8 @@ game.
 
 - **Orders**: open orders, with a **Cancel** button on each.
 - **Watchlist**: shares a player wants to follow, starred from a share's page,
-  with their latest prices.
+  with their latest prices. It's the player's, not the game's, so it carries
+  over to each new month's game.
 - **Leaderboard**: every player in the game, ranked by portfolio value.
 - **All trades**: every player's trades in the game, newest first, with their
   avatars.
@@ -160,12 +161,12 @@ Players earn badges for what they do:
 | Champion | Finish a game in 1st place |
 | Podium Finish | Finish a game in the top 3 |
 | Social Player | Play in 3 games |
-| Market Watcher | Put 10 shares on a game's watchlist |
+| Market Watcher | Put 10 shares on your watchlist |
 | Recruiter | Invite 3 friends who sign up and earn the bonus |
 
 Champion and Podium Finish count only players who made at least one trade, and
-players who finish level share the place. Each badge comes with a
-notification.
+players who finish level share the place. Each badge is earned once, not once
+per game, and comes with a notification.
 
 On the **Profile** page players choose an avatar. Nine are free, and four
 unlock with a badge: Crown (Champion), Trophy (Podium Finish), Wizard (Market

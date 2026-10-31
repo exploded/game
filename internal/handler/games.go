@@ -159,7 +159,7 @@ func (h *Handler) joinGame(ctx context.Context, game db.Game, userID int64) (db.
 	})
 	// Social Player: 3 games.
 	if n, _ := h.q.CountUserGames(ctx, userID); n >= 3 {
-		h.grantIfNew(ctx, userID, "joined_3_games", game.ID)
+		h.grantIfNew(ctx, userID, "joined_3_games")
 	}
 	return participant, nil
 }

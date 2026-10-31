@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS users (
     deleted_at  TEXT,                                       -- NULL = active, set = soft-deleted
     last_game_id INTEGER REFERENCES games(id) ON DELETE SET NULL, -- the game the game bar last showed
     email_token TEXT    NOT NULL UNIQUE,                    -- random; identifies the user in unsubscribe links
-    blocked_at  TEXT                                        -- NULL = can sign in; set = an admin blocked them
+    blocked_at  TEXT,                                       -- NULL = can sign in; set = an admin blocked them
+    age_confirmed_at TEXT                                   -- when they ticked "I'm 18 or older" on /welcome; NULL = signed up before 1 Nov 2026 or skipped it
 );
 
 --------------------------------------------------------------------------------
@@ -294,16 +295,15 @@ CREATE INDEX IF NOT EXISTS idx_limit_orders_participant ON limit_orders(particip
 CREATE INDEX IF NOT EXISTS idx_limit_orders_stock ON limit_orders(stock_id, status);
 
 --------------------------------------------------------------------------------
--- Watchlist (Feature 2)
+-- Watchlist (Feature 2): one per player, kept from game to game.
 --------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS watchlist (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    participant_id  INTEGER NOT NULL REFERENCES participants(id) ON DELETE CASCADE,
+    user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     stock_id        INTEGER NOT NULL REFERENCES stocks(id),
     created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
-    UNIQUE(participant_id, stock_id)
+    UNIQUE(user_id, stock_id)
 );
-CREATE INDEX IF NOT EXISTS idx_watchlist_participant ON watchlist(participant_id);
 
 --------------------------------------------------------------------------------
 -- Invite Links (Feature 6)
@@ -332,15 +332,14 @@ CREATE TABLE IF NOT EXISTS achievements (
     icon        TEXT    NOT NULL DEFAULT ''
 );
 
+-- Each badge is earned once per player, whichever game it's earned in.
 CREATE TABLE IF NOT EXISTS user_achievements (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     achievement_id INTEGER NOT NULL REFERENCES achievements(id),
-    game_id        INTEGER REFERENCES games(id) ON DELETE SET NULL,
     earned_at      TEXT    NOT NULL DEFAULT (datetime('now')),
-    UNIQUE(user_id, achievement_id, game_id)
+    UNIQUE(user_id, achievement_id)
 );
-CREATE INDEX IF NOT EXISTS idx_user_achievements ON user_achievements(user_id);
 
 --------------------------------------------------------------------------------
 -- Activity Feed (Feature 10)

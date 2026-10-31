@@ -16,6 +16,9 @@ UPDATE users SET last_seen = datetime('now') WHERE id = ?;
 -- name: UpdateUserName :exec
 UPDATE users SET name = ? WHERE id = ?;
 
+-- name: ConfirmUserAge :exec
+UPDATE users SET age_confirmed_at = datetime('now') WHERE id = ?;
+
 -- name: GetUserByEmailToken :one
 SELECT * FROM users WHERE email_token = ? AND deleted_at IS NULL;
 
@@ -771,22 +774,22 @@ RETURNING participant_id, stock_id, type, quantity, limit_price;
 -- =============================================================================
 
 -- name: AddToWatchlist :exec
-INSERT OR IGNORE INTO watchlist (participant_id, stock_id) VALUES (?, ?);
+INSERT OR IGNORE INTO watchlist (user_id, stock_id) VALUES (?, ?);
 
 -- name: RemoveFromWatchlist :exec
-DELETE FROM watchlist WHERE participant_id = ? AND stock_id = ?;
+DELETE FROM watchlist WHERE user_id = ? AND stock_id = ?;
 
 -- name: IsWatching :one
-SELECT COUNT(*) FROM watchlist WHERE participant_id = ? AND stock_id = ?;
+SELECT COUNT(*) FROM watchlist WHERE user_id = ? AND stock_id = ?;
 
 -- name: CountWatchlist :one
-SELECT COUNT(*) FROM watchlist WHERE participant_id = ?;
+SELECT COUNT(*) FROM watchlist WHERE user_id = ?;
 
 -- name: ListWatchlist :many
 SELECT w.*, s.symbol, s.name AS stock_name, s.market, s.sector, s.currency
 FROM watchlist w
 JOIN stocks s ON s.id = w.stock_id
-WHERE w.participant_id = ?
+WHERE w.user_id = ?
 ORDER BY w.created_at DESC;
 
 -- =============================================================================
@@ -834,12 +837,13 @@ ON CONFLICT(key) DO UPDATE SET name = excluded.name, description = excluded.desc
 -- name: ListAchievements :many
 SELECT * FROM achievements ORDER BY id;
 
--- name: HasAchievementInAnyGame :one
+-- name: HasAchievement :one
 SELECT COUNT(*) FROM user_achievements WHERE user_id = ? AND achievement_id = ?;
 
--- name: GrantAchievement :exec
-INSERT OR IGNORE INTO user_achievements (user_id, achievement_id, game_id)
-VALUES (?, ?, ?);
+-- name: GrantAchievement :execrows
+-- 0 rows when the user already has it.
+INSERT OR IGNORE INTO user_achievements (user_id, achievement_id)
+VALUES (?, ?);
 
 -- name: ListUserAchievements :many
 SELECT ua.*, a.key, a.name AS achievement_name, a.description, a.icon
@@ -850,10 +854,6 @@ ORDER BY ua.earned_at DESC;
 
 -- name: GetAchievementByKey :one
 SELECT * FROM achievements WHERE key = ?;
-
--- name: HasAchievement :one
-SELECT COUNT(*) FROM user_achievements
-WHERE user_id = ? AND achievement_id = ? AND (game_id = ? OR game_id IS NULL);
 
 -- =============================================================================
 -- Activity Feed (Feature 10)

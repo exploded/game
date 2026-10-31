@@ -288,8 +288,8 @@ func (h *Handler) finishLogin(w http.ResponseWriter, r *http.Request, req db.Log
 	http.Redirect(w, r, takeNext(w, r, "/dashboard"), http.StatusSeeOther)
 }
 
-// WelcomePage asks a new player for a display name and whether they want
-// news from Rob.
+// WelcomePage asks a new player for a display name, to confirm they're 18 or
+// older, and whether they want news from Rob.
 func (h *Handler) WelcomePage(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	h.render(w, r, "auth/welcome", "", PageData{
@@ -302,16 +302,28 @@ func (h *Handler) WelcomePage(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) WelcomeSubmit(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	name, msg := cleanDisplayName(r.FormValue("name"))
+	errs := map[string]string{}
 	if msg != "" {
+		errs["name"] = msg
+	}
+	adult := r.FormValue("adult") != ""
+	if !adult {
+		errs["adult"] = "You must be 18 or older to use The Wealth Lab."
+	}
+	if len(errs) > 0 {
 		h.render(w, r, "auth/welcome", "", PageData{
 			Title:  "Welcome",
-			Errors: map[string]string{"name": msg},
-			Extra:  map[string]any{"Name": r.FormValue("name"), "News": r.FormValue("news") != ""},
+			Errors: errs,
+			Extra:  map[string]any{"Name": r.FormValue("name"), "Adult": adult, "News": r.FormValue("news") != ""},
 		})
 		return
 	}
 	if err := h.q.UpdateUserName(r.Context(), db.UpdateUserNameParams{Name: name, ID: user.ID}); err != nil {
 		h.serverError(w, "update name", err)
+		return
+	}
+	if err := h.q.ConfirmUserAge(r.Context(), user.ID); err != nil {
+		h.serverError(w, "confirm age", err)
 		return
 	}
 	// Recorded either way: an explicit no is part of the consent record.

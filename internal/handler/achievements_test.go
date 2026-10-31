@@ -67,13 +67,13 @@ func TestEarnedAvatarCanBeChosen(t *testing.T) {
 	if got := choose(); got != 0 {
 		t.Fatalf("crown chosen before Champion was earned")
 	}
-	h.grantIfNew(ctx, 1, "first_place", 1)
+	h.grantIfNew(ctx, 1, "first_place")
 	if got := choose(); got != crown.ID {
 		t.Errorf("avatar = %d, want the crown (%d) once Champion is earned", got, crown.ID)
 	}
 }
 
-// TestMarketWatcher: the 10th stock on a game's watchlist earns it.
+// TestMarketWatcher: the 10th stock on the watchlist earns it.
 func TestMarketWatcher(t *testing.T) {
 	h, q := achievementsDB(t)
 	ctx := context.Background()
@@ -89,9 +89,25 @@ func TestMarketWatcher(t *testing.T) {
 		r.SetPathValue("sid", fmt.Sprint(i))
 		h.WatchlistAdd(httptest.NewRecorder(), asAlice(t, q, r))
 
-		has, _ := q.HasAchievementInAnyGame(ctx, db.HasAchievementInAnyGameParams{UserID: 1, AchievementID: watcher.ID})
+		has, _ := q.HasAchievement(ctx, db.HasAchievementParams{UserID: 1, AchievementID: watcher.ID})
 		if want := i == 10; (has > 0) != want {
 			t.Fatalf("after %d stocks: has Market Watcher = %v, want %v", i, has > 0, want)
 		}
+	}
+}
+
+// TestBadgeEarnedOnce: a badge belongs to the player, so earning it again in
+// another game neither adds a second one nor sends another notification.
+func TestBadgeEarnedOnce(t *testing.T) {
+	h, _ := achievementsDB(t)
+	ctx := context.Background()
+	h.grantIfNew(ctx, 1, "first_trade")
+	h.grantIfNew(ctx, 1, "first_trade")
+
+	var badges, notes int
+	h.rawDB.QueryRow("SELECT COUNT(*) FROM user_achievements WHERE user_id = 1").Scan(&badges)
+	h.rawDB.QueryRow("SELECT COUNT(*) FROM notifications WHERE user_id = 1 AND type = 'achievement'").Scan(&notes)
+	if badges != 1 || notes != 1 {
+		t.Errorf("%d badges and %d notifications, want 1 of each", badges, notes)
 	}
 }

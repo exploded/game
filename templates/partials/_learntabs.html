@@ -1,0 +1,13 @@
+{{/* The Learn hub's header and tabs, on the Learn and course pages. . is
+PageData; .Extra.Tab names the open tab (learnPage sets it). */}}
+{{define "learntabs"}}{{$tab := index .Extra "Tab"}}
+<div class="learn-head">
+    <a href="/learn/questions" class="learn-brand">Learn with Rob</a>
+    <nav class="learn-tabs" aria-label="Learn">
+        <a href="/learn/questions"{{if eq $tab "questions"}} class="active" aria-current="page"{{end}}>Ask Rob</a>
+        <a href="/learn"{{if eq $tab "watch"}} class="active" aria-current="page"{{end}}>Watch</a>
+        <a href="/learn/live"{{if eq $tab "live"}} class="active" aria-current="page"{{end}}>Live{{with .LiveNow}} <span class="live-dot" aria-label="on now"></span>{{end}}</a>
+        <a href="/learn/courses"{{if eq $tab "courses"}} class="active" aria-current="page"{{end}}>Courses</a>
+    </nav>
+</div>
+{{end}}

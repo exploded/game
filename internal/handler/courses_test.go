@@ -121,7 +121,13 @@ func TestCourseLifecycle(t *testing.T) {
 	if !strings.Contains(list, "Investing 101: The Basics") || !strings.Contains(list, "2 lessons") || !strings.Contains(list, "10 min") {
 		t.Errorf("courses page:\n%s", list)
 	}
+	if !strings.Contains(list, `href="/learn/courses" class="active"`) {
+		t.Errorf("courses page has no Learn tabs:\n%s", list)
+	}
 	lesson := as(srv, "2", "GET", "/courses/investing-101-the-basics/1", nil, false).Body.String()
+	if !strings.Contains(lesson, `href="/learn/questions"`) {
+		t.Errorf("lesson page has no Learn tabs:\n%s", lesson)
+	}
 	if !strings.Contains(lesson, `src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0"`) {
 		t.Errorf("lesson page has no player:\n%s", lesson)
 	}

@@ -504,25 +504,25 @@ type Transaction struct {
 }
 
 type User struct {
-	ID         int64
-	Email      string
-	Name       string
-	IsAdmin    int64
-	AvatarID   sql.NullInt64
-	CreatedAt  string
-	LastLogin  string
-	LastSeen   sql.NullString
-	DeletedAt  sql.NullString
-	LastGameID sql.NullInt64
-	EmailToken string
-	BlockedAt  sql.NullString
+	ID             int64
+	Email          string
+	Name           string
+	IsAdmin        int64
+	AvatarID       sql.NullInt64
+	CreatedAt      string
+	LastLogin      string
+	LastSeen       sql.NullString
+	DeletedAt      sql.NullString
+	LastGameID     sql.NullInt64
+	EmailToken     string
+	BlockedAt      sql.NullString
+	AgeConfirmedAt sql.NullString
 }
 
 type UserAchievement struct {
 	ID            int64
 	UserID        int64
 	AchievementID int64
-	GameID        sql.NullInt64
 	EarnedAt      string
 }
 
@@ -566,8 +566,8 @@ type VideoTopic struct {
 }
 
 type Watchlist struct {
-	ID            int64
-	ParticipantID int64
-	StockID       int64
-	CreatedAt     string
+	ID        int64
+	UserID    int64
+	StockID   int64
+	CreatedAt string
 }

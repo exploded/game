@@ -69,19 +69,19 @@ func (q *Queries) AddStockPick(ctx context.Context, arg AddStockPickParams) erro
 
 const addToWatchlist = `-- name: AddToWatchlist :exec
 
-INSERT OR IGNORE INTO watchlist (participant_id, stock_id) VALUES (?, ?)
+INSERT OR IGNORE INTO watchlist (user_id, stock_id) VALUES (?, ?)
 `
 
 type AddToWatchlistParams struct {
-	ParticipantID int64
-	StockID       int64
+	UserID  int64
+	StockID int64
 }
 
 // =============================================================================
 // Watchlist (Feature 2)
 // =============================================================================
 func (q *Queries) AddToWatchlist(ctx context.Context, arg AddToWatchlistParams) error {
-	_, err := q.db.ExecContext(ctx, addToWatchlist, arg.ParticipantID, arg.StockID)
+	_, err := q.db.ExecContext(ctx, addToWatchlist, arg.UserID, arg.StockID)
 	return err
 }
 
@@ -292,6 +292,15 @@ type CompleteLessonParams struct {
 
 func (q *Queries) CompleteLesson(ctx context.Context, arg CompleteLessonParams) error {
 	_, err := q.db.ExecContext(ctx, completeLesson, arg.UserID, arg.LessonID)
+	return err
+}
+
+const confirmUserAge = `-- name: ConfirmUserAge :exec
+UPDATE users SET age_confirmed_at = datetime('now') WHERE id = ?
+`
+
+func (q *Queries) ConfirmUserAge(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, confirmUserAge, id)
 	return err
 }
 
@@ -549,11 +558,11 @@ func (q *Queries) CountVideosByPlatform(ctx context.Context) ([]CountVideosByPla
 }
 
 const countWatchlist = `-- name: CountWatchlist :one
-SELECT COUNT(*) FROM watchlist WHERE participant_id = ?
+SELECT COUNT(*) FROM watchlist WHERE user_id = ?
 `
 
-func (q *Queries) CountWatchlist(ctx context.Context, participantID int64) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countWatchlist, participantID)
+func (q *Queries) CountWatchlist(ctx context.Context, userID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countWatchlist, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -1045,7 +1054,7 @@ const createUser = `-- name: CreateUser :one
 
 INSERT INTO users (email, name, email_token)
 VALUES (?, ?, ?)
-RETURNING id, email, name, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at
+RETURNING id, email, name, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at, age_confirmed_at
 `
 
 type CreateUserParams struct {
@@ -1073,6 +1082,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.LastGameID,
 		&i.EmailToken,
 		&i.BlockedAt,
+		&i.AgeConfirmedAt,
 	)
 	return i, err
 }
@@ -2172,7 +2182,7 @@ func (q *Queries) GetTopicBySlug(ctx context.Context, slug string) (Topic, error
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, email, name, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at FROM users WHERE id = ?
+SELECT id, email, name, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at, age_confirmed_at FROM users WHERE id = ?
 `
 
 func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
@@ -2191,6 +2201,7 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 		&i.LastGameID,
 		&i.EmailToken,
 		&i.BlockedAt,
+		&i.AgeConfirmedAt,
 	)
 	return i, err
 }
@@ -2210,7 +2221,7 @@ func (q *Queries) GetUserAvatarPath(ctx context.Context, id int64) (string, erro
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, name, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at FROM users WHERE email = ?
+SELECT id, email, name, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at, age_confirmed_at FROM users WHERE email = ?
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -2229,12 +2240,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.LastGameID,
 		&i.EmailToken,
 		&i.BlockedAt,
+		&i.AgeConfirmedAt,
 	)
 	return i, err
 }
 
 const getUserByEmailToken = `-- name: GetUserByEmailToken :one
-SELECT id, email, name, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at FROM users WHERE email_token = ? AND deleted_at IS NULL
+SELECT id, email, name, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at, age_confirmed_at FROM users WHERE email_token = ? AND deleted_at IS NULL
 `
 
 func (q *Queries) GetUserByEmailToken(ctx context.Context, emailToken string) (User, error) {
@@ -2253,6 +2265,7 @@ func (q *Queries) GetUserByEmailToken(ctx context.Context, emailToken string) (U
 		&i.LastGameID,
 		&i.EmailToken,
 		&i.BlockedAt,
+		&i.AgeConfirmedAt,
 	)
 	return i, err
 }
@@ -2349,51 +2362,36 @@ func (q *Queries) GoLive(ctx context.Context, id int64) error {
 	return err
 }
 
-const grantAchievement = `-- name: GrantAchievement :exec
-INSERT OR IGNORE INTO user_achievements (user_id, achievement_id, game_id)
-VALUES (?, ?, ?)
+const grantAchievement = `-- name: GrantAchievement :execrows
+INSERT OR IGNORE INTO user_achievements (user_id, achievement_id)
+VALUES (?, ?)
 `
 
 type GrantAchievementParams struct {
 	UserID        int64
 	AchievementID int64
-	GameID        sql.NullInt64
 }
 
-func (q *Queries) GrantAchievement(ctx context.Context, arg GrantAchievementParams) error {
-	_, err := q.db.ExecContext(ctx, grantAchievement, arg.UserID, arg.AchievementID, arg.GameID)
-	return err
+// 0 rows when the user already has it.
+func (q *Queries) GrantAchievement(ctx context.Context, arg GrantAchievementParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, grantAchievement, arg.UserID, arg.AchievementID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const hasAchievement = `-- name: HasAchievement :one
-SELECT COUNT(*) FROM user_achievements
-WHERE user_id = ? AND achievement_id = ? AND (game_id = ? OR game_id IS NULL)
+SELECT COUNT(*) FROM user_achievements WHERE user_id = ? AND achievement_id = ?
 `
 
 type HasAchievementParams struct {
 	UserID        int64
 	AchievementID int64
-	GameID        sql.NullInt64
 }
 
 func (q *Queries) HasAchievement(ctx context.Context, arg HasAchievementParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, hasAchievement, arg.UserID, arg.AchievementID, arg.GameID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const hasAchievementInAnyGame = `-- name: HasAchievementInAnyGame :one
-SELECT COUNT(*) FROM user_achievements WHERE user_id = ? AND achievement_id = ?
-`
-
-type HasAchievementInAnyGameParams struct {
-	UserID        int64
-	AchievementID int64
-}
-
-func (q *Queries) HasAchievementInAnyGame(ctx context.Context, arg HasAchievementInAnyGameParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, hasAchievementInAnyGame, arg.UserID, arg.AchievementID)
+	row := q.db.QueryRowContext(ctx, hasAchievement, arg.UserID, arg.AchievementID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -2643,16 +2641,16 @@ func (q *Queries) InviteSentTo(ctx context.Context, arg InviteSentToParams) (int
 }
 
 const isWatching = `-- name: IsWatching :one
-SELECT COUNT(*) FROM watchlist WHERE participant_id = ? AND stock_id = ?
+SELECT COUNT(*) FROM watchlist WHERE user_id = ? AND stock_id = ?
 `
 
 type IsWatchingParams struct {
-	ParticipantID int64
-	StockID       int64
+	UserID  int64
+	StockID int64
 }
 
 func (q *Queries) IsWatching(ctx context.Context, arg IsWatchingParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, isWatching, arg.ParticipantID, arg.StockID)
+	row := q.db.QueryRowContext(ctx, isWatching, arg.UserID, arg.StockID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -6237,7 +6235,7 @@ func (q *Queries) ListUpcomingLive(ctx context.Context) ([]LiveEvent, error) {
 }
 
 const listUserAchievements = `-- name: ListUserAchievements :many
-SELECT ua.id, ua.user_id, ua.achievement_id, ua.game_id, ua.earned_at, a.key, a.name AS achievement_name, a.description, a.icon
+SELECT ua.id, ua.user_id, ua.achievement_id, ua.earned_at, a.key, a.name AS achievement_name, a.description, a.icon
 FROM user_achievements ua
 JOIN achievements a ON a.id = ua.achievement_id
 WHERE ua.user_id = ?
@@ -6248,7 +6246,6 @@ type ListUserAchievementsRow struct {
 	ID              int64
 	UserID          int64
 	AchievementID   int64
-	GameID          sql.NullInt64
 	EarnedAt        string
 	Key             string
 	AchievementName string
@@ -6269,7 +6266,6 @@ func (q *Queries) ListUserAchievements(ctx context.Context, userID int64) ([]Lis
 			&i.ID,
 			&i.UserID,
 			&i.AchievementID,
-			&i.GameID,
 			&i.EarnedAt,
 			&i.Key,
 			&i.AchievementName,
@@ -6419,7 +6415,7 @@ func (q *Queries) ListUserParticipations(ctx context.Context, userID int64) ([]L
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, email, name, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at FROM users ORDER BY created_at DESC
+SELECT id, email, name, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at, age_confirmed_at FROM users ORDER BY created_at DESC
 `
 
 func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
@@ -6444,6 +6440,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.LastGameID,
 			&i.EmailToken,
 			&i.BlockedAt,
+			&i.AgeConfirmedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -6672,27 +6669,27 @@ func (q *Queries) ListVideosAdmin(ctx context.Context, arg ListVideosAdminParams
 }
 
 const listWatchlist = `-- name: ListWatchlist :many
-SELECT w.id, w.participant_id, w.stock_id, w.created_at, s.symbol, s.name AS stock_name, s.market, s.sector, s.currency
+SELECT w.id, w.user_id, w.stock_id, w.created_at, s.symbol, s.name AS stock_name, s.market, s.sector, s.currency
 FROM watchlist w
 JOIN stocks s ON s.id = w.stock_id
-WHERE w.participant_id = ?
+WHERE w.user_id = ?
 ORDER BY w.created_at DESC
 `
 
 type ListWatchlistRow struct {
-	ID            int64
-	ParticipantID int64
-	StockID       int64
-	CreatedAt     string
-	Symbol        string
-	StockName     string
-	Market        string
-	Sector        string
-	Currency      string
+	ID        int64
+	UserID    int64
+	StockID   int64
+	CreatedAt string
+	Symbol    string
+	StockName string
+	Market    string
+	Sector    string
+	Currency  string
 }
 
-func (q *Queries) ListWatchlist(ctx context.Context, participantID int64) ([]ListWatchlistRow, error) {
-	rows, err := q.db.QueryContext(ctx, listWatchlist, participantID)
+func (q *Queries) ListWatchlist(ctx context.Context, userID int64) ([]ListWatchlistRow, error) {
+	rows, err := q.db.QueryContext(ctx, listWatchlist, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -6702,7 +6699,7 @@ func (q *Queries) ListWatchlist(ctx context.Context, participantID int64) ([]Lis
 		var i ListWatchlistRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.ParticipantID,
+			&i.UserID,
 			&i.StockID,
 			&i.CreatedAt,
 			&i.Symbol,
@@ -7033,16 +7030,16 @@ func (q *Queries) RecordStockSplit(ctx context.Context, arg RecordStockSplitPara
 }
 
 const removeFromWatchlist = `-- name: RemoveFromWatchlist :exec
-DELETE FROM watchlist WHERE participant_id = ? AND stock_id = ?
+DELETE FROM watchlist WHERE user_id = ? AND stock_id = ?
 `
 
 type RemoveFromWatchlistParams struct {
-	ParticipantID int64
-	StockID       int64
+	UserID  int64
+	StockID int64
 }
 
 func (q *Queries) RemoveFromWatchlist(ctx context.Context, arg RemoveFromWatchlistParams) error {
-	_, err := q.db.ExecContext(ctx, removeFromWatchlist, arg.ParticipantID, arg.StockID)
+	_, err := q.db.ExecContext(ctx, removeFromWatchlist, arg.UserID, arg.StockID)
 	return err
 }
 

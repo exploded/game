@@ -48,13 +48,13 @@ func (h *Handler) ProfileUpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if avatar.Category == "achievement" && avatar.AchievementKey.Valid {
-		// Check user has the required achievement, earned in any game.
+		// Check user has the required achievement.
 		ach, err := h.q.GetAchievementByKey(r.Context(), avatar.AchievementKey.String)
 		if err != nil {
 			http.Error(w, "Achievement not found", http.StatusBadRequest)
 			return
 		}
-		has, _ := h.q.HasAchievementInAnyGame(r.Context(), db.HasAchievementInAnyGameParams{
+		has, _ := h.q.HasAchievement(r.Context(), db.HasAchievementParams{
 			UserID:        user.ID,
 			AchievementID: ach.ID,
 		})

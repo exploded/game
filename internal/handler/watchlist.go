@@ -23,16 +23,9 @@ func (h *Handler) WatchlistPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	participant, err := h.q.GetParticipantByGameAndUser(r.Context(), db.GetParticipantByGameAndUserParams{
-		GameID: gameID, UserID: user.ID,
-	})
-	if err != nil {
-		setFlashCookie(w, "Join the game first", "error")
-		http.Redirect(w, r, fmt.Sprintf("/games/%d", gameID), http.StatusSeeOther)
-		return
-	}
-
-	items, _ := h.q.ListWatchlist(r.Context(), participant.ID)
+	// The watchlist is the player's, not the game's: it's the same in every
+	// game. The game only sets where its links go.
+	items, _ := h.q.ListWatchlist(r.Context(), user.ID)
 
 	// Get latest prices for each watchlist item.
 	type WatchlistItem struct {
@@ -54,9 +47,6 @@ func (h *Handler) WatchlistPage(w http.ResponseWriter, r *http.Request) {
 		Title: "Watchlist - " + game.Name,
 		Item:  game,
 		Items: enriched,
-		Extra: map[string]any{
-			"Participant": participant,
-		},
 	})
 }
 
@@ -73,21 +63,13 @@ func (h *Handler) WatchlistAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	participant, err := h.q.GetParticipantByGameAndUser(r.Context(), db.GetParticipantByGameAndUserParams{
-		GameID: gameID, UserID: user.ID,
-	})
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-
 	_ = h.q.AddToWatchlist(r.Context(), db.AddToWatchlistParams{
-		ParticipantID: participant.ID,
-		StockID:       stockID,
+		UserID:  user.ID,
+		StockID: stockID,
 	})
-	// Market Watcher: 10 stocks on one game's watchlist.
-	if n, _ := h.q.CountWatchlist(r.Context(), participant.ID); n >= 10 {
-		h.grantIfNew(r.Context(), user.ID, "watchlist_10", gameID)
+	// Market Watcher: 10 stocks on the watchlist.
+	if n, _ := h.q.CountWatchlist(r.Context(), user.ID); n >= 10 {
+		h.grantIfNew(r.Context(), user.ID, "watchlist_10")
 	}
 
 	if isHTMX(r) {
@@ -110,17 +92,9 @@ func (h *Handler) WatchlistRemove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	participant, err := h.q.GetParticipantByGameAndUser(r.Context(), db.GetParticipantByGameAndUserParams{
-		GameID: gameID, UserID: user.ID,
-	})
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-
 	_ = h.q.RemoveFromWatchlist(r.Context(), db.RemoveFromWatchlistParams{
-		ParticipantID: participant.ID,
-		StockID:       stockID,
+		UserID:  user.ID,
+		StockID: stockID,
 	})
 
 	if isHTMX(r) {

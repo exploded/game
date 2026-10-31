@@ -325,9 +325,10 @@ func searchRows(rows []screenRow, q string) screenResult {
 	return screenResult{Caption: "Results for “" + q + "”", Rows: out}
 }
 
-// markRows sets Held and Watching for one player. rows must be what
+// markRows sets Held (from the player's position in this game) and Watching
+// (from their watchlist, which every game shares). rows must be what
 // applyFilter returned, never the cached rows, which every player shares.
-func (h *Handler) markRows(ctx context.Context, participantID int64, rows []screenRow) {
+func (h *Handler) markRows(ctx context.Context, participantID, userID int64, rows []screenRow) {
 	held := map[int64]int64{}
 	if hs, err := h.q.ListHoldings(ctx, participantID); err == nil {
 		for _, x := range hs {
@@ -335,7 +336,7 @@ func (h *Handler) markRows(ctx context.Context, participantID int64, rows []scre
 		}
 	}
 	watching := map[int64]bool{}
-	if ws, err := h.q.ListWatchlist(ctx, participantID); err == nil {
+	if ws, err := h.q.ListWatchlist(ctx, userID); err == nil {
 		for _, x := range ws {
 			watching[x.StockID] = true
 		}

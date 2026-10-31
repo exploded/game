@@ -58,6 +58,14 @@ func OpenDB(dbPath, schema string) (*sql.DB, error) {
 			"journal_mode", journalMode, "foreign_keys", foreignKeys)
 	}
 
+	if err := dropGameWatchlist(db); err != nil {
+		db.Close()
+		return nil, err
+	}
+	if err := rebuildUserAchievements(db); err != nil {
+		db.Close()
+		return nil, err
+	}
 	if _, err := db.Exec(schema); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("applying schema: %w", err)
@@ -101,6 +109,7 @@ var addedColumns = []struct{ table, column, ddl string }{
 	{"price_fetch_log", "symbols_skipped", "INTEGER NOT NULL DEFAULT 0"},
 	{"users", "blocked_at", "TEXT DEFAULT NULL"},
 	{"lobby_messages", "blocked_reason", "TEXT NOT NULL DEFAULT ''"},
+	{"users", "age_confirmed_at", "TEXT DEFAULT NULL"},
 }
 
 // onceMigrations run exactly once per database, in order. Each is recorded in
@@ -368,6 +377,72 @@ func applyOnce(db *sql.DB, migrations []struct{ name, stmt string }) error {
 		rows, _ := res.RowsAffected()
 		slog.Info("applied migration", "name", m.name, "rows", rows)
 	}
+	return nil
+}
+
+// dropGameWatchlist drops the watchlist table while it's still keyed by
+// participant, so schema.sql makes it again keyed by user. Until 1 November
+// 2026 each game had its own watchlist, which a new month's game left empty.
+// The old lists are thrown away, not merged.
+func dropGameWatchlist(db *sql.DB) error {
+	var n int
+	if err := db.QueryRow(
+		"SELECT COUNT(*) FROM pragma_table_info('watchlist') WHERE name = 'participant_id'",
+	).Scan(&n); err != nil {
+		return fmt.Errorf("checking watchlist.participant_id: %w", err)
+	}
+	if n == 0 {
+		return nil
+	}
+	if _, err := db.Exec("DROP TABLE watchlist"); err != nil {
+		return fmt.Errorf("dropping the per-game watchlist: %w", err)
+	}
+	slog.Info("dropped the per-game watchlist")
+	return nil
+}
+
+// rebuildUserAchievements takes game_id out of user_achievements, so each
+// badge is earned once per player rather than once per game (until 1
+// November 2026). SQLite can't drop a column in a UNIQUE constraint, so it
+// copies the table, keeping the first time each player earned each badge. It
+// does nothing once game_id is gone.
+func rebuildUserAchievements(db *sql.DB) error {
+	var n int
+	if err := db.QueryRow(
+		"SELECT COUNT(*) FROM pragma_table_info('user_achievements') WHERE name = 'game_id'",
+	).Scan(&n); err != nil {
+		return fmt.Errorf("checking user_achievements.game_id: %w", err)
+	}
+	if n == 0 {
+		return nil
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	for _, stmt := range []string{
+		`CREATE TABLE user_achievements_new (
+			id             INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			achievement_id INTEGER NOT NULL REFERENCES achievements(id),
+			earned_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+			UNIQUE(user_id, achievement_id)
+		)`,
+		`INSERT INTO user_achievements_new (user_id, achievement_id, earned_at)
+			SELECT user_id, achievement_id, MIN(earned_at) FROM user_achievements
+			GROUP BY user_id, achievement_id ORDER BY MIN(id)`,
+		"DROP TABLE user_achievements",
+		"ALTER TABLE user_achievements_new RENAME TO user_achievements",
+	} {
+		if _, err := tx.Exec(stmt); err != nil {
+			return fmt.Errorf("rebuilding user_achievements: %w", err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	slog.Info("badges are now earned once per player")
 	return nil
 }
 

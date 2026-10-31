@@ -1,18 +1,5 @@
 {{/* Shared pieces of the Learn pages. */}}
 
-{{/* The hub's header and tabs. . is PageData. */}}
-{{define "learntabs"}}{{$tab := index .Extra "Tab"}}
-<div class="learn-head">
-    <a href="/learn" class="learn-brand">Learn with Rob</a>
-    <nav class="learn-tabs" aria-label="Learn">
-        <a href="/learn"{{if eq $tab "watch"}} class="active" aria-current="page"{{end}}>Watch</a>
-        <a href="/learn/live"{{if eq $tab "live"}} class="active" aria-current="page"{{end}}>Live{{with .LiveNow}} <span class="live-dot" aria-label="on now"></span>{{end}}</a>
-        <a href="/learn/questions"{{if eq $tab "questions"}} class="active" aria-current="page"{{end}}>Ask Rob</a>
-        <a href="/learn/courses">Courses</a>
-    </nav>
-</div>
-{{end}}
-
 {{/* The general advice warning under every Learn page. */}}
 {{define "disclaimer"}}<p class="learn-disclaimer">{{index .Extra "Disclaimer"}}</p>{{end}}
 

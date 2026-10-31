@@ -13,6 +13,11 @@
             <input type="text" id="name" name="name" value="{{index .Extra "Name"}}" maxlength="40" required autofocus>
             {{with index .Errors "name"}}<p class="form-error">{{.}}</p>{{end}}
         </div>
+        <label class="checkbox-label" style="padding-top:0;margin-bottom:8px">
+            <input type="checkbox" name="adult" value="1" required {{if index .Extra "Adult"}}checked{{end}}>
+            <span>I'm 18 or older.</span>
+        </label>
+        {{with index .Errors "adult"}}<p class="form-error" style="margin-bottom:8px">{{.}}</p>{{end}}
         <label class="checkbox-label" style="padding-top:0;margin-bottom:20px">
             <input type="checkbox" name="news" value="1" {{if index .Extra "News"}}checked{{end}}>
             <span>Send me news from Rob: investing tips, courses and announcements. You can unsubscribe at any time.</span>

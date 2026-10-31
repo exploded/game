@@ -38,6 +38,8 @@ func loginServer(t *testing.T) (http.Handler, *sql.DB, *db.Queries) {
 	r.Post("/login/verify", h.LoginVerify)
 	r.Get("/email/unsubscribe", h.UnsubscribePage)
 	r.Post("/email/unsubscribe", h.Unsubscribe)
+	r.With(func(next http.Handler) http.Handler { return auth.RequireAuth(q, next) }).
+		Post("/welcome", h.WelcomeSubmit)
 	return r, d, q
 }
 
@@ -221,5 +223,32 @@ func TestHome(t *testing.T) {
 	h.Home(w, req.WithContext(auth.WithUser(req.Context(), &db.User{ID: 1})))
 	if w.Code != http.StatusSeeOther || w.Header().Get("Location") != "/dashboard" {
 		t.Errorf("signed in: GET / = %d to %q, want 303 to /dashboard", w.Code, w.Header().Get("Location"))
+	}
+}
+
+func TestWelcomeNeedsAdult(t *testing.T) {
+	srv, d, q := loginServer(t)
+	req, code, _ := requestLogin(t, srv, d, "new@example.com")
+	session := cookie(post(srv, "/login/code", url.Values{"code": {code}}, req), "session")
+	if session == nil {
+		t.Fatal("no session cookie")
+	}
+
+	w := post(srv, "/welcome", url.Values{"name": {"Newbie"}, "news": {"1"}}, session)
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "You must be 18 or older") {
+		t.Fatalf("welcome without adult = %d, want the form again with an error\n%s", w.Code, w.Body)
+	}
+	user, _ := q.GetUserByEmail(context.Background(), "new@example.com")
+	if user.Name != "new" || user.AgeConfirmedAt.Valid {
+		t.Errorf("refused welcome saved name %q, age confirmed %v", user.Name, user.AgeConfirmedAt.Valid)
+	}
+
+	w = post(srv, "/welcome", url.Values{"name": {"Newbie"}, "adult": {"1"}}, session)
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("welcome with adult = %d, want 303\n%s", w.Code, w.Body)
+	}
+	user, _ = q.GetUserByEmail(context.Background(), "new@example.com")
+	if user.Name != "Newbie" || !user.AgeConfirmedAt.Valid {
+		t.Errorf("welcome saved name %q, age confirmed %v", user.Name, user.AgeConfirmedAt.Valid)
 	}
 }

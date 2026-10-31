@@ -261,7 +261,7 @@ func (h *Handler) acceptInvite(ctx context.Context, code string, user db.User) {
 	})
 	// Recruiter: 3 referrals, in any games.
 	if n, _ := h.q.CountAllReferralBonuses(ctx, invite.CreatedBy); n >= 3 {
-		h.grantIfNew(ctx, invite.CreatedBy, "referral_3", game.ID)
+		h.grantIfNew(ctx, invite.CreatedBy, "referral_3")
 	}
 }
 

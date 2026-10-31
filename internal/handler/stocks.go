@@ -61,7 +61,7 @@ func (h *Handler) StocksBrowse(w http.ResponseWriter, r *http.Request) {
 		holders = h.holderCounts(r, gameID)
 	}
 	res := applyFilter(rows, f, sector, search, holders)
-	h.markRows(r.Context(), participant.ID, res.Rows)
+	h.markRows(r.Context(), participant.ID, user.ID, res.Rows)
 
 	data := PageData{
 		Title: "Stocks - " + game.Name,
@@ -187,11 +187,8 @@ func (h *Handler) StockDetail(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ticketData(ctx context.Context, game db.Game, stock db.Stock, userID int64) map[string]any {
 	latest, _ := h.q.GetLatestPrice(ctx, stock.ID)
 	trade, _ := h.loadTradeContext(ctx, game, stock, latest, userID)
-	var watching bool
-	if trade != nil {
-		n, _ := h.q.IsWatching(ctx, db.IsWatchingParams{ParticipantID: trade.Participant.ID, StockID: stock.ID})
-		watching = n > 0
-	}
+	n, _ := h.q.IsWatching(ctx, db.IsWatchingParams{UserID: userID, StockID: stock.ID})
+	watching := n > 0
 	return map[string]any{
 		"Game":        game,
 		"LatestPrice": latest,
@@ -337,10 +334,11 @@ func (h *Handler) StockSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	res := applyFilter(rows, "", "", r.URL.Query().Get("q"), nil)
+	user := auth.UserFromContext(r.Context())
 	if p, err := h.q.GetParticipantByGameAndUser(r.Context(), db.GetParticipantByGameAndUserParams{
-		GameID: gameID, UserID: auth.UserFromContext(r.Context()).ID,
+		GameID: gameID, UserID: user.ID,
 	}); err == nil {
-		h.markRows(r.Context(), p.ID, res.Rows)
+		h.markRows(r.Context(), p.ID, user.ID, res.Rows)
 	}
 	h.render(w, r, "stocks/browse", "stock-rows", PageData{Item: game, Items: res.Rows})
 }
