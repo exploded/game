@@ -22,7 +22,7 @@
         <div class="form-group">
             <label for="topic">Topic (optional)</label>
             <select id="topic" name="topic">
-                <option value="">Let us pick</option>
+                <option value="">Let our AI brain sort it out 🧠</option>
                 {{range index .Extra "Topics"}}<option value="{{.Slug}}"{{if eq .Slug (index $f "Topic")}} selected{{end}}>{{.Name}}</option>{{end}}
             </select>
         </div>
