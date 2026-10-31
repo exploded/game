@@ -11,11 +11,12 @@ import (
 // they open the database through handler.
 
 func NewTestService(q *db.Queries, m *mail.Mailer, yt *YouTube, tt *TikTok, c Classifier) *Service {
-	return &Service{q: q, mailer: m, loc: time.UTC, yt: yt, tt: tt, classify: c}
+	return &Service{q: q, mailer: m, loc: time.UTC, yt: yt, tt: tt, ttLive: newTikTokLive(), classify: c}
 }
 
 func (y *YouTube) UseTestServer(api, shorts string) { y.base, y.shorts = api, shorts }
 func (t *TikTok) UseTestServer(api string)          { t.api = api }
+func (s *Service) UseTikTokLiveServer(base string)  { s.ttLive.base = base }
 
 var (
 	SyncYouTube      = (*Service).syncYouTube
@@ -24,6 +25,8 @@ var (
 	NotifyLive       = (*Service).notifyLive
 	MailOnAirAnswers = (*Service).mailOnAirAnswers
 	SyncTikTok       = (*Service).syncTikTok
+	CheckTikTokLive  = (*Service).checkTikTokLive
+	TikTokUser       = tiktokUser
 	ParseISODuration = parseISODuration
 	StateBackfilled  = stateYouTubeBackfilled
 )

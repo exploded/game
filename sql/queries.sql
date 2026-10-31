@@ -1536,6 +1536,15 @@ LIMIT ?;
 -- name: ListAllLiveEvents :many
 SELECT * FROM live_events ORDER BY COALESCE(scheduled_at, created_at) DESC LIMIT 100;
 
+-- TikTok streams to check for Rob starting or ending: booked ones from 15
+-- minutes before their start until 2 hours after, and ones on now.
+-- name: ListTikTokLiveToCheck :many
+SELECT * FROM live_events
+WHERE platform = 'tiktok'
+  AND (status = 'live' OR (status = 'upcoming'
+       AND scheduled_at <= datetime('now', '+15 minutes') AND scheduled_at > datetime('now', '-2 hours')))
+ORDER BY scheduled_at;
+
 -- name: ListLiveToAnnounce :many
 SELECT * FROM live_events WHERE status = 'upcoming' AND announced = 0;
 

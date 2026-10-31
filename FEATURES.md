@@ -191,7 +191,8 @@ page ends with the licensee's general advice warning.
 
 - Rob's upcoming and current live streams. YouTube streams appear by
   themselves; admins add TikTok, Facebook and Instagram streams, or tap **I'm
-  live now**.
+  live now**. A booked TikTok stream starts when Rob goes live on TikTok and
+  ends when he stops, without anyone tapping anything.
 - A "Rob is live" banner shows across the whole site while he's on air.
 - Visitors can add a stream to their calendar, and members can ask for a
   reminder email.

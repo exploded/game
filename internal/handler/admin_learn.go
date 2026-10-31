@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/subtle"
 	"database/sql"
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
@@ -276,7 +277,63 @@ func (h *Handler) AdminLearnLive(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, "list streams", err)
 		return
 	}
-	h.render(w, r, "admin/learn_live", "", PageData{Title: "Live streams", Items: events})
+	prefill, err := json.Marshal(livePrefill(events, time.Now()))
+	if err != nil {
+		h.serverError(w, "stream form", err)
+		return
+	}
+	extra := map[string]any{"Prefill": string(prefill)}
+	if at, result := h.media.TikTokLiveCheck(r.Context()); !at.IsZero() {
+		extra["TikTokChecked"] = at.In(displayLoc).Format("Mon 2 Jan, 3:04 pm")
+		extra["TikTokResult"] = result
+	}
+	h.render(w, r, "admin/learn_live", "", PageData{Title: "Live streams", Items: events, Extra: extra})
+}
+
+// liveLinks are Rob's live pages, for a platform with no stream added yet.
+var liveLinks = map[string]string{
+	"tiktok":    "https://www.tiktok.com/@rob_goudie/live",
+	"youtube":   "https://www.youtube.com/@ConsortiumPW/live",
+	"facebook":  "https://www.facebook.com/consortiumpw/live_videos",
+	"instagram": "https://www.instagram.com/consortiumprivatewealth/live/",
+	"x":         "https://x.com/consortiumpw",
+}
+
+// livePrefill is what choosing a platform fills the Add a stream form with:
+// the last stream added there, starting on the same weekday and time next,
+// or Rob's live page there. events are newest first.
+func livePrefill(events []db.LiveEvent, now time.Time) map[string]map[string]string {
+	out := map[string]map[string]string{}
+	for p, link := range liveLinks {
+		out[p] = map[string]string{"url": link, "title": "Live with Rob"}
+	}
+	done := map[string]bool{}
+	for _, e := range events {
+		if e.Source != "admin" || done[e.Platform] || out[e.Platform] == nil {
+			continue
+		}
+		done[e.Platform] = true
+		f := map[string]string{"url": e.Url, "title": e.Title, "description": e.Description}
+		if last, err := time.Parse(time.DateTime, e.ScheduledAt.String); err == nil {
+			f["scheduled"] = nextWeekly(last.In(displayLoc), now.In(displayLoc)).Format("2006-01-02T15:04")
+		}
+		out[e.Platform] = f
+	}
+	return out
+}
+
+// nextWeekly is the first time after now, and after last, on last's weekday
+// at last's time of day.
+func nextWeekly(last, now time.Time) time.Time {
+	if last.After(now) {
+		now = last
+	}
+	days := (int(last.Weekday()) - int(now.Weekday()) + 7) % 7
+	t := time.Date(now.Year(), now.Month(), now.Day()+days, last.Hour(), last.Minute(), 0, 0, now.Location())
+	if !t.After(now) {
+		t = t.AddDate(0, 0, 7)
+	}
+	return t
 }
 
 // liveForm reads the stream form. scheduled is "" for "now".

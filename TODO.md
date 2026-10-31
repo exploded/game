@@ -71,6 +71,14 @@ reminders need an account.
 - [x] **TikTok through TikTok's API.** Rob connects once from `/admin/learn`;
   the access token refreshes itself and lasts a year. Covers are cached
   because TikTok's links expire after six hours.
+- [x] **TikTok streams start and end by themselves** (2026-10-31). From 15
+  minutes before a booked TikTok stream until 2 hours after, the site asks
+  TikTok's own live endpoint every minute whether Rob is live (no login or
+  key; not a public API, so it may break). It ends a stream it saw start once
+  he's been off air for 5 minutes. The Add a stream form fills itself in from
+  the last stream on the platform chosen.
+- [ ] **Check the TikTok live check during a real stream:** that TikTok gives
+  `liveRoom.status` 2 while Rob is live, and the stream starts by itself.
 - [x] **Stock pages show Rob's videos** about that stock, and the dashboard
   shows new videos and the next stream.
 - [x] **Go live:** `YOUTUBE_API_KEY` and `ANTHROPIC_API_KEY` are in the server
@@ -83,7 +91,7 @@ reminders need an account.
   His general advice wording is in; no podcast link is needed (2026-10-30).
 - [ ] **Later:** Facebook and Instagram sync and Facebook live detection
   through Meta's Graph API (needs Rob's Page connected to a Meta app). TikTok
-  LIVE has no API, so TikTok streams stay manual. Web push notifications.
+  streams still have to be booked by hand. Web push notifications.
 - [ ] **Check on a phone:** `/learn`, a video, `/learn/live`, and a stream
   page while live.
 

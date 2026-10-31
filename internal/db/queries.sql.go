@@ -5685,6 +5685,55 @@ func (q *Queries) ListStocksWithoutHistory(ctx context.Context, market string) (
 	return items, nil
 }
 
+const listTikTokLiveToCheck = `-- name: ListTikTokLiveToCheck :many
+SELECT id, platform, url, embed_url, video_id, title, description, scheduled_at, started_at, ended_at, status, source, announced, start_notified, created_at FROM live_events
+WHERE platform = 'tiktok'
+  AND (status = 'live' OR (status = 'upcoming'
+       AND scheduled_at <= datetime('now', '+15 minutes') AND scheduled_at > datetime('now', '-2 hours')))
+ORDER BY scheduled_at
+`
+
+// TikTok streams to check for Rob starting or ending: booked ones from 15
+// minutes before their start until 2 hours after, and ones on now.
+func (q *Queries) ListTikTokLiveToCheck(ctx context.Context) ([]LiveEvent, error) {
+	rows, err := q.db.QueryContext(ctx, listTikTokLiveToCheck)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []LiveEvent
+	for rows.Next() {
+		var i LiveEvent
+		if err := rows.Scan(
+			&i.ID,
+			&i.Platform,
+			&i.Url,
+			&i.EmbedUrl,
+			&i.VideoID,
+			&i.Title,
+			&i.Description,
+			&i.ScheduledAt,
+			&i.StartedAt,
+			&i.EndedAt,
+			&i.Status,
+			&i.Source,
+			&i.Announced,
+			&i.StartNotified,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTopicQuestions = `-- name: ListTopicQuestions :many
 SELECT q.id, q.title, q.answer != '' AS answered,
        (SELECT COUNT(*) FROM question_votes v WHERE v.question_id = q.id) AS votes

@@ -110,6 +110,31 @@ document.addEventListener("change", function(e) {
     }
 });
 
+// data-prefill on a form (Add a stream): JSON of field values for each
+// value of the select named by data-prefill-by. Choosing an option fills the
+// fields, leaving alone any the admin has typed in.
+document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll("form[data-prefill]").forEach(function(form) {
+        let sets;
+        try { sets = JSON.parse(form.getAttribute("data-prefill")); } catch (err) { return; }
+        const select = form.elements[form.getAttribute("data-prefill-by")];
+        if (!select) return;
+        const names = new Set();
+        Object.values(sets).forEach(function(set) { Object.keys(set).forEach(function(n) { names.add(n); }); });
+        const fill = function() {
+            const set = sets[select.value] || {};
+            names.forEach(function(name) {
+                const field = form.elements[name];
+                if (!field || (field.value !== "" && field.value !== field.dataset.filled)) return;
+                field.value = set[name] || "";
+                field.dataset.filled = field.value;
+            });
+        };
+        select.addEventListener("change", fill);
+        fill();
+    });
+});
+
 // data-clear-search on a form (the stocks page's chips): changing it
 // empties the search box it names, so the chip's list shows, not a search.
 document.addEventListener("change", function(e) {

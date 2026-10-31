@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"database/sql"
+	"maps"
 	"net/http"
 	"strconv"
 	"strings"
@@ -111,7 +113,7 @@ func TestLearnPagesRender(t *testing.T) {
 		{"1", "/admin/learn", []string{"YouTube is off", "Salary sacrifice explained"}},
 		{"1", "/admin/learn/videos/1", []string{"Superannuation", "Pin to"}},
 		{"1", "/admin/learn/topics", []string{"Superannuation", "Add a topic"}},
-		{"1", "/admin/learn/live", []string{"TikTok live", "live now"}},
+		{"1", "/admin/learn/live", []string{"TikTok live", "live now", `data-prefill-by="platform"`, "consortiumprivatewealth/live/"}},
 	} {
 		w := as(srv, tc.user, "GET", tc.path, nil, false)
 		if w.Code != http.StatusOK {
@@ -193,5 +195,48 @@ func TestStreamReminderAndAdminActions(t *testing.T) {
 	as(srv, "1", "POST", "/admin/learn/videos/3", map[string][]string{"topic": {"1"}, "hidden": {"1"}}, false)
 	if w := as(srv, "", "GET", "/learn/v/3", nil, false); w.Code != http.StatusNotFound {
 		t.Errorf("a hidden video for a visitor: %d, want 404", w.Code)
+	}
+}
+
+func TestLivePrefill(t *testing.T) {
+	syd, err := time.LoadLocation("Australia/Sydney")
+	if err != nil {
+		t.Fatal(err)
+	}
+	old := displayLoc
+	displayLoc = syd
+	t.Cleanup(func() { displayLoc = old })
+
+	// Friday 30 October 2026, 9 pm in Sydney (AEDT, UTC+11).
+	now := time.Date(2026, 10, 30, 21, 0, 0, 0, syd)
+	events := []db.LiveEvent{
+		{Platform: "youtube", Source: "youtube", Title: "Synced", Url: "https://youtu.be/x"},
+		// Friday 23 October, 7:30 pm in Sydney.
+		{Platform: "tiktok", Source: "admin", Title: "Thursday Q&A", Url: "https://www.tiktok.com/@rob_goudie/live", Description: "Ask away",
+			ScheduledAt: sql.NullString{String: "2026-10-23 08:30:00", Valid: true}},
+		{Platform: "tiktok", Source: "admin", Title: "Older", Url: "https://www.tiktok.com/@rob_goudie/live"},
+	}
+	got := livePrefill(events, now)
+	want := map[string]string{
+		"url": "https://www.tiktok.com/@rob_goudie/live", "title": "Thursday Q&A", "description": "Ask away",
+		"scheduled": "2026-11-06T19:30", // tonight's 7:30 pm has passed
+	}
+	if !maps.Equal(got["tiktok"], want) {
+		t.Errorf("tiktok = %v, want %v", got["tiktok"], want)
+	}
+	if got["youtube"]["url"] != "https://www.youtube.com/@ConsortiumPW/live" || got["youtube"]["scheduled"] != "" {
+		t.Errorf("youtube = %v, want Rob's live page and no time", got["youtube"])
+	}
+
+	for _, tc := range []struct{ last, want string }{
+		{"2026-10-23 22:00", "2026-10-30 22:00"}, // later tonight
+		{"2026-10-24 09:00", "2026-10-31 09:00"}, // tomorrow
+		{"2026-10-22 09:00", "2026-11-05 09:00"}, // next Thursday
+		{"2026-10-30 22:00", "2026-11-06 22:00"}, // booked for later tonight already
+	} {
+		last, _ := time.ParseInLocation("2006-01-02 15:04", tc.last, syd)
+		if got := nextWeekly(last, now).Format("2006-01-02 15:04"); got != tc.want {
+			t.Errorf("nextWeekly(%s) = %s, want %s", tc.last, got, tc.want)
+		}
 	}
 }

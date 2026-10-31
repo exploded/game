@@ -1,6 +1,7 @@
 // Package media keeps the Learn hub's videos and live streams up to date. It
 // syncs Rob's YouTube channel and TikTok account, asks Claude which topics
-// each video belongs to, and emails people about live streams. The scheduler
+// each video belongs to, spots Rob going live on TikTok, and emails people
+// about live streams. The scheduler
 // runs it every minute; each job is skipped when its keys aren't set.
 package media
 
@@ -23,19 +24,21 @@ type Service struct {
 	mailer *mail.Mailer
 	loc    *time.Location
 
-	yt       *YouTube   // nil without YOUTUBE_API_KEY
-	tt       *TikTok    // nil without TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET
+	yt       *YouTube // nil without YOUTUBE_API_KEY
+	tt       *TikTok  // nil without TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET
+	ttLive   *tiktokLive
 	classify Classifier // nil without ANTHROPIC_API_KEY
 
 	ytRunning       atomic.Bool
 	ttRunning       atomic.Bool
+	ttLiveRunning   atomic.Bool
 	classifyRunning atomic.Bool
 }
 
 // New reads the media settings from the environment. loc is the time zone
 // emails show stream times in.
 func New(q *db.Queries, m *mail.Mailer, loc *time.Location) *Service {
-	s := &Service{q: q, mailer: m, loc: loc}
+	s := &Service{q: q, mailer: m, loc: loc, ttLive: newTikTokLive()}
 	if key := os.Getenv("YOUTUBE_API_KEY"); key != "" {
 		channel := os.Getenv("YOUTUBE_CHANNEL")
 		if channel == "" {
@@ -99,6 +102,7 @@ func (s *Service) Run(ctx context.Context, now time.Time) {
 	if s.tt != nil && utc.Minute() == 15 {
 		s.background(&s.ttRunning, "tiktok sync", func() error { return s.syncTikTok(ctx) })
 	}
+	s.background(&s.ttLiveRunning, "tiktok live check", func() error { return s.checkTikTokLive(ctx) })
 	if s.classify != nil {
 		s.background(&s.classifyRunning, "classify videos", func() error { return s.classifyPending(ctx) })
 	}

@@ -6,11 +6,15 @@
     <a href="/admin/learn" class="btn btn-sm">&larr; Learn</a>
 </div>
 
-<p style="margin-bottom:16px">YouTube streams appear here by themselves once Rob schedules them on YouTube. TikTok, Facebook and Instagram can't tell us, so add those here. Everyone with Live streams email on hears about a stream added at least an hour ahead.</p>
+<p style="margin-bottom:12px">YouTube streams appear here by themselves once Rob schedules them on YouTube. TikTok, Facebook and Instagram can't tell us, so add those here. Everyone with Live streams email on hears about a stream added at least an hour ahead.</p>
+
+<p style="margin-bottom:16px">A booked TikTok stream starts by itself: from 15 minutes before its start time until 2 hours after, the site checks every minute whether Rob is live on TikTok. Once he's been off air for 5 minutes, it ends the stream. If a check fails, use <strong>Go live now</strong> on the stream's page.
+{{with .Extra.TikTokChecked}}<br><span class="text-muted">Last check: {{.}}. {{$.Extra.TikTokResult}}</span>{{end}}</p>
 
 <div class="settings-card">
     <h2>Add a stream</h2>
-    <form method="POST" action="/admin/learn/live">
+    <p class="text-muted" style="margin-bottom:12px">Choosing where fills in the rest from the last stream there, on the same day and time next week. Check the start time before adding it.</p>
+    <form method="POST" action="/admin/learn/live" data-prefill-by="platform" data-prefill="{{.Extra.Prefill}}">
         {{template "liveform"}}
         <div class="btn-group" style="flex-wrap:wrap">
             <button type="submit" class="btn btn-primary">Add stream</button>
