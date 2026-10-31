@@ -321,6 +321,32 @@ func TestDropASXStocks(t *testing.T) {
 	}
 }
 
+// TestRenameSQToXYZ: Block's old SQ row becomes XYZ and keeps its id, so its
+// holdings and prices follow it.
+func TestRenameSQToXYZ(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "test.db")
+	d, err := OpenDB(path, game.Schema)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, q := range []string{
+		"DELETE FROM schema_migrations WHERE name = 'rename-sq-xyz'",
+		"INSERT INTO stocks (id, symbol, name, market, currency) VALUES (7, 'SQ', 'Block Inc.', 'sp500', 'USD')",
+	} {
+		if _, err := d.Exec(q); err != nil {
+			t.Fatalf("%s: %v", q, err)
+		}
+	}
+	d.Close()
+
+	d = openTestDBAt(t, path)
+	var symbols string
+	d.QueryRow("SELECT GROUP_CONCAT(id || ':' || symbol) FROM stocks").Scan(&symbols)
+	if symbols != "7:XYZ" {
+		t.Errorf("stocks = %s, want 7:XYZ", symbols)
+	}
+}
+
 // TestCSRFSecretSurvivesRestart: a new secret on every start made every page
 // left open across a restart fail its next POST with "invalid CSRF token".
 func TestCSRFSecretSurvivesRestart(t *testing.T) {

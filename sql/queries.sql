@@ -1040,10 +1040,12 @@ WHERE u.id = ?;
 -- =============================================================================
 
 -- name: CreateLobbyMessage :one
-INSERT INTO lobby_messages (user_id, message)
-VALUES (?, ?)
+INSERT INTO lobby_messages (user_id, message, blocked_reason)
+VALUES (?, ?, ?)
 RETURNING *;
 
+-- ListLobbyMessages lists posted messages, blocked ones (admins only), or
+-- both.
 -- name: ListLobbyMessages :many
 SELECT lm.*, u.name AS user_name,
     COALESCE(a.image_path, '') AS avatar_path
@@ -1051,13 +1053,30 @@ FROM lobby_messages lm
 JOIN users u ON u.id = lm.user_id
 LEFT JOIN avatars a ON a.id = u.avatar_id
 WHERE u.blocked_at IS NULL
+  AND ((lm.blocked_reason = '' AND CAST(sqlc.arg(show_posted) AS INTEGER) = 1)
+    OR (lm.blocked_reason != '' AND CAST(sqlc.arg(show_blocked) AS INTEGER) = 1))
 ORDER BY lm.created_at DESC
-LIMIT ? OFFSET ?;
+LIMIT sqlc.arg(limit) OFFSET sqlc.arg(offset);
 
 -- name: CountLobbyMessages :one
 SELECT COUNT(*) FROM lobby_messages lm
 JOIN users u ON u.id = lm.user_id
-WHERE u.blocked_at IS NULL;
+WHERE u.blocked_at IS NULL
+  AND ((lm.blocked_reason = '' AND CAST(sqlc.arg(show_posted) AS INTEGER) = 1)
+    OR (lm.blocked_reason != '' AND CAST(sqlc.arg(show_blocked) AS INTEGER) = 1));
+
+-- CountBlockedLobbyMessages is the admin bar's count of blocked messages
+-- waiting for review. Unblocking, deleting or blocking the author clears one.
+-- name: CountBlockedLobbyMessages :one
+SELECT COUNT(*) FROM lobby_messages lm
+JOIN users u ON u.id = lm.user_id
+WHERE u.blocked_at IS NULL AND lm.blocked_reason != '';
+
+-- name: GetLobbyMessage :one
+SELECT * FROM lobby_messages WHERE id = ?;
+
+-- name: UnblockLobbyMessage :exec
+UPDATE lobby_messages SET blocked_reason = '' WHERE id = ?;
 
 -- name: DeleteLobbyMessage :exec
 DELETE FROM lobby_messages WHERE id = ?;
@@ -1492,6 +1511,9 @@ ON CONFLICT(video_id) DO UPDATE SET
     started_at = COALESCE(excluded.started_at, live_events.started_at),
     ended_at = COALESCE(excluded.ended_at, live_events.ended_at),
     status = CASE WHEN live_events.status = 'cancelled' THEN 'cancelled' ELSE excluded.status END;
+
+-- name: DeleteYouTubeLiveEvent :exec
+DELETE FROM live_events WHERE video_id = ? AND source = 'youtube';
 
 -- name: CreateLiveEvent :one
 INSERT INTO live_events (platform, url, embed_url, title, description, scheduled_at, status, source)

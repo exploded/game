@@ -85,6 +85,8 @@ func TestApplyFilter(t *testing.T) {
 		screenStock(4, "XOM", "Energy", 100, 110, 1, 400), // +10%
 		screenStock(5, "F", "Consumer Discretionary", 100, 100, 9000, 50),
 		screenStock(6, "TSM", "Information Technology", 100, 99, 0, 1200),
+		screenStock(7, "IBIT", "Financials", 100, 100, 0, 0),
+		screenStock(8, "COIN", "Financials", 100, 100, 0, 90),
 	}
 	rows[2].IsPick, rows[2].PickOrder = 1, 1
 	rows[3].IsPick, rows[3].PickOrder = 1, 2
@@ -101,10 +103,11 @@ func TestApplyFilter(t *testing.T) {
 		{"tech", "", "", "MSFT AAPL TSM"},
 		{"up", "", "", "XOM AAPL MSFT"},
 		{"down", "", "", "BHP TSM"},
-		{"big", "", "", "MSFT AAPL TSM XOM BHP F"},
+		{"big", "", "", "MSFT AAPL TSM XOM BHP COIN F IBIT"},
 		{"active", "", "", "F MSFT AAPL BHP XOM"}, // dollar volume, not shares
 		{"aus", "", "", "BHP"},
 		{"intl", "", "", "TSM"},
+		{"crypto", "", "", "COIN IBIT"},
 		{"all", "Energy", "", "XOM"},
 		{"nonsense", "", "", "MSFT XOM AAPL"},
 		// A search ignores the chip and sector. An exact symbol comes first.

@@ -205,10 +205,12 @@ document.addEventListener("click", function(e) {
 });
 
 // data-reset-on-success on an htmx form: clear it and refocus after a
-// successful request (chat and lobby).
+// successful request (the lobby). A 204 is a refusal with a toast, so the
+// text stays to be changed.
 document.body.addEventListener("htmx:after:request", function(e) {
     const form = e.target.closest("form[data-reset-on-success]");
-    if (!form || e.detail.ctx.response.status >= 400) return;
+    const status = e.detail.ctx.response.status;
+    if (!form || status >= 400 || status === 204) return;
     form.reset();
     const input = form.querySelector("input[type=text]");
     if (input) input.focus();

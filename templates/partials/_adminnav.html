@@ -9,5 +9,6 @@
     <a href="/admin/courses" class="btn btn-primary"{{if eq $tab "courses"}} aria-current="page"{{end}}>Courses</a>
     <a href="/admin/learn" class="btn btn-primary"{{if eq $tab "learn"}} aria-current="page"{{end}}>Learn: videos and live</a>
     <a href="/admin/messages" class="btn btn-primary"{{if eq $tab "messages"}} aria-current="page"{{end}}>Messages{{if .Unread}} ({{.Unread}}){{end}}</a>
+    <a href="/lobby?blocked=1" class="btn btn-primary">Lobby{{if .Blocked}} ({{.Blocked}}){{end}}</a>
 </nav>
 {{end}}

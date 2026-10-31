@@ -24,7 +24,8 @@ and courses.
 
 - Players can buy shares in the S&P 500 (the 500 biggest US companies), plus
   Australian and other overseas companies listed in the US, such as ASML, TSMC,
-  Novo Nordisk and Shopify.
+  Novo Nordisk and Shopify, and two US Bitcoin shares: the iShares Bitcoin
+  Trust ETF (IBIT) and Strategy (MSTR).
 - Prices are real, from Twelve Data. While the US market is open, they update
   every 2 minutes. Each evening the day's closing prices are saved.
 - US shares are priced in US dollars. The game converts them to Australian
@@ -42,7 +43,7 @@ move and a small 30-day chart. Quick filters pick a list:
 - **Rob's Picks** (the default, chosen by Rob, with his notes)
 - **Mag 7** (Apple, Microsoft, Amazon, Nvidia, Alphabet, Meta and Tesla)
 - **Tech**, **Gainers**, **Losers**, **Biggest** and **Most traded**
-- **Aussie** and **International**
+- **Aussie**, **International** and **Crypto**
 - **Players' favourites** (the shares most held by players in the game)
 - **All A–Z**
 
@@ -220,7 +221,11 @@ page ends with the licensee's general advice warning.
 
 ## Community
 
-- **Lobby**: a chat room for all signed-in players.
+- **Lobby**: a chat room for all signed-in players. Claude (Haiku) checks each
+  message before it's posted and blocks abuse, spam, scams, pump-and-dump
+  pushes, personal details and personal financial advice. Admins see blocked
+  messages in the lobby (and a count in the admin links) and can unblock them,
+  delete them or block the author.
 - **Notifications**: badges earned, orders filled, cancelled or expired, share
   splits and referral bonuses. The menu shows how many are unread, and players
   can mark them read one at a time or all at once.

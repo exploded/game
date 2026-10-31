@@ -39,6 +39,9 @@ Wealth. It has two halves:
 - Shares in the S&P 500 (the 500 biggest US companies).
 - Australian companies listed in the US, and big overseas companies listed in
   the US, such as ASML, TSMC, Novo Nordisk and Shopify.
+- Two US Bitcoin shares outside the S&P 500: the iShares Bitcoin Trust ETF
+  (IBIT), which follows the Bitcoin price, and Strategy (MSTR), which holds
+  Bitcoin. Crypto itself isn't offered.
 - Australian (ASX) shares aren't offered until a data licence is in place.
 - Prices are real, from a data company called Twelve Data. While the US market
   is open, prices update every 2 minutes.
@@ -68,6 +71,7 @@ move and a small 30-day chart. Quick filters pick a list:
 - **Mag 7** (Apple, Microsoft, Amazon, Nvidia, Alphabet, Meta and Tesla)
 - **Tech**, **Gainers**, **Losers**, **Biggest** and **Most traded**
 - **Aussie** and **International** (companies from Australia and overseas)
+- **Crypto** (Bitcoin funds and crypto companies such as Coinbase)
 - **Players' favourites** (most held by players in this game)
 - **All A–Z**
 
@@ -150,7 +154,12 @@ On the **Profile** page players choose an avatar picture. Nine are free; four
 
 ### Talking to other players
 
-The **Lobby** is a site-wide chat room for all signed-in players.
+The **Lobby** is a site-wide chat room for all signed-in players. Claude
+checks each message against the chat rules in the terms before it's posted. A
+blocked message isn't posted: the sender sees why, keeps the text to change
+it, and can tell the moderators through Contact if it was a mistake. Blocked
+messages stay in the lobby for admins only, marked Blocked with the reason, so
+they can check them (see Admin tools). Admins can also delete any message.
 
 ## Learn
 
@@ -222,6 +231,10 @@ Admins (Rob and the site team) get an **Admin** menu with:
   edit topics, hide or pin videos, turn off a video's share links, schedule
   live streams, and connect TikTok.
 - **Messages**: read and delete Contact form messages.
+- **Lobby**: the lobby messages moderation blocked, with how many are waiting.
+  For each one an admin can **Unblock** it (it's posted for everyone), delete it,
+  or **Block user** (the author is blocked as on Users, and their messages leave
+  the lobby). Any of the three clears it from the count.
 
 ## What was cleaned up on 31 October 2026
 
@@ -267,6 +280,13 @@ The site was reviewed for parts that were hidden, unfinished or no longer used.
   credited to players.
 - **Rob to check the two 2018 super courses** (Beginners Guide to Super and How
   Super Works). They quote 9.5% employer super, which is now 12%.
+- **Rob to delete two unused YouTube live streams.** YouTube still lists them
+  as upcoming, though neither ever ran: "Investor Motivation Live Stream" (set
+  up 8 January 2026 with no start time,
+  youtube.com/watch?v=y874woJzPt8) and "Welcome to our live show!" (booked
+  for 29 July 2026, youtube.com/watch?v=mgemRYquSoM). The site now hides
+  streams like these by itself, but deleting them in YouTube Studio tidies the
+  channel too.
 - **Weekly summary email and "we miss you" email**: planned, not built. The
   Weekly summary choice stays hidden on Settings until the email exists.
 - **TikTok**: waiting on TikTok to approve the app.

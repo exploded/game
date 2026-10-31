@@ -222,10 +222,11 @@ type LiveReminder struct {
 }
 
 type LobbyMessage struct {
-	ID        int64
-	UserID    int64
-	Message   string
-	CreatedAt string
+	ID            int64
+	UserID        int64
+	Message       string
+	CreatedAt     string
+	BlockedReason string
 }
 
 type LoginRequest struct {

@@ -99,6 +99,7 @@ var addedColumns = []struct{ table, column, ddl string }{
 	{"price_fetch_log", "symbols_ok", "INTEGER NOT NULL DEFAULT 0"},
 	{"price_fetch_log", "symbols_skipped", "INTEGER NOT NULL DEFAULT 0"},
 	{"users", "blocked_at", "TEXT DEFAULT NULL"},
+	{"lobby_messages", "blocked_reason", "TEXT NOT NULL DEFAULT ''"},
 }
 
 // onceMigrations run exactly once per database, in order. Each is recorded in
@@ -212,6 +213,10 @@ var onceMigrations = []struct{ name, stmt string }{
 	// James's cancelled "Test 3" game, from before monthly games. It had no
 	// trades; its two open orders, invites and email go with it.
 	{"drop-test-3-game", "DELETE FROM games WHERE id = 3 AND name = 'Test 3' AND status = 'cancelled'"},
+	// Block changed its ticker from SQ to XYZ in January 2025. Rename the row,
+	// keeping its prices and holdings, before SeedStocks would add XYZ anew.
+	{"rename-sq-xyz", `UPDATE stocks SET symbol = 'XYZ' WHERE symbol = 'SQ' AND market = 'sp500'
+		AND NOT EXISTS (SELECT 1 FROM stocks WHERE symbol = 'XYZ' AND market = 'sp500')`},
 }
 
 // droppedColumns are columns taken out of schema.sql. Older databases still

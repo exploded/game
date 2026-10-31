@@ -22,7 +22,7 @@ func SeedStocks(ctx context.Context, q *db.Queries) {
 		})
 		count++
 	}
-	for _, list := range [][]StockInfo{AusUS, OtherUS} {
+	for _, list := range [][]StockInfo{AusUS, OtherUS, CryptoUS} {
 		for _, s := range list {
 			q.InsertStock(ctx, db.InsertStockParams{
 				Symbol:   s.Symbol,
@@ -58,6 +58,7 @@ var AusUS = []StockInfo{
 	{"WBKCY", "Westpac Banking (US OTC)", "Financials"},
 	{"ANZGY", "ANZ Group (US OTC)", "Financials"},
 	{"MQBKY", "Macquarie Group (US OTC)", "Financials"},
+	{"IREN", "IREN Ltd (US-listed)", "Information Technology"},
 }
 
 // OtherUS contains big overseas companies that trade in the US, as shares
@@ -83,8 +84,25 @@ var OtherUS = []StockInfo{
 	{"SPOT", "Spotify Technology", "Communication Services"},
 }
 
+// CryptoUS contains US-listed Bitcoin plays that aren't in the S&P 500: a
+// spot Bitcoin ETF, which tracks the BTC price, and Strategy, which holds
+// Bitcoin as its main asset. They stand in for crypto itself, which trades
+// around the clock in fractions the game can't hold. Like AusUS, they share
+// the sp500 market.
+var CryptoUS = []StockInfo{
+	{"IBIT", "iShares Bitcoin Trust ETF", "Financials"},
+	{"MSTR", "Strategy Inc.", "Information Technology"},
+}
+
 var ausUSSymbols = symbolSet(AusUS)
 var otherUSSymbols = symbolSet(OtherUS)
+var cryptoUSSymbols = symbolSet(CryptoUS)
+
+// cryptoSymbols are the stocks under the Crypto chip: CryptoUS, plus IREN (a
+// Bitcoin miner in AusUS) and the S&P 500's crypto exchanges and brokers.
+var cryptoSymbols = map[string]bool{
+	"IBIT": true, "MSTR": true, "IREN": true, "COIN": true, "HOOD": true, "XYZ": true,
+}
 
 func symbolSet(list []StockInfo) map[string]bool {
 	m := make(map[string]bool, len(list))
@@ -104,15 +122,22 @@ func IsOtherUS(symbol, market string) bool {
 	return market == "sp500" && otherUSSymbols[symbol]
 }
 
-// MarketLabel is the market name shown to players for a stock. AusUS and
-// OtherUS stocks sit in the sp500 market but aren't in the index, so they
-// get "AU (US)" and "INTL (US)".
+// IsCrypto says whether a stock is one of the crypto-related stocks.
+func IsCrypto(symbol, market string) bool {
+	return market == "sp500" && cryptoSymbols[symbol]
+}
+
+// MarketLabel is the market name shown to players for a stock. AusUS,
+// OtherUS and CryptoUS stocks sit in the sp500 market but aren't in the
+// index, so they get "AU (US)", "INTL (US)" and "US".
 func MarketLabel(symbol, market string) string {
 	switch {
 	case IsAusUS(symbol, market):
 		return "AU (US)"
 	case IsOtherUS(symbol, market):
 		return "INTL (US)"
+	case market == "sp500" && cryptoUSSymbols[symbol]:
+		return "US"
 	}
 	return strings.ToUpper(market)
 }
@@ -240,7 +265,7 @@ var SP500 = []StockInfo{
 	{"CRWD", "CrowdStrike", "Information Technology"},
 	{"DDOG", "Datadog Inc.", "Information Technology"},
 	{"NET", "Cloudflare Inc.", "Information Technology"},
-	{"SQ", "Block Inc.", "Financials"},
+	{"XYZ", "Block Inc.", "Financials"},
 	{"PLTR", "Palantir Technologies", "Information Technology"},
 	{"RIVN", "Rivian Automotive", "Consumer Discretionary"},
 	{"LCID", "Lucid Group", "Consumer Discretionary"},

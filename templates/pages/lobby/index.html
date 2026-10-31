@@ -19,11 +19,22 @@
                class="chat-input" maxlength="500" required id="lobby-input">
         <button type="submit" class="btn btn-primary">Send</button>
     </form>
+    <p class="text-muted" style="font-size:0.8rem;margin:0.25rem 0 0.75rem">Messages are checked automatically against the <a href="/terms">chat rules</a>. If one is blocked by mistake, <a href="/contact">tell us</a>.</p>
+
+    {{if and .User .User.IsAdmin (or .Extra.BlockedOnly .Extra.Blocked)}}
+    <p class="text-muted chat-admin-filter">
+        {{if .Extra.BlockedOnly}}
+        Showing only blocked messages, which players don't see. <a href="/lobby">Show all</a>
+        {{else if .Extra.Blocked}}
+        {{.Extra.Blocked}} blocked, shown only to admins. <a href="/lobby?blocked=1">Show only blocked</a>
+        {{end}}
+    </p>
+    {{end}}
 
     <div id="messages-list" class="messages-list" style="min-height:200px">
         {{if .Items}}
         {{range .Items}}
-        <div class="chat-message">
+        <div class="chat-message{{if .BlockedReason}} chat-blocked{{end}}">
             <div class="chat-meta">
                 {{if .AvatarPath}}
                 <img src="{{.AvatarPath}}" alt="{{.UserName}}" class="avatar-sm">
@@ -32,15 +43,32 @@
                 {{end}}
                 <strong>{{.UserName}}</strong>
                 <span class="text-muted">{{.CreatedAt}}</span>
+                {{if .BlockedReason}}<span class="badge badge-cancelled">Blocked</span>{{end}}
                 {{if and $.User $.User.IsAdmin}}
                 <form method="POST" action="/admin/lobby/{{.ID}}/delete" style="display:inline;margin-left:auto">
+                    {{if $.Extra.BlockedOnly}}<input type="hidden" name="blocked" value="1">{{end}}
                     <button type="submit" class="btn btn-sm btn-danger" data-confirm="Delete this message from {{.UserName}}?" data-confirm-ok="Delete message">Delete</button>
                 </form>
                 {{end}}
             </div>
             <p>{{.Message}}</p>
+            {{if .BlockedReason}}
+            <p class="chat-reason">Moderation: {{.BlockedReason}}</p>
+            <div class="chat-actions">
+                <form method="POST" action="/admin/lobby/{{.ID}}/unblock">
+                    {{if $.Extra.BlockedOnly}}<input type="hidden" name="blocked" value="1">{{end}}
+                    <button type="submit" class="btn btn-sm btn-primary">Unblock</button>
+                </form>
+                <form method="POST" action="/admin/lobby/{{.ID}}/block-user">
+                    {{if $.Extra.BlockedOnly}}<input type="hidden" name="blocked" value="1">{{end}}
+                    <button type="submit" class="btn btn-sm btn-danger" data-confirm="Block {{.UserName}}? They're signed out, can't sign in, and their messages leave the lobby." data-confirm-ok="Block user">Block user</button>
+                </form>
+            </div>
+            {{end}}
         </div>
         {{end}}
+        {{else if .Extra.BlockedOnly}}
+        <p class="text-muted" style="padding:1rem">No blocked messages to review.</p>
         {{else}}
         <p class="text-muted" style="padding:1rem">No messages yet. Start the conversation!</p>
         {{end}}
@@ -50,11 +78,11 @@
 {{if gt (int .Extra.TotalPages) 1}}
 <div class="pagination">
     {{if gt (int .Extra.Page) 1}}
-    <a href="/lobby?page={{add (int .Extra.Page) -1}}" class="btn btn-sm">&larr; Newer</a>
+    <a href="/lobby?page={{add (int .Extra.Page) -1}}{{if .Extra.BlockedOnly}}&amp;blocked=1{{end}}" class="btn btn-sm">&larr; Newer</a>
     {{end}}
     <span class="text-muted">Page {{.Extra.Page}} of {{.Extra.TotalPages}}</span>
     {{if lt (int .Extra.Page) (int .Extra.TotalPages)}}
-    <a href="/lobby?page={{add (int .Extra.Page) 1}}" class="btn btn-sm">Older &rarr;</a>
+    <a href="/lobby?page={{add (int .Extra.Page) 1}}{{if .Extra.BlockedOnly}}&amp;blocked=1{{end}}" class="btn btn-sm">Older &rarr;</a>
     {{end}}
 </div>
 {{end}}

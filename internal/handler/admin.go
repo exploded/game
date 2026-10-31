@@ -2,6 +2,7 @@ package handler
 
 import (
 	"cmp"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -83,23 +84,38 @@ func (h *Handler) AdminBlockToggle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		setFlashCookie(w, "Unblocked "+user.Name+". They can sign in again.", "success")
-	case id == auth.UserFromContext(ctx).ID:
-		setFlashCookie(w, "You can't block yourself", "error")
-	case user.IsAdmin == 1:
-		setFlashCookie(w, user.Name+" is an admin. Remove their admin first.", "error")
 	default:
-		if err := h.q.BlockUser(ctx, id); err != nil {
+		if err := h.blockUser(w, r, user); err != nil {
 			h.serverError(w, "block user", err)
 			return
 		}
-		if err := h.q.DeleteUserSessions(ctx, id); err != nil {
-			h.serverError(w, "sign out blocked user", err)
-			return
-		}
-		slog.Info("blocked user", "user", id, "by", auth.UserFromContext(ctx).ID)
-		setFlashCookie(w, "Blocked "+user.Name+". They're signed out and can't sign in.", "success")
 	}
 	http.Redirect(w, r, back, http.StatusSeeOther)
+}
+
+// blockUser blocks user and signs them out everywhere, unless they're the
+// admin asking or another admin. It sets the flash saying which; an error
+// means the database failed and nothing has been said yet.
+func (h *Handler) blockUser(w http.ResponseWriter, r *http.Request, user db.User) error {
+	ctx := r.Context()
+	by := auth.UserFromContext(ctx).ID
+	switch {
+	case user.ID == by:
+		setFlashCookie(w, "You can't block yourself", "error")
+		return nil
+	case user.IsAdmin == 1:
+		setFlashCookie(w, user.Name+" is an admin. Remove their admin first.", "error")
+		return nil
+	}
+	if err := h.q.BlockUser(ctx, user.ID); err != nil {
+		return err
+	}
+	if err := h.q.DeleteUserSessions(ctx, user.ID); err != nil {
+		return fmt.Errorf("sign out blocked user: %w", err)
+	}
+	slog.Info("blocked user", "user", user.ID, "by", by)
+	setFlashCookie(w, "Blocked "+user.Name+". They're signed out and can't sign in.", "success")
+	return nil
 }
 
 func (h *Handler) AdminToggle(w http.ResponseWriter, r *http.Request) {

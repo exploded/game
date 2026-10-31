@@ -147,6 +147,15 @@ func TestYouTubeSync(t *testing.T) {
 	up["snippet"].(map[string]any)["liveBroadcastContent"] = "upcoming"
 	up["liveStreamingDetails"] = map[string]any{"scheduledStartTime": soon.Format(time.RFC3339)}
 	fake.add("up1", up)
+	// Streams Rob set up and never ran stay "upcoming" on YouTube.
+	nodate := ytVideo("Never booked", "P0D", "2026-01-08T00:00:00Z")
+	nodate["snippet"].(map[string]any)["liveBroadcastContent"] = "upcoming"
+	nodate["liveStreamingDetails"] = map[string]any{}
+	fake.add("nodate", nodate)
+	late := ytVideo("Booked, never run", "P0D", "2026-10-29T00:00:00Z")
+	late["snippet"].(map[string]any)["liveBroadcastContent"] = "upcoming"
+	late["liveStreamingDetails"] = map[string]any{"scheduledStartTime": soon.Format(time.RFC3339)}
+	fake.add("late1", late)
 
 	srv := httptest.NewServer(fake)
 	defer srv.Close()
@@ -160,8 +169,8 @@ func TestYouTubeSync(t *testing.T) {
 	}
 	var n int
 	d.QueryRow("SELECT COUNT(*) FROM videos").Scan(&n)
-	if n != 14 {
-		t.Fatalf("%d videos, want 14", n)
+	if n != 16 {
+		t.Fatalf("%d videos, want 16", n)
 	}
 	vertical := map[string]int{}
 	rows, _ := d.Query("SELECT external_id, vertical FROM videos WHERE external_id IN ('twomin', 'short1')")
@@ -180,7 +189,8 @@ func TestYouTubeSync(t *testing.T) {
 	}
 
 	events := liveEvents(t, d)
-	if events["Last week's Q&A"] != "ended" || events["Super Q&A"] != "upcoming" {
+	if events["Last week's Q&A"] != "ended" || events["Super Q&A"] != "upcoming" ||
+		events["Booked, never run"] != "upcoming" || events["Never booked"] != "" {
 		t.Fatalf("live events = %v", events)
 	}
 	var upStatus, upPublished string
@@ -199,12 +209,18 @@ func TestYouTubeSync(t *testing.T) {
 	fake.mu.Lock()
 	up["snippet"].(map[string]any)["liveBroadcastContent"] = "live"
 	up["liveStreamingDetails"] = map[string]any{"scheduledStartTime": soon.Format(time.RFC3339), "actualStartTime": time.Now().UTC().Format(time.RFC3339)}
+	// The other booking is now more than a day past without starting.
+	late["liveStreamingDetails"] = map[string]any{"scheduledStartTime": time.Now().Add(-25 * time.Hour).UTC().Format(time.RFC3339)}
 	fake.mu.Unlock()
 	if err := media.CheckYouTubeLive(s, ctx); err != nil {
 		t.Fatal(err)
 	}
-	if got := liveEvents(t, d)["Super Q&A"]; got != "live" {
+	events = liveEvents(t, d)
+	if got := events["Super Q&A"]; got != "live" {
 		t.Errorf("after going live the event is %q", got)
+	}
+	if got, ok := events["Booked, never run"]; ok {
+		t.Errorf("a stream a day overdue is still listed as %q", got)
 	}
 
 	// A video deleted from the channel goes at the next full sync.

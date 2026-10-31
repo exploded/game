@@ -14,6 +14,7 @@ import (
 	"github.com/exploded/game/internal/db"
 	"github.com/exploded/game/internal/mail"
 	"github.com/exploded/game/internal/media"
+	"github.com/exploded/game/internal/moderate"
 )
 
 // Handler holds shared dependencies for all HTTP handlers.
@@ -25,7 +26,8 @@ type Handler struct {
 	loc        *time.Location
 	mailer     *mail.Mailer
 	media      *media.Service
-	screener   screenCache // the stocks page's rows (screener.go)
+	moderator  moderate.Checker // checks lobby messages; nil without ANTHROPIC_API_KEY
+	screener   screenCache      // the stocks page's rows (screener.go)
 }
 
 func New(q *db.Queries, rawDB *sql.DB, pages PageTemplates, production bool, loc *time.Location) *Handler {
@@ -44,6 +46,9 @@ func (h *Handler) SetMailer(m *mail.Mailer) { h.mailer = m }
 
 // SetMedia gives the handlers the video sync, for the admin pages.
 func (h *Handler) SetMedia(m *media.Service) { h.media = m }
+
+// SetModerator has lobby messages checked before they're posted.
+func (h *Handler) SetModerator(m moderate.Checker) { h.moderator = m }
 
 // PageData is the standard data envelope passed to all templates.
 type PageData struct {
@@ -64,8 +69,9 @@ type PageData struct {
 // adminNav is the row of links at the top of every admin page
 // (partials/_adminnav.html).
 type adminNav struct {
-	Tab    string // the section you're in ("home" on /admin)
-	Unread int64  // contact messages not yet read
+	Tab     string // the section you're in ("home" on /admin)
+	Unread  int64  // contact messages not yet read
+	Blocked int64  // lobby messages moderation blocked, waiting for review
 }
 
 type Flash struct {
@@ -131,7 +137,8 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, pageName, fragm
 		if data.User != nil && data.User.IsAdmin == 1 {
 			if tab := adminTab(r.URL.Path); tab != "" {
 				unread, _ := h.q.CountUnreadContactMessages(r.Context())
-				data.AdminNav = &adminNav{Tab: tab, Unread: unread}
+				blocked, _ := h.q.CountBlockedLobbyMessages(r.Context())
+				data.AdminNav = &adminNav{Tab: tab, Unread: unread, Blocked: blocked}
 			}
 		}
 	}

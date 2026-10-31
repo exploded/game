@@ -368,6 +368,12 @@ func (s *Service) saveYouTubeVideo(ctx context.Context, v ytVideo, vertical bool
 		// A scheduled stream that never ran (or a premiere): nothing to list.
 		return nil
 	}
+	if status == "upcoming" && abandonedStream(lsd.ScheduledStartTime, time.Now()) {
+		// YouTube calls a stream upcoming until Rob runs or deletes it, so
+		// one he set up and never used would be listed for ever. The video
+		// stays stored, so the live check still sees it if he uses it later.
+		return s.q.DeleteYouTubeLiveEvent(ctx, nullInt(id))
+	}
 	return s.q.UpsertYouTubeLiveEvent(ctx, db.UpsertYouTubeLiveEventParams{
 		Url:         "https://www.youtube.com/watch?v=" + v.ID,
 		EmbedUrl:    embed,
@@ -442,6 +448,12 @@ func parseSQLTime(s string) time.Time {
 		return time.Time{}
 	}
 	return t
+}
+
+// abandonedStream says whether an upcoming YouTube stream was set up and never
+// used: it has no start time, or it's a day past its start without starting.
+func abandonedStream(scheduled, now time.Time) bool {
+	return scheduled.IsZero() || scheduled.Before(now.Add(-24*time.Hour))
 }
 
 func nullInt(v int64) sql.NullInt64 { return sql.NullInt64{Int64: v, Valid: true} }

@@ -306,6 +306,21 @@ func (q *Queries) CountAllReferralBonuses(ctx context.Context, referrerID int64)
 	return count, err
 }
 
+const countBlockedLobbyMessages = `-- name: CountBlockedLobbyMessages :one
+SELECT COUNT(*) FROM lobby_messages lm
+JOIN users u ON u.id = lm.user_id
+WHERE u.blocked_at IS NULL AND lm.blocked_reason != ''
+`
+
+// CountBlockedLobbyMessages is the admin bar's count of blocked messages
+// waiting for review. Unblocking, deleting or blocking the author clears one.
+func (q *Queries) CountBlockedLobbyMessages(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countBlockedLobbyMessages)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countHistory = `-- name: CountHistory :one
 SELECT (SELECT COUNT(*) FROM transactions t WHERE t.participant_id = ?1)
      + (SELECT COUNT(*) FROM interest_payments ip WHERE ip.participant_id = ?1 AND ip.amount > 0)
@@ -340,10 +355,17 @@ const countLobbyMessages = `-- name: CountLobbyMessages :one
 SELECT COUNT(*) FROM lobby_messages lm
 JOIN users u ON u.id = lm.user_id
 WHERE u.blocked_at IS NULL
+  AND ((lm.blocked_reason = '' AND CAST(?1 AS INTEGER) = 1)
+    OR (lm.blocked_reason != '' AND CAST(?2 AS INTEGER) = 1))
 `
 
-func (q *Queries) CountLobbyMessages(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countLobbyMessages)
+type CountLobbyMessagesParams struct {
+	ShowPosted  int64
+	ShowBlocked int64
+}
+
+func (q *Queries) CountLobbyMessages(ctx context.Context, arg CountLobbyMessagesParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countLobbyMessages, arg.ShowPosted, arg.ShowBlocked)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -797,27 +819,29 @@ func (q *Queries) CreateLiveEvent(ctx context.Context, arg CreateLiveEventParams
 
 const createLobbyMessage = `-- name: CreateLobbyMessage :one
 
-INSERT INTO lobby_messages (user_id, message)
-VALUES (?, ?)
-RETURNING id, user_id, message, created_at
+INSERT INTO lobby_messages (user_id, message, blocked_reason)
+VALUES (?, ?, ?)
+RETURNING id, user_id, message, created_at, blocked_reason
 `
 
 type CreateLobbyMessageParams struct {
-	UserID  int64
-	Message string
+	UserID        int64
+	Message       string
+	BlockedReason string
 }
 
 // =============================================================================
 // Lobby Chat
 // =============================================================================
 func (q *Queries) CreateLobbyMessage(ctx context.Context, arg CreateLobbyMessageParams) (LobbyMessage, error) {
-	row := q.db.QueryRowContext(ctx, createLobbyMessage, arg.UserID, arg.Message)
+	row := q.db.QueryRowContext(ctx, createLobbyMessage, arg.UserID, arg.Message, arg.BlockedReason)
 	var i LobbyMessage
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.Message,
 		&i.CreatedAt,
+		&i.BlockedReason,
 	)
 	return i, err
 }
@@ -1218,6 +1242,15 @@ type DeleteVideoByExternalIDParams struct {
 
 func (q *Queries) DeleteVideoByExternalID(ctx context.Context, arg DeleteVideoByExternalIDParams) error {
 	_, err := q.db.ExecContext(ctx, deleteVideoByExternalID, arg.Platform, arg.ExternalID)
+	return err
+}
+
+const deleteYouTubeLiveEvent = `-- name: DeleteYouTubeLiveEvent :exec
+DELETE FROM live_events WHERE video_id = ? AND source = 'youtube'
+`
+
+func (q *Queries) DeleteYouTubeLiveEvent(ctx context.Context, videoID sql.NullInt64) error {
+	_, err := q.db.ExecContext(ctx, deleteYouTubeLiveEvent, videoID)
 	return err
 }
 
@@ -1696,6 +1729,23 @@ func (q *Queries) GetLiveEvent(ctx context.Context, id int64) (LiveEvent, error)
 		&i.Announced,
 		&i.StartNotified,
 		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getLobbyMessage = `-- name: GetLobbyMessage :one
+SELECT id, user_id, message, created_at, blocked_reason FROM lobby_messages WHERE id = ?
+`
+
+func (q *Queries) GetLobbyMessage(ctx context.Context, id int64) (LobbyMessage, error) {
+	row := q.db.QueryRowContext(ctx, getLobbyMessage, id)
+	var i LobbyMessage
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Message,
+		&i.CreatedAt,
+		&i.BlockedReason,
 	)
 	return i, err
 }
@@ -4429,32 +4479,44 @@ func (q *Queries) ListLiveYouTubeVideoIDs(ctx context.Context) ([]string, error)
 }
 
 const listLobbyMessages = `-- name: ListLobbyMessages :many
-SELECT lm.id, lm.user_id, lm.message, lm.created_at, u.name AS user_name,
+SELECT lm.id, lm.user_id, lm.message, lm.created_at, lm.blocked_reason, u.name AS user_name,
     COALESCE(a.image_path, '') AS avatar_path
 FROM lobby_messages lm
 JOIN users u ON u.id = lm.user_id
 LEFT JOIN avatars a ON a.id = u.avatar_id
 WHERE u.blocked_at IS NULL
+  AND ((lm.blocked_reason = '' AND CAST(?1 AS INTEGER) = 1)
+    OR (lm.blocked_reason != '' AND CAST(?2 AS INTEGER) = 1))
 ORDER BY lm.created_at DESC
-LIMIT ? OFFSET ?
+LIMIT ?4 OFFSET ?3
 `
 
 type ListLobbyMessagesParams struct {
-	Limit  int64
-	Offset int64
+	ShowPosted  int64
+	ShowBlocked int64
+	Offset      int64
+	Limit       int64
 }
 
 type ListLobbyMessagesRow struct {
-	ID         int64
-	UserID     int64
-	Message    string
-	CreatedAt  string
-	UserName   string
-	AvatarPath string
+	ID            int64
+	UserID        int64
+	Message       string
+	CreatedAt     string
+	BlockedReason string
+	UserName      string
+	AvatarPath    string
 }
 
+// ListLobbyMessages lists posted messages, blocked ones (admins only), or
+// both.
 func (q *Queries) ListLobbyMessages(ctx context.Context, arg ListLobbyMessagesParams) ([]ListLobbyMessagesRow, error) {
-	rows, err := q.db.QueryContext(ctx, listLobbyMessages, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, listLobbyMessages,
+		arg.ShowPosted,
+		arg.ShowBlocked,
+		arg.Offset,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -4467,6 +4529,7 @@ func (q *Queries) ListLobbyMessages(ctx context.Context, arg ListLobbyMessagesPa
 			&i.UserID,
 			&i.Message,
 			&i.CreatedAt,
+			&i.BlockedReason,
 			&i.UserName,
 			&i.AvatarPath,
 		); err != nil {
@@ -7181,6 +7244,15 @@ UPDATE users SET last_seen = datetime('now') WHERE id = ?
 
 func (q *Queries) TouchLastSeen(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, touchLastSeen, id)
+	return err
+}
+
+const unblockLobbyMessage = `-- name: UnblockLobbyMessage :exec
+UPDATE lobby_messages SET blocked_reason = '' WHERE id = ?
+`
+
+func (q *Queries) UnblockLobbyMessage(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, unblockLobbyMessage, id)
 	return err
 }
 

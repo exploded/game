@@ -21,6 +21,7 @@ import (
 	"github.com/exploded/game/internal/mail"
 	"github.com/exploded/game/internal/market"
 	"github.com/exploded/game/internal/media"
+	"github.com/exploded/game/internal/moderate"
 	"github.com/exploded/game/internal/scheduler"
 	"github.com/exploded/monitor/pkg/logship"
 	"github.com/go-chi/chi/v5"
@@ -137,6 +138,14 @@ func main() {
 	// Each part is off until its keys are in .env.
 	med := media.New(queries, mailer, loc)
 	h.SetMedia(med)
+
+	// Lobby messages are checked against the chat rules before they're
+	// posted. Without the key they go up unchecked.
+	if os.Getenv("ANTHROPIC_API_KEY") != "" {
+		h.SetModerator(moderate.NewClaude())
+	} else {
+		slog.Info("lobby moderation off: set ANTHROPIC_API_KEY")
+	}
 
 	// Daily database backup to S3, through its own IAM user that can only
 	// add objects (scripts/s3-backup-setup.sh). Off until the keys are set.
@@ -404,6 +413,8 @@ func main() {
 			r.Post("/messages/{mid}/read", h.AdminMarkMessageRead)
 			r.Post("/messages/{mid}/delete", h.AdminDeleteMessage)
 			r.Post("/lobby/{mid}/delete", h.AdminLobbyDelete)
+			r.Post("/lobby/{mid}/unblock", h.AdminLobbyUnblock)
+			r.Post("/lobby/{mid}/block-user", h.AdminLobbyBlockUser)
 		})
 	})
 

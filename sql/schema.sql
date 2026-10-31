@@ -401,7 +401,8 @@ CREATE TABLE IF NOT EXISTS lobby_messages (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id    INTEGER NOT NULL REFERENCES users(id),
     message    TEXT    NOT NULL,
-    created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+    created_at TEXT    NOT NULL DEFAULT (datetime('now')),
+    blocked_reason TEXT NOT NULL DEFAULT '' -- why moderation blocked it; '' is posted. Only admins see blocked ones.
 );
 CREATE INDEX IF NOT EXISTS idx_lobby_messages_created ON lobby_messages(created_at DESC);
 
