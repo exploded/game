@@ -176,8 +176,8 @@ DELETE FROM email_outbox WHERE status != 'pending' AND created_at < datetime('no
 -- =============================================================================
 
 -- name: CreateGame :one
-INSERT INTO games (created_by, name, description, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO games (created_by, name, description, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: GetGame :one
@@ -217,7 +217,7 @@ UPDATE games SET status = ?, updated_at = datetime('now') WHERE id = ?;
 -- name: UpdateGameSettings :exec
 UPDATE games SET
     name = ?, description = ?, starting_balance = ?,
-    base_currency = ?, max_participants = ?, trade_fee = ?, allow_short = ?,
+    base_currency = ?, max_participants = ?, trade_fee = ?, fx_fee = ?, allow_short = ?,
     limit_orders = ?, referral_bonus_pct = ?, credit_interest_rate = ?,
     after_hours_trading = ?, updated_at = datetime('now')
 WHERE id = ?;

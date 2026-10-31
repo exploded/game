@@ -34,6 +34,10 @@
                 <span class="info-value">{{if .Item.TradeFee}}{{cents .Item.TradeFee}}{{else}}Free{{end}}</span>
             </div>
             <div class="info-item">
+                <span class="info-label">Currency Fee</span>
+                <span class="info-value">{{if .Item.FxFee}}{{bps .Item.FxFee}} of trades in a currency other than {{.Item.BaseCurrency}}{{else}}None{{end}}</span>
+            </div>
+            <div class="info-item">
                 <span class="info-label">Interest on Cash</span>
                 <span class="info-value">{{if .Item.CreditInterestRate}}{{bps .Item.CreditInterestRate}} a year, paid daily{{else}}None{{end}}</span>
             </div>

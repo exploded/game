@@ -379,7 +379,7 @@ func noAfterHours(t *testing.T, q *db.Queries) {
 	if err := q.UpdateGameSettings(t.Context(), db.UpdateGameSettingsParams{
 		ID: g.ID, Name: g.Name, Description: g.Description,
 		StartingBalance: g.StartingBalance, BaseCurrency: g.BaseCurrency, MaxParticipants: g.MaxParticipants,
-		TradeFee: g.TradeFee, AllowShort: g.AllowShort, LimitOrders: g.LimitOrders,
+		TradeFee: g.TradeFee, FxFee: g.FxFee, AllowShort: g.AllowShort, LimitOrders: g.LimitOrders,
 		ReferralBonusPct: g.ReferralBonusPct, CreditInterestRate: g.CreditInterestRate,
 	}); err != nil {
 		t.Fatal(err)

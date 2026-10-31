@@ -122,9 +122,10 @@ func fillLimitOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrde
 	}
 
 	totalBase := convertCurrency(totalNative, order.Currency, game.BaseCurrency, exchangeRate)
+	fee := TradeFees(game, order.Currency, totalBase)
 
 	if order.Type == "buy" {
-		cost := totalBase + game.TradeFee
+		cost := totalBase + fee
 		if cost > participant.CashBalance {
 			cancelOrder(ctx, q, order, participant.UserID, "you didn't have enough cash at "+fmtCentsSimple(pricePerShare))
 			return nil
@@ -166,7 +167,7 @@ func fillLimitOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrde
 			Total:            totalNative,
 			ConvertedTotal:   totalBase,
 			ExchangeRateUsed: exchangeRate,
-			Fee:              game.TradeFee,
+			Fee:              fee,
 		})
 
 	} else { // sell
@@ -181,7 +182,7 @@ func fillLimitOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrde
 			return nil
 		}
 
-		proceeds := totalBase - game.TradeFee
+		proceeds := totalBase - fee
 		if proceeds < 0 {
 			proceeds = 0
 		}
@@ -216,7 +217,7 @@ func fillLimitOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrde
 			Total:            totalNative,
 			ConvertedTotal:   totalBase,
 			ExchangeRateUsed: exchangeRate,
-			Fee:              game.TradeFee,
+			Fee:              fee,
 		})
 	}
 

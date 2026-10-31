@@ -43,7 +43,7 @@ were. All money in cents; data-rate is AUD/USD * 1,000,000. */}}
     <form method="POST" action="/games/{{$g.ID}}/trade/{{.Item.ID}}" id="ticket-form"
         hx-post="/games/{{$g.ID}}/trade/{{.Item.ID}}" hx-target="#ticket" hx-swap="outerHTML" hx-disable="find #ticket-btn"
         data-price="{{.Extra.LatestPrice.Close}}" data-cash="{{$t.Participant.CashBalance}}" data-held="{{$t.Holding.Quantity}}"
-        data-fee="{{$g.TradeFee}}" data-currency="{{.Item.Currency}}" data-base="{{$g.BaseCurrency}}" data-rate="{{$t.ExchangeRate}}"
+        data-fee="{{$g.TradeFee}}" data-fx-fee="{{$g.FxFee}}" data-currency="{{.Item.Currency}}" data-base="{{$g.BaseCurrency}}" data-rate="{{$t.ExchangeRate}}"
         {{- if $g.AllowShort}} data-short{{end}}{{if $t.Queued}} data-queued{{end}}>
         {{with .Extra.Back}}<input type="hidden" name="back" value="{{.URL}}">{{end}}
         <div class="ticket-sides">
@@ -102,6 +102,12 @@ were. All money in cents; data-rate is AUD/USD * 1,000,000. */}}
             <div class="estimate-row">
                 <span>Trade fee</span>
                 <span>{{cents $g.TradeFee}}</span>
+            </div>
+            {{end}}
+            {{if and $g.FxFee (ne .Item.Currency $g.BaseCurrency)}}
+            <div class="estimate-row">
+                <span>Currency fee ({{bps $g.FxFee}})</span>
+                <span id="est-fx">$0.00</span>
             </div>
             {{end}}
             <div class="estimate-row estimate-total">

@@ -117,6 +117,7 @@ type Game struct {
 	EndDate            string
 	AllowShort         int64
 	TradeFee           int64
+	FxFee              int64
 	ReferralBonusPct   int64
 	CreditInterestRate int64
 	LimitOrders        int64

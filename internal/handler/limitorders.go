@@ -9,6 +9,7 @@ import (
 
 	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/db"
+	"github.com/exploded/game/internal/market"
 )
 
 func (h *Handler) LimitOrdersList(w http.ResponseWriter, r *http.Request) {
@@ -151,7 +152,7 @@ func (h *Handler) placeLimitOrder(w http.ResponseWriter, r *http.Request, game d
 func (h *Handler) queueMarketOrder(w http.ResponseWriter, r *http.Request, game db.Game, participant db.Participant, stock db.Stock, side string, quantity, estimate int64, back string) {
 	switch side {
 	case "buy":
-		if estimate+game.TradeFee > participant.CashBalance {
+		if estimate+market.TradeFees(game, stock.Currency, estimate) > participant.CashBalance {
 			tradeError(w, r, "Insufficient funds", back)
 			return
 		}

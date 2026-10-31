@@ -97,6 +97,7 @@ var addedColumns = []struct{ table, column, ddl string }{
 	{"stocks", "history_fetched_at", "TEXT DEFAULT NULL"},
 	{"price_fetch_log", "mode", "TEXT NOT NULL DEFAULT 'daily'"},
 	{"price_fetch_log", "symbols_ok", "INTEGER NOT NULL DEFAULT 0"},
+	{"games", "fx_fee", "INTEGER NOT NULL DEFAULT 50"},
 	{"price_fetch_log", "symbols_skipped", "INTEGER NOT NULL DEFAULT 0"},
 	{"users", "blocked_at", "TEXT DEFAULT NULL"},
 	{"lobby_messages", "blocked_reason", "TEXT NOT NULL DEFAULT ''"},

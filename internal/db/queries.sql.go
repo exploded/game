@@ -599,9 +599,9 @@ func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (int
 
 const createGame = `-- name: CreateGame :one
 
-INSERT INTO games (created_by, name, description, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at
+INSERT INTO games (created_by, name, description, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at
 `
 
 type CreateGameParams struct {
@@ -616,6 +616,7 @@ type CreateGameParams struct {
 	EndDate            string
 	AllowShort         int64
 	TradeFee           int64
+	FxFee              int64
 	ReferralBonusPct   int64
 	CreditInterestRate int64
 	LimitOrders        int64
@@ -639,6 +640,7 @@ func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) (Game, e
 		arg.EndDate,
 		arg.AllowShort,
 		arg.TradeFee,
+		arg.FxFee,
 		arg.ReferralBonusPct,
 		arg.CreditInterestRate,
 		arg.LimitOrders,
@@ -660,6 +662,7 @@ func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) (Game, e
 		&i.EndDate,
 		&i.AllowShort,
 		&i.TradeFee,
+		&i.FxFee,
 		&i.ReferralBonusPct,
 		&i.CreditInterestRate,
 		&i.LimitOrders,
@@ -1318,7 +1321,7 @@ func (q *Queries) FillLimitOrder(ctx context.Context, id int64) error {
 const finishExpiredGames = `-- name: FinishExpiredGames :many
 UPDATE games SET status = 'finished', updated_at = datetime('now')
 WHERE status = 'active' AND end_date < ?
-RETURNING id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at
+RETURNING id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at
 `
 
 // The games it finishes, for market.AwardPlaces.
@@ -1345,6 +1348,7 @@ func (q *Queries) FinishExpiredGames(ctx context.Context, endDate string) ([]Gam
 			&i.EndDate,
 			&i.AllowShort,
 			&i.TradeFee,
+			&i.FxFee,
 			&i.ReferralBonusPct,
 			&i.CreditInterestRate,
 			&i.LimitOrders,
@@ -1443,7 +1447,7 @@ func (q *Queries) GetCourseBySlug(ctx context.Context, slug string) (Course, err
 }
 
 const getGame = `-- name: GetGame :one
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at FROM games WHERE id = ?
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at FROM games WHERE id = ?
 `
 
 func (q *Queries) GetGame(ctx context.Context, id int64) (Game, error) {
@@ -1463,6 +1467,7 @@ func (q *Queries) GetGame(ctx context.Context, id int64) (Game, error) {
 		&i.EndDate,
 		&i.AllowShort,
 		&i.TradeFee,
+		&i.FxFee,
 		&i.ReferralBonusPct,
 		&i.CreditInterestRate,
 		&i.LimitOrders,
@@ -1475,7 +1480,7 @@ func (q *Queries) GetGame(ctx context.Context, id int64) (Game, error) {
 }
 
 const getGameByMonth = `-- name: GetGameByMonth :one
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at FROM games WHERE quarter = ?
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at FROM games WHERE quarter = ?
 `
 
 // A month's game. The column is still called quarter: games were quarterly
@@ -1497,6 +1502,7 @@ func (q *Queries) GetGameByMonth(ctx context.Context, quarter sql.NullString) (G
 		&i.EndDate,
 		&i.AllowShort,
 		&i.TradeFee,
+		&i.FxFee,
 		&i.ReferralBonusPct,
 		&i.CreditInterestRate,
 		&i.LimitOrders,
@@ -1607,7 +1613,7 @@ func (q *Queries) GetLatestExchangeRate(ctx context.Context) (ExchangeRate, erro
 }
 
 const getLatestMonthlyGame = `-- name: GetLatestMonthlyGame :one
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at FROM games WHERE quarter IS NOT NULL ORDER BY start_date DESC LIMIT 1
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at FROM games WHERE quarter IS NOT NULL ORDER BY start_date DESC LIMIT 1
 `
 
 // The most recent month's game, whose settings the next one copies.
@@ -1628,6 +1634,7 @@ func (q *Queries) GetLatestMonthlyGame(ctx context.Context) (Game, error) {
 		&i.EndDate,
 		&i.AllowShort,
 		&i.TradeFee,
+		&i.FxFee,
 		&i.ReferralBonusPct,
 		&i.CreditInterestRate,
 		&i.LimitOrders,
@@ -2694,7 +2701,7 @@ func (q *Queries) ListAchievements(ctx context.Context) ([]Achievement, error) {
 }
 
 const listActiveGamesEndingOn = `-- name: ListActiveGamesEndingOn :many
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at FROM games WHERE status = 'active' AND end_date = ?
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at FROM games WHERE status = 'active' AND end_date = ?
 `
 
 func (q *Queries) ListActiveGamesEndingOn(ctx context.Context, endDate string) ([]Game, error) {
@@ -2720,6 +2727,7 @@ func (q *Queries) ListActiveGamesEndingOn(ctx context.Context, endDate string) (
 			&i.EndDate,
 			&i.AllowShort,
 			&i.TradeFee,
+			&i.FxFee,
 			&i.ReferralBonusPct,
 			&i.CreditInterestRate,
 			&i.LimitOrders,
@@ -2742,7 +2750,7 @@ func (q *Queries) ListActiveGamesEndingOn(ctx context.Context, endDate string) (
 }
 
 const listActiveGamesStartedSince = `-- name: ListActiveGamesStartedSince :many
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at FROM games WHERE status = 'active' AND start_date >= ?
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at FROM games WHERE status = 'active' AND start_date >= ?
 `
 
 func (q *Queries) ListActiveGamesStartedSince(ctx context.Context, startDate string) ([]Game, error) {
@@ -2768,6 +2776,7 @@ func (q *Queries) ListActiveGamesStartedSince(ctx context.Context, startDate str
 			&i.EndDate,
 			&i.AllowShort,
 			&i.TradeFee,
+			&i.FxFee,
 			&i.ReferralBonusPct,
 			&i.CreditInterestRate,
 			&i.LimitOrders,
@@ -3565,7 +3574,7 @@ func (q *Queries) ListFetchLogs(ctx context.Context) ([]PriceFetchLog, error) {
 
 const listFinishedGames = `-- name: ListFinishedGames :many
 
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at FROM games WHERE status IN ('finished', 'cancelled')
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at FROM games WHERE status IN ('finished', 'cancelled')
 ORDER BY end_date DESC
 LIMIT ? OFFSET ?
 `
@@ -3601,6 +3610,7 @@ func (q *Queries) ListFinishedGames(ctx context.Context, arg ListFinishedGamesPa
 			&i.EndDate,
 			&i.AllowShort,
 			&i.TradeFee,
+			&i.FxFee,
 			&i.ReferralBonusPct,
 			&i.CreditInterestRate,
 			&i.LimitOrders,
@@ -3623,7 +3633,7 @@ func (q *Queries) ListFinishedGames(ctx context.Context, arg ListFinishedGamesPa
 }
 
 const listFinishedGamesEndedSince = `-- name: ListFinishedGamesEndedSince :many
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at FROM games WHERE status = 'finished' AND end_date >= ?
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at FROM games WHERE status = 'finished' AND end_date >= ?
 `
 
 func (q *Queries) ListFinishedGamesEndedSince(ctx context.Context, endDate string) ([]Game, error) {
@@ -3649,6 +3659,7 @@ func (q *Queries) ListFinishedGamesEndedSince(ctx context.Context, endDate strin
 			&i.EndDate,
 			&i.AllowShort,
 			&i.TradeFee,
+			&i.FxFee,
 			&i.ReferralBonusPct,
 			&i.CreditInterestRate,
 			&i.LimitOrders,
@@ -3708,7 +3719,7 @@ func (q *Queries) ListGameHolderCounts(ctx context.Context, gameID int64) ([]Lis
 }
 
 const listGamesWithPlayers = `-- name: ListGamesWithPlayers :many
-SELECT g.id, g.created_by, g.name, g.description, g.status, g.markets, g.starting_balance, g.base_currency, g.max_participants, g.start_date, g.end_date, g.allow_short, g.trade_fee, g.referral_bonus_pct, g.credit_interest_rate, g.limit_orders, g.after_hours_trading, g.quarter, g.created_at, g.updated_at, (SELECT COUNT(*) FROM participants p WHERE p.game_id = g.id) AS players
+SELECT g.id, g.created_by, g.name, g.description, g.status, g.markets, g.starting_balance, g.base_currency, g.max_participants, g.start_date, g.end_date, g.allow_short, g.trade_fee, g.fx_fee, g.referral_bonus_pct, g.credit_interest_rate, g.limit_orders, g.after_hours_trading, g.quarter, g.created_at, g.updated_at, (SELECT COUNT(*) FROM participants p WHERE p.game_id = g.id) AS players
 FROM games g
 ORDER BY g.start_date DESC, g.id DESC
 `
@@ -3727,6 +3738,7 @@ type ListGamesWithPlayersRow struct {
 	EndDate            string
 	AllowShort         int64
 	TradeFee           int64
+	FxFee              int64
 	ReferralBonusPct   int64
 	CreditInterestRate int64
 	LimitOrders        int64
@@ -3760,6 +3772,7 @@ func (q *Queries) ListGamesWithPlayers(ctx context.Context) ([]ListGamesWithPlay
 			&i.EndDate,
 			&i.AllowShort,
 			&i.TradeFee,
+			&i.FxFee,
 			&i.ReferralBonusPct,
 			&i.CreditInterestRate,
 			&i.LimitOrders,
@@ -6214,7 +6227,7 @@ func (q *Queries) ListUserAchievements(ctx context.Context, userID int64) ([]Lis
 }
 
 const listUserGames = `-- name: ListUserGames :many
-SELECT g.id, g.created_by, g.name, g.description, g.status, g.markets, g.starting_balance, g.base_currency, g.max_participants, g.start_date, g.end_date, g.allow_short, g.trade_fee, g.referral_bonus_pct, g.credit_interest_rate, g.limit_orders, g.after_hours_trading, g.quarter, g.created_at, g.updated_at FROM games g
+SELECT g.id, g.created_by, g.name, g.description, g.status, g.markets, g.starting_balance, g.base_currency, g.max_participants, g.start_date, g.end_date, g.allow_short, g.trade_fee, g.fx_fee, g.referral_bonus_pct, g.credit_interest_rate, g.limit_orders, g.after_hours_trading, g.quarter, g.created_at, g.updated_at FROM games g
 JOIN participants p ON p.game_id = g.id
 WHERE p.user_id = ?
 ORDER BY g.start_date DESC
@@ -6243,6 +6256,7 @@ func (q *Queries) ListUserGames(ctx context.Context, userID int64) ([]Game, erro
 			&i.EndDate,
 			&i.AllowShort,
 			&i.TradeFee,
+			&i.FxFee,
 			&i.ReferralBonusPct,
 			&i.CreditInterestRate,
 			&i.LimitOrders,
@@ -7317,7 +7331,7 @@ func (q *Queries) UpdateCourse(ctx context.Context, arg UpdateCourseParams) erro
 const updateGameSettings = `-- name: UpdateGameSettings :exec
 UPDATE games SET
     name = ?, description = ?, starting_balance = ?,
-    base_currency = ?, max_participants = ?, trade_fee = ?, allow_short = ?,
+    base_currency = ?, max_participants = ?, trade_fee = ?, fx_fee = ?, allow_short = ?,
     limit_orders = ?, referral_bonus_pct = ?, credit_interest_rate = ?,
     after_hours_trading = ?, updated_at = datetime('now')
 WHERE id = ?
@@ -7330,6 +7344,7 @@ type UpdateGameSettingsParams struct {
 	BaseCurrency       string
 	MaxParticipants    sql.NullInt64
 	TradeFee           int64
+	FxFee              int64
 	AllowShort         int64
 	LimitOrders        int64
 	ReferralBonusPct   int64
@@ -7347,6 +7362,7 @@ func (q *Queries) UpdateGameSettings(ctx context.Context, arg UpdateGameSettings
 		arg.BaseCurrency,
 		arg.MaxParticipants,
 		arg.TradeFee,
+		arg.FxFee,
 		arg.AllowShort,
 		arg.LimitOrders,
 		arg.ReferralBonusPct,

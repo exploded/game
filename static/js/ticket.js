@@ -23,6 +23,8 @@
         const stockCurrency = d.currency;
         const baseCurrency = d.base;
         const exchangeRate = parseInt(d.rate, 10);
+        // The currency fee, in basis points, on a stock priced in another currency.
+        const fxBps = stockCurrency !== baseCurrency ? (parseInt(d.fxFee, 10) || 0) : 0;
         // Market closed: a market order queues for the open (see _ticket.html).
         const queued = "queued" in d;
 
@@ -42,6 +44,10 @@
             return cents;
         }
 
+        // The currency fee on a trade worth base cents, rounded as the server
+        // does (market.TradeFees).
+        function fxFee(base) { return Math.floor((base * fxBps + 5000) / 10000); }
+
         function side() { return form.elements.side.value; }
         function isLimit() { return !!orderType && orderType.value === "limit"; }
         function price() {
@@ -53,7 +59,13 @@
         // as your cash would buy.
         function maxShares() {
             const per = toBase(price());
-            const affordable = per > 0 ? Math.max(0, Math.floor((cashCents - feeCents) / per)) : 0;
+            let affordable = per > 0 ? Math.max(0, Math.floor((cashCents - feeCents) * 10000 / (per * (10000 + fxBps)))) : 0;
+            // Rounding can leave the last share a cent short.
+            while (affordable > 0) {
+                const base = toBase(affordable * price());
+                if (base + feeCents + fxFee(base) <= cashCents) break;
+                affordable--;
+            }
             if (side() === "buy") return affordable;
             if (allowShort && !isLimit()) return Math.max(0, held) + affordable;
             return Math.max(0, held);
@@ -72,7 +84,8 @@
             const buying = side() === "buy";
             const native = n * price();
             const base = toBase(native);
-            const total = n > 0 ? (buying ? base + feeCents : Math.max(0, base - feeCents)) : 0;
+            const fx = fxFee(base);
+            const total = n > 0 ? (buying ? base + feeCents + fx : Math.max(0, base - feeCents - fx)) : 0;
             const after = cashCents + (buying ? -total : total);
 
             const word = buying ? "Cost" : "Proceeds";
@@ -83,6 +96,8 @@
                 convLabel.textContent = word + " (" + baseCurrency + ")";
                 document.getElementById("est-converted").textContent = fmt(base);
             }
+            const fxEl = document.getElementById("est-fx");
+            if (fxEl) fxEl.textContent = fmt(fx);
             document.getElementById("est-total-label").textContent = (buying ? "Total" : "Net proceeds") + " (" + baseCurrency + ")";
             document.getElementById("est-total").textContent = fmt(total);
             const rem = document.getElementById("est-remaining");

@@ -218,7 +218,7 @@ public was spam.
 Admins (Rob and the site team) get an **Admin** menu with:
 
 - **Games**: change a game's name, description, player limit, starting money,
-  currency, fee per trade, referral bonus, interest rate, and whether limit
+  currency, fee per trade, currency fee (default 0.5%), referral bonus, interest rate, and whether limit
   orders, short selling and after-hours trading are allowed. A game can also be
   cancelled.
 - **Picks**: choose and order Rob's Picks, with a note on each.

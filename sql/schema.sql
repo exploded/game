@@ -121,6 +121,7 @@ CREATE TABLE IF NOT EXISTS games (
     end_date         TEXT    NOT NULL,                      -- YYYY-MM-DD
     allow_short          INTEGER NOT NULL DEFAULT 0,
     trade_fee            INTEGER NOT NULL DEFAULT 0,            -- per-trade fee in cents
+    fx_fee               INTEGER NOT NULL DEFAULT 50,            -- basis points of a trade in another currency (50 = 0.5%)
     referral_bonus_pct   INTEGER NOT NULL DEFAULT 1,            -- % of starting_balance as referral reward
     credit_interest_rate INTEGER NOT NULL DEFAULT 525,           -- basis points (525 = 5.25%)
     limit_orders         INTEGER NOT NULL DEFAULT 0,             -- 1 = enabled

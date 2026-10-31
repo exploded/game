@@ -50,6 +50,7 @@ var defaultGame = db.Game{
 	BaseCurrency:       "AUD",
 	ReferralBonusPct:   1,
 	CreditInterestRate: 525,
+	FxFee:              50,
 	LimitOrders:        1,
 	AfterHoursTrading:  1,
 }
@@ -97,6 +98,7 @@ func ensureMonthGame(ctx context.Context, q *db.Queries, m Month) error {
 		EndDate:            m.EndDate(),
 		AllowShort:         prev.AllowShort,
 		TradeFee:           prev.TradeFee,
+		FxFee:              prev.FxFee,
 		ReferralBonusPct:   prev.ReferralBonusPct,
 		CreditInterestRate: prev.CreditInterestRate,
 		LimitOrders:        prev.LimitOrders,

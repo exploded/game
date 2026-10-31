@@ -202,6 +202,37 @@ func TestFinishedGameIsFrozen(t *testing.T) {
 	}
 }
 
+// TestCurrencyFee: in an AUD game, 100 ACME at US$10.50 is A$1,615.38 at
+// 0.65, plus the default 0.5% currency fee, A$8.08, both ways.
+func TestCurrencyFee(t *testing.T) {
+	srv, q, d := gameServerDB(t)
+	setMarketOpen(t, true)
+	for _, stmt := range []string{
+		`UPDATE games SET base_currency = 'AUD' WHERE id = 1`,
+		`INSERT INTO exchange_rates (date, rate_aud_usd) VALUES ('2026-10-28', 650000)`,
+	} {
+		if _, err := d.Exec(stmt); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if body := getPage(t, srv, "/games/1/stocks/1", ""); !strings.Contains(body, `data-fx-fee="50"`) || !strings.Contains(body, "Currency fee (0.50%)") {
+		t.Error("ticket doesn't show the currency fee")
+	}
+
+	postTicket(srv, url.Values{"side": {"buy"}, "quantity": {"100"}})
+	if p := alice(t, q); p.CashBalance != 100000000-161538-808 {
+		t.Errorf("cash after buying = %d, want %d", p.CashBalance, 100000000-161538-808)
+	}
+	postTicket(srv, url.Values{"side": {"sell"}, "quantity": {"100"}})
+	if p := alice(t, q); p.CashBalance != 100000000-2*808 {
+		t.Errorf("cash after selling = %d, want %d", p.CashBalance, 100000000-2*808)
+	}
+	var fees int64
+	if err := d.QueryRow(`SELECT SUM(fee) FROM transactions`).Scan(&fees); err != nil || fees != 2*808 {
+		t.Errorf("fees recorded = %d (%v), want %d", fees, err, 2*808)
+	}
+}
+
 // postTicketHTMX posts the stock page's order ticket the way htmx does.
 func postTicketHTMX(srv http.Handler, form url.Values) *httptest.ResponseRecorder {
 	req := httptest.NewRequest("POST", "/games/1/trade/1", strings.NewReader(form.Encode()))

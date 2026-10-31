@@ -124,6 +124,11 @@ func (h *Handler) AdminGameUpdate(w http.ResponseWriter, r *http.Request) {
 	} else {
 		errs["trade_fee"] = "Enter a fee of $0 or more"
 	}
+	if pct, err := strconv.ParseFloat(r.FormValue("fx_fee"), 64); err == nil && pct >= 0 && pct <= 5 {
+		p.FxFee = int64(math.Round(pct * 100))
+	} else {
+		errs["fx_fee"] = "Enter 0 to 5"
+	}
 	if n, err := strconv.ParseInt(r.FormValue("referral_bonus_pct"), 10, 64); err == nil && n >= 0 && n <= 10 {
 		p.ReferralBonusPct = n
 	} else {

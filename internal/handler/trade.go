@@ -173,6 +173,7 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 
 	totalNative := quantity * pricePerShare
 	totalBase := convertCurrency(totalNative, stock.Currency, game.BaseCurrency, exchangeRate)
+	fee := market.TradeFees(game, stock.Currency, totalBase)
 
 	if queuesMarketOrder(game, stock.Market) {
 		if closeAll && h.closeQueued(r.Context(), participant.ID, stock.ID, tradeType) {
@@ -192,7 +193,7 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 	qtx := h.q.WithTx(tx)
 
 	if tradeType == "buy" {
-		cost := totalBase + game.TradeFee
+		cost := totalBase + fee
 		if cost > participant.CashBalance {
 			tradeError(w, r, "Insufficient funds", back)
 			return
@@ -248,7 +249,7 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 			Total:            totalNative,
 			ConvertedTotal:   totalBase,
 			ExchangeRateUsed: exchangeRate,
-			Fee:              game.TradeFee,
+			Fee:              fee,
 		})
 
 	} else if tradeType == "sell" {
@@ -265,7 +266,7 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		proceeds := totalBase - game.TradeFee
+		proceeds := totalBase - fee
 		if proceeds < 0 {
 			proceeds = 0
 		}
@@ -307,7 +308,7 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 			Total:            totalNative,
 			ConvertedTotal:   totalBase,
 			ExchangeRateUsed: exchangeRate,
-			Fee:              game.TradeFee,
+			Fee:              fee,
 		})
 	} else {
 		tradeError(w, r, "Invalid trade type", back)

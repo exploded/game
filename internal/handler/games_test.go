@@ -91,7 +91,7 @@ func TestAdminChangesGameSettings(t *testing.T) {
 	srv, d := monthServer(t)
 	form := url.Values{
 		"name": {"Summer Cup"}, "starting_balance": {"500000"},
-		"base_currency": {"USD"}, "trade_fee": {"9.95"}, "referral_bonus_pct": {"2"},
+		"base_currency": {"USD"}, "trade_fee": {"9.95"}, "fx_fee": {"0.7"}, "referral_bonus_pct": {"2"},
 		"credit_interest_rate": {"4.35"}, "allow_short": {"1"}, // limit_orders and after_hours_trading unticked
 	}
 	for _, id := range []string{"1", "2", "3"} {
@@ -101,22 +101,22 @@ func TestAdminChangesGameSettings(t *testing.T) {
 	}
 
 	type settings struct {
-		name, markets, currency                                  string
-		balance, fee, bonus, short, limits, interest, afterHours int
+		name, markets, currency                                         string
+		balance, fee, fxFee, bonus, short, limits, interest, afterHours int
 	}
 	get := func(id int) settings {
 		var s settings
-		if err := d.QueryRow(`SELECT name, markets, base_currency, starting_balance, trade_fee, referral_bonus_pct, allow_short, limit_orders, credit_interest_rate, after_hours_trading FROM games WHERE id = ?`, id).
-			Scan(&s.name, &s.markets, &s.currency, &s.balance, &s.fee, &s.bonus, &s.short, &s.limits, &s.interest, &s.afterHours); err != nil {
+		if err := d.QueryRow(`SELECT name, markets, base_currency, starting_balance, trade_fee, fx_fee, referral_bonus_pct, allow_short, limit_orders, credit_interest_rate, after_hours_trading FROM games WHERE id = ?`, id).
+			Scan(&s.name, &s.markets, &s.currency, &s.balance, &s.fee, &s.fxFee, &s.bonus, &s.short, &s.limits, &s.interest, &s.afterHours); err != nil {
 			t.Fatal(err)
 		}
 		return s
 	}
 	// Game 1 has a player, so its starting cash and currency stay put.
-	if got, want := get(1), (settings{"Summer Cup", "both", "AUD", 100000000, 995, 2, 1, 0, 435, 0}); got != want {
+	if got, want := get(1), (settings{"Summer Cup", "both", "AUD", 100000000, 995, 70, 2, 1, 0, 435, 0}); got != want {
 		t.Errorf("running game with a player: got %+v, want %+v", got, want)
 	}
-	if got, want := get(2), (settings{"Summer Cup", "both", "USD", 50000000, 995, 2, 1, 0, 435, 0}); got != want {
+	if got, want := get(2), (settings{"Summer Cup", "both", "USD", 50000000, 995, 70, 2, 1, 0, 435, 0}); got != want {
 		t.Errorf("next game: got %+v, want %+v", got, want)
 	}
 	// A finished game can't change.
