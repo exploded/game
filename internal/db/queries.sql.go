@@ -6687,47 +6687,6 @@ func (q *Queries) ListUserAchievements(ctx context.Context, userID int64) ([]Lis
 	return items, nil
 }
 
-const listUserChatMessages = `-- name: ListUserChatMessages :many
-
-SELECT gm.message, gm.created_at, g.name AS game_name
-FROM game_messages gm
-JOIN games g ON g.id = gm.game_id
-WHERE gm.user_id = ?
-ORDER BY gm.created_at DESC
-`
-
-type ListUserChatMessagesRow struct {
-	Message   string
-	CreatedAt string
-	GameName  string
-}
-
-// =============================================================================
-// User Data Export
-// =============================================================================
-func (q *Queries) ListUserChatMessages(ctx context.Context, userID int64) ([]ListUserChatMessagesRow, error) {
-	rows, err := q.db.QueryContext(ctx, listUserChatMessages, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListUserChatMessagesRow
-	for rows.Next() {
-		var i ListUserChatMessagesRow
-		if err := rows.Scan(&i.Message, &i.CreatedAt, &i.GameName); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listUserGames = `-- name: ListUserGames :many
 SELECT g.id, g.created_by, g.name, g.description, g.status, g.markets, g.starting_balance, g.base_currency, g.max_participants, g.start_date, g.end_date, g.allow_short, g.trade_fee, g.referral_bonus_pct, g.recurring_interval, g.parent_game_id, g.template_id, g.is_public, g.portfolio_visibility, g.credit_interest_rate, g.leverage_interest_rate, g.min_stock_price, g.max_stock_price, g.margin_trading, g.limit_orders, g.stop_loss, g.fractional_shares, g.after_hours_trading, g.quarter, g.created_at, g.updated_at FROM games g
 JOIN participants p ON p.game_id = g.id
@@ -6818,6 +6777,7 @@ func (q *Queries) ListUserLiveReminders(ctx context.Context, userID int64) ([]in
 }
 
 const listUserParticipations = `-- name: ListUserParticipations :many
+
 SELECT p.joined_at, p.cash_balance, p.portfolio_value,
     g.name AS game_name, g.status AS game_status
 FROM participants p
@@ -6834,6 +6794,9 @@ type ListUserParticipationsRow struct {
 	GameStatus     string
 }
 
+// =============================================================================
+// User Data Export
+// =============================================================================
 func (q *Queries) ListUserParticipations(ctx context.Context, userID int64) ([]ListUserParticipationsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listUserParticipations, userID)
 	if err != nil {

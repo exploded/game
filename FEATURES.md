@@ -35,7 +35,7 @@ Any player can invite a friend by email from the game's home page while the game
 - **Files:** `internal/handler/invite.go`, `internal/mail/templates/invite.tmpl`
 
 ### 7. Chat
-Removed on 31 October 2026: players talk in the site-wide lobby (`/lobby`) instead. Old game messages stay in `game_messages` and are still in a player's data export.
+Removed on 31 October 2026: players talk in the site-wide lobby (`/lobby`) instead. The `drop-game-chat` migration deleted the old game messages.
 
 ### 8. Achievements
 11 achievements that are automatically granted after trades:

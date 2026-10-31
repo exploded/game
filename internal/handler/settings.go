@@ -70,7 +70,6 @@ func (h *Handler) ExportPersonalData(w http.ResponseWriter, r *http.Request) {
 
 	achievements, _ := h.q.ListUserAchievements(r.Context(), user.ID)
 	participations, _ := h.q.ListUserParticipations(r.Context(), user.ID)
-	chatMessages, _ := h.q.ListUserChatMessages(r.Context(), user.ID)
 	emailPrefs, _ := h.q.ListEmailPrefs(r.Context(), user.ID)
 
 	data := map[string]any{
@@ -83,7 +82,6 @@ func (h *Handler) ExportPersonalData(w http.ResponseWriter, r *http.Request) {
 		},
 		"achievements":   achievements,
 		"participations": participations,
-		"chat_messages":  chatMessages,
 		"email_prefs":    emailPrefs,
 	}
 

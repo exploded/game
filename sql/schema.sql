@@ -334,18 +334,6 @@ CREATE TABLE IF NOT EXISTS game_invites (
 CREATE INDEX IF NOT EXISTS idx_invites_code ON game_invites(code);
 
 --------------------------------------------------------------------------------
--- Game Chat (Feature 7)
---------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS game_messages (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    game_id    INTEGER NOT NULL REFERENCES games(id) ON DELETE CASCADE,
-    user_id    INTEGER NOT NULL REFERENCES users(id),
-    message    TEXT    NOT NULL,
-    created_at TEXT    NOT NULL DEFAULT (datetime('now'))
-);
-CREATE INDEX IF NOT EXISTS idx_messages_game ON game_messages(game_id, created_at DESC);
-
---------------------------------------------------------------------------------
 -- Achievements (Feature 8)
 --------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS achievements (

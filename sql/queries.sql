@@ -1097,13 +1097,6 @@ DELETE FROM contact_messages WHERE id = ?;
 -- User Data Export
 -- =============================================================================
 
--- name: ListUserChatMessages :many
-SELECT gm.message, gm.created_at, g.name AS game_name
-FROM game_messages gm
-JOIN games g ON g.id = gm.game_id
-WHERE gm.user_id = ?
-ORDER BY gm.created_at DESC;
-
 -- name: ListUserParticipations :many
 SELECT p.joined_at, p.cash_balance, p.portfolio_value,
     g.name AS game_name, g.status AS game_status

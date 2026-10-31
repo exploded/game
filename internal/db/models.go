@@ -156,14 +156,6 @@ type GameInvite struct {
 	CreatedAt string
 }
 
-type GameMessage struct {
-	ID        int64
-	GameID    int64
-	UserID    int64
-	Message   string
-	CreatedAt string
-}
-
 type GameStartingStock struct {
 	ID       int64
 	GameID   int64

@@ -214,6 +214,8 @@ var onceMigrations = []struct{ name, stmt string }{
 	// The 13 contact messages sent by 30 October 2026 were all spam (SEO
 	// pitches and one bot), none from a player. Later ones are kept.
 	{"drop-contact-spam", "DELETE FROM contact_messages WHERE id <= 13"},
+	// Game chat went on 31 October 2026; players talk in the lobby instead.
+	{"drop-game-chat", "DROP TABLE IF EXISTS game_messages"},
 }
 
 func runMigrations(db *sql.DB) error {
