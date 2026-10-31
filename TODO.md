@@ -77,8 +77,18 @@ reminders need an account.
   key; not a public API, so it may break). It ends a stream it saw start once
   he's been off air for 5 minutes. The Add a stream form fills itself in from
   the last stream on the platform chosen.
-- [ ] **Check the TikTok live check during a real stream:** that TikTok gives
-  `liveRoom.status` 2 while Rob is live, and the stream starts by itself.
+- [x] **All-day TikTok check and log** (2026-10-31). Rob's account is also
+  checked every 5 minutes from 8 am to 7 pm; a stream he didn't book is added
+  (banner only, no email). A 403 or 429 from TikTok stops the all-day checks
+  until the next day. Every check is logged in `tiktok_live_checks` (30 days)
+  and listed on `/admin/learn/live`.
+- [ ] **Watch the log for a week:** if TikTok refuses checks from the
+  Linode, cut the all-day check back or drop it.
+- [x] **TikTok's live status checked** (2026-10-31) on accounts streaming
+  at the time: `liveRoom.status` is 2 while live, with `startTime` and
+  `title`. TikTok blocked a home IP (403) after about 30 requests in 5
+  minutes, so keep polling light.
+- [ ] **Watch Rob's first booked TikTok stream** start and end by itself.
 - [x] **Stock pages show Rob's videos** about that stock, and the dashboard
   shows new videos and the next stream.
 - [x] **Go live:** `YOUTUBE_API_KEY` and `ANTHROPIC_API_KEY` are in the server

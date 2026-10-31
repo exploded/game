@@ -102,7 +102,7 @@ func (s *Service) Run(ctx context.Context, now time.Time) {
 	if s.tt != nil && utc.Minute() == 15 {
 		s.background(&s.ttRunning, "tiktok sync", func() error { return s.syncTikTok(ctx) })
 	}
-	s.background(&s.ttLiveRunning, "tiktok live check", func() error { return s.checkTikTokLive(ctx) })
+	s.background(&s.ttLiveRunning, "tiktok live check", func() error { return s.checkTikTokLive(ctx, now) })
 	if s.classify != nil {
 		s.background(&s.classifyRunning, "classify videos", func() error { return s.classifyPending(ctx) })
 	}

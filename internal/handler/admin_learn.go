@@ -282,12 +282,22 @@ func (h *Handler) AdminLearnLive(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, "stream form", err)
 		return
 	}
-	extra := map[string]any{"Prefill": string(prefill)}
-	if at, result := h.media.TikTokLiveCheck(r.Context()); !at.IsZero() {
-		extra["TikTokChecked"] = at.In(displayLoc).Format("Mon 2 Jan, 3:04 pm")
-		extra["TikTokResult"] = result
+	// The TikTok live check's log: today's totals and the latest checks.
+	now := time.Now().In(displayLoc)
+	midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, displayLoc)
+	today, err := h.q.CountTikTokLiveChecksSince(r.Context(), midnight.UTC().Format(time.DateTime))
+	if err != nil {
+		h.serverError(w, "count tiktok checks", err)
+		return
 	}
-	h.render(w, r, "admin/learn_live", "", PageData{Title: "Live streams", Items: events, Extra: extra})
+	checks, err := h.q.ListTikTokLiveChecks(r.Context(), 30)
+	if err != nil {
+		h.serverError(w, "list tiktok checks", err)
+		return
+	}
+	h.render(w, r, "admin/learn_live", "", PageData{Title: "Live streams", Items: events, Extra: map[string]any{
+		"Prefill": string(prefill), "TikTokToday": today, "TikTokChecks": checks,
+	}})
 }
 
 // liveLinks are Rob's live pages, for a platform with no stream added yet.

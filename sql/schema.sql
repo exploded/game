@@ -714,6 +714,20 @@ CREATE TABLE IF NOT EXISTS live_reminders (
     PRIMARY KEY (event_id, user_id)
 );
 
+-- One row per TikTok live check (internal/media/tiktok_live.go), kept 30
+-- days and shown on /admin/learn/live.
+CREATE TABLE IF NOT EXISTS tiktok_live_checks (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    checked_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+    account     TEXT    NOT NULL,                -- 'rob_goudie'
+    booked      INTEGER NOT NULL DEFAULT 0,      -- 1 when checked for a booked or live stream, 0 for the all-day check
+    result      TEXT    NOT NULL,                -- 'live' | 'offline' | 'error'
+    http_status INTEGER NOT NULL DEFAULT 0,
+    detail      TEXT    NOT NULL DEFAULT '',     -- the error, or what the check did
+    event_id    INTEGER                          -- the stream it found on air, or started or ended
+);
+CREATE INDEX IF NOT EXISTS idx_tiktok_live_checks_account ON tiktok_live_checks(account, id);
+
 -- OAuth tokens for the platforms Rob connects (TikTok).
 CREATE TABLE IF NOT EXISTS oauth_tokens (
     provider           TEXT PRIMARY KEY,

@@ -8,8 +8,7 @@
 
 <p style="margin-bottom:12px">YouTube streams appear here by themselves once Rob schedules them on YouTube. TikTok, Facebook and Instagram can't tell us, so add those here. Everyone with Live streams email on hears about a stream added at least an hour ahead.</p>
 
-<p style="margin-bottom:16px">A booked TikTok stream starts by itself: from 15 minutes before its start time until 2 hours after, the site checks every minute whether Rob is live on TikTok. Once he's been off air for 5 minutes, it ends the stream. If a check fails, use <strong>Go live now</strong> on the stream's page.
-{{with .Extra.TikTokChecked}}<br><span class="text-muted">Last check: {{.}}. {{$.Extra.TikTokResult}}</span>{{end}}</p>
+<p style="margin-bottom:16px">TikTok streams start and end by themselves. The site checks whether Rob is live on TikTok every 5 minutes from 8 am to 7 pm, and every minute from 15 minutes before a booked TikTok stream until 2 hours after. When he goes live, the booked stream starts, or a stream is added if he didn't book one (no email goes out for those). Once he's been off air for 5 checks in a row, it ends. If TikTok refuses a check, the all-day checks stop until tomorrow; checks around booked streams carry on. If checks are failing, use <strong>Go live now</strong> on the stream's page.</p>
 
 <div class="settings-card">
     <h2>Add a stream</h2>
@@ -36,6 +35,28 @@
     </tr>
     {{else}}
     <tr><td colspan="4" class="text-muted">No streams yet.</td></tr>
+    {{end}}
+    </tbody>
+</table>
+</div>
+
+<h2 style="margin:24px 0 8px">TikTok live checks</h2>
+{{with .Extra.TikTokToday}}
+<p style="margin-bottom:12px">Today: {{.Checks}} checks, {{.Live}} found Rob live, {{.Failed}} failed{{if .Blocked}}, <strong style="color:var(--color-danger)">{{.Blocked}} refused by TikTok</strong>{{end}}. Checks are kept for 30 days.</p>
+{{end}}
+<div class="table-wrap">
+<table class="rtable">
+    <thead><tr><th>When</th><th>Account</th><th>Result</th><th>What happened</th></tr></thead>
+    <tbody>
+    {{range .Extra.TikTokChecks}}
+    <tr>
+        <td class="c-main">{{when .CheckedAt}}</td>
+        <td data-label="Account">@{{.Account}}{{if .Booked}} (booked){{end}}</td>
+        <td class="c-end"{{if eq .Result "error"}} style="color:var(--color-danger)"{{end}}>{{.Result}}{{if and .HttpStatus (ne .HttpStatus 200)}} ({{.HttpStatus}}){{end}}</td>
+        <td data-label="What happened">{{.Detail}}{{if .EventID.Valid}} <a href="/learn/live/{{.EventID.Int64}}">Stream</a>{{end}}</td>
+    </tr>
+    {{else}}
+    <tr><td colspan="4" class="text-muted">No checks yet.</td></tr>
     {{end}}
     </tbody>
 </table>

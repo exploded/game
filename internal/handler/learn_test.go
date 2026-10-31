@@ -37,6 +37,9 @@ Line two.', 'https://i.ytimg.com/vi/a/mqdefault.jpg', '2026-10-01 00:00:00', 725
 		INSERT INTO live_events (id, platform, url, embed_url, video_id, title, started_at, status, source) VALUES
 			(3, 'youtube', 'https://www.youtube.com/watch?v=c', 'https://www.youtube-nocookie.com/embed/c?rel=0', 3, 'Last week', '2026-09-01 00:00:00', 'ended', 'youtube');
 		INSERT INTO questions (id, user_id, title, topic_id) SELECT 1, 2, 'Is super worth it?', id FROM topics WHERE slug = 'super';
+		INSERT INTO tiktok_live_checks (account, booked, result, http_status, detail, event_id) VALUES
+			('rob_goudie', 1, 'live', 200, 'Started the booked stream.', 2),
+			('rob_goudie', 0, 'error', 403, 'TikTok answered 403 Forbidden', NULL);
 	`); err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +116,7 @@ func TestLearnPagesRender(t *testing.T) {
 		{"1", "/admin/learn", []string{"YouTube is off", "Salary sacrifice explained"}},
 		{"1", "/admin/learn/videos/1", []string{"Superannuation", "Pin to"}},
 		{"1", "/admin/learn/topics", []string{"Superannuation", "Add a topic"}},
-		{"1", "/admin/learn/live", []string{"TikTok live", "live now", `data-prefill-by="platform"`, "consortiumprivatewealth/live/"}},
+		{"1", "/admin/learn/live", []string{"TikTok live", "live now", `data-prefill-by="platform"`, "consortiumprivatewealth/live/", "TikTok live checks", "Today: 2 checks, 1 found Rob live, 1 failed", "1 refused by TikTok", "error (403)", `Started the booked stream. <a href="/learn/live/2">Stream</a>`, "@rob_goudie (booked)"}},
 	} {
 		w := as(srv, tc.user, "GET", tc.path, nil, false)
 		if w.Code != http.StatusOK {

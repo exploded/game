@@ -430,6 +430,33 @@ func (q *Queries) CountStocks(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+const countTikTokLiveChecksSince = `-- name: CountTikTokLiveChecksSince :one
+SELECT COUNT(*) AS checks,
+       CAST(COALESCE(SUM(result = 'live'), 0) AS INTEGER) AS live,
+       CAST(COALESCE(SUM(result = 'error'), 0) AS INTEGER) AS failed,
+       CAST(COALESCE(SUM(http_status IN (403, 429)), 0) AS INTEGER) AS blocked
+FROM tiktok_live_checks WHERE checked_at >= ?
+`
+
+type CountTikTokLiveChecksSinceRow struct {
+	Checks  int64
+	Live    int64
+	Failed  int64
+	Blocked int64
+}
+
+func (q *Queries) CountTikTokLiveChecksSince(ctx context.Context, checkedAt string) (CountTikTokLiveChecksSinceRow, error) {
+	row := q.db.QueryRowContext(ctx, countTikTokLiveChecksSince, checkedAt)
+	var i CountTikTokLiveChecksSinceRow
+	err := row.Scan(
+		&i.Checks,
+		&i.Live,
+		&i.Failed,
+		&i.Blocked,
+	)
+	return i, err
+}
+
 const countTopicVideos = `-- name: CountTopicVideos :one
 SELECT COUNT(*) FROM videos v
 JOIN video_topics vt ON vt.video_id = v.id
@@ -5761,6 +5788,42 @@ func (q *Queries) ListStocksWithoutHistory(ctx context.Context, market string) (
 	return items, nil
 }
 
+const listTikTokLiveChecks = `-- name: ListTikTokLiveChecks :many
+SELECT id, checked_at, account, booked, result, http_status, detail, event_id FROM tiktok_live_checks ORDER BY id DESC LIMIT ?
+`
+
+func (q *Queries) ListTikTokLiveChecks(ctx context.Context, limit int64) ([]TiktokLiveCheck, error) {
+	rows, err := q.db.QueryContext(ctx, listTikTokLiveChecks, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []TiktokLiveCheck
+	for rows.Next() {
+		var i TiktokLiveCheck
+		if err := rows.Scan(
+			&i.ID,
+			&i.CheckedAt,
+			&i.Account,
+			&i.Booked,
+			&i.Result,
+			&i.HttpStatus,
+			&i.Detail,
+			&i.EventID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTikTokLiveToCheck = `-- name: ListTikTokLiveToCheck :many
 SELECT id, platform, url, embed_url, video_id, title, description, scheduled_at, started_at, ended_at, status, source, announced, start_notified, created_at FROM live_events
 WHERE platform = 'tiktok'
@@ -6661,6 +6724,33 @@ func (q *Queries) ListWatchlist(ctx context.Context, participantID int64) ([]Lis
 	return items, nil
 }
 
+const logTikTokLiveCheck = `-- name: LogTikTokLiveCheck :one
+INSERT INTO tiktok_live_checks (account, booked, result, http_status, detail)
+VALUES (?, ?, ?, ?, ?)
+RETURNING id
+`
+
+type LogTikTokLiveCheckParams struct {
+	Account    string
+	Booked     int64
+	Result     string
+	HttpStatus int64
+	Detail     string
+}
+
+func (q *Queries) LogTikTokLiveCheck(ctx context.Context, arg LogTikTokLiveCheckParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, logTikTokLiveCheck,
+		arg.Account,
+		arg.Booked,
+		arg.Result,
+		arg.HttpStatus,
+		arg.Detail,
+	)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const markAllNotificationsRead = `-- name: MarkAllNotificationsRead :exec
 UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0
 `
@@ -6799,6 +6889,21 @@ func (q *Queries) NetSharesTradedSince(ctx context.Context, arg NetSharesTradedS
 	return column_1, err
 }
 
+const noteTikTokLiveCheck = `-- name: NoteTikTokLiveCheck :exec
+UPDATE tiktok_live_checks SET detail = ?, event_id = ? WHERE id = ?
+`
+
+type NoteTikTokLiveCheckParams struct {
+	Detail  string
+	EventID sql.NullInt64
+	ID      int64
+}
+
+func (q *Queries) NoteTikTokLiveCheck(ctx context.Context, arg NoteTikTokLiveCheckParams) error {
+	_, err := q.db.ExecContext(ctx, noteTikTokLiveCheck, arg.Detail, arg.EventID, arg.ID)
+	return err
+}
+
 const pickVideos = `-- name: PickVideos :many
 SELECT id, platform, title, published_at FROM videos
 WHERE hidden = 0 AND live_status = '' AND (CAST(?1 AS TEXT) = '' OR title LIKE '%' || ?1 || '%')
@@ -6851,6 +6956,15 @@ WHERE template = 'login' AND status != 'pending' AND text_body != ''
 // sent. Other sent mail is kept for 90 days.
 func (q *Queries) PruneEmailOutbox(ctx context.Context) error {
 	_, err := q.db.ExecContext(ctx, pruneEmailOutbox)
+	return err
+}
+
+const pruneTikTokLiveChecks = `-- name: PruneTikTokLiveChecks :exec
+DELETE FROM tiktok_live_checks WHERE checked_at < datetime('now', '-30 days')
+`
+
+func (q *Queries) PruneTikTokLiveChecks(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, pruneTikTokLiveChecks)
 	return err
 }
 
@@ -7230,6 +7344,50 @@ WHERE id = ?
 func (q *Queries) SoftDeleteUser(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, softDeleteUser, id)
 	return err
+}
+
+const tikTokBlockedSince = `-- name: TikTokBlockedSince :one
+SELECT EXISTS(SELECT 1 FROM tiktok_live_checks
+              WHERE account = ? AND http_status IN (403, 429) AND checked_at >= ?)
+`
+
+type TikTokBlockedSinceParams struct {
+	Account   string
+	CheckedAt string
+}
+
+// Whether TikTok has refused the account's checks since a time (UTC).
+func (q *Queries) TikTokBlockedSince(ctx context.Context, arg TikTokBlockedSinceParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, tikTokBlockedSince, arg.Account, arg.CheckedAt)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const tikTokOfflineStreak = `-- name: TikTokOfflineStreak :one
+SELECT COUNT(*) FROM tiktok_live_checks c
+WHERE c.account = ?1 AND c.result = 'offline'
+  AND c.id > COALESCE((SELECT MAX(l.id) FROM tiktok_live_checks l WHERE l.account = ?1 AND l.result = 'live'), 0)
+`
+
+// Checks in a row that found the account off air (errors don't count).
+func (q *Queries) TikTokOfflineStreak(ctx context.Context, account string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, tikTokOfflineStreak, account)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const tikTokStreamSeen = `-- name: TikTokStreamSeen :one
+SELECT EXISTS(SELECT 1 FROM tiktok_live_checks WHERE event_id = ? AND result = 'live')
+`
+
+// Whether a check has seen this stream on air.
+func (q *Queries) TikTokStreamSeen(ctx context.Context, eventID sql.NullInt64) (bool, error) {
+	row := q.db.QueryRowContext(ctx, tikTokStreamSeen, eventID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }
 
 const totalInterest = `-- name: TotalInterest :one

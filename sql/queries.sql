@@ -1567,6 +1567,42 @@ WHERE platform = 'tiktok'
        AND scheduled_at <= datetime('now', '+15 minutes') AND scheduled_at > datetime('now', '-2 hours')))
 ORDER BY scheduled_at;
 
+-- name: LogTikTokLiveCheck :one
+INSERT INTO tiktok_live_checks (account, booked, result, http_status, detail)
+VALUES (?, ?, ?, ?, ?)
+RETURNING id;
+
+-- name: NoteTikTokLiveCheck :exec
+UPDATE tiktok_live_checks SET detail = ?, event_id = ? WHERE id = ?;
+
+-- Whether a check has seen this stream on air.
+-- name: TikTokStreamSeen :one
+SELECT EXISTS(SELECT 1 FROM tiktok_live_checks WHERE event_id = ? AND result = 'live');
+
+-- Checks in a row that found the account off air (errors don't count).
+-- name: TikTokOfflineStreak :one
+SELECT COUNT(*) FROM tiktok_live_checks c
+WHERE c.account = sqlc.arg(account) AND c.result = 'offline'
+  AND c.id > COALESCE((SELECT MAX(l.id) FROM tiktok_live_checks l WHERE l.account = sqlc.arg(account) AND l.result = 'live'), 0);
+
+-- Whether TikTok has refused the account's checks since a time (UTC).
+-- name: TikTokBlockedSince :one
+SELECT EXISTS(SELECT 1 FROM tiktok_live_checks
+              WHERE account = ? AND http_status IN (403, 429) AND checked_at >= ?);
+
+-- name: PruneTikTokLiveChecks :exec
+DELETE FROM tiktok_live_checks WHERE checked_at < datetime('now', '-30 days');
+
+-- name: ListTikTokLiveChecks :many
+SELECT * FROM tiktok_live_checks ORDER BY id DESC LIMIT ?;
+
+-- name: CountTikTokLiveChecksSince :one
+SELECT COUNT(*) AS checks,
+       CAST(COALESCE(SUM(result = 'live'), 0) AS INTEGER) AS live,
+       CAST(COALESCE(SUM(result = 'error'), 0) AS INTEGER) AS failed,
+       CAST(COALESCE(SUM(http_status IN (403, 429)), 0) AS INTEGER) AS blocked
+FROM tiktok_live_checks WHERE checked_at >= ?;
+
 -- name: ListLiveToAnnounce :many
 SELECT * FROM live_events WHERE status = 'upcoming' AND announced = 0;
 

@@ -470,6 +470,17 @@ type StockSplit struct {
 	AppliedAt   string
 }
 
+type TiktokLiveCheck struct {
+	ID         int64
+	CheckedAt  string
+	Account    string
+	Booked     int64
+	Result     string
+	HttpStatus int64
+	Detail     string
+	EventID    sql.NullInt64
+}
+
 type Topic struct {
 	ID          int64
 	Slug        string
