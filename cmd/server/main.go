@@ -403,6 +403,7 @@ func main() {
 			r.Post("/email", h.AdminEmailSend)
 			r.Post("/messages/{mid}/read", h.AdminMarkMessageRead)
 			r.Post("/messages/{mid}/delete", h.AdminDeleteMessage)
+			r.Post("/lobby/{mid}/delete", h.AdminLobbyDelete)
 		})
 	})
 

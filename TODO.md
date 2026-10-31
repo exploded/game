@@ -5,7 +5,7 @@ feature once it's built.
 
 ## Requests from Rob (2026-10-29)
 
-Built on 2026-10-29 and merged into `master` on 2026-10-30. Not deployed yet.
+Built on 2026-10-29, merged into `master` and deployed on 2026-10-30.
 
 - [x] **Sign up with email, no Google.** Google sign-in is removed. `/login`
   emails a link plus a 6-digit code, valid for 15 minutes. New players pick a
@@ -35,9 +35,8 @@ Built on 2026-10-29 and merged into `master` on 2026-10-30. Not deployed yet.
   unpublish or edit them at `/admin/courses`.
 - [x] **Review the whole game for improvements.** Findings are in the next
   section.
-- [ ] **Go live.** Needs an SES IAM user and `SES_ACCESS_KEY_ID`,
-  `SES_SECRET_ACCESS_KEY`, `SES_REGION` and `MAIL_FROM` in the server `.env`.
-  Without them nobody can sign in. Remove `GOOGLE_CLIENT_*` from the `.env`.
+- [x] **Go live.** SES keys and `MAIL_FROM` are in the server `.env`, and
+  sign-in email arrives from hello@thewealthlab.au (2026-10-30).
 - [x] **Newsletter details from Rob (2026-10-30)** are in the server `.env`:
   `NEWS_SENDER="Consortium Private Wealth, 24A Darlot Street, Horsham VIC 3400"`
   and `MAIL_REPLY_TO=info@consortiumpw.com.au` (was `NEWS_REPLY_TO`), and
@@ -53,7 +52,7 @@ Built on 2026-10-29 and merged into `master` on 2026-10-30. Not deployed yet.
 
 ## Learn: Rob's videos, live streams and questions (2026-10-30)
 
-Built on 2026-10-30. Not deployed yet. `/learn` is public; asking, voting and
+Built and deployed on 2026-10-30. `/learn` is public; asking, voting and
 reminders need an account.
 
 - [x] **Watch.** Rob's YouTube channel syncs every 10 minutes (whole channel
@@ -74,9 +73,8 @@ reminders need an account.
   because TikTok's links expire after six hours.
 - [x] **Stock pages show Rob's videos** about that stock, and the dashboard
   shows new videos and the next stream.
-- [ ] **Go live:** add `YOUTUBE_API_KEY` and `ANTHROPIC_API_KEY` to the server
-  `.env`. Sorting the first 1,600 videos takes about 90 minutes and costs
-  roughly US$5 to US$10.
+- [x] **Go live:** `YOUTUBE_API_KEY` and `ANTHROPIC_API_KEY` are in the server
+  `.env` (2026-10-30).
 - [ ] **TikTok app:** register at developers.tiktok.com (Login Kit, Display
   API), pass TikTok's app review, set `TIKTOK_CLIENT_KEY` and
   `TIKTOK_CLIENT_SECRET`, then Rob clicks **Connect TikTok**. Reconnect
@@ -89,19 +87,17 @@ reminders need an account.
 - [ ] **Check on a phone:** `/learn`, a video, `/learn/live`, and a stream
   page while live.
 
-## One game per quarter (2026-10-30)
+## One game a month (2026-10-30)
 
-Built on 2026-10-30. Not deployed yet.
+Built and deployed on 2026-10-30, first as quarterly games.
 
-- [x] **One game at a time, one each quarter.** Starts at midnight on 1 January,
-  April, July and October and ends at midnight at the end of the quarter. The
-  scheduler creates this quarter's game and the next one, copying settings
-  forward. Players can't create games; templates and recurring games are gone.
+- [x] **One game at a time, one each month.** Starts at midnight on the 1st and
+  ends at midnight after the month's last day. The scheduler creates this
+  month's game and the next one, copying settings forward. Players can't
+  create games; templates and recurring games are gone.
 - [x] **Past games** are listed on `/games` with their final standings.
 - [x] **Only admins change game settings**, at `/admin/games`.
-- [ ] **Cancel "Test 3" in production** (`/admin/games/3`) once this is
-  deployed, so the quarterly game is the only one running. It has one player
-  and no trades.
+- [x] **Cancel "Test 3" in production.** Gone with private games (ccfa785).
 - [x] **Monthly instead of quarterly** (2026-10-30). The Oct–Dec 2026 game
   ended on 31 October as "October 2026"; Jan–Mar 2027 was removed.
 - [ ] **Email everyone when a month's game opens**, not only players who
@@ -125,12 +121,13 @@ Highest impact for the effort first.
   orders on.
 - [x] **Enforce private games.** No longer needed: every quarterly game is
   public.
-- [ ] **Achievements that never fire:** Champion, Podium Finish, Social Player,
-  Market Watcher. Return badges are only checked after a market trade.
-- [ ] **Stocks page:** show last price and day change, a sector filter and top
-  movers.
-- [ ] **Moderation:** hide lobby messages, suspend users, link
-  `/admin/messages` from the Admin page and email contact-form messages.
+- [x] **Achievements that never fire:** Champion, Podium Finish, Social Player
+  and Market Watcher are now awarded (2026-10-31, `market.GrantAchievement`).
+- [x] **Stocks page:** last price, today's move, a sector menu, and Gainers
+  and Losers chips (2026-10-30).
+- [ ] **Moderation:** done except emailing contact-form messages to admins.
+  Admins delete lobby messages from `/lobby`, block users at `/admin/users`,
+  and Messages is in the admin links (2026-10-31).
 - [ ] **Promote courses and Questions** on the dashboard and in emails. The
   dashboard now shows Rob's new videos and next stream (Learn).
 - [ ] **Live lobby:** poll every 15 seconds and show relative times.
@@ -146,11 +143,7 @@ Highest impact for the effort first.
 
 - [x] **Check who runs StockGame.** Rob says Consortium Private Wealth; the
   terms name it (2026-10-30).
-- [ ] **Admin tool to remove chat messages.** Section 9 of the terms says we can
-  remove chat messages, but there's no way to do it yet. Add a delete or hide
-  action to `internal/handler/lobby.go` for admins. Part of Moderation above.
-- [ ] **Update the ASX wording.** The About page (`templates/pages/legal/about.html`)
-  still says you can trade ASX 200 stocks. While the ASX licence is pending, the game offers
-  US-listed Australian companies instead (`AusUS` in
-  `internal/market/symbols.go`). Update the wording now, and again if the ASX
-  licence comes through.
+- [x] **Admin tool to remove chat messages.** Admins see Delete on each lobby
+  message (`AdminLobbyDelete` in `lobby.go`, 2026-10-31).
+- [x] **Update the ASX wording.** No page mentions ASX now. Update the wording
+  again if the ASX licence comes through.

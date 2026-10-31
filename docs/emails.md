@@ -56,8 +56,10 @@ worked out but aren't written yet.
 - **A2** explains how a game works and links to the dashboard and help.
 - **A4** goes to someone who isn't a user yet, so it has no unsubscribe link.
   It's sent once per address per game, only to addresses with no account,
-  and each player can send one per game. It says who entered the address and that
-  we haven't added them to a mailing list.
+  and each player can send one per game. It says who entered the address, that
+  we haven't added them to a mailing list, and that they can reply to stop
+  invitations, and it names the sender (`NEWS_SENDER`) for the Spam Act.
+  Replies go to `MAIL_REPLY_TO`, so Consortium handles opt-outs by hand.
 
 ### Trades
 

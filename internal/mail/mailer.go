@@ -158,6 +158,10 @@ var ErrNoNewsSender = errors.New("NEWS_SENDER isn't set")
 // NewsReady reports whether News emails can be sent.
 func (m *Mailer) NewsReady() bool { return m.cfg.NewsSender != "" }
 
+// Sender returns NEWS_SENDER, for other emails that must say who sent them,
+// such as an invite to someone who isn't a user.
+func (m *Mailer) Sender() string { return m.cfg.NewsSender }
+
 func (m *Mailer) toUser(ctx context.Context, userID int64, c Category, template string, data any, test bool) (bool, error) {
 	if c == News && !m.NewsReady() {
 		return false, ErrNoNewsSender

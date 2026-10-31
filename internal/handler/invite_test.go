@@ -36,7 +36,7 @@ func inviteServer(t *testing.T) (http.Handler, *sql.DB) {
 	}
 	q := db.New(d)
 	h := New(q, d, loadTestTemplates(t), false, time.UTC)
-	m, err := mail.New(q, mail.Log{}, mail.Config{BaseURL: "https://game.example"})
+	m, err := mail.New(q, mail.Log{}, mail.Config{BaseURL: "https://game.example", NewsSender: "Consortium Private Wealth, Horsham VIC"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,8 @@ func openInvite(t *testing.T, srv http.Handler, d *sql.DB, email string) *http.C
 		t.Fatalf("no invite email to %s: %v", email, err)
 	}
 	m := inviteRE.FindStringSubmatch(body)
-	if m == nil || !strings.Contains(body, "Alice invited you to join the Spring Cup share game") {
+	if m == nil || !strings.Contains(body, "Alice invited you to join the Spring Cup share game") ||
+		!strings.Contains(body, "reply to this email.\n\nSent by Consortium Private Wealth, Horsham VIC.") {
 		t.Fatalf("invite email:\n%s", body)
 	}
 	w := httptest.NewRecorder()

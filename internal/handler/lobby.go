@@ -75,6 +75,17 @@ func (h *Handler) LobbySend(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/lobby", http.StatusSeeOther)
 }
 
+// AdminLobbyDelete removes a lobby message, as the terms allow.
+func (h *Handler) AdminLobbyDelete(w http.ResponseWriter, r *http.Request) {
+	mid, err := strconv.ParseInt(r.PathValue("mid"), 10, 64)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	_ = h.q.DeleteLobbyMessage(r.Context(), mid)
+	http.Redirect(w, r, "/lobby", http.StatusSeeOther)
+}
+
 // avatarImg returns HTML for a user's avatar image.
 func avatarImg(name, avatarPath string) string {
 	src := "/static/avatars/default.svg"

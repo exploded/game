@@ -1059,6 +1059,9 @@ SELECT COUNT(*) FROM lobby_messages lm
 JOIN users u ON u.id = lm.user_id
 WHERE u.blocked_at IS NULL;
 
+-- name: DeleteLobbyMessage :exec
+DELETE FROM lobby_messages WHERE id = ?;
+
 -- =============================================================================
 -- Referral Bonuses
 -- =============================================================================

@@ -9,9 +9,13 @@ Australian and global companies at real prices. The biggest portfolio at the end
 Join here: {{.BaseURL}}/invite/{{.D.Code}}
 
 You got this email because {{.D.From}} entered your address on The Wealth Lab.
-We haven't added you to any mailing list.{{end}}
+We haven't added you to any mailing list, and you won't get another invitation
+to this game. To stop invitations altogether, reply to this email.
+{{- if .D.Sender}}
+
+Sent by {{.D.Sender}}.{{end}}{{end}}
 
 {{define "html"}}<p style="margin:0 0 16px;"><strong>{{.D.From}}</strong> invited you to join the {{.D.Game}} share game on The Wealth Lab, Rob Goudie's investing community.</p>
 <p style="margin:0 0 24px;">You get {{.D.Starting}} of virtual cash to invest in real US, Australian and global companies at real prices. The biggest portfolio at the end of the game wins.</p>
 <p style="margin:0 0 24px;"><a href="{{.BaseURL}}/invite/{{.D.Code}}" style="display:inline-block;background:#007994;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:6px;">Join {{.D.From}}</a></p>
-<p style="margin:0;color:#6b7385;font-size:13px;">You got this email because {{.D.From}} entered your address on The Wealth Lab. We haven't added you to any mailing list.</p>{{end}}
+<p style="margin:0;color:#6b7385;font-size:13px;">You got this email because {{.D.From}} entered your address on The Wealth Lab. We haven't added you to any mailing list, and you won't get another invitation to this game. To stop invitations altogether, reply to this email.{{if .D.Sender}}<br>Sent by {{.D.Sender}}.{{end}}</p>{{end}}

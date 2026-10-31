@@ -1100,6 +1100,15 @@ func (q *Queries) DeleteLiveEvent(ctx context.Context, id int64) error {
 	return err
 }
 
+const deleteLobbyMessage = `-- name: DeleteLobbyMessage :exec
+DELETE FROM lobby_messages WHERE id = ?
+`
+
+func (q *Queries) DeleteLobbyMessage(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteLobbyMessage, id)
+	return err
+}
+
 const deleteOAuthToken = `-- name: DeleteOAuthToken :exec
 DELETE FROM oauth_tokens WHERE provider = ?
 `

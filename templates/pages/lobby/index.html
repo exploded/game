@@ -32,6 +32,11 @@
                 {{end}}
                 <strong>{{.UserName}}</strong>
                 <span class="text-muted">{{.CreatedAt}}</span>
+                {{if and $.User $.User.IsAdmin}}
+                <form method="POST" action="/admin/lobby/{{.ID}}/delete" style="display:inline;margin-left:auto">
+                    <button type="submit" class="btn btn-sm btn-danger" data-confirm="Delete this message from {{.UserName}}?" data-confirm-ok="Delete message">Delete</button>
+                </form>
+                {{end}}
             </div>
             <p>{{.Message}}</p>
         </div>

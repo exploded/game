@@ -44,6 +44,7 @@ type inviteEmail struct {
 	Game     string
 	Code     string
 	Starting string // the starting cash, formatted
+	Sender   string // NEWS_SENDER, which the Spam Act needs; may be empty
 }
 
 // InviteSend emails a friend an invite to the game.
@@ -122,6 +123,7 @@ func (h *Handler) InviteSend(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := h.mailer.ToAddress(ctx, email, "invite", inviteEmail{
 		From: user.Name, Game: game.Name, Code: code, Starting: fmtDollars(game.StartingBalance),
+		Sender: h.mailer.Sender(),
 	}); err != nil {
 		h.serverError(w, "queue invite email", err)
 		return
