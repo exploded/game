@@ -235,6 +235,26 @@ func fillLimitOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrde
 		Message: order.Type + " " + itoa(order.Quantity) + " shares of " + order.Symbol + " filled" + when + " at " + fmtCentsSimple(pricePerShare),
 	})
 
+	// The game's activity feed, as trade.go does for a trade that fills
+	// straight away.
+	verb, how := "bought", " with a limit order"
+	if order.Type == "sell" {
+		verb = "sold"
+	}
+	if order.Kind == "market" {
+		how = " at the open"
+	}
+	noun := " shares of "
+	if order.Quantity == 1 {
+		noun = " share of "
+	}
+	_ = q.InsertActivity(ctx, db.InsertActivityParams{
+		GameID: order.GameID,
+		UserID: participant.UserID,
+		Action: order.Type,
+		Detail: verb + " " + itoa(order.Quantity) + noun + order.Symbol + how,
+	})
+
 	return nil
 }
 

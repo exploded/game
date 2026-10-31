@@ -71,12 +71,6 @@
         </form>
         {{end}}
 
-        {{if .Extra.IsJoined}}
-        <div class="participant-actions" style="flex-wrap:wrap">
-            <a href="/games/{{.Item.ID}}/activity" class="btn btn-sm">Activity</a>
-        </div>
-        {{end}}
-
         {{if .Extra.IsAdmin}}
         <div class="creator-actions" style="flex-wrap:wrap">
             <a href="/admin/games/{{.Item.ID}}" class="btn btn-sm">Change settings</a>

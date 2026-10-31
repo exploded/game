@@ -118,7 +118,6 @@ func (h *Handler) gamePage(w http.ResponseWriter, r *http.Request, portfolioIfJo
 			"Participant": participant,
 			"Count":       count,
 			"IsAdmin":     user.IsAdmin == 1,
-			"IsJoined":    isJoined,
 			"CanJoin":     canJoin,
 		},
 	})

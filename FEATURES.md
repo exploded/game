@@ -53,13 +53,13 @@ Achievements are seeded on startup. Players get in-app notifications when earned
 - **Files:** `internal/handler/achievements.go`, `templates/pages/achievements/index.html`
 
 ### 9. Portfolio Comparison
-Side-by-side view of two players' holdings in the same game. Select any public participant to compare against. Includes a Chart.js overlay of both portfolios' value over time.
+Side-by-side view of two players' holdings in the same game. Select any other player to compare against. Includes a Chart.js overlay of both portfolios' value over time.
 
 - **Routes:** `/games/{id}/compare?vs={participantID}`
 - **Files:** `internal/handler/analytics.go` (PortfolioComparison), `templates/pages/analytics/compare.html`
 
 ### 10. Activity Feed
-Public feed of recent trades and joins in a game. Shows player name, action (buy/sell/join), and detail. Respects participant privacy settings.
+Every player's trades and joins in a game, newest first, labelled "All trades" in the game bar ("All players' trades" in the phone's More menu). Trades are recorded when they fill: straight away in `trade.go`, or later in `market.fillLimitOrder` for limit orders and orders queued for the open. There are no private players: on 31 October 2026 the per-player privacy flag and the unused private-game settings were dropped (`droppedColumns` in `db.go`).
 
 - **Routes:** `/games/{id}/activity`
 - **Files:** `internal/handler/activity.go`, `templates/pages/activity/index.html`

@@ -95,6 +95,8 @@ func gameTab(path string) string {
 		return "watchlist"
 	case "leaderboard":
 		return "leaderboard"
+	case "activity":
+		return "activity"
 	case "analytics", "sectors", "compare", "benchmark":
 		return "analytics"
 	}

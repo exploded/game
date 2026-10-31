@@ -28,18 +28,24 @@ func (h *Handler) ActivityFeed(w http.ResponseWriter, r *http.Request) {
 	perPage := int64(30)
 	offset := (page - 1) * perPage
 
+	// One more than a page, to know whether there's an older page.
 	activities, _ := h.q.ListActivityFeed(r.Context(), db.ListActivityFeedParams{
 		GameID: gameID,
-		Limit:  perPage,
+		Limit:  perPage + 1,
 		Offset: offset,
 	})
+	more := int64(len(activities)) > perPage
+	if more {
+		activities = activities[:perPage]
+	}
 
 	h.render(w, r, "activity/index", "", PageData{
-		Title: "Activity - " + game.Name,
+		Title: "All trades - " + game.Name,
 		Item:  game,
 		Items: activities,
 		Extra: map[string]any{
 			"Page": page,
+			"More": more,
 		},
 	})
 }

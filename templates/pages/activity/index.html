@@ -2,8 +2,9 @@
 
 {{define "content"}}
 <div class="page-header">
-    <h1>Activity Feed</h1>
+    <h1>All players' trades</h1>
 </div>
+<p class="text-muted">Every trade by every player in {{.Item.Name}}, newest first. Your own are in <a href="/games/{{.Item.ID}}/history">My trade history</a>.</p>
 
 {{if .Items}}
 <div class="activity-feed">
@@ -19,15 +20,26 @@
         <div class="activity-content">
             <strong>{{.UserName}}</strong>
             <span class="activity-detail">{{.Detail}}</span>
-            <span class="text-muted activity-time">{{.CreatedAt}}</span>
+            <span class="text-muted activity-time">{{when .CreatedAt}}</span>
         </div>
         <span class="badge {{if eq .Action "buy"}}badge-active{{else if eq .Action "sell"}}badge-cancelled{{else}}badge-pending{{end}}">{{.Action}}</span>
     </div>
     {{end}}
 </div>
+
+{{if or (gt (int .Extra.Page) 1) .Extra.More}}
+<div class="pagination">
+    {{if gt (int .Extra.Page) 1}}
+    <a href="/games/{{.Item.ID}}/activity?page={{add (int .Extra.Page) -1}}" class="btn btn-sm">&larr; Newer</a>
+    {{end}}
+    {{if .Extra.More}}
+    <a href="/games/{{.Item.ID}}/activity?page={{add (int .Extra.Page) 1}}" class="btn btn-sm">Older &rarr;</a>
+    {{end}}
+</div>
+{{end}}
 {{else}}
 <div class="empty-state">
-    <p class="text-muted">No activity yet. Trades will appear here as players make moves.</p>
+    <p class="text-muted">No trades yet. Every player's trades appear here as they're made.</p>
 </div>
 {{end}}
 {{end}}

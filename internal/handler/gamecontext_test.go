@@ -28,7 +28,7 @@ func TestGameTab(t *testing.T) {
 		"/games/7/watchlist":      "watchlist",
 		"/games/7/leaderboard":    "leaderboard",
 		"/games/7/sectors":        "analytics",
-		"/games/7/activity":       "",
+		"/games/7/activity":       "activity",
 		"/games/7/export/history": "",
 	} {
 		if got := gameTab(path); got != want {
@@ -86,6 +86,7 @@ func gameServerDB(t *testing.T) (http.Handler, *db.Queries, *sql.DB) {
 		r.Get("/rules", h.GameRules)
 		r.Get("/portfolio", h.Portfolio)
 		r.Get("/history", h.TransactionHistory)
+		r.Get("/activity", h.ActivityFeed)
 		r.Get("/stocks", h.StocksBrowse)
 		r.Get("/stocks/{sid}", h.StockDetail)
 		r.Get("/trade/{sid}", h.TradeForm)
@@ -180,6 +181,32 @@ func TestHistoryListsInterest(t *testing.T) {
 	}
 	if strings.Contains(body, "28 Oct 2026") {
 		t.Error("a payment that rounded to nothing is listed")
+	}
+}
+
+// TestActivityShowsEveryPlayer checks the All trades page lists other
+// players' trades and is linked from the game bar.
+func TestActivityShowsEveryPlayer(t *testing.T) {
+	srv, q := gameServer(t)
+	if _, err := q.JoinGame(t.Context(), db.JoinGameParams{GameID: 1, UserID: 2, CashBalance: 100000000, PortfolioValue: 100000000}); err != nil {
+		t.Fatal(err)
+	}
+	if err := q.InsertActivity(t.Context(), db.InsertActivityParams{
+		GameID: 1, UserID: 2, Action: "buy", Detail: "bought 3 shares of ACME",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	body := getPage(t, srv, "/games/1/activity", "")
+	for _, want := range []string{
+		"All players' trades",
+		`href="/games/1/activity" class="active">All trades`,
+		"<strong>Bob</strong>",
+		"bought 3 shares of ACME",
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("page is missing %q", want)
+		}
 	}
 }
 

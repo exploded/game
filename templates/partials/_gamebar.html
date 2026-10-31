@@ -34,6 +34,7 @@
             {{end}}
             {{end}}
             <a href="/games/{{$g.ID}}/leaderboard"{{if eq .Tab "leaderboard"}} class="active"{{end}}>Leaderboard</a>
+            <a href="/games/{{$g.ID}}/activity"{{if eq .Tab "activity"}} class="active"{{end}}>All trades</a>
             {{if .Participant}}
             <a href="/games/{{$g.ID}}/analytics"{{if eq .Tab "analytics"}} class="active"{{end}}>Analytics</a>
             <a href="/games/{{$g.ID}}/rules"{{if eq .Tab "rules"}} class="active"{{end}}>Rules</a>
@@ -65,13 +66,14 @@ bottom of the screen instead, in thumb reach. Desktop never shows it. */}}
         <span>Ranks</span>
     </a>
     <details class="dock-more" data-dismiss>
-        <summary{{if or (eq .Tab "rules") (eq .Tab "watchlist") (eq .Tab "analytics")}} class="active"{{end}}>
+        <summary{{if or (eq .Tab "rules") (eq .Tab "watchlist") (eq .Tab "analytics") (eq .Tab "activity")}} class="active"{{end}}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
             <span>More</span>
         </summary>
         <div class="dock-sheet">
             {{if eq $g.Status "active"}}<a href="/games/{{$g.ID}}/watchlist">Watchlist</a>{{end}}
-            <a href="/games/{{$g.ID}}/history">Trade history</a>
+            <a href="/games/{{$g.ID}}/activity">All players' trades</a>
+            <a href="/games/{{$g.ID}}/history">My trade history</a>
             <a href="/games/{{$g.ID}}/analytics">Analytics</a>
             <a href="/games/{{$g.ID}}/rules">Game rules</a>
         </div>

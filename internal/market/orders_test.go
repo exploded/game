@@ -3,6 +3,7 @@ package market
 import (
 	"database/sql"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -124,6 +125,11 @@ func TestQueuedMarketOrderFillsAtTheOpen(t *testing.T) {
 	}
 	if got := notificationTitle(d); got != "Queued Order Filled" {
 		t.Errorf("notification = %q, want Queued Order Filled", got)
+	}
+	var detail string
+	d.QueryRow("SELECT detail FROM activity_feed WHERE game_id = 1").Scan(&detail)
+	if !strings.HasPrefix(detail, "bought 5 shares of ") || !strings.HasSuffix(detail, " at the open") {
+		t.Errorf("activity = %q, want bought 5 shares of ... at the open", detail)
 	}
 }
 
