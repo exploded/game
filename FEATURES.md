@@ -152,8 +152,8 @@ Players earn badges for what they do:
 | Badge | How to earn it |
 |---|---|
 | First Trade | Make a first trade |
-| Active Trader | 10 trades in a game |
-| Trading Machine | 50 trades in a game |
+| Active Trader | 10 trades, across all games |
+| Trading Machine | 50 trades, across all games |
 | Rising Star | A 10% return |
 | Market Wizard | A 25% return |
 | Diversified | Hold 5 different shares |

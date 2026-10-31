@@ -17,8 +17,8 @@ func SeedAchievements(ctx context.Context, q *db.Queries) {
 		Key, Name, Desc, Icon string
 	}{
 		{"first_trade", "First Trade", "Execute your first trade", "🎯"},
-		{"ten_trades", "Active Trader", "Complete 10 trades in a single game", "📊"},
-		{"fifty_trades", "Trading Machine", "Complete 50 trades in a single game", "⚡"},
+		{"ten_trades", "Active Trader", "Complete 10 trades", "📊"},
+		{"fifty_trades", "Trading Machine", "Complete 50 trades", "⚡"},
 		{"ten_pct_gain", "Rising Star", "Achieve a 10%+ portfolio return", "📈"},
 		{"twenty_five_pct_gain", "Market Wizard", "Achieve a 25%+ portfolio return", "🧙"},
 		{"diversified_5", "Diversified", "Hold 5 or more different stocks", "🎨"},
@@ -83,10 +83,10 @@ func SeedAvatars(ctx context.Context, q *db.Queries) {
 
 // CheckAndGrantAchievements checks if a user has earned new achievements after a trade.
 func (h *Handler) CheckAndGrantAchievements(ctx context.Context, userID, gameID, participantID int64) {
-	// Count trades.
-	tradeCount, err := h.q.CountTransactions(ctx, participantID)
+	// Count trades in every game, not just this one.
+	tradeCount, err := h.q.CountUserTransactions(ctx, userID)
 	if err != nil {
-		slog.Error("achievement: count transactions", "error", err, "participant", participantID)
+		slog.Error("achievement: count transactions", "error", err, "user", userID)
 		return
 	}
 	slog.Info("achievement: checking", "user", userID, "game", gameID, "trades", tradeCount)

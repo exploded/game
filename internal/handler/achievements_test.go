@@ -111,3 +111,42 @@ func TestBadgeEarnedOnce(t *testing.T) {
 		t.Errorf("%d badges and %d notifications, want 1 of each", badges, notes)
 	}
 }
+
+// TestTradeBadgesCountAllGames: Active Trader counts trades in every game, so
+// 6 in October and 4 in November earn it.
+func TestTradeBadgesCountAllGames(t *testing.T) {
+	h, q := achievementsDB(t)
+	ctx := context.Background()
+	if _, err := h.rawDB.Exec(`
+		INSERT INTO games (id, created_by, name, status, start_date, end_date) VALUES
+			(2, 1, 'November 2026', 'active', '2026-11-01', '2026-11-30');
+		INSERT INTO participants (id, game_id, user_id, cash_balance, portfolio_value) VALUES (2, 2, 1, 0, 0);
+		INSERT INTO stocks (id, symbol, name, market, currency) VALUES (1, 'ACME', 'Acme', 'sp500', 'USD');`); err != nil {
+		t.Fatal(err)
+	}
+	trade := func(participant, n int) {
+		for range n {
+			if _, err := h.rawDB.Exec(`INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total, converted_total)
+				VALUES (?, 1, 'buy', 1, 1, 1, 1)`, participant); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	activeTrader, _ := q.GetAchievementByKey(ctx, "ten_trades")
+	has := func() bool {
+		n, _ := q.HasAchievement(ctx, db.HasAchievementParams{UserID: 1, AchievementID: activeTrader.ID})
+		return n > 0
+	}
+
+	trade(1, 6)
+	trade(2, 3)
+	h.CheckAndGrantAchievements(ctx, 1, 2, 2)
+	if has() {
+		t.Fatal("Active Trader after 9 trades")
+	}
+	trade(2, 1)
+	h.CheckAndGrantAchievements(ctx, 1, 2, 2)
+	if !has() {
+		t.Error("no Active Trader after 6 trades in October and 4 in November")
+	}
+}

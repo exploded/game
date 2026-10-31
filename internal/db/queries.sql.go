@@ -523,6 +523,20 @@ func (q *Queries) CountUserGames(ctx context.Context, userID int64) (int64, erro
 	return count, err
 }
 
+const countUserTransactions = `-- name: CountUserTransactions :one
+SELECT COUNT(*) FROM transactions t
+JOIN participants p ON p.id = t.participant_id
+WHERE p.user_id = ?
+`
+
+// A player's trades in every game.
+func (q *Queries) CountUserTransactions(ctx context.Context, userID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countUserTransactions, userID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countVideosByPlatform = `-- name: CountVideosByPlatform :many
 SELECT platform, COUNT(*) AS videos, CAST(SUM(classified_at IS NULL) AS INTEGER) AS unclassified
 FROM videos GROUP BY platform ORDER BY platform

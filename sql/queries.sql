@@ -588,6 +588,12 @@ ORDER BY t.id;
 -- name: CountTransactions :one
 SELECT COUNT(*) FROM transactions WHERE participant_id = ?;
 
+-- name: CountUserTransactions :one
+-- A player's trades in every game.
+SELECT COUNT(*) FROM transactions t
+JOIN participants p ON p.id = t.participant_id
+WHERE p.user_id = ?;
+
 -- name: ListHistory :many
 -- A player's trades and the interest paid on their cash, newest first.
 -- Interest rows have kind 'interest', quantity is the cash it was paid on,
