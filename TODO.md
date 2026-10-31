@@ -147,3 +147,22 @@ Highest impact for the effort first.
   message (`AdminLobbyDelete` in `lobby.go`, 2026-10-31).
 - [x] **Update the ASX wording.** No page mentions ASX now. Update the wording
   again if the ASX licence comes through.
+
+## Ideas for Rob to approve
+
+- [ ] **Share your result on social media** (2026-10-31). A Share button on
+  the game's home page: the phone's own share sheet on a phone, and Copy link,
+  X, Facebook, LinkedIn and WhatsApp on a computer. Game pages need a sign-in,
+  so the link goes to a public page, `/share/{token}` (random per player per
+  game, and the player can turn it off). The page shows the player's first
+  name, the month, their rank and return since the start in percent, and a
+  **Play The Wealth Lab** button to sign up. A 1200 × 630 preview image drawn
+  in Go makes the post show as a card. About a day's work. For Rob to decide:
+  - **No dollar amounts**, so a post doesn't read like "$1,120,000" of real
+    money. Optionally the symbols of the three biggest holdings, no amounts.
+  - **First name only**, or the full name.
+  - **Compliance:** CPW is a licensed adviser, and posts showing returns from
+    a site it runs may count as its marketing. The page and image would say
+    "Play money. Not financial advice." CPW's compliance should check first.
+  - **No referral bonus** for sign-ups from a share link, so it doesn't get
+    around the one invite per game.
