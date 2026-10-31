@@ -5,6 +5,7 @@ game
 *.db-wal
 *.db-shm
 *.db-journal
+*.db.gz
 *.bak
 .vscode/
 .claude/settings.local.json

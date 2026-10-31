@@ -54,6 +54,8 @@ All settings come from `.env` (or the environment, which takes priority):
 | `CLAUDE_MODEL` | Model for sorting. Default `claude-opus-5-5`. |
 | `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET` | TikTok app with Login Kit and the Display API (`user.info.basic`, `video.list`). Its redirect URI is `BASE_URL/admin/learn/tiktok/callback`. Rob then clicks **Connect TikTok** on `/admin/learn`. |
 | `LEARN_DISCLAIMER` | Replaces the general advice warning under every Learn page. The default is Rob's licensee wording. |
+| `BACKUP_S3_BUCKET`, `BACKUP_AWS_ACCESS_KEY_ID`, `BACKUP_AWS_SECRET_ACCESS_KEY` | Daily database backup to S3. `scripts/s3-backup-setup.sh` makes the bucket and a put-only IAM user and prints these. Off without them. |
+| `BACKUP_S3_REGION` | Default `ap-southeast-2` |
 | `MONITOR_URL`, `MONITOR_API_KEY` | Ship warnings and errors to monitor.mchugh.au |
 
 ## Deploy
@@ -63,6 +65,20 @@ Pushing to `master` runs the **Test and Deploy** workflow. It tests, cross-compi
 The app runs as `www-data` from `/var/www/game` on port 8888, behind Caddy. `scripts/server-setup.sh` provisions a fresh server and prints the Caddy block.
 
 The repo needs these Actions secrets: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_PORT` and `DEPLOY_SSH_KEY`.
+
+## Backups
+
+Every day from 3 am in `TIMEZONE`, the scheduler copies `game.db` (with `VACUUM INTO`, on a connection of its own so the site isn't held up), gzips it and uploads it to `s3://thewealthlab-backups/game-YYYY-MM-DD.db.gz`. `media_state` row `backup_day` records the last good day, so a restart doesn't upload it again. A failure logs an error, which monitor sends to Discord, and it's tried again an hour later.
+
+The bucket keeps backups for 90 days and is versioned. The app's IAM user can only add objects: it can't list, read or delete them.
+
+Set it up once, in Git Bash on your PC, in `C:\Projects\go\game`:
+
+```bash
+AWS_PROFILE=aws-admin scripts/s3-backup-setup.sh
+```
+
+To restore, download a backup with the admin profile, gunzip it, then on the server stop `game`, replace `/var/www/game/game.db` (owner `www-data`), delete `game.db-wal` and `game.db-shm`, and start `game`.
 
 ## Monitoring
 

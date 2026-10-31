@@ -723,8 +723,8 @@ CREATE TABLE IF NOT EXISTS oauth_tokens (
     updated_at         TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- Small values the sync keeps between runs (the YouTube uploads playlist,
--- whether the backfill finished).
+-- Small values background jobs keep between runs (the YouTube uploads
+-- playlist, whether the backfill finished, the last database backup's date).
 CREATE TABLE IF NOT EXISTS media_state (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL

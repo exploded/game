@@ -15,6 +15,7 @@ import (
 
 	"github.com/exploded/game"
 	"github.com/exploded/game/internal/auth"
+	"github.com/exploded/game/internal/backup"
 	"github.com/exploded/game/internal/db"
 	"github.com/exploded/game/internal/handler"
 	"github.com/exploded/game/internal/mail"
@@ -137,8 +138,22 @@ func main() {
 	med := media.New(queries, mailer, loc)
 	h.SetMedia(med)
 
+	// Daily database backup to S3, through its own IAM user that can only
+	// add objects (scripts/s3-backup-setup.sh). Off until the keys are set.
+	region := os.Getenv("BACKUP_S3_REGION")
+	if region == "" {
+		region = "ap-southeast-2"
+	}
+	bk := backup.New(region, os.Getenv("BACKUP_S3_BUCKET"),
+		os.Getenv("BACKUP_AWS_ACCESS_KEY_ID"), os.Getenv("BACKUP_AWS_SECRET_ACCESS_KEY"), "game.db")
+	if bk != nil {
+		slog.Info("daily database backup on", "bucket", bk.Bucket(), "region", region)
+	} else if production {
+		slog.Warn("database backup isn't configured; set BACKUP_S3_BUCKET, BACKUP_AWS_ACCESS_KEY_ID and BACKUP_AWS_SECRET_ACCESS_KEY")
+	}
+
 	// Start background scheduler.
-	go scheduler.Start(ctx, queries, rawDB, loc, mailer, med)
+	go scheduler.Start(ctx, queries, rawDB, loc, mailer, med, bk)
 
 	// The CSRF secret is kept in the database: a new one on every start would
 	// make every page left open across a restart or deploy fail its next POST.

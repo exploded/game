@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/exploded/game/internal/backup"
 	"github.com/exploded/game/internal/db"
 	"github.com/exploded/game/internal/mail"
 	"github.com/exploded/game/internal/market"
@@ -22,11 +23,15 @@ var profilesRunning atomic.Bool
 var ratesRunning atomic.Bool
 var newsRunning atomic.Bool
 var splitsRunning atomic.Bool
+var backupRunning atomic.Bool
 
 // splitsCheckedFor is the New York date of the last good splits check, and
 // splitsTriedAt when the last one started (Unix seconds).
 var splitsCheckedFor atomic.Value
 var splitsTriedAt atomic.Int64
+
+// backupTriedAt is when the last database backup started (Unix seconds).
+var backupTriedAt atomic.Int64
 
 // quoteEveryMinutes is how often intraday quotes run during the US session.
 // Each run costs 1 credit per S&P 500 stock (about 520), close to the
@@ -40,7 +45,8 @@ func SignalPricesChanged() { pricesChanged.Store(true) }
 // Start launches the background scheduler that runs every minute.
 // loc is the timezone used for game date comparisons (start/end dates).
 // med runs the Learn jobs (video sync, topics, live stream emails).
-func Start(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, m *mail.Mailer, med *media.Service) {
+// bk uploads the daily database backup; nil means backups are off.
+func Start(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, m *mail.Mailer, med *media.Service, bk *backup.Uploader) {
 	// Kick off historical backfill in the background if no prices exist yet.
 	// Runs once at startup, independent of the hour gate used for daily updates.
 	go startupBackfill(ctx, q, rawDB)
@@ -61,6 +67,7 @@ func Start(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location
 		case <-ticker.C:
 			run(ctx, q, rawDB, loc, m)
 			med.Run(ctx, time.Now())
+			maybeBackup(ctx, q, bk, time.Now().In(loc))
 		}
 	}
 }
@@ -185,6 +192,51 @@ func maybeCheckSplits(ctx context.Context, q *db.Queries, rawDB *sql.DB, now tim
 		if n > 0 {
 			SignalPricesChanged()
 		}
+	}()
+}
+
+// backupHour is the hour in TIMEZONE from which the daily backup runs.
+const backupHour = 3
+
+// backupRetry is how long after a failed backup it's tried again. Each
+// failure logs an error, which monitor sends to Discord, so not every minute.
+const backupRetry = time.Hour
+
+// backupDayKey is the media_state row holding the date of the last good
+// backup, so a restart or deploy doesn't upload that day's backup again.
+const backupDayKey = "backup_day"
+
+// maybeBackup uploads a snapshot of the database to S3 once a day, from
+// backupHour in TIMEZONE (now is in it). It runs in the background: a
+// 300 MB database takes a minute or so to copy, compress and upload.
+func maybeBackup(ctx context.Context, q *db.Queries, bk *backup.Uploader, now time.Time) {
+	if bk == nil || now.Hour() < backupHour {
+		return
+	}
+	today := now.Format(time.DateOnly)
+	if done, _ := q.GetMediaState(ctx, backupDayKey); done == today {
+		return
+	}
+	if now.Sub(time.Unix(backupTriedAt.Load(), 0)) < backupRetry {
+		return
+	}
+	if !backupRunning.CompareAndSwap(false, true) {
+		return
+	}
+	backupTriedAt.Store(now.Unix())
+	go func() {
+		defer backupRunning.Store(false)
+		start := time.Now()
+		size, err := bk.Upload(ctx, today)
+		if err != nil {
+			slog.Error("database backup", "error", err)
+			return
+		}
+		if err := q.SetMediaState(ctx, db.SetMediaStateParams{Key: backupDayKey, Value: today}); err != nil {
+			slog.Error("database backup: record day", "error", err)
+		}
+		slog.Info("database backup uploaded", "bucket", bk.Bucket(), "key", backup.Key(today),
+			"bytes", size, "took", time.Since(start).Round(time.Second))
 	}()
 }
 
