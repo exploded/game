@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -13,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 	"unicode"
@@ -387,8 +389,17 @@ func isAdminEmail(email string) bool {
 	return false
 }
 
-// serverError logs err and sends a plain 500.
+// serverError logs err against the caller's line and sends a plain 500. A
+// request the browser gave up on (the player went to another page) isn't a
+// fault: nobody is waiting for the answer, so it's neither logged nor sent.
 func (h *Handler) serverError(w http.ResponseWriter, what string, err error) {
-	slog.Error(what, "error", err)
+	if errors.Is(err, context.Canceled) {
+		return
+	}
+	var pcs [1]uintptr
+	runtime.Callers(2, pcs[:])
+	rec := slog.NewRecord(time.Now(), slog.LevelError, what, pcs[0])
+	rec.AddAttrs(slog.Any("error", err))
+	_ = slog.Default().Handler().Handle(context.Background(), rec)
 	http.Error(w, "Something went wrong. Please try again.", http.StatusInternalServerError)
 }
