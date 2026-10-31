@@ -25,7 +25,8 @@ and courses.
 - Players can buy shares in the S&P 500 (the 500 biggest US companies), plus
   Australian and other overseas companies listed in the US, such as ASML, TSMC,
   Novo Nordisk and Shopify, and two US Bitcoin shares: the iShares Bitcoin
-  Trust ETF (IBIT) and Strategy (MSTR).
+  Trust ETF (IBIT) and Strategy (MSTR). SpaceX (SPCX) is in too, though it
+  isn't in the S&P 500 yet.
 - Prices are real, from Twelve Data. While the US market is open, they update
   every 2 minutes. Each evening the day's closing prices are saved.
 - US shares are priced in US dollars. The game converts them to Australian

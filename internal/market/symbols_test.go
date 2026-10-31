@@ -12,6 +12,7 @@ func TestMarketLabel(t *testing.T) {
 		{"IREN", "sp500", "AU (US)"},
 		{"IBIT", "sp500", "US"},
 		{"MSTR", "sp500", "US"},
+		{"SPCX", "sp500", "US"},
 		{"COIN", "sp500", "SP500"},
 		// The old ASX row for BHP keeps its own market.
 		{"BHP", "asx", "ASX"},

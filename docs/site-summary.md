@@ -42,6 +42,8 @@ Wealth. It has two halves:
 - Two US Bitcoin shares outside the S&P 500: the iShares Bitcoin Trust ETF
   (IBIT), which follows the Bitcoin price, and Strategy (MSTR), which holds
   Bitcoin. Crypto itself isn't offered.
+- SpaceX (SPCX), which listed on the Nasdaq in June 2026 and isn't in the
+  S&P 500 yet.
 - Australian (ASX) shares aren't offered until a data licence is in place.
 - Prices are real, from a data company called Twelve Data. While the US market
   is open, prices update every 2 minutes.

@@ -134,6 +134,17 @@ main.container { flex: 1; padding-top: 24px; padding-bottom: 32px; }
 .btn-success:hover, .btn-buy:hover { opacity: 0.9; }
 .btn-danger, .btn-sell { background: var(--color-danger); color: #fff; }
 .btn-danger:hover, .btn-sell:hover { opacity: 0.9; }
+/* A button that's off, including one hx-disable turns off while its request
+   runs, looks it. */
+.btn:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+/* The lobby's Send spins while Claude checks the message (about a second). */
+.chat-form.htmx-request .btn::after {
+    content: ""; width: 12px; height: 12px; border-radius: 50%;
+    border: 2px solid currentColor; border-right-color: transparent;
+    animation: btn-spin 0.7s linear infinite;
+}
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .chat-form.htmx-request .btn::after { animation-duration: 2s; } }
 .btn-secondary {
     background: transparent;
     color: var(--color-text-muted);
