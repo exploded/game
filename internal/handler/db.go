@@ -209,6 +209,9 @@ var onceMigrations = []struct{ name, stmt string }{
 	// game template. Dropped on 31 October 2026.
 	{"drop-starting-stocks", "DROP TABLE IF EXISTS game_starting_stocks"},
 	{"drop-game-templates", "DROP TABLE IF EXISTS game_templates"},
+	// James's cancelled "Test 3" game, from before monthly games. It had no
+	// trades; its two open orders, invites and email go with it.
+	{"drop-test-3-game", "DELETE FROM games WHERE id = 3 AND name = 'Test 3' AND status = 'cancelled'"},
 }
 
 // droppedColumns are columns taken out of schema.sql. Older databases still
