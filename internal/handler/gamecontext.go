@@ -97,8 +97,6 @@ func gameTab(path string) string {
 		return "leaderboard"
 	case "analytics", "sectors", "compare", "benchmark":
 		return "analytics"
-	case "chat":
-		return "chat"
 	}
 	return ""
 }

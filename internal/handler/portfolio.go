@@ -288,17 +288,17 @@ func (h *Handler) TransactionHistory(w http.ResponseWriter, r *http.Request) {
 	perPage := int64(25)
 	offset := (page - 1) * perPage
 
-	txns, _ := h.q.ListTransactions(r.Context(), db.ListTransactionsParams{
+	rows, _ := h.q.ListHistory(r.Context(), db.ListHistoryParams{
 		ParticipantID: participant.ID,
-		Limit:         perPage,
-		Offset:        offset,
+		Lim:           perPage,
+		Off:           offset,
 	})
-	total, _ := h.q.CountTransactions(r.Context(), participant.ID)
+	total, _ := h.q.CountHistory(r.Context(), participant.ID)
 
 	h.render(w, r, "portfolio/history", "", PageData{
 		Title: "History - " + game.Name,
 		Item:  game,
-		Items: txns,
+		Items: rows,
 		Extra: map[string]any{
 			"Participant": participant,
 			"Page":        page,

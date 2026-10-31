@@ -257,8 +257,8 @@ SELECT * FROM participants WHERE id = ?;
 -- name: GetParticipantByGameAndUser :one
 SELECT * FROM participants WHERE game_id = ? AND user_id = ?;
 
--- Blocked players are left out of standings, as their chat is from
--- ListMessages and ListLobbyMessages.
+-- Blocked players are left out of standings, as their messages are from
+-- ListLobbyMessages.
 -- name: ListParticipantsByGame :many
 SELECT p.*, u.name AS user_name, u.picture_url AS user_picture
 FROM participants p
@@ -619,14 +619,6 @@ INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
--- name: ListTransactions :many
-SELECT t.*, s.symbol, s.name AS stock_name, s.market, s.currency
-FROM transactions t
-JOIN stocks s ON s.id = t.stock_id
-WHERE t.participant_id = ?
-ORDER BY t.created_at DESC
-LIMIT ? OFFSET ?;
-
 -- name: ListTradesSince :many
 -- A player's trades from a date (YYYY-MM-DD, UTC) on, oldest first, for
 -- working out how each position moved today.
@@ -638,6 +630,27 @@ ORDER BY t.id;
 
 -- name: CountTransactions :one
 SELECT COUNT(*) FROM transactions WHERE participant_id = ?;
+
+-- name: ListHistory :many
+-- A player's trades and the interest paid on their cash, newest first.
+-- Interest rows have kind 'interest', quantity is the cash it was paid on,
+-- and day is the day it was for. Payments that rounded to nothing are left
+-- out.
+SELECT t.type AS kind, t.quantity, s.symbol, t.price, s.currency,
+       t.converted_total AS amount, t.fee, CAST('' AS TEXT) AS day, t.created_at
+FROM transactions t
+JOIN stocks s ON s.id = t.stock_id
+WHERE t.participant_id = sqlc.arg(participant_id)
+UNION ALL
+SELECT 'interest', ip.balance, '', 0, '', ip.amount, 0, ip.date, ip.created_at
+FROM interest_payments ip
+WHERE ip.participant_id = sqlc.arg(participant_id) AND ip.amount > 0
+ORDER BY created_at DESC
+LIMIT sqlc.arg(lim) OFFSET sqlc.arg(off);
+
+-- name: CountHistory :one
+SELECT (SELECT COUNT(*) FROM transactions t WHERE t.participant_id = sqlc.arg(participant_id))
+     + (SELECT COUNT(*) FROM interest_payments ip WHERE ip.participant_id = sqlc.arg(participant_id) AND ip.amount > 0);
 
 -- =============================================================================
 -- Portfolio Snapshots
@@ -856,28 +869,6 @@ FROM game_invites gi
 WHERE gi.game_id = ? AND gi.created_by = ? AND gi.email IS NOT NULL
 ORDER BY gi.id DESC
 LIMIT 20;
-
--- =============================================================================
--- Game Chat (Feature 7)
--- =============================================================================
-
--- name: CreateMessage :one
-INSERT INTO game_messages (game_id, user_id, message)
-VALUES (?, ?, ?)
-RETURNING *;
-
--- name: ListMessages :many
-SELECT gm.*, u.name AS user_name, u.picture_url AS user_picture
-FROM game_messages gm
-JOIN users u ON u.id = gm.user_id
-WHERE gm.game_id = ? AND u.blocked_at IS NULL
-ORDER BY gm.created_at DESC
-LIMIT ? OFFSET ?;
-
--- name: CountMessages :one
-SELECT COUNT(*) FROM game_messages gm
-JOIN users u ON u.id = gm.user_id
-WHERE gm.game_id = ? AND u.blocked_at IS NULL;
 
 -- =============================================================================
 -- Achievements (Feature 8)

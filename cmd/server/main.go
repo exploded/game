@@ -296,10 +296,6 @@ func main() {
 			// Invite a friend by email
 			r.Post("/invite", h.InviteSend)
 
-			// Chat (Feature 7)
-			r.Get("/chat", h.ChatPage)
-			r.With(chatLimiter.Middleware).Post("/chat", h.ChatSend)
-
 			// Activity Feed (Feature 10)
 			r.Get("/activity", h.ActivityFeed)
 

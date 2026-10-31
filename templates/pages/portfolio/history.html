@@ -19,16 +19,29 @@
     </thead>
     <tbody>
         {{range .Items}}
+        {{if eq .Kind "interest"}}
         <tr>
             <td class="c-main">
-                <span class="badge {{if eq .Type "buy"}}badge-active{{else}}badge-cancelled{{end}}">{{.Type}}</span>
+                <span class="badge badge-pending">interest</span>
+                for {{longDate .Day}}
+            </td>
+            <td class="c-end num">+{{cents .Amount}}</td>
+            <td class="text-muted">{{.CreatedAt}}</td>
+            <td data-label="on">{{cents .Quantity}} cash</td>
+            <td class="num" data-label="Fee">-</td>
+        </tr>
+        {{else}}
+        <tr>
+            <td class="c-main">
+                <span class="badge {{if eq .Kind "buy"}}badge-active{{else}}badge-cancelled{{end}}">{{.Kind}}</span>
                 {{.Quantity}} <strong>{{.Symbol}}</strong>
             </td>
-            <td class="c-end num">{{cents .ConvertedTotal}}</td>
+            <td class="c-end num">{{cents .Amount}}</td>
             <td class="text-muted">{{.CreatedAt}}</td>
             <td class="num" data-label="at">{{cents .Price}} <span class="text-muted">{{.Currency}}</span></td>
             <td class="num" data-label="Fee">{{if .Fee}}{{cents .Fee}}{{else}}-{{end}}</td>
         </tr>
+        {{end}}
         {{end}}
     </tbody>
 </table>
@@ -45,6 +58,6 @@
 </div>
 {{end}}
 {{else}}
-<p class="text-muted">No transactions yet.</p>
+<p class="text-muted">No trades or interest yet.</p>
 {{end}}
 {{end}}

@@ -138,7 +138,6 @@ func TestBlockedUserIsHidden(t *testing.T) {
 	ctx := t.Context()
 	for _, stmt := range []string{
 		`INSERT INTO participants (game_id, user_id, cash_balance, portfolio_value) VALUES (1, 3, 100000000, 90000000)`,
-		`INSERT INTO game_messages (game_id, user_id, message) VALUES (1, 2, 'from Bob'), (1, 3, 'from Cat')`,
 		`INSERT INTO lobby_messages (user_id, message) VALUES (2, 'from Bob'), (3, 'from Cat')`,
 	} {
 		if _, err := d.Exec(stmt); err != nil {
@@ -154,13 +153,8 @@ func TestBlockedUserIsHidden(t *testing.T) {
 	if len(board) != 1 || board[0].UserID != 3 || len(all) != 1 {
 		t.Errorf("standings: %d public, %d in all, want only Cat", len(board), len(all))
 	}
-	msgs, _ := q.ListMessages(ctx, db.ListMessagesParams{GameID: 1, Limit: 10})
-	n, _ := q.CountMessages(ctx, 1)
-	if len(msgs) != 1 || msgs[0].UserID != 3 || n != 1 {
-		t.Errorf("game chat: %d messages, count %d, want only Cat's", len(msgs), n)
-	}
 	lobby, _ := q.ListLobbyMessages(ctx, db.ListLobbyMessagesParams{Limit: 10})
-	n, _ = q.CountLobbyMessages(ctx)
+	n, _ := q.CountLobbyMessages(ctx)
 	if len(lobby) != 1 || lobby[0].UserID != 3 || n != 1 {
 		t.Errorf("lobby: %d messages, count %d, want only Cat's", len(lobby), n)
 	}

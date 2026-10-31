@@ -128,17 +128,17 @@ Highest impact for the effort first.
   Market Watcher. Return badges are only checked after a market trade.
 - [ ] **Stocks page:** show last price and day change, a sector filter and top
   movers.
-- [ ] **Moderation:** hide chat messages, suspend users, link
+- [ ] **Moderation:** hide lobby messages, suspend users, link
   `/admin/messages` from the Admin page and email contact-form messages.
 - [ ] **Promote courses and Questions** on the dashboard and in emails. The
   dashboard now shows Rob's new videos and next stream (Learn).
-- [ ] **Live chat:** poll every 15 seconds and show relative times.
+- [ ] **Live lobby:** poll every 15 seconds and show relative times.
 - [ ] **Benchmark against the S&P 500** rather than a flat line.
 - [ ] **Shorter nav:** fold Achievements into another page. Templates and
   History are gone.
 - [ ] **Real splits and dividends from Twelve Data**, so holdings don't break when
   a real split happens.
-- [ ] **Small fixes:** the leaderboard rank skips hidden players; chat cuts
+- [ ] **Small fixes:** the leaderboard rank skips hidden players; the lobby cuts
   messages at 500 bytes, not characters (can split an emoji).
 
 ## Follow-ups from the terms review (2026-10-29)
@@ -147,7 +147,7 @@ Highest impact for the effort first.
   terms name it (2026-10-30).
 - [ ] **Admin tool to remove chat messages.** Section 9 of the terms says we can
   remove chat messages, but there's no way to do it yet. Add a delete or hide
-  action to `internal/handler/chat.go` for admins. Part of Moderation above.
+  action to `internal/handler/lobby.go` for admins. Part of Moderation above.
 - [ ] **Update the ASX wording.** The About page (`templates/pages/legal/about.html`)
   still says you can trade ASX 200 stocks. While the ASX licence is pending, the game offers
   US-listed Australian companies instead (`AusUS` in

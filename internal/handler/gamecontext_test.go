@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -27,7 +28,6 @@ func TestGameTab(t *testing.T) {
 		"/games/7/watchlist":      "watchlist",
 		"/games/7/leaderboard":    "leaderboard",
 		"/games/7/sectors":        "analytics",
-		"/games/7/chat":           "chat",
 		"/games/7/activity":       "",
 		"/games/7/export/history": "",
 	} {
@@ -42,6 +42,13 @@ func TestGameTab(t *testing.T) {
 // joined. It serves the routes under /games/{id} as main.go does, with the
 // user from the X-User header standing in for the session.
 func gameServer(t *testing.T) (http.Handler, *db.Queries) {
+	t.Helper()
+	srv, q, _ := gameServerDB(t)
+	return srv, q
+}
+
+// gameServerDB is gameServer, also returning the database for seeding.
+func gameServerDB(t *testing.T) (http.Handler, *db.Queries, *sql.DB) {
 	t.Helper()
 	d := openTestDB(t)
 	for _, stmt := range []string{
@@ -78,12 +85,13 @@ func gameServer(t *testing.T) (http.Handler, *db.Queries) {
 		r.Get("/", h.GameDetail)
 		r.Get("/rules", h.GameRules)
 		r.Get("/portfolio", h.Portfolio)
+		r.Get("/history", h.TransactionHistory)
 		r.Get("/stocks", h.StocksBrowse)
 		r.Get("/stocks/{sid}", h.StockDetail)
 		r.Get("/trade/{sid}", h.TradeForm)
 		r.Post("/trade/{sid}", h.TradeExecute)
 	})
-	return r, q
+	return r, q, d
 }
 
 func getPage(t *testing.T, srv http.Handler, path, user string) string {
@@ -135,6 +143,43 @@ func TestGameHomeIsPortfolio(t *testing.T) {
 		if strings.Contains(body, unwanted) {
 			t.Errorf("page still has %q", unwanted)
 		}
+	}
+}
+
+// TestHistoryListsInterest checks a player's history has the interest paid on
+// their cash in date order with their trades, leaving out payments that
+// rounded to nothing.
+func TestHistoryListsInterest(t *testing.T) {
+	srv, q, d := gameServerDB(t)
+	p, _ := q.GetParticipantByGameAndUser(t.Context(), db.GetParticipantByGameAndUserParams{GameID: 1, UserID: 1})
+	for _, stmt := range []string{
+		`INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total, converted_total, created_at)
+		 VALUES (?1, 1, 'buy', 10, 1000, 10000, 10000, '2026-10-29 15:00:00')`,
+		`INSERT INTO interest_payments (participant_id, date, balance, rate, amount, created_at)
+		 VALUES (?1, '2026-10-29', 100000000, 500, 13699, '2026-10-29 13:01:00'),
+		        (?1, '2026-10-30', 100000000, 500, 13699, '2026-10-30 13:01:00'),
+		        (?1, '2026-10-28', 1, 500, 0, '2026-10-28 13:01:00')`,
+	} {
+		if _, err := d.Exec(stmt, p.ID); err != nil {
+			t.Fatalf("seed: %v\n%s", err, stmt)
+		}
+	}
+
+	body := getPage(t, srv, "/games/1/history", "")
+	newest := strings.Index(body, "for 30 Oct 2026")
+	trade := strings.Index(body, "<strong>ACME</strong>")
+	oldest := strings.Index(body, "for 29 Oct 2026")
+	if newest < 0 || trade < 0 || oldest < 0 {
+		t.Fatalf("history is missing interest or the trade:\n%s", body)
+	}
+	if !(newest < trade && trade < oldest) {
+		t.Error("history isn't newest first")
+	}
+	if !strings.Contains(body, "+$136.99") {
+		t.Error("interest amount missing")
+	}
+	if strings.Contains(body, "28 Oct 2026") {
+		t.Error("a payment that rounded to nothing is listed")
 	}
 }
 

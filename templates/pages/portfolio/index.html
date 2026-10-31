@@ -155,19 +155,29 @@ const snapshots = [
     {date: "{{.Date}}", value: {{.TotalValue}}},
     {{end}}
 ];
+// The x axis runs over every day of the game, so the line grows across the
+// month. Days without a snapshot (weekends, days before joining) are gaps.
+const byDate = new Map(snapshots.map(s => [s.date, s.value / 100]));
+const days = [];
+for (let d = new Date("{{.Item.StartDate}}T00:00:00Z"), end = new Date("{{.Item.EndDate}}T00:00:00Z"); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+    days.push(d.toISOString().slice(0, 10));
+}
+const dayLabel = iso => new Date(iso + 'T00:00:00Z').toLocaleDateString('en-AU', {day: 'numeric', month: 'short', timeZone: 'UTC'});
 const ctx = document.getElementById('portfolio-chart').getContext('2d');
 new Chart(ctx, {
     type: 'line',
     data: {
-        labels: snapshots.map(s => s.date),
+        labels: days.map(dayLabel),
         datasets: [{
             label: 'Portfolio Value',
-            data: snapshots.map(s => s.value / 100),
+            data: days.map(d => byDate.has(d) ? byDate.get(d) : null),
             borderColor: '#00B4C9',
             backgroundColor: 'rgba(0,180,201,0.12)',
             fill: true,
             tension: 0.3,
-            pointRadius: 0,
+            spanGaps: true,
+            pointRadius: snapshots.length > 1 ? 0 : 4,
+            pointBackgroundColor: '#00B4C9',
             pointHitRadius: 12,
         }]
     },
@@ -178,6 +188,7 @@ new Chart(ctx, {
         plugins: {
             legend: { display: false },
             tooltip: {
+                filter: item => item.parsed.y !== null,
                 callbacks: {
                     label: function(ctx) { return '$' + ctx.parsed.y.toLocaleString('en-US', {minimumFractionDigits: 2}); }
                 }

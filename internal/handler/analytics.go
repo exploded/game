@@ -37,72 +37,34 @@ func (h *Handler) TradeAnalytics(w http.ResponseWriter, r *http.Request) {
 
 	txns, _ := h.q.ListAllTransactions(r.Context(), participant.ID)
 
-	// Compute analytics from transactions.
-	type StockTrade struct {
-		Symbol    string
-		TotalBuy  int64 // total cost in base currency
-		TotalSell int64 // total proceeds in base currency
-		QtyBought int64
-		QtySold   int64
-	}
-
-	stocks := make(map[int64]*StockTrade)
 	var totalBuys, totalSells int64
 	var buyCount, sellCount int64
-
 	for _, t := range txns {
-		st, ok := stocks[t.StockID]
-		if !ok {
-			st = &StockTrade{Symbol: t.Symbol}
-			stocks[t.StockID] = st
-		}
 		if t.Type == "buy" {
-			st.TotalBuy += t.ConvertedTotal
-			st.QtyBought += t.Quantity
 			totalBuys += t.ConvertedTotal
 			buyCount++
 		} else {
-			st.TotalSell += t.ConvertedTotal
-			st.QtySold += t.Quantity
 			totalSells += t.ConvertedTotal
 			sellCount++
 		}
 	}
 
-	// Compute per-stock P&L for closed positions.
-	type StockPnL struct {
-		Symbol string
-		PnL    int64
-	}
-	var closedTrades []StockPnL
+	closedTrades := realisedPnL(txns)
 	var winners, losers int
 	var bestTrade, worstTrade StockPnL
 	var totalPnL int64
-
-	for _, st := range stocks {
-		if st.QtySold == 0 {
-			continue
-		}
-		// Approximate P&L based on average cost.
-		avgBuy := int64(0)
-		if st.QtyBought > 0 {
-			avgBuy = st.TotalBuy / st.QtyBought
-		}
-		pnl := st.TotalSell - (avgBuy * st.QtySold)
-		spnl := StockPnL{Symbol: st.Symbol, PnL: pnl}
-		closedTrades = append(closedTrades, spnl)
-		totalPnL += pnl
-
-		if pnl > 0 {
+	for _, c := range closedTrades {
+		totalPnL += c.PnL
+		if c.PnL > 0 {
 			winners++
-		} else if pnl < 0 {
+			if c.PnL > bestTrade.PnL {
+				bestTrade = c
+			}
+		} else if c.PnL < 0 {
 			losers++
-		}
-		if len(closedTrades) == 1 || pnl > bestTrade.PnL {
-			bestTrade = spnl
-		}
-		if len(closedTrades) == 1 || pnl < worstTrade.PnL {
-			worstTrade = spnl
+			if c.PnL < worstTrade.PnL {
+				worstTrade = c
+			}
 		}
 	}
 
@@ -130,6 +92,70 @@ func (h *Handler) TradeAnalytics(w http.ResponseWriter, r *http.Request) {
 			"ClosedTrades": closedTrades,
 		},
 	})
+}
+
+// StockPnL is the profit or loss realised on one stock, in the game's base
+// currency.
+type StockPnL struct {
+	Symbol string
+	PnL    int64
+}
+
+// realisedPnL works out what each stock has made or lost on the shares
+// already sold, or bought back for a short, replaying the trades in order.
+// A position's cost is in the game's base currency and negative for a short
+// (what the sale raised), as in market.Fill. Closing part of a position
+// realises that part's share of the cost; a trade that crosses zero closes
+// the old position and opens the other way. Stocks with nothing closed yet
+// are left out.
+func realisedPnL(txns []db.ListAllTransactionsRow) []StockPnL {
+	type position struct {
+		qty, cost int64
+		at        int // index in out, or -1
+	}
+	positions := make(map[int64]*position)
+	var out []StockPnL
+
+	for _, t := range txns {
+		p, ok := positions[t.StockID]
+		if !ok {
+			p = &position{at: -1}
+			positions[t.StockID] = p
+		}
+		n, value := t.Quantity, t.ConvertedTotal
+		if t.Type == "sell" {
+			n, value = -n, -value
+		}
+		if n == 0 {
+			continue
+		}
+		if p.qty != 0 && (p.qty > 0) != (n > 0) {
+			closed := min(abs64(n), abs64(p.qty))
+			costClosed := p.cost * closed / abs64(p.qty)
+			valueClosed := value * closed / abs64(n)
+			if p.at < 0 {
+				p.at = len(out)
+				out = append(out, StockPnL{Symbol: t.Symbol})
+			}
+			out[p.at].PnL -= costClosed + valueClosed
+			p.cost -= costClosed
+			value -= valueClosed
+		}
+		p.qty += n
+		if p.qty == 0 {
+			p.cost = 0
+		} else {
+			p.cost += value
+		}
+	}
+	return out
+}
+
+func abs64(n int64) int64 {
+	if n < 0 {
+		return -n
+	}
+	return n
 }
 
 // SectorBreakdown returns sector allocation data (Feature 12).

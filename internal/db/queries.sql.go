@@ -346,6 +346,18 @@ func (q *Queries) CountContactMessages(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+const countHistory = `-- name: CountHistory :one
+SELECT (SELECT COUNT(*) FROM transactions t WHERE t.participant_id = ?1)
+     + (SELECT COUNT(*) FROM interest_payments ip WHERE ip.participant_id = ?1 AND ip.amount > 0)
+`
+
+func (q *Queries) CountHistory(ctx context.Context, participantID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countHistory, participantID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const countInvitesSentToday = `-- name: CountInvitesSentToday :one
 SELECT COUNT(*) FROM game_invites
 WHERE created_by = ? AND email IS NOT NULL AND created_at > datetime('now', '-1 day')
@@ -367,19 +379,6 @@ WHERE u.blocked_at IS NULL
 
 func (q *Queries) CountLobbyMessages(ctx context.Context) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countLobbyMessages)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countMessages = `-- name: CountMessages :one
-SELECT COUNT(*) FROM game_messages gm
-JOIN users u ON u.id = gm.user_id
-WHERE gm.game_id = ? AND u.blocked_at IS NULL
-`
-
-func (q *Queries) CountMessages(ctx context.Context, gameID int64) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countMessages, gameID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -962,35 +961,6 @@ func (q *Queries) CreateMarketOrder(ctx context.Context, arg CreateMarketOrderPa
 		&i.ExpiresAt,
 		&i.FilledAt,
 		&i.Kind,
-	)
-	return i, err
-}
-
-const createMessage = `-- name: CreateMessage :one
-
-INSERT INTO game_messages (game_id, user_id, message)
-VALUES (?, ?, ?)
-RETURNING id, game_id, user_id, message, created_at
-`
-
-type CreateMessageParams struct {
-	GameID  int64
-	UserID  int64
-	Message string
-}
-
-// =============================================================================
-// Game Chat (Feature 7)
-// =============================================================================
-func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (GameMessage, error) {
-	row := q.db.QueryRowContext(ctx, createMessage, arg.GameID, arg.UserID, arg.Message)
-	var i GameMessage
-	err := row.Scan(
-		&i.ID,
-		&i.GameID,
-		&i.UserID,
-		&i.Message,
-		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -4062,6 +4032,75 @@ func (q *Queries) ListGamesWithPlayers(ctx context.Context) ([]ListGamesWithPlay
 	return items, nil
 }
 
+const listHistory = `-- name: ListHistory :many
+SELECT t.type AS kind, t.quantity, s.symbol, t.price, s.currency,
+       t.converted_total AS amount, t.fee, CAST('' AS TEXT) AS day, t.created_at
+FROM transactions t
+JOIN stocks s ON s.id = t.stock_id
+WHERE t.participant_id = ?3
+UNION ALL
+SELECT 'interest', ip.balance, '', 0, '', ip.amount, 0, ip.date, ip.created_at
+FROM interest_payments ip
+WHERE ip.participant_id = ?3 AND ip.amount > 0
+ORDER BY created_at DESC
+LIMIT ?2 OFFSET ?1
+`
+
+type ListHistoryParams struct {
+	Off           int64
+	Lim           int64
+	ParticipantID int64
+}
+
+type ListHistoryRow struct {
+	Kind      string
+	Quantity  int64
+	Symbol    string
+	Price     int64
+	Currency  string
+	Amount    int64
+	Fee       int64
+	Day       string
+	CreatedAt string
+}
+
+// A player's trades and the interest paid on their cash, newest first.
+// Interest rows have kind 'interest', quantity is the cash it was paid on,
+// and day is the day it was for. Payments that rounded to nothing are left
+// out.
+func (q *Queries) ListHistory(ctx context.Context, arg ListHistoryParams) ([]ListHistoryRow, error) {
+	rows, err := q.db.QueryContext(ctx, listHistory, arg.Off, arg.Lim, arg.ParticipantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListHistoryRow
+	for rows.Next() {
+		var i ListHistoryRow
+		if err := rows.Scan(
+			&i.Kind,
+			&i.Quantity,
+			&i.Symbol,
+			&i.Price,
+			&i.Currency,
+			&i.Amount,
+			&i.Fee,
+			&i.Day,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listHoldings = `-- name: ListHoldings :many
 SELECT h.id, h.participant_id, h.stock_id, h.quantity, h.avg_cost, h.current_value, h.updated_at, h.cost_basis, s.symbol, s.name AS stock_name, s.market, s.currency
 FROM holdings h
@@ -4745,62 +4784,6 @@ func (q *Queries) ListLobbyMessages(ctx context.Context, arg ListLobbyMessagesPa
 	return items, nil
 }
 
-const listMessages = `-- name: ListMessages :many
-SELECT gm.id, gm.game_id, gm.user_id, gm.message, gm.created_at, u.name AS user_name, u.picture_url AS user_picture
-FROM game_messages gm
-JOIN users u ON u.id = gm.user_id
-WHERE gm.game_id = ? AND u.blocked_at IS NULL
-ORDER BY gm.created_at DESC
-LIMIT ? OFFSET ?
-`
-
-type ListMessagesParams struct {
-	GameID int64
-	Limit  int64
-	Offset int64
-}
-
-type ListMessagesRow struct {
-	ID          int64
-	GameID      int64
-	UserID      int64
-	Message     string
-	CreatedAt   string
-	UserName    string
-	UserPicture sql.NullString
-}
-
-func (q *Queries) ListMessages(ctx context.Context, arg ListMessagesParams) ([]ListMessagesRow, error) {
-	rows, err := q.db.QueryContext(ctx, listMessages, arg.GameID, arg.Limit, arg.Offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListMessagesRow
-	for rows.Next() {
-		var i ListMessagesRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.GameID,
-			&i.UserID,
-			&i.Message,
-			&i.CreatedAt,
-			&i.UserName,
-			&i.UserPicture,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listNewsSubscribers = `-- name: ListNewsSubscribers :many
 SELECT u.id FROM users u
 JOIN email_prefs p ON p.user_id = u.id AND p.category = 'news' AND p.enabled = 1
@@ -5065,8 +5048,8 @@ type ListParticipantsByGameRow struct {
 	UserPicture    sql.NullString
 }
 
-// Blocked players are left out of standings, as their chat is from
-// ListMessages and ListLobbyMessages.
+// Blocked players are left out of standings, as their messages are from
+// ListLobbyMessages.
 func (q *Queries) ListParticipantsByGame(ctx context.Context, gameID int64) ([]ListParticipantsByGameRow, error) {
 	rows, err := q.db.QueryContext(ctx, listParticipantsByGame, gameID)
 	if err != nil {
@@ -6448,78 +6431,6 @@ func (q *Queries) ListTradesSince(ctx context.Context, arg ListTradesSinceParams
 			&i.ExchangeRateUsed,
 			&i.Fee,
 			&i.CreatedAt,
-			&i.Currency,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listTransactions = `-- name: ListTransactions :many
-SELECT t.id, t.participant_id, t.stock_id, t.type, t.quantity, t.price, t.total, t.converted_total, t.exchange_rate_used, t.fee, t.created_at, s.symbol, s.name AS stock_name, s.market, s.currency
-FROM transactions t
-JOIN stocks s ON s.id = t.stock_id
-WHERE t.participant_id = ?
-ORDER BY t.created_at DESC
-LIMIT ? OFFSET ?
-`
-
-type ListTransactionsParams struct {
-	ParticipantID int64
-	Limit         int64
-	Offset        int64
-}
-
-type ListTransactionsRow struct {
-	ID               int64
-	ParticipantID    int64
-	StockID          int64
-	Type             string
-	Quantity         int64
-	Price            int64
-	Total            int64
-	ConvertedTotal   int64
-	ExchangeRateUsed int64
-	Fee              int64
-	CreatedAt        string
-	Symbol           string
-	StockName        string
-	Market           string
-	Currency         string
-}
-
-func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsParams) ([]ListTransactionsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listTransactions, arg.ParticipantID, arg.Limit, arg.Offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListTransactionsRow
-	for rows.Next() {
-		var i ListTransactionsRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.ParticipantID,
-			&i.StockID,
-			&i.Type,
-			&i.Quantity,
-			&i.Price,
-			&i.Total,
-			&i.ConvertedTotal,
-			&i.ExchangeRateUsed,
-			&i.Fee,
-			&i.CreatedAt,
-			&i.Symbol,
-			&i.StockName,
-			&i.Market,
 			&i.Currency,
 		); err != nil {
 			return nil, err

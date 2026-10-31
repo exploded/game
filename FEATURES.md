@@ -35,10 +35,7 @@ Any player can invite a friend by email from the game's home page while the game
 - **Files:** `internal/handler/invite.go`, `internal/mail/templates/invite.tmpl`
 
 ### 7. Chat
-Per-game discussion thread. Participants can send messages (max 500 chars). HTMX-powered — new messages appear inline without page reload. Messages are displayed newest-first.
-
-- **Routes:** `/games/{id}/chat` (GET/POST)
-- **Files:** `internal/handler/chat.go`, `templates/pages/chat/index.html`
+Removed on 31 October 2026: players talk in the site-wide lobby (`/lobby`) instead. Old game messages stay in `game_messages` and are still in a player's data export.
 
 ### 8. Achievements
 11 achievements that are automatically granted after trades:
@@ -184,7 +181,7 @@ One admin page saying whether prices are up to date: the US market open or close
 - **Files:** `internal/handler/admin_prices.go`, `templates/pages/admin/prices.html`
 
 ### 22. Users and activity
-One admin page listing every user with their games, trades, join date and when they were last seen, sorted newest, last seen or most trades. Each user has buttons to make them an admin or block them. A blocked user (`users.blocked_at`) is signed out everywhere, can't sign in again and gets no email. They're left off leaderboards, ranks and the game emails' standings, and their game chat and lobby messages are hidden; unblocking brings it all back. Admins can't be blocked until their admin is removed. `/admin/activity` now redirects here.
+One admin page listing every user with their games, trades, join date and when they were last seen, sorted newest, last seen or most trades. Each user has buttons to make them an admin or block them. A blocked user (`users.blocked_at`) is signed out everywhere, can't sign in again and gets no email. They're left off leaderboards, ranks and the game emails' standings, and their lobby messages are hidden; unblocking brings it all back. Admins can't be blocked until their admin is removed. `/admin/activity` now redirects here.
 
 - **Routes:** `/admin/users`, `POST /admin/users/{id}/admin`, `POST /admin/users/{id}/block`
 - **Files:** `internal/handler/admin.go`, `templates/pages/admin/users.html`
@@ -201,7 +198,7 @@ Download transaction history or portfolio snapshots as CSV files. Available from
 
 - **Responsive nav** — hamburger menu on mobile with all new links
 - **Notification badge** — HTMX-polled unread count in nav
-- **Game detail** — action buttons for all new features (orders, watchlist, analytics, chat, activity, CSV export, invite)
+- **Game detail** — action buttons for all new features (orders, watchlist, analytics, activity, CSV export, invite)
 - **Trade form** — limit order section, short selling indicator
 - **Stock detail** — HTMX watch/unwatch toggle button
 - **Admin dashboard** — dividend/split simulation forms, links to price health and user activity
