@@ -86,7 +86,7 @@ func (r holdingRow) Shares() int64 {
 // isn't credited with the move before it. Trades are dated in UTC, not the
 // market's time: one made near the close fills at that close, so which side
 // of the line it lands on doesn't change the answer.
-func dayMove(qty int64, bars []db.StockPrice, trades []db.ListTradesSinceRow) change {
+func dayMove(qty int64, bars []db.StockPrice, trades []db.ListParticipantTradesRow) change {
 	if len(bars) < 2 {
 		return change{}
 	}
@@ -191,8 +191,8 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 
 	// Every trade in this game, by stock. A month of one player's trades is
 	// small, and it means no trade since a stock's previous close is missed.
-	trades := map[int64][]db.ListTradesSinceRow{}
-	if ts, err := h.q.ListTradesSince(ctx, db.ListTradesSinceParams{ParticipantID: participant.ID, CreatedAt: game.StartDate}); err == nil {
+	trades := map[int64][]db.ListParticipantTradesRow{}
+	if ts, err := h.q.ListParticipantTrades(ctx, participant.ID); err == nil {
 		for _, t := range ts {
 			trades[t.StockID] = append(trades[t.StockID], t)
 		}

@@ -143,6 +143,38 @@ func TestGameHomeIsPortfolio(t *testing.T) {
 	}
 }
 
+// TestGameHomeTodayCountsEarlyTrades checks a buy made on a game's first
+// morning in Australia, which is the day before in UTC, counts from the price
+// paid, not from the close before it. On 1 November 2026 a player who bought
+// at Friday's close was shown Friday's fall as today's loss.
+func TestGameHomeTodayCountsEarlyTrades(t *testing.T) {
+	srv, q, d := gameServerDB(t)
+	p, _ := q.GetParticipantByGameAndUser(t.Context(), db.GetParticipantByGameAndUserParams{GameID: 1, UserID: 1})
+	// ACME closed at $12.00 on Thursday and $10.50 on Friday, and the player
+	// bought 10 at $10.50 at 7:45 am AEDT on Sunday 1 November.
+	for _, stmt := range []string{
+		`UPDATE games SET start_date = '2026-11-01', end_date = '2026-11-30' WHERE id = 1`,
+		`INSERT INTO stock_prices (stock_id, date, open, high, low, close, volume)
+		 VALUES (1, '2026-10-29', 1200, 1200, 1200, 1200, 0), (1, '2026-10-30', 1050, 1050, 1050, 1050, 0)`,
+		`INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total, converted_total, created_at)
+		 VALUES (?1, 1, 'buy', 10, 1050, 10500, 10500, '2026-10-31 20:45:54')`,
+		`INSERT INTO holdings (participant_id, stock_id, quantity, avg_cost, cost_basis, current_value)
+		 VALUES (?1, 1, 10, 1050, 10500, 10500)`,
+	} {
+		if _, err := d.Exec(stmt, p.ID); err != nil {
+			t.Fatalf("seed: %v\n%s", err, stmt)
+		}
+	}
+
+	body := getPage(t, srv, "/games/1", "")
+	if strings.Contains(body, "-$15.00") {
+		t.Error("today counts Friday's fall in shares bought after it")
+	}
+	if !strings.Contains(body, `$0.00 (0.00%)</span> <span class="text-muted">today`) {
+		t.Errorf("today isn't $0.00:\n%s", body)
+	}
+}
+
 // TestHistoryListsInterest checks a player's history has the interest paid on
 // their cash in date order with their trades, leaving out payments that
 // rounded to nothing.
@@ -317,30 +349,30 @@ func TestChangePct(t *testing.T) {
 // previous close was $28.04 on 29 October and the latest is $28.64.
 func TestDayMove(t *testing.T) {
 	bars := []db.StockPrice{{Date: "2026-10-30", Close: 2864}, {Date: "2026-10-29", Close: 2804}}
-	trade := func(at, side string, n, price int64) db.ListTradesSinceRow {
-		return db.ListTradesSinceRow{CreatedAt: at, Type: side, Quantity: n, Price: price, Total: n * price}
+	trade := func(at, side string, n, price int64) db.ListParticipantTradesRow {
+		return db.ListParticipantTradesRow{CreatedAt: at, Type: side, Quantity: n, Price: price, Total: n * price}
 	}
 	for _, tc := range []struct {
 		name   string
 		qty    int64
-		trades []db.ListTradesSinceRow
+		trades []db.ListParticipantTradesRow
 		want   change
 	}{
 		{"held overnight", 100, nil, change{6000, 280400}},
 		{"bought before the previous close", 100,
-			[]db.ListTradesSinceRow{trade("2026-10-29 15:00:00", "buy", 100, 2790)}, change{6000, 280400}},
+			[]db.ListParticipantTradesRow{trade("2026-10-29 15:00:00", "buy", 100, 2790)}, change{6000, 280400}},
 		{"bought after hours at the latest close", 100,
-			[]db.ListTradesSinceRow{trade("2026-10-30 22:30:00", "buy", 100, 2864)}, change{0, 286400}},
+			[]db.ListParticipantTradesRow{trade("2026-10-30 22:30:00", "buy", 100, 2864)}, change{0, 286400}},
 		{"bought during the session", 100,
-			[]db.ListTradesSinceRow{trade("2026-10-30 15:00:00", "buy", 100, 2850)}, change{1400, 285000}},
+			[]db.ListParticipantTradesRow{trade("2026-10-30 15:00:00", "buy", 100, 2850)}, change{1400, 285000}},
 		{"added to overnight shares", 150,
-			[]db.ListTradesSinceRow{trade("2026-10-30 15:00:00", "buy", 50, 2850)}, change{6700, 422900}},
+			[]db.ListParticipantTradesRow{trade("2026-10-30 15:00:00", "buy", 50, 2850)}, change{6700, 422900}},
 		{"sold half during the session", 50,
-			[]db.ListTradesSinceRow{trade("2026-10-30 15:00:00", "sell", 50, 2850)}, change{5300, 137900}},
+			[]db.ListParticipantTradesRow{trade("2026-10-30 15:00:00", "sell", 50, 2850)}, change{5300, 137900}},
 		{"sold out during the session", 0,
-			[]db.ListTradesSinceRow{trade("2026-10-30 15:00:00", "sell", 100, 2850)}, change{4600, -4600}},
+			[]db.ListParticipantTradesRow{trade("2026-10-30 15:00:00", "sell", 100, 2850)}, change{4600, -4600}},
 		{"shorted during the session", -100,
-			[]db.ListTradesSinceRow{trade("2026-10-30 15:00:00", "sell", 100, 2900)}, change{3600, -290000}},
+			[]db.ListParticipantTradesRow{trade("2026-10-30 15:00:00", "sell", 100, 2900)}, change{3600, -290000}},
 	} {
 		if got := dayMove(tc.qty, bars, tc.trades); got != tc.want {
 			t.Errorf("%s: dayMove = %+v, want %+v", tc.name, got, tc.want)

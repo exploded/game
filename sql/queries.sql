@@ -576,13 +576,15 @@ INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
--- name: ListTradesSince :many
--- A player's trades from a date (YYYY-MM-DD, UTC) on, oldest first, for
--- working out how each position moved today.
+-- name: ListParticipantTrades :many
+-- All of a player's trades in their game, oldest first, for working out how
+-- each position moved today. A participant belongs to one game, so there's no
+-- date to filter on: a game starts at midnight in TIMEZONE, which is the day
+-- before in UTC, where created_at is.
 SELECT t.*, s.currency
 FROM transactions t
 JOIN stocks s ON s.id = t.stock_id
-WHERE t.participant_id = ? AND t.created_at >= ?
+WHERE t.participant_id = ?
 ORDER BY t.id;
 
 -- name: CountTransactions :one
