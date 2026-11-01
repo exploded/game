@@ -84,8 +84,7 @@ func (f *Fetcher) fetchQuoteBatch(ctx context.Context, q *db.Queries, batch []db
 		bySymbol[s.Symbol] = s
 	}
 
-	url := fmt.Sprintf("https://api.twelvedata.com/quote?symbol=%s&apikey=%s",
-		strings.Join(symbols, ","), f.apiKey)
+	url := fmt.Sprintf("https://api.twelvedata.com/quote?symbol=%s", strings.Join(symbols, ","))
 	resp, err := f.client.Get(url)
 	if err != nil {
 		return 0, 0, err

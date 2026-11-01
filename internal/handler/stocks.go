@@ -14,14 +14,6 @@ import (
 	"github.com/exploded/game/internal/market"
 )
 
-// peerLink is a resolved peer symbol used by the stock detail template. If
-// StockID is zero, the symbol is not in our universe and is rendered as a
-// plain badge instead of a link.
-type peerLink struct {
-	Symbol  string
-	StockID int64
-}
-
 // StocksBrowse is the stocks page: chips (screenFilters) and a sector menu
 // pick what it lists, or a search looks through every stock. An htmx
 // request gets just the list.
@@ -135,30 +127,6 @@ func (h *Handler) StockDetail(w http.ResponseWriter, r *http.Request) {
 	profile, _ := h.q.GetStockProfile(r.Context(), stock.ID)
 	profile.Logo = logoURL(profile.Logo)
 	news, _ := h.q.ListStockNews(r.Context(), db.ListStockNewsParams{StockID: stock.ID, Limit: 20})
-	recs, _ := h.q.ListStockRecommendations(r.Context(), db.ListStockRecommendationsParams{StockID: stock.ID, Limit: 6})
-
-	// Split the comma-separated peers blob and resolve each peer symbol to a
-	// stock ID in the same market so the template can link to stock detail
-	// pages directly. ASX peer symbols may carry a ".AX" suffix we need to
-	// strip before the DB lookup. Peers not in our stock universe are still
-	// rendered, just as plain badges.
-	var peers []peerLink
-	if profile.Peers != "" {
-		for _, p := range strings.Split(profile.Peers, ",") {
-			sym := strings.TrimSpace(p)
-			if sym == "" {
-				continue
-			}
-			lookup := strings.TrimSuffix(sym, ".AX")
-			var stockID int64
-			if peer, err := h.q.GetStockBySymbol(r.Context(), db.GetStockBySymbolParams{
-				Symbol: lookup, Market: stock.Market,
-			}); err == nil {
-				stockID = peer.ID
-			}
-			peers = append(peers, peerLink{Symbol: lookup, StockID: stockID})
-		}
-	}
 
 	// Rob's videos that talk about this stock (picked by the classifier).
 	robVideos, _ := h.q.ListStockVideos(r.Context(), stock.ID)
@@ -172,8 +140,6 @@ func (h *Handler) StockDetail(w http.ResponseWriter, r *http.Request) {
 	extra["PriceStats"] = h.loadPriceStats(r, gameID, stock.ID)
 	extra["Profile"] = profile
 	extra["News"] = news
-	extra["Recommendations"] = recs
-	extra["Peers"] = peers
 	extra["RobVideos"] = robVideos
 	extra["Pick"] = pick
 	h.render(w, r, "stocks/detail", "", PageData{

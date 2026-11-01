@@ -115,10 +115,6 @@ app.js goes back through history when it can. */}}
         <span class="info-label">Phone</span>
         <span class="info-value">{{$p.Phone}}</span>
     </div>{{end}}
-    {{if $p.IpoDate}}<div class="info-item">
-        <span class="info-label">IPO Date</span>
-        <span class="info-value">{{$p.IpoDate}}</span>
-    </div>{{end}}
     {{if $p.FiscalYearEnds}}<div class="info-item">
         <span class="info-label">Fiscal Year Ends</span>
         <span class="info-value">{{$p.FiscalYearEnds}}</span>
@@ -354,47 +350,6 @@ app.js goes back through history when it can. */}}
         <span class="info-value">{{$p.LastSplitDate}}</span>
     </div>{{end}}
 </div>
-
-{{if .Extra.Peers}}
-<h2 style="margin-top:2rem">Peers</h2>
-<div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
-    {{range .Extra.Peers}}
-    {{if .StockID}}
-    <a href="/games/{{$.Extra.Game.ID}}/stocks/{{.StockID}}" class="btn btn-sm">{{.Symbol}}</a>
-    {{else}}
-    <span class="btn btn-sm" style="opacity:0.5; cursor:default;">{{.Symbol}}</span>
-    {{end}}
-    {{end}}
-</div>
-{{end}}
-
-{{if .Extra.Recommendations}}
-<h2 style="margin-top:2rem">Analyst Ratings</h2>
-<table>
-    <thead>
-        <tr>
-            <th>Period</th>
-            <th style="text-align:right">Strong Buy</th>
-            <th style="text-align:right">Buy</th>
-            <th style="text-align:right">Hold</th>
-            <th style="text-align:right">Sell</th>
-            <th style="text-align:right">Strong Sell</th>
-        </tr>
-    </thead>
-    <tbody>
-        {{range .Extra.Recommendations}}
-        <tr>
-            <td>{{.Period}}</td>
-            <td style="text-align:right; color:#22c55e">{{.StrongBuy}}</td>
-            <td style="text-align:right; color:#4ade80">{{.Buy}}</td>
-            <td style="text-align:right; color:#9ca3af">{{.Hold}}</td>
-            <td style="text-align:right; color:#f87171">{{.Sell}}</td>
-            <td style="text-align:right; color:#ef4444">{{.StrongSell}}</td>
-        </tr>
-        {{end}}
-    </tbody>
-</table>
-{{end}}
 
 {{with .Extra.RobVideos}}
 <h2 style="margin-top:2rem">Rob talks about {{$.Item.Symbol}}</h2>

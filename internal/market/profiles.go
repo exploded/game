@@ -114,8 +114,7 @@ func (f *Fetcher) getJSON(ctx context.Context, endpoint string, cost int, symbol
 	if err := takeCredits(ctx, cost); err != nil {
 		return err
 	}
-	u := fmt.Sprintf("https://api.twelvedata.com/%s?symbol=%s&apikey=%s",
-		endpoint, url.QueryEscape(symbol), f.apiKey)
+	u := fmt.Sprintf("https://api.twelvedata.com/%s?symbol=%s", endpoint, url.QueryEscape(symbol))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
 		return err

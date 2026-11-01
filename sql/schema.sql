@@ -502,8 +502,6 @@ CREATE TABLE IF NOT EXISTS stock_profiles (
     most_recent_quarter   TEXT    NOT NULL DEFAULT '',
     -- Supplementary fields
     logo                  TEXT    NOT NULL DEFAULT '',  -- URL to company logo
-    ipo_date              TEXT    NOT NULL DEFAULT '',  -- IPO date YYYY-MM-DD
-    peers                 TEXT    NOT NULL DEFAULT '',  -- comma-separated peer tickers
     --
     updated_at            TEXT    NOT NULL DEFAULT (datetime('now'))
 );
@@ -545,22 +543,6 @@ CREATE TABLE IF NOT EXISTS stock_news (
     created_at   TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_stock_news_stock ON stock_news(stock_id, published_at DESC);
-
---------------------------------------------------------------------------------
--- Analyst Recommendations
---------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS stock_recommendations (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    stock_id    INTEGER NOT NULL REFERENCES stocks(id) ON DELETE CASCADE,
-    period      TEXT    NOT NULL,              -- YYYY-MM-DD (month of the recommendation)
-    strong_buy  INTEGER NOT NULL DEFAULT 0,
-    buy         INTEGER NOT NULL DEFAULT 0,
-    hold        INTEGER NOT NULL DEFAULT 0,
-    sell        INTEGER NOT NULL DEFAULT 0,
-    strong_sell INTEGER NOT NULL DEFAULT 0,
-    UNIQUE(stock_id, period)
-);
-CREATE INDEX IF NOT EXISTS idx_stock_recs_stock ON stock_recommendations(stock_id, period DESC);
 
 --------------------------------------------------------------------------------
 -- Ask a Question: members ask, vote, and Rob (an admin) answers.

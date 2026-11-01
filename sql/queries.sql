@@ -412,9 +412,10 @@ UPDATE stock_picks SET note = ?, sort_order = ? WHERE stock_id = ?;
 DELETE FROM stock_picks WHERE stock_id = ?;
 
 -- name: CountStockProfilesWithLogo :one
--- Logos pages can show: the CSP allows only Twelve Data's (logoURL in
--- internal/handler/screener.go).
-SELECT COUNT(*) FROM stock_profiles WHERE logo LIKE 'https://api.twelvedata.com/%';
+-- Logos pages can show: the CSP allows only Twelve Data's two hosts (logoURL
+-- in internal/handler/screener.go).
+SELECT COUNT(*) FROM stock_profiles
+WHERE logo LIKE 'https://api.twelvedata.com/%' OR logo LIKE 'https://logo.twelvedata.com/%';
 
 -- name: ListStocksNeedingProfile :many
 -- Active stocks with no profile row, or one last refreshed before the cutoff.
@@ -425,8 +426,8 @@ WHERE s.is_active = 1 AND s.market = ?
 ORDER BY s.symbol ASC;
 
 -- name: UpsertStockProfileInfo :exec
--- Company details from Twelve Data /profile. Leaves the statistics columns,
--- logo, ipo_date and peers alone.
+-- Company details from Twelve Data /profile. Leaves the statistics columns
+-- and logo alone.
 INSERT INTO stock_profiles (
     stock_id, exchange, industry, description, type, ceo, employees,
     website, address, city, state, country, phone, updated_at
@@ -523,10 +524,6 @@ ORDER BY published_at DESC LIMIT ?;
 -- name: GetStockNewsAge :one
 -- Returns the created_at of the newest news row for a stock, or NULL if none.
 SELECT CAST(MAX(created_at) AS TEXT) FROM stock_news WHERE stock_id = ?;
-
--- name: ListStockRecommendations :many
-SELECT * FROM stock_recommendations WHERE stock_id = ?
-ORDER BY period DESC LIMIT ?;
 
 -- =============================================================================
 -- Exchange Rates

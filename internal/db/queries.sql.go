@@ -425,11 +425,12 @@ func (q *Queries) CountRecentQuestions(ctx context.Context, userID int64) (int64
 }
 
 const countStockProfilesWithLogo = `-- name: CountStockProfilesWithLogo :one
-SELECT COUNT(*) FROM stock_profiles WHERE logo LIKE 'https://api.twelvedata.com/%'
+SELECT COUNT(*) FROM stock_profiles
+WHERE logo LIKE 'https://api.twelvedata.com/%' OR logo LIKE 'https://logo.twelvedata.com/%'
 `
 
-// Logos pages can show: the CSP allows only Twelve Data's (logoURL in
-// internal/handler/screener.go).
+// Logos pages can show: the CSP allows only Twelve Data's two hosts (logoURL
+// in internal/handler/screener.go).
 func (q *Queries) CountStockProfilesWithLogo(ctx context.Context) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countStockProfilesWithLogo)
 	var count int64
@@ -2107,7 +2108,7 @@ func (q *Queries) GetStockPick(ctx context.Context, stockID int64) (StockPick, e
 
 const getStockProfile = `-- name: GetStockProfile :one
 
-SELECT stock_id, exchange, industry, description, type, ceo, employees, website, address, city, state, country, phone, market_cap, enterprise_value, trailing_pe, forward_pe, peg_ratio, price_to_book, price_to_sales, ev_to_revenue, ev_to_ebitda, revenue, revenue_per_share, quarterly_rev_growth, gross_profit, ebitda, net_income, diluted_eps, quarterly_earn_growth, total_cash, cash_per_share, total_debt, debt_to_equity, current_ratio, book_value_per_share, operating_cash_flow, free_cash_flow, gross_margin, operating_margin, profit_margin, return_on_equity, return_on_assets, shares_outstanding, float_shares, avg_10_volume, avg_90_volume, shares_short, short_ratio, short_pct_outstanding, pct_held_insiders, pct_held_institutions, week_52_high, week_52_low, week_52_change, beta, day_50_ma, day_200_ma, last_split_factor, last_split_date, fiscal_year_ends, most_recent_quarter, logo, ipo_date, peers, updated_at FROM stock_profiles WHERE stock_id = ?
+SELECT stock_id, exchange, industry, description, type, ceo, employees, website, address, city, state, country, phone, market_cap, enterprise_value, trailing_pe, forward_pe, peg_ratio, price_to_book, price_to_sales, ev_to_revenue, ev_to_ebitda, revenue, revenue_per_share, quarterly_rev_growth, gross_profit, ebitda, net_income, diluted_eps, quarterly_earn_growth, total_cash, cash_per_share, total_debt, debt_to_equity, current_ratio, book_value_per_share, operating_cash_flow, free_cash_flow, gross_margin, operating_margin, profit_margin, return_on_equity, return_on_assets, shares_outstanding, float_shares, avg_10_volume, avg_90_volume, shares_short, short_ratio, short_pct_outstanding, pct_held_insiders, pct_held_institutions, week_52_high, week_52_low, week_52_change, beta, day_50_ma, day_200_ma, last_split_factor, last_split_date, fiscal_year_ends, most_recent_quarter, logo, updated_at FROM stock_profiles WHERE stock_id = ?
 `
 
 // =============================================================================
@@ -2180,8 +2181,6 @@ func (q *Queries) GetStockProfile(ctx context.Context, stockID int64) (StockProf
 		&i.FiscalYearEnds,
 		&i.MostRecentQuarter,
 		&i.Logo,
-		&i.IpoDate,
-		&i.Peers,
 		&i.UpdatedAt,
 	)
 	return i, err
@@ -5730,48 +5729,6 @@ func (q *Queries) ListStockPicks(ctx context.Context) ([]ListStockPicksRow, erro
 	return items, nil
 }
 
-const listStockRecommendations = `-- name: ListStockRecommendations :many
-SELECT id, stock_id, period, strong_buy, buy, hold, sell, strong_sell FROM stock_recommendations WHERE stock_id = ?
-ORDER BY period DESC LIMIT ?
-`
-
-type ListStockRecommendationsParams struct {
-	StockID int64
-	Limit   int64
-}
-
-func (q *Queries) ListStockRecommendations(ctx context.Context, arg ListStockRecommendationsParams) ([]StockRecommendation, error) {
-	rows, err := q.db.QueryContext(ctx, listStockRecommendations, arg.StockID, arg.Limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []StockRecommendation
-	for rows.Next() {
-		var i StockRecommendation
-		if err := rows.Scan(
-			&i.ID,
-			&i.StockID,
-			&i.Period,
-			&i.StrongBuy,
-			&i.Buy,
-			&i.Hold,
-			&i.Sell,
-			&i.StrongSell,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listStockVideos = `-- name: ListStockVideos :many
 SELECT v.id, v.platform, v.external_id, v.url, v.embed_url, v.title, v.description, v.thumb_url, v.published_at, v.duration_seconds, v.vertical, v.live_status, v.was_live, v.view_count, v.hidden, v.featured, v.hide_stocks, v.classified_at, v.created_at FROM videos v
 JOIN video_stocks vs ON vs.video_id = v.id
@@ -7998,8 +7955,8 @@ type UpsertStockProfileInfoParams struct {
 	Phone       string
 }
 
-// Company details from Twelve Data /profile. Leaves the statistics columns,
-// logo, ipo_date and peers alone.
+// Company details from Twelve Data /profile. Leaves the statistics columns
+// and logo alone.
 func (q *Queries) UpsertStockProfileInfo(ctx context.Context, arg UpsertStockProfileInfoParams) error {
 	_, err := q.db.ExecContext(ctx, upsertStockProfileInfo,
 		arg.StockID,

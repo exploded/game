@@ -49,8 +49,8 @@ func (f *Fetcher) CheckSplits(ctx context.Context, q *db.Queries, today string) 
 	if err := takeCredits(ctx, splitsCalendarCost); err != nil {
 		return 0, err
 	}
-	u := fmt.Sprintf("https://api.twelvedata.com/splits_calendar?country=%s&start_date=%s&end_date=%s&apikey=%s",
-		url.QueryEscape("United States"), day.Add(-splitsLookback).Format(time.DateOnly), today, f.apiKey)
+	u := fmt.Sprintf("https://api.twelvedata.com/splits_calendar?country=%s&start_date=%s&end_date=%s",
+		url.QueryEscape("United States"), day.Add(-splitsLookback).Format(time.DateOnly), today)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
 		return 0, err

@@ -39,6 +39,49 @@ func (s twelveDataStub) RoundTrip(r *http.Request) (*http.Response, error) {
 	}, nil
 }
 
+// recordAuth notes the Authorization header each request carried.
+type recordAuth struct{ got map[string]string }
+
+func (rec recordAuth) RoundTrip(r *http.Request) (*http.Response, error) {
+	rec.got[r.URL.Host] = r.Header.Get("Authorization")
+	return twelveDataStub("{}").RoundTrip(r)
+}
+
+// TestKeyTransport: the Twelve Data key goes in a header, only to Twelve
+// Data, and never in the URL, which failed requests' errors quote.
+func TestKeyTransport(t *testing.T) {
+	rec := recordAuth{got: map[string]string{}}
+	c := &http.Client{Transport: keyTransport{key: "secret", next: rec}}
+	for _, u := range []string{"https://api.twelvedata.com/quote?symbol=AAPL", "https://api.tickertick.com/feed?q=tt:aapl"} {
+		req, _ := http.NewRequest(http.MethodGet, u, nil)
+		resp, err := c.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		if req.Header.Get("Authorization") != "" {
+			t.Error("keyTransport changed the caller's request")
+		}
+	}
+	if got := rec.got["api.twelvedata.com"]; got != "apikey secret" {
+		t.Errorf("Twelve Data got Authorization %q", got)
+	}
+	if got := rec.got["api.tickertick.com"]; got != "" {
+		t.Errorf("another host got the key: %q", got)
+	}
+
+	_, err := (&http.Client{Transport: keyTransport{key: "secret", next: failing{}}}).Get("https://api.twelvedata.com/quote?symbol=AAPL")
+	if err == nil || strings.Contains(err.Error(), "secret") {
+		t.Errorf("a failed request's error shows the key: %v", err)
+	}
+}
+
+type failing struct{}
+
+func (failing) RoundTrip(*http.Request) (*http.Response, error) {
+	return nil, fmt.Errorf("connection refused")
+}
+
 // TestBackfillOnceForRecentListing: a stock listed a few weeks ago has
 // fewer than 30 days of history to fetch. Once the backfill has saved it,
 // it mustn't count as missing, or every restart fetches it again (and an

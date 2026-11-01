@@ -66,11 +66,13 @@ type ytVideo struct {
 }
 
 func (y *YouTube) get(ctx context.Context, path string, params url.Values, out any) error {
-	params.Set("key", y.key)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, y.base+path+"?"+params.Encode(), nil)
 	if err != nil {
 		return err
 	}
+	// In a header, not the URL, because a failed request's error quotes the
+	// URL and ends up in the logs.
+	req.Header.Set("X-goog-api-key", y.key)
 	resp, err := y.http.Do(req)
 	if err != nil {
 		return err

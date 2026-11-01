@@ -86,8 +86,6 @@ var addedColumns = []struct{ table, column, ddl string }{
 	{"games", "credit_interest_rate", "INTEGER NOT NULL DEFAULT 525"},
 	{"games", "limit_orders", "INTEGER NOT NULL DEFAULT 0"},
 	{"stock_profiles", "logo", "TEXT NOT NULL DEFAULT ''"},
-	{"stock_profiles", "ipo_date", "TEXT NOT NULL DEFAULT ''"},
-	{"stock_profiles", "peers", "TEXT NOT NULL DEFAULT ''"},
 	{"users", "last_game_id", "INTEGER DEFAULT NULL REFERENCES games(id) ON DELETE SET NULL"},
 	{"limit_orders", "kind", "TEXT NOT NULL DEFAULT 'limit'"},
 	{"notifications", "emailed", "INTEGER NOT NULL DEFAULT 0"},
@@ -238,6 +236,9 @@ var onceMigrations = []struct{ name, stmt string }{
 				instr(substr(detail, instr(detail, ' of ') + 4) || ' ', ' ') - 1)
 			ORDER BY s.market = 'sp500' DESC LIMIT 1)
 		WHERE action IN ('buy', 'sell') AND stock_id IS NULL AND instr(detail, ' of ') > 0`},
+	// Finnhub's analyst ratings. Nothing has filled the table since the move
+	// to Twelve Data. Dropped on 1 November 2026.
+	{"drop-stock-recommendations", "DROP TABLE IF EXISTS stock_recommendations"},
 }
 
 // droppedColumns are columns taken out of schema.sql. Older databases still
@@ -273,6 +274,10 @@ var droppedColumns = []struct{ table, column string }{
 	{"stock_profiles", "payout_ratio"},
 	{"stock_profiles", "dividend_frequency"},
 	{"stock_profiles", "dividend_date"},
+	// Finnhub figures that nothing has filled since the move to Twelve Data.
+	// Dropped on 1 November 2026, with stock_recommendations.
+	{"stock_profiles", "ipo_date"},
+	{"stock_profiles", "peers"},
 	{"stock_profiles", "ex_dividend_date"},
 }
 

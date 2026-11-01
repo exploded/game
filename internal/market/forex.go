@@ -29,8 +29,7 @@ func (f *Fetcher) FetchExchangeRates(ctx context.Context, q *db.Queries) error {
 	if err := takeCredits(ctx, 1); err != nil {
 		return err
 	}
-	url := fmt.Sprintf("https://api.twelvedata.com/time_series?symbol=AUD/USD&interval=1day&outputsize=%d&apikey=%s",
-		size, f.apiKey)
+	url := fmt.Sprintf("https://api.twelvedata.com/time_series?symbol=AUD/USD&interval=1day&outputsize=%d", size)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return err

@@ -217,18 +217,18 @@ func TestOpenDBAddsMissingColumns(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := d.Exec("ALTER TABLE stock_profiles DROP COLUMN peers"); err != nil {
+	if _, err := d.Exec("ALTER TABLE stock_profiles DROP COLUMN logo"); err != nil {
 		t.Fatal(err)
 	}
 	d.Close()
 
 	d = openTestDBAt(t, path)
 	var n int
-	if err := d.QueryRow("SELECT COUNT(*) FROM pragma_table_info('stock_profiles') WHERE name = 'peers'").Scan(&n); err != nil {
+	if err := d.QueryRow("SELECT COUNT(*) FROM pragma_table_info('stock_profiles') WHERE name = 'logo'").Scan(&n); err != nil {
 		t.Fatal(err)
 	}
 	if n != 1 {
-		t.Error("stock_profiles.peers was not re-added")
+		t.Error("stock_profiles.logo was not re-added")
 	}
 }
 

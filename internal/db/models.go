@@ -446,20 +446,7 @@ type StockProfile struct {
 	FiscalYearEnds      string
 	MostRecentQuarter   string
 	Logo                string
-	IpoDate             string
-	Peers               string
 	UpdatedAt           string
-}
-
-type StockRecommendation struct {
-	ID         int64
-	StockID    int64
-	Period     string
-	StrongBuy  int64
-	Buy        int64
-	Hold       int64
-	Sell       int64
-	StrongSell int64
 }
 
 type StockSplit struct {

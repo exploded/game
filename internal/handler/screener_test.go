@@ -30,8 +30,10 @@ func TestSparkPoints(t *testing.T) {
 }
 
 func TestLogoURL(t *testing.T) {
-	if got := logoURL("https://api.twelvedata.com/logo/microsoft.com"); got == "" {
-		t.Error("dropped a Twelve Data logo")
+	for _, u := range []string{"https://api.twelvedata.com/logo/microsoft.com", "https://logo.twelvedata.com/symbols/fb-meta.jpg"} {
+		if got := logoURL(u); got == "" {
+			t.Errorf("dropped a Twelve Data logo: %s", u)
+		}
 	}
 	if got := logoURL("https://static2.finnhub.io/file/publicdatany/finnhubimage/stock_logo/V.png"); got != "" {
 		t.Errorf("kept a logo the CSP blocks: %q", got)

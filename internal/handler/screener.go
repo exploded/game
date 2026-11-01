@@ -48,10 +48,11 @@ func (r screenRow) Initial() string {
 }
 
 // logoURL returns a stored logo if the CSP lets pages show it (img-src in
-// security.go), or "". Profiles fetched before Twelve Data still hold
-// Finnhub logos, which it blocks.
+// security.go), or "". Twelve Data serves logos from two hosts (Meta's and
+// SpaceX's are on logo.twelvedata.com). Profiles fetched before Twelve Data
+// still hold Finnhub logos, which it blocks.
 func logoURL(u string) string {
-	if strings.HasPrefix(u, "https://api.twelvedata.com/") {
+	if strings.HasPrefix(u, "https://api.twelvedata.com/") || strings.HasPrefix(u, "https://logo.twelvedata.com/") {
 		return u
 	}
 	return ""

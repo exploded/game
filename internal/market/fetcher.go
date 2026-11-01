@@ -19,17 +19,34 @@ import (
 type Fetcher struct {
 	q      *db.Queries
 	rawDB  *sql.DB // for transactions around bulk price writes
-	apiKey string
 	client *http.Client
 }
 
 func NewFetcher(q *db.Queries, rawDB *sql.DB) *Fetcher {
 	return &Fetcher{
-		q:      q,
-		rawDB:  rawDB,
-		apiKey: os.Getenv("TWELVEDATA_API_KEY"),
-		client: &http.Client{Timeout: 60 * time.Second},
+		q:     q,
+		rawDB: rawDB,
+		client: &http.Client{
+			Timeout:   60 * time.Second,
+			Transport: keyTransport{key: os.Getenv("TWELVEDATA_API_KEY"), next: http.DefaultTransport},
+		},
 	}
+}
+
+// keyTransport sends the Twelve Data key in the Authorization header rather
+// than the URL, because a failed request's error quotes the URL and ends up
+// in the logs. Only api.twelvedata.com gets it.
+type keyTransport struct {
+	key  string
+	next http.RoundTripper
+}
+
+func (t keyTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	if r.URL.Host == "api.twelvedata.com" {
+		r = r.Clone(r.Context())
+		r.Header.Set("Authorization", "apikey "+t.key)
+	}
+	return t.next.RoundTrip(r)
 }
 
 type twelveDataResponse struct {
@@ -244,8 +261,8 @@ func (f *Fetcher) fetchOneBatch(ctx context.Context, q *db.Queries, batch []db.S
 		symbolToStock[s.Symbol] = s
 	}
 
-	url := fmt.Sprintf("https://api.twelvedata.com/time_series?symbol=%s&interval=1day&outputsize=%d&apikey=%s",
-		strings.Join(symbols, ","), outputSize, f.apiKey)
+	url := fmt.Sprintf("https://api.twelvedata.com/time_series?symbol=%s&interval=1day&outputsize=%d",
+		strings.Join(symbols, ","), outputSize)
 
 	resp, err := f.client.Get(url)
 	if err != nil {
