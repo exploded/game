@@ -14,9 +14,9 @@ import (
 	"github.com/exploded/game/internal/market"
 )
 
-// StocksBrowse is the stocks page: chips (screenFilters) and a sector menu
-// pick what it lists, or a search looks through every stock. An htmx
-// request gets just the list.
+// StocksBrowse is the stocks page: a chip (screenFilters), narrowed by a
+// sector menu, picks what it lists, or a search looks through every stock.
+// An htmx request gets just the list.
 func (h *Handler) StocksBrowse(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	gameID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -47,12 +47,12 @@ func (h *Handler) StocksBrowse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	v := r.URL.Query()
-	f, sector, fin, search := filterKey(v.Get("f")), v.Get("sector"), finKey(v.Get("fin")), strings.TrimSpace(v.Get("q"))
+	f, sector, search := filterKey(v.Get("f")), v.Get("sector"), strings.TrimSpace(v.Get("q"))
 	var holders map[int64]int64
 	if f == "popular" && search == "" {
 		holders = h.holderCounts(r, gameID)
 	}
-	res := applyFilter(rows, f, sector, fin, search, holders)
+	res := applyFilter(rows, f, sector, search, holders)
 	h.markRows(r.Context(), participant.ID, user.ID, res.Rows)
 
 	data := PageData{
@@ -60,15 +60,14 @@ func (h *Handler) StocksBrowse(w http.ResponseWriter, r *http.Request) {
 		Item:  game,
 		Items: res.Rows,
 		Extra: map[string]any{
-			"Result":     res,
-			"Filter":     f,
-			"Filters":    screenFilters,
-			"Sectors":    screenSectors(rows),
-			"Sector":     sector,
-			"FinFilters": finFilters,
-			"Fin":        fin,
-			"Q":          search,
-			"ShowNotes":  res.Filter == "picks",
+			"Result":    res,
+			"Filter":    f,
+			"Filters":   screenFilters,
+			"FirstFin":  firstFinFilter,
+			"Sectors":   screenSectors(rows),
+			"Sector":    sector,
+			"Q":         search,
+			"ShowNotes": res.Filter == "picks",
 		},
 	}
 	// The same URL serves the page and the list, so caches must tell them
@@ -301,7 +300,7 @@ func (h *Handler) StockSearch(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, "stock search", err)
 		return
 	}
-	res := applyFilter(rows, "", "", "", r.URL.Query().Get("q"), nil)
+	res := applyFilter(rows, "", "", r.URL.Query().Get("q"), nil)
 	user := auth.UserFromContext(r.Context())
 	if p, err := h.q.GetParticipantByGameAndUser(r.Context(), db.GetParticipantByGameAndUserParams{
 		GameID: gameID, UserID: user.ID,

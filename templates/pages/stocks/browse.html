@@ -26,13 +26,10 @@
                 <option value="">Any sector</option>
                 {{range .Extra.Sectors}}<option{{if eq . $.Extra.Sector}} selected{{end}}>{{.}}</option>{{end}}
             </select>
-            <select name="fin" aria-label="Financials" class="screener-sector">
-                <option value="">Any financials</option>
-                {{range .Extra.FinFilters}}<option value="{{.Key}}"{{if eq .Key $.Extra.Fin}} selected{{end}}>{{.Label}}</option>{{end}}
-            </select>
         </div>
+        {{/* Lists first, then tests of a company's financials. */}}
         <div class="chips screener-chips" role="radiogroup" aria-label="Show">
-            {{range .Extra.Filters}}<label class="chip"><input type="radio" name="f" value="{{.Key}}" class="sr-only"{{if eq .Key $.Extra.Filter}} checked{{end}}>{{.Label}}</label>{{end}}
+            {{range .Extra.Filters}}{{if eq .Key $.Extra.FirstFin}}<span class="chip-sep" aria-hidden="true"></span>{{end}}<label class="chip"><input type="radio" name="f" value="{{.Key}}" class="sr-only"{{if eq .Key $.Extra.Filter}} checked{{end}}>{{.Label}}</label>{{end}}
         </div>
     </form>
 </div>

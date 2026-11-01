@@ -28,7 +28,7 @@ type screenRow struct {
 
 	Health    int    // the health score, 0 to 5 (healthScore)
 	HasHealth bool   // false for banks and insurers, and stocks with no financials
-	Figure    string // what the Financials menu's choice matched on; set by applyFilter
+	Figure    string // what a financial chip matched on; set by applyFilter
 }
 
 // HeldShares is the player's position without its sign.
@@ -58,33 +58,12 @@ func logoURL(u string) string {
 	return ""
 }
 
-// screenFilter is one chip on the stocks page. With a Financials menu
-// choice on, the caption is built from Group and Order instead, since the
-// menu may reorder the list.
-type screenFilter struct {
-	Key, Label, Caption string
-	Group               string // what the chip lists, for a caption with the menu
-	Order               string // how it's ordered, if the caption should say
-}
-
 // defaultFilter is the chip the stocks page opens on.
 const defaultFilter = "picks"
 
-// screenFilters are the chips, in order.
-var screenFilters = []screenFilter{
-	{"all", "All A–Z", "Every stock, A–Z", "Every stock", "A–Z"},
-	{"picks", "Rob's Picks", "Rob's Picks", "Rob's Picks", ""},
-	{"mag7", "Mag 7", "The Magnificent 7", "The Magnificent 7", ""},
-	{"tech", "Tech", "Tech, biggest first", "Tech stocks", "biggest first"},
-	{"up", "Gainers", "Today's biggest gainers", "Today's biggest gainers", ""},
-	{"down", "Losers", "Today's biggest losers", "Today's biggest losers", ""},
-	{"big", "Biggest", "The biggest companies", "The biggest companies", ""},
-	{"active", "Most traded", "Most traded today, by dollar value", "Today's most traded stocks", ""},
-	{"aus", "Aussie", "Australian companies listed in the US", "Australian companies listed in the US", ""},
-	{"intl", "International", "Overseas companies listed in the US", "Overseas companies listed in the US", ""},
-	{"crypto", "Crypto", "Bitcoin funds and crypto companies", "Bitcoin funds and crypto companies", ""},
-	{"popular", "Players' favourites", "Most held by players in this game", "The stocks players in this game hold most", ""},
-}
+// firstFinFilter is the first chip that tests a company's financials. The
+// stocks page puts a divider before it.
+const firstFinFilter = "profit"
 
 var mag7 = map[string]bool{"AAPL": true, "MSFT": true, "AMZN": true, "NVDA": true, "GOOGL": true, "META": true, "TSLA": true}
 
@@ -209,7 +188,7 @@ func sparkPoints(closes []int64) string {
 	return strings.Join(pts, " ")
 }
 
-// The Financials menu and the health score read stock_profiles, from Twelve
+// The financial chips and the health score read stock_profiles, from Twelve
 // Data /statistics. It stores 0 for a figure Twelve Data didn't send, so
 // every test needs a real value, not just a zero that passes "under 15".
 
@@ -275,44 +254,104 @@ func pctBps(bp int64) string { return fmt.Sprintf("%.1f%%", float64(bp)/100) }
 // whole percentage: "+22%".
 func growthBps(bp int64) string { return fmt.Sprintf("%+.0f%%", float64(bp)/100) }
 
-// finFilter is one choice in the stocks page's Financials menu. It narrows
-// whatever the chip and sector menu picked.
-type finFilter struct {
+// screenFilter is one chip on the stocks page. The sector menu narrows any
+// of them.
+type screenFilter struct {
 	Key, Label string
-	Caption    string // added to the chip's Group in the caption
-	Order      string // how less orders the list, for the caption
-	Explain    string // what the measure is, under the caption
-	keep       func(screenRow) bool
-	less       func(a, b screenRow) bool // nil keeps the chip's order
+	Group      string                    // what the chip lists, for the caption
+	Order      string                    // how it's ordered, if the caption should say
+	Explain    string                    // what a financial chip's test means, under the caption
+	keep       func(screenRow) bool      // nil keeps every row
+	less       func(a, b screenRow) bool // nil keeps the rows' A–Z order
+	limit      int                       // how many rows it shows; 0 for all
 	figure     func(screenRow) string    // shown on each row; nil for none
 }
 
-// finFilters are the Financials menu, in order. Labels say what the test
-// is, not what to make of it: The Wealth Lab mustn't read as advice.
-var finFilters = []finFilter{
+func biggerCap(a, b screenRow) bool { return a.MarketCap > b.MarketCap }
+
+// screenFilters are the chips, in order: lists, then tests of a company's
+// financials (from firstFinFilter). Financial labels say what the test is,
+// not what to make of it: The Wealth Lab mustn't read as advice.
+var screenFilters = []screenFilter{
+	{Key: "all", Label: "All A–Z", Group: "Every stock", Order: "A–Z"},
 	{
-		Key: "profit", Label: "Making a profit", Caption: "making a profit",
+		Key: "picks", Label: "Rob's Picks", Group: "Rob's Picks",
+		keep: func(r screenRow) bool { return r.IsPick == 1 },
+		less: func(a, b screenRow) bool { return a.PickOrder < b.PickOrder },
+	},
+	{
+		Key: "mag7", Label: "Mag 7", Group: "The Magnificent 7",
+		keep: func(r screenRow) bool { return r.Market == "sp500" && mag7[r.Symbol] },
+		less: biggerCap,
+	},
+	{
+		Key: "tech", Label: "Tech", Group: "Tech", Order: "biggest first",
+		keep: func(r screenRow) bool { return r.Sector == "Information Technology" },
+		less: biggerCap,
+	},
+	{
+		Key: "up", Label: "Gainers", Group: "Today's biggest gainers",
+		keep:  func(r screenRow) bool { return r.Today.Amount > 0 },
+		less:  func(a, b screenRow) bool { return a.TodayPct > b.TodayPct },
+		limit: screenTop,
+	},
+	{
+		Key: "down", Label: "Losers", Group: "Today's biggest losers",
+		keep:  func(r screenRow) bool { return r.Today.Amount < 0 },
+		less:  func(a, b screenRow) bool { return a.TodayPct < b.TodayPct },
+		limit: screenTop,
+	},
+	{Key: "big", Label: "Biggest", Group: "The biggest companies", less: biggerCap, limit: screenBiggest},
+	{
+		Key: "active", Label: "Most traded", Group: "Most traded today", Order: "by dollar value",
+		keep:  func(r screenRow) bool { return r.Turnover > 0 },
+		less:  func(a, b screenRow) bool { return a.Turnover > b.Turnover },
+		limit: screenTop,
+	},
+	{
+		Key: "aus", Label: "Aussie", Group: "Australian companies listed in the US",
+		keep: func(r screenRow) bool { return market.IsAusUS(r.Symbol, r.Market) },
+		less: biggerCap,
+	},
+	{
+		Key: "intl", Label: "International", Group: "Overseas companies listed in the US",
+		keep: func(r screenRow) bool { return market.IsOtherUS(r.Symbol, r.Market) },
+		less: biggerCap,
+	},
+	{
+		Key: "crypto", Label: "Crypto", Group: "Bitcoin funds and crypto companies",
+		keep: func(r screenRow) bool { return market.IsCrypto(r.Symbol, r.Market) },
+		less: biggerCap,
+	},
+	{
+		Key: "popular", Label: "Players' favourites", Group: "Most held by players in this game",
+		keep:  func(r screenRow) bool { return r.Holders > 0 },
+		less:  func(a, b screenRow) bool { return a.Holders > b.Holders },
+		limit: screenTop,
+	},
+	{
+		Key: "profit", Label: "Making a profit", Group: "Companies making a profit", Order: "biggest profit first",
 		Explain: "Net income, the profit left after all costs and tax, was above zero over the last 12 months.",
 		keep:    func(r screenRow) bool { return r.NetIncome > 0 },
+		less:    func(a, b screenRow) bool { return a.NetIncome > b.NetIncome },
 		figure:  func(r screenRow) string { return "Profit margin " + pctBps(r.ProfitMargin) },
 	},
 	{
-		Key: "loss", Label: "Making a loss", Caption: "making a loss",
+		Key: "loss", Label: "Making a loss", Group: "Companies making a loss", Order: "biggest loss first",
 		Explain: "Net income, the profit left after all costs and tax, was below zero over the last 12 months.",
 		keep:    func(r screenRow) bool { return r.NetIncome < 0 },
+		less:    func(a, b screenRow) bool { return a.NetIncome < b.NetIncome },
 		figure:  func(r screenRow) string { return "Loss " + bigMoney(-r.NetIncome) },
 	},
 	{
-		Key: "fcf", Label: "Free cash flow positive", Caption: "with positive free cash flow",
-		Order:   "highest yield first",
+		Key: "fcf", Label: "Free cash flow positive", Group: "Companies with positive free cash flow", Order: "highest yield first",
 		Explain: "Free cash flow is the cash a company's business brings in, less what it spends on equipment and buildings. Its yield is the last 12 months' free cash flow as a share of the company's market value.",
 		keep:    func(r screenRow) bool { return r.FreeCashFlow > 0 },
 		less:    func(a, b screenRow) bool { return fcfYield(a) > fcfYield(b) },
 		figure:  func(r screenRow) string { return "Free cash flow yield " + pctBps(fcfYield(r)) },
 	},
 	{
-		Key: "margin", Label: "Profit margin over 20%", Caption: "with a profit margin over 20%",
-		Order:   "highest first",
+		Key: "margin", Label: "Profit margin over 20%", Group: "Companies with a profit margin over 20%", Order: "highest first",
 		Explain: "Profit margin is net income as a share of revenue, over the last 12 months.",
 		keep:    func(r screenRow) bool { return r.ProfitMargin > 2000 },
 		less:    func(a, b screenRow) bool { return a.ProfitMargin > b.ProfitMargin },
@@ -320,40 +359,35 @@ var finFilters = []finFilter{
 	},
 	{
 		// Twelve Data gives some loss-makers a P/E, so a profit is needed too.
-		Key: "pe", Label: "P/E under 15", Caption: "with a P/E under 15",
-		Order:   "lowest first",
+		Key: "pe", Label: "P/E under 15", Group: "Companies with a P/E under 15", Order: "lowest first",
 		Explain: "P/E is the share price divided by the last 12 months' earnings per share. Only companies making a profit are included.",
 		keep:    func(r screenRow) bool { return r.NetIncome > 0 && r.TrailingPe > 0 && r.TrailingPe < 1500 },
 		less:    func(a, b screenRow) bool { return a.TrailingPe < b.TrailingPe },
 		figure:  func(r screenRow) string { return fmt.Sprintf("P/E %.1f", float64(r.TrailingPe)/100) },
 	},
 	{
-		Key: "peg", Label: "PEG under 1", Caption: "with a PEG under 1",
-		Order:   "lowest first",
+		Key: "peg", Label: "PEG under 1", Group: "Companies with a PEG under 1", Order: "lowest first",
 		Explain: "PEG is the P/E divided by the yearly growth in earnings that analysts expect. Only companies making a profit are included.",
 		keep:    func(r screenRow) bool { return r.NetIncome > 0 && r.PegRatio > 0 && r.PegRatio < 100 },
 		less:    func(a, b screenRow) bool { return a.PegRatio < b.PegRatio },
 		figure:  func(r screenRow) string { return fmt.Sprintf("PEG %.2f", float64(r.PegRatio)/100) },
 	},
 	{
-		Key: "revgrowth", Label: "Revenue up 15% or more", Caption: "with revenue up 15% or more",
-		Order:   "fastest first",
+		Key: "revgrowth", Label: "Revenue up 15% or more", Group: "Companies with revenue up 15% or more", Order: "fastest first",
 		Explain: "Revenue in the latest quarter, against the same quarter a year earlier.",
 		keep:    func(r screenRow) bool { return r.QuarterlyRevGrowth >= 1500 },
 		less:    func(a, b screenRow) bool { return a.QuarterlyRevGrowth > b.QuarterlyRevGrowth },
 		figure:  func(r screenRow) string { return "Revenue " + growthBps(r.QuarterlyRevGrowth) },
 	},
 	{
-		Key: "earngrowth", Label: "Earnings up on last year", Caption: "with earnings up on last year",
-		Order:   "fastest first",
+		Key: "earngrowth", Label: "Earnings up on last year", Group: "Companies with earnings up on last year", Order: "fastest first",
 		Explain: "Earnings in the latest quarter, against the same quarter a year earlier. Only companies making a profit are included.",
 		keep:    func(r screenRow) bool { return r.NetIncome > 0 && r.QuarterlyEarnGrowth > 0 },
 		less:    func(a, b screenRow) bool { return a.QuarterlyEarnGrowth > b.QuarterlyEarnGrowth },
 		figure:  func(r screenRow) string { return "Earnings " + growthBps(r.QuarterlyEarnGrowth) },
 	},
 	{
-		Key: "lowdebt", Label: "Debt-to-equity under 0.5", Caption: "with debt-to-equity under 0.5",
-		Order:   "lowest first",
+		Key: "lowdebt", Label: "Debt-to-equity under 0.5", Group: "Companies with debt-to-equity under 0.5", Order: "lowest first",
 		Explain: "Debt-to-equity is total debt divided by shareholders' equity, what the company owns less what it owes. Banks and insurers are left out, because the measure doesn't suit them.",
 		keep:    func(r screenRow) bool { return lowDebt(r, 50) },
 		less:    func(a, b screenRow) bool { return a.DebtToEquity < b.DebtToEquity },
@@ -365,16 +399,14 @@ var finFilters = []finFilter{
 		},
 	},
 	{
-		Key: "netcash", Label: "More cash than debt", Caption: "with more cash than debt",
-		Order:   "most cash first",
+		Key: "netcash", Label: "More cash than debt", Group: "Companies with more cash than debt", Order: "most cash first",
 		Explain: "Cash and short-term investments are larger than total debt. Banks and insurers are left out, because their cash is mostly customers' money.",
 		keep:    func(r screenRow) bool { return balanceSheetFits(r) && r.TotalCash > r.TotalDebt },
 		less:    func(a, b screenRow) bool { return a.TotalCash-a.TotalDebt > b.TotalCash-b.TotalDebt },
 		figure:  func(r screenRow) string { return "Net cash " + bigMoney(r.TotalCash-r.TotalDebt) },
 	},
 	{
-		Key: "score", Label: "Health score 4 or 5", Caption: "with a health score of 4 or 5",
-		Order:   "highest first",
+		Key: "score", Label: "Health score 4 or 5", Group: "Companies with a health score of 4 or 5", Order: "highest first",
 		Explain: "One point each for a profit, positive free cash flow, debt-to-equity under 1, a current ratio over 1 (short-term assets cover short-term debts) and revenue up on a year earlier. Banks and insurers don't get a score.",
 		keep:    func(r screenRow) bool { return r.HasHealth && r.Health >= 4 },
 		less: func(a, b screenRow) bool {
@@ -386,21 +418,11 @@ var finFilters = []finFilter{
 	},
 }
 
-// finKey returns f if it names a Financials menu choice, otherwise "".
-func finKey(f string) string {
-	for _, ff := range finFilters {
-		if ff.Key == f {
-			return f
-		}
-	}
-	return ""
-}
-
 // screenResult is what the stocks page lists.
 type screenResult struct {
 	Filter  string // the chip's key, or "" for a search
 	Caption string
-	Explain string // what the Financials menu's choice means, if one is on
+	Explain string // what a financial chip's test means
 	Rows    []screenRow
 }
 
@@ -414,124 +436,48 @@ func filterKey(f string) string {
 	return defaultFilter
 }
 
-// applyFilter picks and orders the rows for a chip, sector and Financials
-// menu choice (fin), or for a search, which looks through every stock.
-// holders counts players holding each stock, for Favourites. It never
+// applyFilter picks and orders the rows for a chip and sector, or for a
+// search, which looks through every stock. holders counts players holding
+// each stock, for Favourites, and is nil for the other chips. It never
 // reorders rows itself.
-func applyFilter(rows []screenRow, f, sector, fin, q string, holders map[int64]int64) screenResult {
+func applyFilter(rows []screenRow, f, sector, q string, holders map[int64]int64) screenResult {
 	if q = strings.TrimSpace(q); q != "" {
 		return searchRows(rows, q)
 	}
 	f = filterKey(f)
-	res := screenResult{Filter: f}
 	var sf screenFilter
 	for _, c := range screenFilters {
 		if c.Key == f {
 			sf = c
 		}
 	}
-	var ff *finFilter
-	for i := range finFilters {
-		if finFilters[i].Key == fin {
-			ff = &finFilters[i]
-		}
-	}
-	// Chips that rank and cut their list keep their order; the others take
-	// the menu's, with theirs breaking ties.
-	ranks := f == "up" || f == "down" || f == "big" || f == "active" || f == "popular"
-	menuOrders := ff != nil && ff.less != nil && !ranks
-
-	in := ""
+	res := screenResult{Filter: f, Caption: sf.Group, Explain: sf.Explain}
 	if sector != "" {
-		in = " in " + sector
+		res.Caption += " in " + sector
 	}
-	switch {
-	case ff == nil:
-		res.Caption = sf.Caption + in
-	case menuOrders:
-		res.Caption = sf.Group + in + " " + ff.Caption + ", " + ff.Order
-	default:
-		res.Caption = sf.Group + in + " " + ff.Caption
-		if sf.Order != "" {
-			res.Caption += ", " + sf.Order
-		}
-	}
-	if ff != nil {
-		res.Explain = ff.Explain
+	if sf.Order != "" {
+		res.Caption += ", " + sf.Order
 	}
 
-	keep := func(r screenRow) bool {
-		if sector != "" && r.Sector != sector {
-			return false
-		}
-		if ff != nil && !ff.keep(r) {
-			return false
-		}
-		switch f {
-		case "picks":
-			return r.IsPick == 1
-		case "mag7":
-			return r.Market == "sp500" && mag7[r.Symbol]
-		case "tech":
-			return r.Sector == "Information Technology"
-		case "up":
-			return r.Today.Amount > 0
-		case "down":
-			return r.Today.Amount < 0
-		case "active":
-			return r.Turnover > 0
-		case "aus":
-			return market.IsAusUS(r.Symbol, r.Market)
-		case "intl":
-			return market.IsOtherUS(r.Symbol, r.Market)
-		case "crypto":
-			return market.IsCrypto(r.Symbol, r.Market)
-		case "popular":
-			return holders[r.ID] > 0
-		}
-		return true
-	}
 	var out []screenRow
 	for _, r := range rows {
-		if keep(r) {
-			if f == "popular" {
-				r.Holders = holders[r.ID]
-			}
-			if ff != nil && ff.figure != nil {
-				r.Figure = ff.figure(r)
-			}
-			out = append(out, r)
+		if sector != "" && r.Sector != sector {
+			continue
 		}
+		r.Holders = holders[r.ID]
+		if sf.keep != nil && !sf.keep(r) {
+			continue
+		}
+		if sf.figure != nil {
+			r.Figure = sf.figure(r)
+		}
+		out = append(out, r)
 	}
-
-	byCap := func(i, j int) bool { return out[i].MarketCap > out[j].MarketCap }
-	limit := 0
-	switch f {
-	case "picks":
-		sort.SliceStable(out, func(i, j int) bool { return out[i].PickOrder < out[j].PickOrder })
-	case "mag7", "tech", "aus", "intl", "crypto":
-		sort.SliceStable(out, byCap)
-	case "big":
-		sort.SliceStable(out, byCap)
-		limit = screenBiggest
-	case "up":
-		sort.SliceStable(out, func(i, j int) bool { return out[i].TodayPct > out[j].TodayPct })
-		limit = screenTop
-	case "down":
-		sort.SliceStable(out, func(i, j int) bool { return out[i].TodayPct < out[j].TodayPct })
-		limit = screenTop
-	case "active":
-		sort.SliceStable(out, func(i, j int) bool { return out[i].Turnover > out[j].Turnover })
-		limit = screenTop
-	case "popular":
-		sort.SliceStable(out, func(i, j int) bool { return out[i].Holders > out[j].Holders })
-		limit = screenTop
+	if sf.less != nil {
+		sort.SliceStable(out, func(i, j int) bool { return sf.less(out[i], out[j]) })
 	}
-	if menuOrders {
-		sort.SliceStable(out, func(i, j int) bool { return ff.less(out[i], out[j]) })
-	}
-	if limit > 0 && len(out) > limit {
-		out = out[:limit]
+	if sf.limit > 0 && len(out) > sf.limit {
+		out = out[:sf.limit]
 	}
 	res.Rows = out
 	return res

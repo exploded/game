@@ -116,7 +116,7 @@ func TestApplyFilter(t *testing.T) {
 		{"down", "Energy", "f", "F MSFT"},
 		{"up", "", "m", "MSFT XOM TSM"},
 	} {
-		got := applyFilter(rows, c.f, c.sector, "", c.q, nil)
+		got := applyFilter(rows, c.f, c.sector, c.q, nil)
 		if s := symbols(got.Rows); s != c.want {
 			t.Errorf("f=%q sector=%q q=%q: got %q, want %q", c.f, c.sector, c.q, s, c.want)
 		}
@@ -125,7 +125,7 @@ func TestApplyFilter(t *testing.T) {
 		t.Errorf("applyFilter reordered the cached rows: %q", s)
 	}
 
-	fav := applyFilter(rows, "popular", "", "", "", map[int64]int64{2: 3, 4: 5})
+	fav := applyFilter(rows, "popular", "", "", map[int64]int64{2: 3, 4: 5})
 	if s := symbols(fav.Rows); s != "XOM BHP" || fav.Rows[0].Holders != 5 {
 		t.Errorf("favourites: got %q (%+v)", s, fav.Rows)
 	}
@@ -134,7 +134,7 @@ func TestApplyFilter(t *testing.T) {
 	}
 }
 
-// finStock makes a row with financials, for the Financials menu. Ratios are
+// finStock makes a row with financials, for the financial chips. Ratios are
 // × 100 and growth and margins in basis points, as stock_profiles stores
 // them.
 func finStock(id int64, symbol, sector string, today int64, s db.ListScreenerStocksRow) screenRow {
@@ -142,7 +142,7 @@ func finStock(id int64, symbol, sector string, today int64, s db.ListScreenerSto
 	return newScreenRow(s, []db.ListRecentClosesRow{{Date: "2026-10-29", Close: 100}, {Date: "2026-10-30", Close: 100 + today}})
 }
 
-func TestFinancialsMenu(t *testing.T) {
+func TestFinancialChips(t *testing.T) {
 	rows := []screenRow{
 		// Healthy: profit, free cash flow, low debt, current ratio 2, growing.
 		finStock(1, "GOOD", "Information Technology", 1, db.ListScreenerStocksRow{
@@ -175,69 +175,63 @@ func TestFinancialsMenu(t *testing.T) {
 		// A fund: no financials, so zeros everywhere.
 		finStock(6, "FUND", "Financials", 0, db.ListScreenerStocksRow{MarketCap: 0}),
 		finStock(7, "ZERO", "Information Technology", 0, db.ListScreenerStocksRow{MarketCap: 900_000}),
+		// A bigger loss than LOSS, listed after it.
+		finStock(8, "BIGL", "Industrials", 0, db.ListScreenerStocksRow{
+			MarketCap: 50_000, Revenue: 500, NetIncome: -5_000_000_000, TotalDebt: 100, DebtToEquity: 500,
+		}),
 	}
 
-	for _, c := range []struct {
-		f, fin, want string
-	}{
-		{"all", "", "GOOD LOSS NEGQ NODT BANK FUND ZERO"}, // All keeps the rows' order
-		{"all", "nonsense", "GOOD LOSS NEGQ NODT BANK FUND ZERO"},
-		{"all", "profit", "GOOD NEGQ NODT BANK"},
-		{"all", "loss", "LOSS"},
-		{"all", "fcf", "GOOD NODT NEGQ BANK"}, // by yield: 5%, 5% (the chip's order breaks the tie), 1%, 0%
-		{"all", "margin", "NEGQ GOOD BANK"},   // highest first
-		{"all", "pe", "BANK GOOD NEGQ"},       // lowest first; LOSS has a P/E but no profit
-		{"all", "peg", "GOOD"},                // LOSS's PEG doesn't count
-		{"all", "revgrowth", "GOOD NEGQ"},     // 15% counts
-		{"all", "earngrowth", "GOOD NEGQ"},    // LOSS's growth doesn't count
-		{"all", "lowdebt", "NODT GOOD"},       // not NEGQ, BANK or ZERO
-		{"all", "netcash", "NODT GOOD"},       // not BANK
-		{"all", "score", "GOOD NODT"},         // both 5, by market cap; NEGQ has 3
-		{"tech", "profit", "GOOD NODT"},       // a chip's own order, biggest first
-		{"up", "pe", "NEGQ GOOD"},             // Gainers keep their order
-		{"big", "pe", "BANK NEGQ GOOD"},       // so does Biggest
-		{"down", "loss", ""},
+	for _, c := range []struct{ f, want string }{
+		{"all", "GOOD LOSS NEGQ NODT BANK FUND ZERO BIGL"}, // All keeps the rows' order
+		{"profit", "GOOD NEGQ BANK NODT"},                  // biggest profit first
+		{"loss", "BIGL LOSS"},                              // biggest loss first
+		{"fcf", "GOOD NODT NEGQ BANK"},                     // by yield: 5%, 5% (the rows' order breaks the tie), 1%, 0%
+		{"margin", "NEGQ GOOD BANK"},                       // highest first
+		{"pe", "BANK GOOD NEGQ"},                           // lowest first; LOSS has a P/E but no profit
+		{"peg", "GOOD"},                                    // LOSS's PEG doesn't count
+		{"revgrowth", "GOOD NEGQ"},                         // 15% counts
+		{"earngrowth", "GOOD NEGQ"},                        // LOSS's growth doesn't count
+		{"lowdebt", "NODT GOOD"},                           // not NEGQ, BANK or ZERO
+		{"netcash", "NODT GOOD"},                           // not BANK
+		{"score", "GOOD NODT"},                             // both 5, by market cap; NEGQ has 3
 	} {
-		got := applyFilter(rows, c.f, "", c.fin, "", nil)
+		got := applyFilter(rows, c.f, "", "", nil)
 		if s := symbols(got.Rows); s != c.want {
-			t.Errorf("f=%q fin=%q: got %q, want %q", c.f, c.fin, s, c.want)
+			t.Errorf("f=%q: got %q, want %q", c.f, s, c.want)
 		}
 	}
 
-	pe := applyFilter(rows, "all", "Information Technology", "pe", "", nil)
-	if pe.Caption != "Every stock in Information Technology with a P/E under 15, lowest first" || pe.Explain == "" {
+	pe := applyFilter(rows, "pe", "Information Technology", "", nil)
+	if pe.Caption != "Companies with a P/E under 15 in Information Technology, lowest first" || pe.Explain == "" {
 		t.Errorf("caption %q, explain %q", pe.Caption, pe.Explain)
 	}
 	if len(pe.Rows) != 1 || pe.Rows[0].Figure != "P/E 12.0" {
 		t.Errorf("P/E rows: %+v", pe.Rows)
 	}
-	for _, c := range []struct{ f, fin, want string }{
-		{"all", "profit", "Every stock making a profit, A–Z"},
-		{"tech", "profit", "Tech stocks making a profit, biggest first"},
-		{"up", "pe", "Today's biggest gainers with a P/E under 15"},
-	} {
-		if got := applyFilter(rows, c.f, "", c.fin, "", nil).Caption; got != c.want {
-			t.Errorf("f=%q fin=%q: caption %q, want %q", c.f, c.fin, got, c.want)
-		}
+	if got := applyFilter(rows, "loss", "", "", nil).Caption; got != "Companies making a loss, biggest loss first" {
+		t.Errorf("loss caption %q", got)
+	}
+	if got := applyFilter(rows, "up", "", "", nil); got.Explain != "" || got.Rows[0].Figure != "" {
+		t.Errorf("a list chip got a financial explain or figure: %+v", got)
 	}
 	if rows[0].Figure != "" {
 		t.Error("applyFilter set Figure on the cached rows")
 	}
-	for fin, want := range map[string]string{
-		"loss":    "Loss $2.00B",
+	for f, want := range map[string]string{
+		"loss":    "Loss $5.00B",
 		"fcf":     "Free cash flow yield 5.0%",
 		"margin":  "Profit margin 30.0%",
 		"netcash": "Net cash $400",
 	} {
-		if got := applyFilter(rows, "all", "", fin, "", nil).Rows[0].Figure; got != want {
-			t.Errorf("%s: figure %q, want %q", fin, got, want)
+		if got := applyFilter(rows, f, "", "", nil).Rows[0].Figure; got != want {
+			t.Errorf("%s: figure %q, want %q", f, got, want)
 		}
 	}
-	if got := applyFilter(rows, "all", "", "lowdebt", "", nil).Rows; got[0].Figure != "No debt" || got[1].Figure != "Debt-to-equity 0.20" {
+	if got := applyFilter(rows, "lowdebt", "", "", nil).Rows; got[0].Figure != "No debt" || got[1].Figure != "Debt-to-equity 0.20" {
 		t.Errorf("lowdebt figures: %q, %q", got[0].Figure, got[1].Figure)
 	}
-	if got := applyFilter(rows, "all", "", "", "goo", nil); got.Explain != "" || symbols(got.Rows) != "GOOD" {
-		t.Errorf("a search used the menu: %+v", got)
+	if got := applyFilter(rows, "pe", "", "goo", nil); got.Explain != "" || symbols(got.Rows) != "GOOD" {
+		t.Errorf("a search used the chip: %+v", got)
 	}
 }
 
@@ -308,14 +302,15 @@ func TestStocksPage(t *testing.T) {
 		t.Error("Back (a history restore) didn't get the whole page")
 	}
 
-	pe := getStocks(srv, "?f=all&fin=pe", nil)
-	for _, want := range []string{`<option value="pe" selected>P/E under 15</option>`, "with a P/E under 15", "P/E is the share price", "P/E 12.4", "Health 3/5"} {
+	pe := getStocks(srv, "?f=pe", nil)
+	for _, want := range []string{`value="pe" class="sr-only" checked`, `class="chip-sep"`, "with a P/E under 15", "P/E is the share price", "P/E 12.4", "Health 3/5"} {
 		if !strings.Contains(pe, want) {
-			t.Errorf("?fin=pe doesn't contain %q", want)
+			t.Errorf("?f=pe doesn't contain %q", want)
 		}
 	}
-	if odd := getStocks(srv, "?f=all&fin=nonsense", map[string]string{"HX-Request": "true"}); !strings.Contains(odd, "ACME") || strings.Contains(odd, "screener-explain") {
-		t.Errorf("an unknown fin wasn't ignored:\n%s", odd)
+	// The Financials menu is gone, so an old link shows the default chip.
+	if old := getStocks(srv, "?fin=pe", nil); !strings.Contains(old, `value="picks" class="sr-only" checked`) || strings.Contains(old, "screener-explain") {
+		t.Errorf("an old ?fin= link wasn't ignored:\n%s", old)
 	}
 
 	found := getStocks(srv, "?f=down&q=acm", map[string]string{"HX-Request": "true"})
