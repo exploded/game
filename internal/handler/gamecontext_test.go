@@ -109,6 +109,7 @@ func getPage(t *testing.T, srv http.Handler, path, user string) string {
 // holdings: today's and total moves for each stock, and their rank.
 func TestGameHomeIsPortfolio(t *testing.T) {
 	srv, q := gameServer(t)
+	setMarketNow(t, nyTime(t, "2026-10-28 17:00"))
 	p, _ := q.GetParticipantByGameAndUser(t.Context(), db.GetParticipantByGameAndUserParams{GameID: 1, UserID: 1})
 	// 10 ACME bought at $9.00, closed at $10.00 then $10.50.
 	if err := q.UpsertHolding(t.Context(), db.UpsertHoldingParams{
@@ -170,8 +171,55 @@ func TestGameHomeTodayCountsEarlyTrades(t *testing.T) {
 	if strings.Contains(body, "-$15.00") {
 		t.Error("today counts Friday's fall in shares bought after it")
 	}
-	if !strings.Contains(body, `$0.00 (0.00%)</span> <span class="text-muted">today`) {
-		t.Errorf("today isn't $0.00:\n%s", body)
+	// Nothing moved, so there's no today beside the total.
+	if strings.Contains(body, `<span class="text-muted">today`) || strings.Contains(body, `<span class="text-muted">on `) {
+		t.Errorf("page shows a move of nothing:\n%s", body)
+	}
+}
+
+// TestGameHomeNamesLastSession checks that over a weekend the home page says
+// the move it shows is Friday's, not today's.
+func TestGameHomeNamesLastSession(t *testing.T) {
+	srv, q, d := gameServerDB(t)
+	setMarketNow(t, nyTime(t, "2026-11-01 10:00")) // Sunday
+	p, _ := q.GetParticipantByGameAndUser(t.Context(), db.GetParticipantByGameAndUserParams{GameID: 1, UserID: 1})
+	// 10 ACME held since before Thursday's close of $12.00, $10.50 on Friday.
+	for _, stmt := range []string{
+		`INSERT INTO stock_prices (stock_id, date, open, high, low, close, volume)
+		 VALUES (1, '2026-10-29', 1200, 1200, 1200, 1200, 0), (1, '2026-10-30', 1050, 1050, 1050, 1050, 0)`,
+		`INSERT INTO holdings (participant_id, stock_id, quantity, avg_cost, cost_basis, current_value)
+		 VALUES (?1, 1, 10, 1000, 10000, 10500)`,
+	} {
+		if _, err := d.Exec(stmt, p.ID); err != nil {
+			t.Fatalf("seed: %v\n%s", err, stmt)
+		}
+	}
+
+	body := getPage(t, srv, "/games/1", "")
+	for _, want := range []string{
+		`-$15.00 (0.00%)</span> <span class="text-muted">on Friday`,
+		`<th class="num">Friday</th>`,
+		`data-label="Friday"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("page is missing %q", want)
+		}
+	}
+}
+
+func TestSessionDay(t *testing.T) {
+	now := nyTime(t, "2026-11-01 10:00") // Sunday in New York
+	for _, tt := range []struct{ date, want string }{
+		{"2026-11-01", ""},
+		{"2026-11-02", ""},
+		{"2026-10-30", "Friday"},
+		{"2026-10-26", "Monday"},
+		{"2026-10-23", "23 Oct"},
+		{"", ""},
+	} {
+		if got := sessionDay(tt.date, now); got != tt.want {
+			t.Errorf("sessionDay(%q) = %q, want %q", tt.date, got, tt.want)
+		}
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
+	"time"
 
 	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/db"
@@ -108,6 +109,26 @@ func dayMove(qty int64, bars []db.StockPrice, trades []db.ListParticipantTradesR
 	return change{qty*bars[0].Close - base, base}
 }
 
+// sessionDay names the US session a "today" move covers, when it isn't
+// today's in New York: "Friday" over a weekend, which is still Saturday or
+// Sunday in Sydney, or "23 Oct" for one more than a few days old. Empty for
+// today's session, or with no session or timezone to go on.
+func sessionDay(date string, now time.Time) string {
+	d, err := time.Parse("2006-01-02", date)
+	if err != nil || market.NewYork == nil {
+		return ""
+	}
+	y, m, dd := now.In(market.NewYork).Date()
+	days := int(time.Date(y, m, dd, 0, 0, 0, 0, time.UTC).Sub(d).Hours() / 24)
+	switch {
+	case days <= 0:
+		return ""
+	case days < 7:
+		return d.Weekday().String()
+	}
+	return d.Format("2 Jan")
+}
+
 // standing is where a player sits on the game's leaderboard.
 type standing struct {
 	Rank, Of int
@@ -200,6 +221,7 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 
 	rows := make([]holdingRow, 0, len(holdings))
 	var todayBase int64 // today's move across all positions, in the game's currency
+	var session string  // the newest bar's date: the session "today" covers
 	for _, ho := range holdings {
 		row := holdingRow{
 			ListHoldingsRow: ho,
@@ -214,6 +236,7 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 		} else if bars, err := h.q.ListLatestPrices(ctx, ho.StockID); err == nil && len(bars) > 0 {
 			row.Price = bars[0].Close
 			row.Today = dayMove(ho.Quantity, bars, trades[ho.StockID])
+			session = max(session, bars[0].Date)
 		}
 		todayBase += convertCurrency(row.Today.Amount, ho.Currency, game.BaseCurrency, rate)
 		rows = append(rows, row)
@@ -248,6 +271,7 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 			"Snapshots":    snapshots,
 			"Over":         over,
 			"Today":        today,
+			"SessionDay":   sessionDay(session, marketNow()),
 			"Total":        change{participant.PortfolioValue - game.StartingBalance, game.StartingBalance},
 			"Standing":     rankPlayer(participant, board),
 			"Interest":     interest,

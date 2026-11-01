@@ -17,7 +17,10 @@
     <span class="stat-label">{{if .Extra.Over}}Final value{{else}}Total value{{end}}</span>
     <div class="hero-value mono">{{cents $pt.PortfolioValue}}</div>
     <div class="hero-change">
-        {{with .Extra.Today}}<span><span class="pill {{.Class}}">{{.Text}} ({{.Pct}})</span> <span class="text-muted">today</span></span>{{end}}
+        {{/* Today is only the shares' move in the last US session, so it's
+        left out when nothing moved: on a game's first day it would sit at
+        $0.00 beside a total that has fees and bonuses in it. */}}
+        {{with .Extra.Today}}{{if .Amount}}<span><span class="pill {{.Class}}">{{.Text}} ({{.Pct}})</span> <span class="text-muted">{{with $.Extra.SessionDay}}on {{.}}{{else}}today{{end}}</span></span>{{end}}{{end}}
         {{with .Extra.Total}}<span><span class="pill {{.Class}}">{{.Text}} ({{.Pct}})</span> <span class="text-muted">since the start</span></span>{{end}}
     </div>
     <div class="hero-split">
@@ -45,7 +48,7 @@
             <tr>
                 <th>Stock</th>
                 <th class="num">Value</th>
-                {{if not .Extra.Over}}<th class="num">Today</th>{{end}}
+                {{if not .Extra.Over}}<th class="num">{{with .Extra.SessionDay}}{{.}}{{else}}Today{{end}}</th>{{end}}
                 <th class="num">Total</th>
                 <th class="num">Qty</th>
                 <th class="num">Price</th>
@@ -62,7 +65,7 @@
                     <span class="c-sub">{{.StockName}}</span>
                 </td>
                 <td class="c-end num">{{cents .CurrentValue}} <span class="text-muted c-cur">{{.Currency}}</span></td>
-                {{if not $.Extra.Over}}<td class="num c-move" data-label="Today">{{with .Today}}{{if .Base}}<span class="pill {{.Class}}">{{.Pct}}</span> <span class="c-amt">{{.Text}}</span>{{end}}{{end}}</td>{{end}}
+                {{if not $.Extra.Over}}<td class="num c-move" data-label="{{with $.Extra.SessionDay}}{{.}}{{else}}Today{{end}}">{{with .Today}}{{if .Base}}<span class="pill {{.Class}}">{{.Pct}}</span> <span class="c-amt">{{.Text}}</span>{{end}}{{end}}</td>{{end}}
                 <td class="num c-move" data-label="Total">{{with .Total}}{{if .Base}}<span class="pill {{.Class}}">{{.Pct}}</span> <span class="c-amt">{{.Text}}</span>{{end}}{{end}}</td>
                 <td class="num" data-label="Qty">{{.Quantity}}</td>
                 <td class="num" data-label="Price">{{if .Price}}{{cents .Price}}{{end}}</td>
