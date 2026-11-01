@@ -348,8 +348,9 @@ CREATE TABLE IF NOT EXISTS activity_feed (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     game_id        INTEGER NOT NULL REFERENCES games(id) ON DELETE CASCADE,
     user_id        INTEGER NOT NULL REFERENCES users(id),
-    action         TEXT    NOT NULL,                -- 'buy' | 'sell' | 'join' | 'achievement'
+    action         TEXT    NOT NULL,                -- 'buy' | 'sell' | 'join' | 'referral'
     detail         TEXT    NOT NULL DEFAULT '',     -- e.g. "bought 100 shares of BHP"
+    stock_id       INTEGER DEFAULT NULL REFERENCES stocks(id) ON DELETE SET NULL, -- the stock traded
     created_at     TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_activity_game ON activity_feed(game_id, created_at DESC);

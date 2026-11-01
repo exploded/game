@@ -102,9 +102,13 @@ figures, recent news, and any of Rob's videos that mention it.
 - **Watchlist**: shares a player wants to keep an eye on, starred from a
   share's page. It carries over from one month's game to the next.
 - **Leaderboard**: every player in the game, ranked by portfolio value.
-- **All trades**: every player's trades in the game, newest first.
-- **My trade history**: the player's own trades (in the **More** menu on a
-  phone, and linked from All trades).
+- **Game activity** (the **Activity** tab): everything happening in the game,
+  newest first: every player's trades (with the company's name, linked to its
+  page), who joined, and referral bonuses earned.
+- **My history**: the player's own trades, interest and referral bonuses, with
+  the cash balance after each. A summary at the top adds up from the opening
+  balance through the cash to the total on the leaderboard (in the **More**
+  menu on a phone, and linked from Game activity and the portfolio).
 - **Analytics**: the player's trade statistics (how many trades, how many made
   money, the best and worst), a breakdown by industry, their portfolio against
   simply holding cash, and a side-by-side comparison with any other player.

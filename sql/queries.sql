@@ -595,25 +595,27 @@ JOIN participants p ON p.id = t.participant_id
 WHERE p.user_id = ?;
 
 -- name: ListHistory :many
--- A player's trades and the interest paid on their cash, newest first.
--- Interest rows have kind 'interest', quantity is the cash it was paid on,
--- and day is the day it was for. Payments that rounded to nothing are left
--- out.
-SELECT t.type AS kind, t.quantity, s.symbol, t.price, s.currency,
+-- Everything that moved a player's cash in a game, oldest first: trades,
+-- interest and referral bonuses. Interest rows have kind 'interest',
+-- quantity is the cash it was paid on, and day is the day it was for;
+-- payments that rounded to nothing are left out. Label is the company for
+-- a trade and the friend who signed up for a bonus.
+SELECT t.type AS kind, t.quantity, s.symbol, s.name AS label, t.price, s.currency,
        t.converted_total AS amount, t.fee, CAST('' AS TEXT) AS day, t.created_at
 FROM transactions t
 JOIN stocks s ON s.id = t.stock_id
 WHERE t.participant_id = sqlc.arg(participant_id)
 UNION ALL
-SELECT 'interest', ip.balance, '', 0, '', ip.amount, 0, ip.date, ip.created_at
+SELECT 'interest', ip.balance, '', '', 0, '', ip.amount, 0, ip.date, ip.created_at
 FROM interest_payments ip
 WHERE ip.participant_id = sqlc.arg(participant_id) AND ip.amount > 0
-ORDER BY created_at DESC
-LIMIT sqlc.arg(lim) OFFSET sqlc.arg(off);
-
--- name: CountHistory :one
-SELECT (SELECT COUNT(*) FROM transactions t WHERE t.participant_id = sqlc.arg(participant_id))
-     + (SELECT COUNT(*) FROM interest_payments ip WHERE ip.participant_id = sqlc.arg(participant_id) AND ip.amount > 0);
+UNION ALL
+SELECT 'bonus', 0, '', u.name, 0, '', rb.bonus_amount, 0, '', rb.created_at
+FROM referral_bonuses rb
+JOIN participants p ON p.game_id = rb.game_id AND p.user_id = rb.referrer_id
+JOIN users u ON u.id = rb.referred_id
+WHERE p.id = sqlc.arg(participant_id)
+ORDER BY created_at;
 
 -- =============================================================================
 -- Portfolio Snapshots
@@ -866,15 +868,17 @@ SELECT * FROM achievements WHERE key = ?;
 -- =============================================================================
 
 -- name: InsertActivity :exec
-INSERT INTO activity_feed (game_id, user_id, action, detail)
-VALUES (?, ?, ?, ?);
+INSERT INTO activity_feed (game_id, user_id, action, detail, stock_id)
+VALUES (?, ?, ?, ?, ?);
 
 -- name: ListActivityFeed :many
 SELECT af.*, u.name AS user_name,
-    COALESCE(a.image_path, '') AS avatar_path
+    COALESCE(a.image_path, '') AS avatar_path,
+    COALESCE(s.name, '') AS stock_name
 FROM activity_feed af
 JOIN users u ON u.id = af.user_id
 LEFT JOIN avatars a ON a.id = u.avatar_id
+LEFT JOIN stocks s ON s.id = af.stock_id
 WHERE af.game_id = ?
 ORDER BY af.created_at DESC
 LIMIT ? OFFSET ?;

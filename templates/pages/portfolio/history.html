@@ -1,51 +1,91 @@
 {{template "base" .}}
 
 {{define "content"}}
+{{- $cur := .Item.BaseCurrency -}}
 <div class="page-header">
-    <h1>Transaction History</h1>
+    <h1>My history</h1>
     <a href="/games/{{.Item.ID}}" class="btn btn-sm">&larr; Portfolio</a>
 </div>
+<p class="text-muted">Every trade, interest payment and bonus in {{.Item.Name}}, and how they add up to your total.</p>
+
+{{/* From the opening balance to the total on the leaderboard. Cash and
+Total are the participant's own figures (cashLedger). */}}
+{{with .Extra.Sum}}
+<table class="ledger">
+    <tbody>
+        <tr><td>Opening balance</td><td class="num">{{cents .Opening}}</td></tr>
+        {{if .Bought}}<tr><td>Shares bought</td><td class="num">-{{cents .Bought}}</td></tr>{{end}}
+        {{if .Sold}}<tr><td>Shares sold</td><td class="num">+{{cents .Sold}}</td></tr>{{end}}
+        {{if .Fees}}<tr><td>Fees</td><td class="num">-{{cents .Fees}}</td></tr>{{end}}
+        {{if .Interest}}<tr><td>Interest</td><td class="num">+{{cents .Interest}}</td></tr>{{end}}
+        {{if .Bonuses}}<tr><td>Referral bonuses</td><td class="num">+{{cents .Bonuses}}</td></tr>{{end}}
+        {{if .Other}}<tr><td>Other adjustments <span class="text-muted">(such as part shares paid out after a stock split)</span></td><td class="num">{{if gt .Other 0}}+{{end}}{{cents .Other}}</td></tr>{{end}}
+        <tr class="ledger-sub"><td>Cash</td><td class="num">{{cents .Cash}}</td></tr>
+        <tr><td>Invested <span class="text-muted">(your shares at the latest prices)</span></td><td class="num">{{if gt .Invested 0}}+{{end}}{{cents .Invested}}</td></tr>
+        <tr class="ledger-total"><td>Total</td><td class="num">{{cents .Total}} <span class="text-muted">{{$cur}}</span></td></tr>
+    </tbody>
+</table>
+{{end}}
 
 {{if .Items}}
 <table class="rtable">
     <thead>
         <tr>
             <th>Date</th>
-            <th>Trade</th>
+            <th>Item</th>
             <th class="num">Price</th>
             <th class="num">Qty</th>
-            <th class="num">Total</th>
             <th class="num">Fee</th>
+            <th class="num">Amount</th>
+            <th class="num">Cash</th>
         </tr>
     </thead>
     <tbody>
         {{range .Items}}
-        {{if eq .Kind "interest"}}
         <tr>
             <td class="text-muted">{{.CreatedAt}}</td>
+            {{if eq .Kind "interest"}}
             <td class="c-main">
                 <span class="badge badge-pending">interest</span>
                 for {{longDate .Day}}
                 <span class="c-sub">on {{cents .Quantity}} cash</span>
             </td>
-            <td></td>
-            <td></td>
-            <td class="c-end num">+{{cents .Amount}} <span class="text-muted c-cur">AUD</span></td>
-            <td class="num" data-label="Fee">-</td>
-        </tr>
-        {{else}}
-        <tr>
-            <td class="text-muted">{{.CreatedAt}}</td>
+            <td class="hide-sm"></td>
+            <td class="hide-sm"></td>
+            <td class="hide-sm"></td>
+            {{else if eq .Kind "bonus"}}
+            <td class="c-main">
+                <span class="badge badge-pending">bonus</span>
+                referral bonus
+                <span class="c-sub">{{.Label}} signed up</span>
+            </td>
+            <td class="hide-sm"></td>
+            <td class="hide-sm"></td>
+            <td class="hide-sm"></td>
+            {{else}}
             <td class="c-main">
                 <span class="badge {{if eq .Kind "buy"}}badge-active{{else}}badge-cancelled{{end}}">{{.Kind}}</span>
                 <span class="show-sm">{{.Quantity}}</span> <strong>{{.Symbol}}</strong>
+                <span class="c-sub">{{.Label}}</span>
             </td>
             <td class="num" data-label="at">{{cents .Price}} <span class="text-muted">{{.Currency}}</span></td>
             <td class="num hide-sm">{{.Quantity}}</td>
-            <td class="c-end num">{{cents .Amount}} <span class="text-muted c-cur">AUD</span></td>
             <td class="num" data-label="Fee">{{if .Fee}}{{cents .Fee}}{{else}}-{{end}}</td>
+            {{end}}
+            <td class="c-end num">{{if gt .Change 0}}+{{end}}{{cents .Change}} <span class="text-muted c-cur">{{$cur}}</span></td>
+            <td class="num" data-label="Cash after">{{cents .Cash}}</td>
         </tr>
         {{end}}
+        {{if .Extra.LastPage}}
+        <tr>
+            <td class="text-muted hide-sm"></td>
+            <td class="c-main">Opening balance</td>
+            <td class="hide-sm"></td>
+            <td class="hide-sm"></td>
+            <td class="hide-sm"></td>
+            <td class="hide-sm"></td>
+            <td class="c-end num">{{cents .Extra.Sum.Opening}} <span class="text-muted c-cur">{{$cur}}</span></td>
+        </tr>
         {{end}}
     </tbody>
 </table>
@@ -53,15 +93,15 @@
 {{if gt .Extra.TotalPages 1}}
 <div class="pagination">
     {{if gt .Extra.Page 1}}
-    <a href="/games/{{.Item.ID}}/history?page={{add (int .Extra.Page) -1}}" class="btn btn-sm">&larr; Prev</a>
+    <a href="/games/{{.Item.ID}}/history?page={{add (int .Extra.Page) -1}}" class="btn btn-sm">&larr; Newer</a>
     {{end}}
     <span class="text-muted">Page {{.Extra.Page}} of {{.Extra.TotalPages}}</span>
     {{if lt .Extra.Page .Extra.TotalPages}}
-    <a href="/games/{{.Item.ID}}/history?page={{add (int .Extra.Page) 1}}" class="btn btn-sm">Next &rarr;</a>
+    <a href="/games/{{.Item.ID}}/history?page={{add (int .Extra.Page) 1}}" class="btn btn-sm">Older &rarr;</a>
     {{end}}
 </div>
 {{end}}
 {{else}}
-<p class="text-muted">No trades or interest yet.</p>
+<p class="text-muted">No trades, interest or bonuses yet.</p>
 {{end}}
 {{end}}

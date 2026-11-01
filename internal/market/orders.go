@@ -250,10 +250,11 @@ func fillLimitOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrde
 		noun = " share of "
 	}
 	_ = q.InsertActivity(ctx, db.InsertActivityParams{
-		GameID: order.GameID,
-		UserID: participant.UserID,
-		Action: order.Type,
-		Detail: verb + " " + itoa(order.Quantity) + noun + order.Symbol + how,
+		GameID:  order.GameID,
+		UserID:  participant.UserID,
+		Action:  order.Type,
+		Detail:  verb + " " + itoa(order.Quantity) + noun + order.Symbol + how,
+		StockID: sql.NullInt64{Int64: order.StockID, Valid: true},
 	})
 
 	return nil

@@ -2,9 +2,9 @@
 
 {{define "content"}}
 <div class="page-header">
-    <h1>All players' trades</h1>
+    <h1>Game activity</h1>
 </div>
-<p class="text-muted">Every trade by every player in {{.Item.Name}}, newest first. Your own are in <a href="/games/{{.Item.ID}}/history">My trade history</a>.</p>
+<p class="text-muted">Everything happening in {{.Item.Name}}, newest first: every player's trades, who joined and bonuses earned. Your own trades, interest and bonuses are in <a href="/games/{{.Item.ID}}/history">My history</a>.</p>
 
 {{if .Items}}
 <div class="activity-feed">
@@ -19,7 +19,7 @@
         </div>
         <div class="activity-content">
             <strong>{{.UserName}}</strong>
-            <span class="activity-detail">{{.Detail}}</span>
+            <span class="activity-detail">{{.Detail}}{{if .StockName}} · <a href="/games/{{$.Item.ID}}/stocks/{{.StockID.Int64}}">{{.StockName}}</a>{{end}}</span>
             <span class="text-muted activity-time">{{when .CreatedAt}}</span>
         </div>
         <span class="badge {{if eq .Action "buy"}}badge-active{{else if eq .Action "sell"}}badge-cancelled{{else}}badge-pending{{end}}">{{.Action}}</span>
@@ -39,7 +39,7 @@
 {{end}}
 {{else}}
 <div class="empty-state">
-    <p class="text-muted">No trades yet. Every player's trades appear here as they're made.</p>
+    <p class="text-muted">Nothing yet. Trades and new players appear here as they happen.</p>
 </div>
 {{end}}
 {{end}}

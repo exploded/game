@@ -22,6 +22,7 @@ type ActivityFeed struct {
 	UserID    int64
 	Action    string
 	Detail    string
+	StockID   sql.NullInt64
 	CreatedAt string
 }
 

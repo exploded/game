@@ -40,7 +40,7 @@ func (h *Handler) ActivityFeed(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, "activity/index", "", PageData{
-		Title: "All trades - " + game.Name,
+		Title: "Game activity - " + game.Name,
 		Item:  game,
 		Items: activities,
 		Extra: map[string]any{
@@ -51,16 +51,17 @@ func (h *Handler) ActivityFeed(w http.ResponseWriter, r *http.Request) {
 }
 
 // InsertTradeActivity records a trade in the activity feed.
-func (h *Handler) InsertTradeActivity(r *http.Request, gameID, userID int64, action, symbol string, quantity int64) {
+func (h *Handler) InsertTradeActivity(r *http.Request, gameID, userID int64, action string, stock db.Stock, quantity int64) {
 	verb := "bought"
 	if action == "sell" {
 		verb = "sold"
 	}
-	detail := fmt.Sprintf("%s %s of %s", verb, shares(quantity), symbol)
+	detail := fmt.Sprintf("%s %s of %s", verb, shares(quantity), stock.Symbol)
 	_ = h.q.InsertActivity(r.Context(), db.InsertActivityParams{
-		GameID: gameID,
-		UserID: userID,
-		Action: action,
-		Detail: detail,
+		GameID:  gameID,
+		UserID:  userID,
+		Action:  action,
+		Detail:  detail,
+		StockID: nint64(stock.ID),
 	})
 }

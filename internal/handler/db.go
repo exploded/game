@@ -110,6 +110,7 @@ var addedColumns = []struct{ table, column, ddl string }{
 	{"users", "blocked_at", "TEXT DEFAULT NULL"},
 	{"lobby_messages", "blocked_reason", "TEXT NOT NULL DEFAULT ''"},
 	{"users", "age_confirmed_at", "TEXT DEFAULT NULL"},
+	{"activity_feed", "stock_id", "INTEGER DEFAULT NULL REFERENCES stocks(id) ON DELETE SET NULL"},
 }
 
 // onceMigrations run exactly once per database, in order. Each is recorded in
@@ -227,6 +228,16 @@ var onceMigrations = []struct{ name, stmt string }{
 	// keeping its prices and holdings, before SeedStocks would add XYZ anew.
 	{"rename-sq-xyz", `UPDATE stocks SET symbol = 'XYZ' WHERE symbol = 'SQ' AND market = 'sp500'
 		AND NOT EXISTS (SELECT 1 FROM stocks WHERE symbol = 'XYZ' AND market = 'sp500')`},
+	// Trades in the activity feed name their stock from 1 November 2026, so
+	// the page can show the company. Earlier ones only had the symbol in the
+	// text ("bought 3 shares of AAPL with a limit order"): take the word after
+	// " of ".
+	{"activity-feed-stock-id", `UPDATE activity_feed SET stock_id = (
+			SELECT s.id FROM stocks s
+			WHERE s.symbol = substr(substr(detail, instr(detail, ' of ') + 4), 1,
+				instr(substr(detail, instr(detail, ' of ') + 4) || ' ', ' ') - 1)
+			ORDER BY s.market = 'sp500' DESC LIMIT 1)
+		WHERE action IN ('buy', 'sell') AND stock_id IS NULL AND instr(detail, ' of ') > 0`},
 }
 
 // droppedColumns are columns taken out of schema.sql. Older databases still

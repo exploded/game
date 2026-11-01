@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"slices"
 	"strconv"
 
 	"github.com/exploded/game/internal/auth"
@@ -285,23 +286,85 @@ func (h *Handler) TransactionHistory(w http.ResponseWriter, r *http.Request) {
 		page = 1
 	}
 	perPage := int64(25)
-	offset := (page - 1) * perPage
 
-	rows, _ := h.q.ListHistory(r.Context(), db.ListHistoryParams{
-		ParticipantID: participant.ID,
-		Lim:           perPage,
-		Off:           offset,
-	})
-	total, _ := h.q.CountHistory(r.Context(), participant.ID)
+	// The whole history, to keep a running cash balance. A month of one
+	// player's trades and interest is small.
+	all, _ := h.q.ListHistory(r.Context(), participant.ID)
+	rows, sum := cashLedger(all, game.StartingBalance, participant)
+	slices.Reverse(rows) // newest first
+	totalPages := (int64(len(rows)) + perPage - 1) / perPage
+	start := min((page-1)*perPage, int64(len(rows)))
+	end := min(start+perPage, int64(len(rows)))
 
 	h.render(w, r, "portfolio/history", "", PageData{
-		Title: "History - " + game.Name,
+		Title: "My history - " + game.Name,
 		Item:  game,
-		Items: rows,
+		Items: rows[start:end],
 		Extra: map[string]any{
 			"Participant": participant,
+			"Sum":         sum,
 			"Page":        page,
-			"TotalPages":  (total + perPage - 1) / perPage,
+			"TotalPages":  totalPages,
+			"LastPage":    page >= totalPages,
 		},
 	})
+}
+
+// historyRow is one line of a player's history, with what it did to their
+// cash.
+type historyRow struct {
+	db.ListHistoryRow
+	Change int64 // added to cash, or taken from it when negative
+	Cash   int64 // cash after it
+}
+
+// ledgerSum adds a player's history up, from the cash they started with to
+// the total the leaderboard shows. Amounts are in the game's currency.
+type ledgerSum struct {
+	Opening  int64
+	Bought   int64 // paid for shares, before fees
+	Sold     int64 // received for shares, before fees
+	Fees     int64
+	Interest int64
+	Bonuses  int64
+	Other    int64 // cash moved by nothing in the history: a reverse split's part share
+	Cash     int64
+	Invested int64 // the shares, at the latest prices
+	Total    int64
+}
+
+// cashLedger runs through a player's history, oldest first, keeping their
+// cash balance, and totals it. Cash and Total come from the participant, so
+// the sum always ends at the figures the rest of the site shows: anything the
+// history doesn't explain lands in Other.
+func cashLedger(history []db.ListHistoryRow, opening int64, p db.Participant) ([]historyRow, ledgerSum) {
+	sum := ledgerSum{Opening: opening}
+	rows := make([]historyRow, len(history))
+	cash := opening
+	for i, h := range history {
+		var change int64
+		switch h.Kind {
+		case "buy":
+			change = -(h.Amount + h.Fee)
+			sum.Bought += h.Amount
+			sum.Fees += h.Fee
+		case "sell":
+			change = max(h.Amount-h.Fee, 0) // a fee bigger than the sale takes it all, no more
+			sum.Sold += h.Amount
+			sum.Fees += h.Amount - change
+		case "interest":
+			change = h.Amount
+			sum.Interest += h.Amount
+		case "bonus":
+			change = h.Amount
+			sum.Bonuses += h.Amount
+		}
+		cash += change
+		rows[i] = historyRow{ListHistoryRow: h, Change: change, Cash: cash}
+	}
+	sum.Cash = p.CashBalance
+	sum.Other = p.CashBalance - cash
+	sum.Invested = p.PortfolioValue - p.CashBalance
+	sum.Total = p.PortfolioValue
+	return rows, sum
 }

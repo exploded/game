@@ -424,6 +424,12 @@ tr:last-child td { border-bottom: none; }
 /* Right-align numeric columns */
 td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
+/* A sum that reconciles: lines, then a subtotal and a total (My history). */
+.ledger { max-width: 480px; margin-bottom: 24px; }
+.ledger tr:hover td { background: none; }
+.ledger-sub td { border-top: 1px solid var(--color-border); font-weight: 600; }
+.ledger-total td { border-top: 2px solid var(--color-border); font-weight: 700; font-size: 15px; }
+
 /* ============================================================
    Flash Messages
    ============================================================ */

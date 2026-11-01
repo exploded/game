@@ -330,18 +330,6 @@ func (q *Queries) CountBlockedLobbyMessages(ctx context.Context) (int64, error) 
 	return count, err
 }
 
-const countHistory = `-- name: CountHistory :one
-SELECT (SELECT COUNT(*) FROM transactions t WHERE t.participant_id = ?1)
-     + (SELECT COUNT(*) FROM interest_payments ip WHERE ip.participant_id = ?1 AND ip.amount > 0)
-`
-
-func (q *Queries) CountHistory(ctx context.Context, participantID int64) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countHistory, participantID)
-	var column_1 int64
-	err := row.Scan(&column_1)
-	return column_1, err
-}
-
 const countInvitesSentInGame = `-- name: CountInvitesSentInGame :one
 SELECT COUNT(*) FROM game_invites
 WHERE game_id = ? AND created_by = ? AND email IS NOT NULL
@@ -2443,15 +2431,16 @@ func (q *Queries) HideQuestion(ctx context.Context, id int64) error {
 
 const insertActivity = `-- name: InsertActivity :exec
 
-INSERT INTO activity_feed (game_id, user_id, action, detail)
-VALUES (?, ?, ?, ?)
+INSERT INTO activity_feed (game_id, user_id, action, detail, stock_id)
+VALUES (?, ?, ?, ?, ?)
 `
 
 type InsertActivityParams struct {
-	GameID int64
-	UserID int64
-	Action string
-	Detail string
+	GameID  int64
+	UserID  int64
+	Action  string
+	Detail  string
+	StockID sql.NullInt64
 }
 
 // =============================================================================
@@ -2463,6 +2452,7 @@ func (q *Queries) InsertActivity(ctx context.Context, arg InsertActivityParams) 
 		arg.UserID,
 		arg.Action,
 		arg.Detail,
+		arg.StockID,
 	)
 	return err
 }
@@ -2938,11 +2928,13 @@ func (q *Queries) ListActiveUserIDs(ctx context.Context) ([]int64, error) {
 }
 
 const listActivityFeed = `-- name: ListActivityFeed :many
-SELECT af.id, af.game_id, af.user_id, af."action", af.detail, af.created_at, u.name AS user_name,
-    COALESCE(a.image_path, '') AS avatar_path
+SELECT af.id, af.game_id, af.user_id, af."action", af.detail, af.stock_id, af.created_at, u.name AS user_name,
+    COALESCE(a.image_path, '') AS avatar_path,
+    COALESCE(s.name, '') AS stock_name
 FROM activity_feed af
 JOIN users u ON u.id = af.user_id
 LEFT JOIN avatars a ON a.id = u.avatar_id
+LEFT JOIN stocks s ON s.id = af.stock_id
 WHERE af.game_id = ?
 ORDER BY af.created_at DESC
 LIMIT ? OFFSET ?
@@ -2960,9 +2952,11 @@ type ListActivityFeedRow struct {
 	UserID     int64
 	Action     string
 	Detail     string
+	StockID    sql.NullInt64
 	CreatedAt  string
 	UserName   string
 	AvatarPath string
+	StockName  string
 }
 
 func (q *Queries) ListActivityFeed(ctx context.Context, arg ListActivityFeedParams) ([]ListActivityFeedRow, error) {
@@ -2980,9 +2974,11 @@ func (q *Queries) ListActivityFeed(ctx context.Context, arg ListActivityFeedPara
 			&i.UserID,
 			&i.Action,
 			&i.Detail,
+			&i.StockID,
 			&i.CreatedAt,
 			&i.UserName,
 			&i.AvatarPath,
+			&i.StockName,
 		); err != nil {
 			return nil, err
 		}
@@ -3856,29 +3852,29 @@ func (q *Queries) ListGamesWithPlayers(ctx context.Context) ([]ListGamesWithPlay
 }
 
 const listHistory = `-- name: ListHistory :many
-SELECT t.type AS kind, t.quantity, s.symbol, t.price, s.currency,
+SELECT t.type AS kind, t.quantity, s.symbol, s.name AS label, t.price, s.currency,
        t.converted_total AS amount, t.fee, CAST('' AS TEXT) AS day, t.created_at
 FROM transactions t
 JOIN stocks s ON s.id = t.stock_id
-WHERE t.participant_id = ?3
+WHERE t.participant_id = ?1
 UNION ALL
-SELECT 'interest', ip.balance, '', 0, '', ip.amount, 0, ip.date, ip.created_at
+SELECT 'interest', ip.balance, '', '', 0, '', ip.amount, 0, ip.date, ip.created_at
 FROM interest_payments ip
-WHERE ip.participant_id = ?3 AND ip.amount > 0
-ORDER BY created_at DESC
-LIMIT ?2 OFFSET ?1
+WHERE ip.participant_id = ?1 AND ip.amount > 0
+UNION ALL
+SELECT 'bonus', 0, '', u.name, 0, '', rb.bonus_amount, 0, '', rb.created_at
+FROM referral_bonuses rb
+JOIN participants p ON p.game_id = rb.game_id AND p.user_id = rb.referrer_id
+JOIN users u ON u.id = rb.referred_id
+WHERE p.id = ?1
+ORDER BY created_at
 `
-
-type ListHistoryParams struct {
-	Off           int64
-	Lim           int64
-	ParticipantID int64
-}
 
 type ListHistoryRow struct {
 	Kind      string
 	Quantity  int64
 	Symbol    string
+	Label     string
 	Price     int64
 	Currency  string
 	Amount    int64
@@ -3887,12 +3883,13 @@ type ListHistoryRow struct {
 	CreatedAt string
 }
 
-// A player's trades and the interest paid on their cash, newest first.
-// Interest rows have kind 'interest', quantity is the cash it was paid on,
-// and day is the day it was for. Payments that rounded to nothing are left
-// out.
-func (q *Queries) ListHistory(ctx context.Context, arg ListHistoryParams) ([]ListHistoryRow, error) {
-	rows, err := q.db.QueryContext(ctx, listHistory, arg.Off, arg.Lim, arg.ParticipantID)
+// Everything that moved a player's cash in a game, oldest first: trades,
+// interest and referral bonuses. Interest rows have kind 'interest',
+// quantity is the cash it was paid on, and day is the day it was for;
+// payments that rounded to nothing are left out. Label is the company for
+// a trade and the friend who signed up for a bonus.
+func (q *Queries) ListHistory(ctx context.Context, participantID int64) ([]ListHistoryRow, error) {
+	rows, err := q.db.QueryContext(ctx, listHistory, participantID)
 	if err != nil {
 		return nil, err
 	}
@@ -3904,6 +3901,7 @@ func (q *Queries) ListHistory(ctx context.Context, arg ListHistoryParams) ([]Lis
 			&i.Kind,
 			&i.Quantity,
 			&i.Symbol,
+			&i.Label,
 			&i.Price,
 			&i.Currency,
 			&i.Amount,

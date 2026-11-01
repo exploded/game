@@ -180,25 +180,69 @@ func TestHistoryListsInterest(t *testing.T) {
 	}
 }
 
-// TestActivityShowsEveryPlayer checks the All trades page lists other
-// players' trades and is linked from the game bar.
+// TestHistoryReconciles checks a player's history lists their referral bonus
+// and adds up from the opening balance to their total, with a running cash
+// balance.
+func TestHistoryReconciles(t *testing.T) {
+	srv, q, d := gameServerDB(t)
+	p, _ := q.GetParticipantByGameAndUser(t.Context(), db.GetParticipantByGameAndUserParams{GameID: 1, UserID: 1})
+	// $1,000,000 - $100 of ACME - $5 fee + $136.99 interest + $10,000 bonus,
+	// and the shares are now worth $105.
+	for _, stmt := range []string{
+		`INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total, converted_total, fee, created_at)
+		 VALUES (?1, 1, 'buy', 10, 1000, 10000, 10000, 500, '2026-10-29 15:00:00')`,
+		`INSERT INTO interest_payments (participant_id, date, balance, rate, amount, created_at)
+		 VALUES (?1, '2026-10-29', 100000000, 500, 13699, '2026-10-29 13:01:00')`,
+		`INSERT INTO game_invites (id, game_id, code, created_by, use_count) VALUES (1, 1, 'abc', 1, 1)`,
+		`INSERT INTO referral_bonuses (invite_id, referrer_id, referred_id, game_id, bonus_amount, created_at)
+		 VALUES (1, 1, 2, 1, 1000000, '2026-10-30 09:00:00')`,
+		`UPDATE participants SET cash_balance = 101003199, portfolio_value = 101013699 WHERE id = ?1`,
+	} {
+		if _, err := d.Exec(stmt, p.ID); err != nil {
+			t.Fatalf("seed: %v\n%s", err, stmt)
+		}
+	}
+
+	body := getPage(t, srv, "/games/1/history", "")
+	for _, want := range []string{
+		"Opening balance",
+		"Referral bonuses</td><td class=\"num\">+$10,000.00",
+		"Bob signed up",
+		"Fees</td><td class=\"num\">-$5.00",
+		"Cash</td><td class=\"num\">$1,010,031.99",
+		"Invested",
+		"+$105.00",
+		"$1,010,136.99",
+		"-$105.00", // the buy, fee included
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("history is missing %q", want)
+		}
+	}
+	if strings.Contains(body, "Other") {
+		t.Error("history doesn't add up: it has an Other line")
+	}
+}
+
+// TestActivityShowsEveryPlayer checks the Game activity page lists other
+// players' trades with the company, and is linked from the game bar.
 func TestActivityShowsEveryPlayer(t *testing.T) {
 	srv, q := gameServer(t)
 	if _, err := q.JoinGame(t.Context(), db.JoinGameParams{GameID: 1, UserID: 2, CashBalance: 100000000, PortfolioValue: 100000000}); err != nil {
 		t.Fatal(err)
 	}
 	if err := q.InsertActivity(t.Context(), db.InsertActivityParams{
-		GameID: 1, UserID: 2, Action: "buy", Detail: "bought 3 shares of ACME",
+		GameID: 1, UserID: 2, Action: "buy", Detail: "bought 3 shares of ACME", StockID: nint64(1),
 	}); err != nil {
 		t.Fatal(err)
 	}
 
 	body := getPage(t, srv, "/games/1/activity", "")
 	for _, want := range []string{
-		"All players' trades",
-		`href="/games/1/activity" class="active">All trades`,
+		"Game activity",
+		`href="/games/1/activity" class="active">Activity`,
 		"<strong>Bob</strong>",
-		"bought 3 shares of ACME",
+		`bought 3 shares of ACME · <a href="/games/1/stocks/1">Acme Corp</a>`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("page is missing %q", want)

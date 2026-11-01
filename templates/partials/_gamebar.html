@@ -34,7 +34,7 @@
             {{end}}
             {{end}}
             <a href="/games/{{$g.ID}}/leaderboard"{{if eq .Tab "leaderboard"}} class="active"{{end}}>Leaderboard</a>
-            <a href="/games/{{$g.ID}}/activity"{{if eq .Tab "activity"}} class="active"{{end}}>All trades</a>
+            <a href="/games/{{$g.ID}}/activity"{{if eq .Tab "activity"}} class="active"{{end}}>Activity</a>
             {{if .Participant}}
             <a href="/games/{{$g.ID}}/analytics"{{if eq .Tab "analytics"}} class="active"{{end}}>Analytics</a>
             <a href="/games/{{$g.ID}}/rules"{{if eq .Tab "rules"}} class="active"{{end}}>Rules</a>
@@ -72,8 +72,8 @@ bottom of the screen instead, in thumb reach. Desktop never shows it. */}}
         </summary>
         <div class="dock-sheet">
             {{if eq $g.Status "active"}}<a href="/games/{{$g.ID}}/watchlist">Watchlist</a>{{end}}
-            <a href="/games/{{$g.ID}}/activity">All players' trades</a>
-            <a href="/games/{{$g.ID}}/history">My trade history</a>
+            <a href="/games/{{$g.ID}}/activity">Game activity</a>
+            <a href="/games/{{$g.ID}}/history">My history</a>
             <a href="/games/{{$g.ID}}/analytics">Analytics</a>
             <a href="/games/{{$g.ID}}/rules">Game rules</a>
         </div>

@@ -473,3 +473,38 @@ func TestRebuildUsersForEmailSignIn(t *testing.T) {
 		t.Error("deleting a user didn't cascade to sessions")
 	}
 }
+
+// TestActivityFeedStockIDBackfill checks activity-feed-stock-id finds the
+// stock in a trade's text, with or without words after the symbol.
+func TestActivityFeedStockIDBackfill(t *testing.T) {
+	d := openTestDB(t)
+	for _, stmt := range []string{
+		`INSERT INTO users (id, email, name, email_token) VALUES (1, 'a@x', 'Alice', 't1')`,
+		`INSERT INTO games (id, created_by, name, status, base_currency, start_date, end_date) VALUES (1, 1, 'G', 'active', 'AUD', '2026-11-01', '2026-11-30')`,
+		`INSERT INTO stocks (id, symbol, name, market, currency) VALUES (1, 'ACME', 'Acme Corp', 'sp500', 'USD'), (2, 'BRK.B', 'Berkshire', 'sp500', 'USD')`,
+		`INSERT INTO activity_feed (id, game_id, user_id, action, detail) VALUES
+			(1, 1, 1, 'buy', 'bought 3 shares of ACME'),
+			(2, 1, 1, 'sell', 'sold 1 share of BRK.B with a limit order'),
+			(3, 1, 1, 'join', 'joined the game')`,
+	} {
+		if _, err := d.Exec(stmt); err != nil {
+			t.Fatalf("seed: %v\n%s", err, stmt)
+		}
+	}
+	for _, m := range onceMigrations {
+		if m.name == "activity-feed-stock-id" {
+			if _, err := d.Exec(m.stmt); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	for id, want := range map[int]sql.NullInt64{1: {Int64: 1, Valid: true}, 2: {Int64: 2, Valid: true}, 3: {}} {
+		var got sql.NullInt64
+		if err := d.QueryRow("SELECT stock_id FROM activity_feed WHERE id = ?", id).Scan(&got); err != nil {
+			t.Fatal(err)
+		}
+		if got != want {
+			t.Errorf("row %d: stock_id %v, want %v", id, got, want)
+		}
+	}
+}
