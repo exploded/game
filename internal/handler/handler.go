@@ -198,6 +198,29 @@ func fmtCents(c int64) string {
 	return sign + "$" + fmtThousands(c/100) + fmt.Sprintf(".%02d", c%100)
 }
 
+// bigMoney formats whole dollars to the nearest trillion, billion or
+// million: "$1.23B". Zero is "N/A", since stock_profiles stores a missing
+// figure as 0.
+func bigMoney(v int64) string {
+	if v == 0 {
+		return "N/A"
+	}
+	abs := v
+	if abs < 0 {
+		abs = -abs
+	}
+	switch {
+	case abs >= 1_000_000_000_000:
+		return fmt.Sprintf("$%.2fT", float64(v)/1_000_000_000_000)
+	case abs >= 1_000_000_000:
+		return fmt.Sprintf("$%.2fB", float64(v)/1_000_000_000)
+	case abs >= 1_000_000:
+		return fmt.Sprintf("$%.2fM", float64(v)/1_000_000)
+	default:
+		return "$" + fmtThousands(v)
+	}
+}
+
 func fmtThousands(n int64) string {
 	s := fmt.Sprintf("%d", n)
 	neg := n < 0

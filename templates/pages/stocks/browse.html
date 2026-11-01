@@ -21,10 +21,16 @@
     <form id="stock-filters" method="GET" action="/games/{{.Item.ID}}/stocks"
         hx-get="/games/{{.Item.ID}}/stocks" hx-trigger="change" hx-target="#stock-list" hx-push-url="true"
         data-clear-search="#stock-q">
-        <select name="sector" aria-label="Sector" class="screener-sector">
-            <option value="">Any sector</option>
-            {{range .Extra.Sectors}}<option{{if eq . $.Extra.Sector}} selected{{end}}>{{.}}</option>{{end}}
-        </select>
+        <div class="screener-menus">
+            <select name="sector" aria-label="Sector" class="screener-sector">
+                <option value="">Any sector</option>
+                {{range .Extra.Sectors}}<option{{if eq . $.Extra.Sector}} selected{{end}}>{{.}}</option>{{end}}
+            </select>
+            <select name="fin" aria-label="Financials" class="screener-sector">
+                <option value="">Any financials</option>
+                {{range .Extra.FinFilters}}<option value="{{.Key}}"{{if eq .Key $.Extra.Fin}} selected{{end}}>{{.Label}}</option>{{end}}
+            </select>
+        </div>
         <div class="chips screener-chips" role="radiogroup" aria-label="Show">
             {{range .Extra.Filters}}<label class="chip"><input type="radio" name="f" value="{{.Key}}" class="sr-only"{{if eq .Key $.Extra.Filter}} checked{{end}}>{{.Label}}</label>{{end}}
         </div>
@@ -39,6 +45,7 @@
 {{/* Served alone to htmx requests from the chips, sector menu and search. */}}
 {{define "stock-list"}}
 <p class="screener-caption">{{.Extra.Result.Caption}} <span class="text-muted">· {{len .Items}} {{if eq (len .Items) 1}}stock{{else}}stocks{{end}}</span></p>
+{{with .Extra.Result.Explain}}<p class="screener-explain text-muted">{{.}} Figures are from each company's latest reports, updated weekly.</p>{{end}}
 <table class="rtable screener">
     <thead>
         <tr>
@@ -68,6 +75,7 @@
                 {{if gt .Held 0}}<span class="badge badge-held">You hold {{.Held}}</span>{{else if lt .Held 0}}<span class="badge badge-held">Short {{.HeldShares}}</span>{{end}}
                 {{if and $.Extra.ShowNotes .PickNote}}<span class="c-sub sc-note">{{.PickNote}}</span>{{end}}
                 {{if .Holders}}<span class="c-sub">{{.Holders}} {{if eq .Holders 1}}player{{else}}players{{end}}</span>{{end}}
+                {{if or .Figure .HasHealth}}<span class="c-sub sc-fin">{{with .Figure}}<span>{{.}}</span>{{end}}{{if .HasHealth}}<span class="badge badge-health" title="Health score: a point each for a profit, positive free cash flow, debt-to-equity under 1, a current ratio over 1 and revenue up on a year earlier">Health {{.Health}}/5</span>{{end}}</span>{{end}}
             </div>
         </div>
     </td>

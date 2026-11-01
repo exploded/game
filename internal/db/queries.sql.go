@@ -5389,6 +5389,18 @@ const listScreenerStocks = `-- name: ListScreenerStocks :many
 SELECT s.id, s.symbol, s.name, s.market, s.sector, s.currency,
        COALESCE(p.logo, '') AS logo,
        CAST(COALESCE(p.market_cap, 0) AS INTEGER) AS market_cap,
+       CAST(COALESCE(p.trailing_pe, 0) AS INTEGER) AS trailing_pe,
+       CAST(COALESCE(p.peg_ratio, 0) AS INTEGER) AS peg_ratio,
+       CAST(COALESCE(p.revenue, 0) AS INTEGER) AS revenue,
+       CAST(COALESCE(p.quarterly_rev_growth, 0) AS INTEGER) AS quarterly_rev_growth,
+       CAST(COALESCE(p.net_income, 0) AS INTEGER) AS net_income,
+       CAST(COALESCE(p.quarterly_earn_growth, 0) AS INTEGER) AS quarterly_earn_growth,
+       CAST(COALESCE(p.profit_margin, 0) AS INTEGER) AS profit_margin,
+       CAST(COALESCE(p.free_cash_flow, 0) AS INTEGER) AS free_cash_flow,
+       CAST(COALESCE(p.total_cash, 0) AS INTEGER) AS total_cash,
+       CAST(COALESCE(p.total_debt, 0) AS INTEGER) AS total_debt,
+       CAST(COALESCE(p.debt_to_equity, 0) AS INTEGER) AS debt_to_equity,
+       CAST(COALESCE(p.current_ratio, 0) AS INTEGER) AS current_ratio,
        CAST(pk.stock_id IS NOT NULL AS INTEGER) AS is_pick,
        COALESCE(pk.note, '') AS pick_note,
        CAST(COALESCE(pk.sort_order, 0) AS INTEGER) AS pick_order
@@ -5406,17 +5418,29 @@ type ListScreenerStocksParams struct {
 }
 
 type ListScreenerStocksRow struct {
-	ID        int64
-	Symbol    string
-	Name      string
-	Market    string
-	Sector    string
-	Currency  string
-	Logo      string
-	MarketCap int64
-	IsPick    int64
-	PickNote  string
-	PickOrder int64
+	ID                  int64
+	Symbol              string
+	Name                string
+	Market              string
+	Sector              string
+	Currency            string
+	Logo                string
+	MarketCap           int64
+	TrailingPe          int64
+	PegRatio            int64
+	Revenue             int64
+	QuarterlyRevGrowth  int64
+	NetIncome           int64
+	QuarterlyEarnGrowth int64
+	ProfitMargin        int64
+	FreeCashFlow        int64
+	TotalCash           int64
+	TotalDebt           int64
+	DebtToEquity        int64
+	CurrentRatio        int64
+	IsPick              int64
+	PickNote            string
+	PickOrder           int64
 }
 
 // Every stock on the stocks page, with what its rows and chips need.
@@ -5438,6 +5462,18 @@ func (q *Queries) ListScreenerStocks(ctx context.Context, arg ListScreenerStocks
 			&i.Currency,
 			&i.Logo,
 			&i.MarketCap,
+			&i.TrailingPe,
+			&i.PegRatio,
+			&i.Revenue,
+			&i.QuarterlyRevGrowth,
+			&i.NetIncome,
+			&i.QuarterlyEarnGrowth,
+			&i.ProfitMargin,
+			&i.FreeCashFlow,
+			&i.TotalCash,
+			&i.TotalDebt,
+			&i.DebtToEquity,
+			&i.CurrentRatio,
 			&i.IsPick,
 			&i.PickNote,
 			&i.PickOrder,

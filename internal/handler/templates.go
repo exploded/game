@@ -94,25 +94,7 @@ func LoadTemplates(fsys fs.FS, static *Static) (PageTemplates, error) {
 		"rawBps": func(bp int64) string { // for a percent input
 			return fmt.Sprintf("%.2f", float64(bp)/100)
 		},
-		"bigMoney": func(v int64) string {
-			if v == 0 {
-				return "N/A"
-			}
-			abs := v
-			if abs < 0 {
-				abs = -abs
-			}
-			switch {
-			case abs >= 1_000_000_000_000:
-				return fmt.Sprintf("$%.2fT", float64(v)/1_000_000_000_000)
-			case abs >= 1_000_000_000:
-				return fmt.Sprintf("$%.2fB", float64(v)/1_000_000_000)
-			case abs >= 1_000_000:
-				return fmt.Sprintf("$%.2fM", float64(v)/1_000_000)
-			default:
-				return "$" + fmtThousands(v)
-			}
-		},
+		"bigMoney": bigMoney,
 		"ratio100": func(v int64) string {
 			if v == 0 {
 				return "N/A"

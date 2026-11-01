@@ -79,6 +79,19 @@ move and a small 30-day chart. Quick filters pick a list:
 
 Players can also search every share by name or code, and filter by industry.
 
+A **Financials** menu narrows any list by the company's latest reported figures:
+making a profit or a loss, positive free cash flow, profit margin over 20%, P/E
+under 15, PEG under 1, revenue up 15% or more, earnings up on last year,
+debt-to-equity under 0.5, more cash than debt, or a health score of 4 or 5. Each
+share shows the figure it matched on, and a line under the heading explains the
+measure. The labels say what the test is, not whether a share is a good buy.
+
+Every share with suitable figures carries a **health score** out of 5: a point
+each for a profit, positive free cash flow, debt-to-equity under 1, a current
+ratio over 1 and revenue up on a year earlier. Banks and insurers don't get one,
+because those measures don't suit them. The figures come from Twelve Data and
+are updated weekly.
+
 Each share has its own page with a long-term price chart, company details and
 figures, recent news, and any of Rob's videos that mention it.
 
