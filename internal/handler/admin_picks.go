@@ -13,7 +13,7 @@ import (
 // maxPickNote is how long Rob's line on a pick can be: one line on a phone.
 const maxPickNote = 120
 
-// AdminPicks lists Rob's Picks, the stocks page's first chip.
+// AdminPicks lists Rob's Picks, the stocks page's default chip.
 func (h *Handler) AdminPicks(w http.ResponseWriter, r *http.Request) {
 	picks, err := h.q.ListStockPicks(r.Context())
 	if err != nil {

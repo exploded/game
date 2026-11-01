@@ -67,8 +67,12 @@ type screenFilter struct {
 	Order               string // how it's ordered, if the caption should say
 }
 
-// screenFilters are the chips, in order. The first is the default.
+// defaultFilter is the chip the stocks page opens on.
+const defaultFilter = "picks"
+
+// screenFilters are the chips, in order.
 var screenFilters = []screenFilter{
+	{"all", "All A–Z", "Every stock, A–Z", "Every stock", "A–Z"},
 	{"picks", "Rob's Picks", "Rob's Picks", "Rob's Picks", ""},
 	{"mag7", "Mag 7", "The Magnificent 7", "The Magnificent 7", ""},
 	{"tech", "Tech", "Tech, biggest first", "Tech stocks", "biggest first"},
@@ -80,7 +84,6 @@ var screenFilters = []screenFilter{
 	{"intl", "International", "Overseas companies listed in the US", "Overseas companies listed in the US", ""},
 	{"crypto", "Crypto", "Bitcoin funds and crypto companies", "Bitcoin funds and crypto companies", ""},
 	{"popular", "Players' favourites", "Most held by players in this game", "The stocks players in this game hold most", ""},
-	{"all", "All A–Z", "Every stock, A–Z", "Every stock", "A–Z"},
 }
 
 var mag7 = map[string]bool{"AAPL": true, "MSFT": true, "AMZN": true, "NVDA": true, "GOOGL": true, "META": true, "TSLA": true}
@@ -408,7 +411,7 @@ func filterKey(f string) string {
 			return f
 		}
 	}
-	return screenFilters[0].Key
+	return defaultFilter
 }
 
 // applyFilter picks and orders the rows for a chip, sector and Financials

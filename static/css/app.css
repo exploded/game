@@ -1646,7 +1646,8 @@ dialog.confirm form { padding: 20px; }
 .sc-stock { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .sc-text { min-width: 0; }
 .sc-text .badge-held { margin-top: 3px; }
-.rtable .sc-fin { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; margin-top: 2px; }
+/* Wraps on a phone too: the .c-sub ellipsis would clip the figure's number. */
+.rtable .sc-fin { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; margin-top: 2px; white-space: normal; overflow: visible; }
 .badge-health { background: var(--color-surface-3); color: var(--color-text-muted); text-transform: none; }
 .sc-logo {
     width: 32px; height: 32px; border-radius: 8px; background: #fff; padding: 2px;

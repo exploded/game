@@ -520,7 +520,7 @@ CREATE TABLE IF NOT EXISTS stock_splits (
 );
 
 --------------------------------------------------------------------------------
--- Rob's Picks: the stocks page's first chip, set at /admin/picks
+-- Rob's Picks: the stocks page's default chip, set at /admin/picks
 --------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS stock_picks (
     stock_id   INTEGER PRIMARY KEY REFERENCES stocks(id) ON DELETE CASCADE,
