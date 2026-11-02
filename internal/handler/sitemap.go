@@ -96,6 +96,17 @@ func sitemapDate(s string) string {
 	return ""
 }
 
+// IndexNowKey proves to IndexNow (indexnow.org: Bing, Yandex and others, not
+// Google) that a URL list posted to api.indexnow.org comes from this site.
+// It isn't a secret: it can only submit URLs on the host that serves it.
+const IndexNowKey = "a03d77b6c8d8255b961049fb2a8aa755"
+
+// IndexNowKeyFile serves the key at /{key}.txt, where IndexNow checks it.
+func (h *Handler) IndexNowKeyFile(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Write([]byte(IndexNowKey))
+}
+
 // Robots keeps crawlers out of the signed-in pages and points them at the
 // sitemap, which needs the site's full URL.
 func (h *Handler) Robots(w http.ResponseWriter, r *http.Request) {

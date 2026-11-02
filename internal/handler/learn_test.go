@@ -79,6 +79,7 @@ Line two.', 'https://i.ytimg.com/vi/a/mqdefault.jpg', '2026-10-01 00:00:00', 725
 	r.Get("/privacy", h.PrivacyPage)
 	r.Get("/sitemap.xml", h.Sitemap)
 	r.Get("/robots.txt", h.Robots)
+	r.Get("/"+IndexNowKey+".txt", h.IndexNowKeyFile)
 	r.Route("/admin", func(r chi.Router) {
 		r.Use(auth.RequireAdmin)
 		r.Get("/learn", h.AdminLearn)
@@ -168,6 +169,11 @@ func TestSitemapAndRobots(t *testing.T) {
 	w = as(srv, "", "GET", "/robots.txt", nil, false)
 	if !strings.Contains(w.Body.String(), "Sitemap: https://site.example/sitemap.xml") {
 		t.Errorf("robots.txt doesn't point at the sitemap:\n%s", w.Body)
+	}
+
+	w = as(srv, "", "GET", "/"+IndexNowKey+".txt", nil, false)
+	if w.Code != http.StatusOK || w.Body.String() != IndexNowKey {
+		t.Errorf("IndexNow key file: %d %q", w.Code, w.Body)
 	}
 }
 

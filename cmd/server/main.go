@@ -202,6 +202,7 @@ func main() {
 	// For search engines.
 	r.Get("/robots.txt", h.Robots)
 	r.Get("/sitemap.xml", h.Sitemap)
+	r.Get("/"+handler.IndexNowKey+".txt", h.IndexNowKeyFile)
 
 	// Public routes.
 	// Sign-in. These POSTs come before there's a session, so the CSRF
