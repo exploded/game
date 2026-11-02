@@ -93,6 +93,17 @@ type Course struct {
 	CreatedAt   string
 }
 
+type DividendPayment struct {
+	ID            int64
+	ParticipantID int64
+	StockID       int64
+	ExDate        string
+	Shares        int64
+	PerShare      int64
+	Amount        int64
+	CreatedAt     string
+}
+
 type EmailBroadcast struct {
 	ID         int64
 	Subject    string
@@ -401,6 +412,13 @@ type Stock struct {
 	IsActive         int64
 	CreatedAt        string
 	HistoryFetchedAt sql.NullString
+}
+
+type StockDividend struct {
+	StockID   int64
+	ExDate    string
+	PerShare  int64
+	AppliedAt string
 }
 
 type StockNews struct {

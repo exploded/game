@@ -150,7 +150,7 @@ func (f *Fetcher) applySplit(ctx context.Context, q *db.Queries, stock db.Stock,
 		rate = r.RateAudUsd
 	}
 
-	holdings, err := qtx.ListSplitHoldings(ctx, stock.ID)
+	holdings, err := qtx.ListRunningHoldings(ctx, stock.ID)
 	if err != nil {
 		return false, err
 	}

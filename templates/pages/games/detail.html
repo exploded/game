@@ -41,6 +41,10 @@
                 <span class="info-label">Interest on Cash</span>
                 <span class="info-value">{{if .Item.CreditInterestRate}}{{bps .Item.CreditInterestRate}} a year, paid daily{{else}}None{{end}}</span>
             </div>
+            <div class="info-item">
+                <span class="info-label">Dividends</span>
+                <span class="info-value">Paid in cash on the ex-dividend date{{if .Item.AllowShort}}; a short pays them{{end}}</span>
+            </div>
             {{if .Item.ReferralBonusPct}}
             <div class="info-item">
                 <span class="info-label">Referral Bonus</span>

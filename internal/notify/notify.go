@@ -26,6 +26,7 @@ var notificationCategory = map[string]mail.Category{
 	"order_cancelled": mail.Trades,
 	"order_expired":   mail.Trades,
 	"stock_split":     mail.Trades,
+	"dividend":        mail.Trades,
 	"referral_bonus":  mail.Games,
 }
 

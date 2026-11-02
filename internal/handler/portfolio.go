@@ -179,14 +179,15 @@ func rankPlayer(p db.Participant, board []db.ListParticipantsByGameRow) standing
 // portfolioFigures is what a player is worth in a game and how it moved:
 // their home page, and the API's portfolio.
 type portfolioFigures struct {
-	Rows     []holdingRow
-	Over     bool    // the game has ended: values are from its end, with no Today
-	Today    *change // today's move across every position; nil once the game is over
-	Session  string  // the newest bar's date: the session Today covers
-	Total    change  // against the starting balance
-	Standing standing
-	Board    []db.ListParticipantsByGameRow
-	Interest int64
+	Rows      []holdingRow
+	Over      bool    // the game has ended: values are from its end, with no Today
+	Today     *change // today's move across every position; nil once the game is over
+	Session   string  // the newest bar's date: the session Today covers
+	Total     change  // against the starting balance
+	Standing  standing
+	Board     []db.ListParticipantsByGameRow
+	Interest  int64
+	Dividends int64 // received, less what shorts paid
 }
 
 // portfolioFigures works out a player's holdings, moves and rank.
@@ -259,15 +260,17 @@ func (h *Handler) portfolioFigures(ctx context.Context, game db.Game, participan
 		today = &change{todayBase, participant.PortfolioValue - todayBase}
 	}
 	interest, _ := h.q.TotalInterest(ctx, participant.ID)
+	dividends, _ := h.q.TotalDividends(ctx, participant.ID)
 	return portfolioFigures{
-		Rows:     rows,
-		Over:     over,
-		Today:    today,
-		Session:  session,
-		Total:    change{participant.PortfolioValue - game.StartingBalance, game.StartingBalance},
-		Standing: rankPlayer(participant, board),
-		Board:    board,
-		Interest: interest,
+		Rows:      rows,
+		Over:      over,
+		Today:     today,
+		Session:   session,
+		Total:     change{participant.PortfolioValue - game.StartingBalance, game.StartingBalance},
+		Standing:  rankPlayer(participant, board),
+		Board:     board,
+		Interest:  interest,
+		Dividends: dividends,
 	}
 }
 
@@ -304,6 +307,7 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 			"Total":        pf.Total,
 			"Standing":     pf.Standing,
 			"Interest":     pf.Interest,
+			"Dividends":    pf.Dividends,
 			"InvitesOpen":  invitesOpen(game),
 			"InviteJoined": inviteJoined,
 			"Bonus":        fmtDollars(referralBonus(game)),
@@ -374,16 +378,17 @@ type historyRow struct {
 // ledgerSum adds a player's history up, from the cash they started with to
 // the total the leaderboard shows. Amounts are in the game's currency.
 type ledgerSum struct {
-	Opening  int64
-	Bought   int64 // paid for shares, before fees
-	Sold     int64 // received for shares, before fees
-	Fees     int64
-	Interest int64
-	Bonuses  int64
-	Other    int64 // cash moved by nothing in the history: a reverse split's part share
-	Cash     int64
-	Invested int64 // the shares, at the latest prices
-	Total    int64
+	Opening   int64
+	Bought    int64 // paid for shares, before fees
+	Sold      int64 // received for shares, before fees
+	Fees      int64
+	Interest  int64
+	Dividends int64 // received, less what shorts paid
+	Bonuses   int64
+	Other     int64 // cash moved by nothing in the history: a reverse split's part share
+	Cash      int64
+	Invested  int64 // the shares, at the latest prices
+	Total     int64
 }
 
 // cashLedger runs through a player's history, oldest first, keeping their
@@ -408,6 +413,9 @@ func cashLedger(history []db.ListHistoryRow, opening int64, p db.Participant) ([
 		case "interest":
 			change = h.Amount
 			sum.Interest += h.Amount
+		case "dividend":
+			change = h.Amount
+			sum.Dividends += h.Amount
 		case "bonus":
 			change = h.Amount
 			sum.Bonuses += h.Amount

@@ -88,6 +88,7 @@ func LoadTemplates(fsys fs.FS, static *Static) (PageTemplates, error) {
 		"upper":       strings.ToUpper,
 		"paragraphs":  mail.Paragraphs,
 		"marketLabel": market.MarketLabel,
+		"perShare":    market.FmtPerShare,
 		"bps": func(bp int64) string {
 			return fmt.Sprintf("%.2f%%", float64(bp)/100)
 		},

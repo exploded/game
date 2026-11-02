@@ -63,7 +63,7 @@ example "Insufficient funds"), `429` too many requests.
 | POST | `/orders` | Place an order |
 | GET | `/orders` | Open orders (limit orders, and market orders waiting for the open) |
 | DELETE | `/orders/{id}` | Cancel an open order |
-| GET | `/history?limit=50` | Trades, interest and bonuses, newest first |
+| GET | `/history?limit=50` | Trades, interest, dividends and bonuses, newest first |
 | GET | `/leaderboard` | The top 20 and where the player stands |
 
 Filters for `/stocks`: `picks` (Rob's Picks, the default), `all`, `mag7`,

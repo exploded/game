@@ -27,6 +27,7 @@
         <div><span class="stat-label">Cash</span><span class="mono">{{cents $pt.CashBalance}}</span></div>
         <div><span class="stat-label">Invested</span><span class="mono">{{cents (subtract $pt.PortfolioValue $pt.CashBalance)}}</span></div>
         {{if .Extra.Interest}}<div><span class="stat-label">Interest</span><span class="mono">{{cents .Extra.Interest}}</span></div>{{end}}
+        {{if .Extra.Dividends}}<div><span class="stat-label">Dividends</span><span class="mono">{{cents .Extra.Dividends}}</span></div>{{end}}
     </div>
 </div>
 

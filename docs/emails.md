@@ -68,6 +68,7 @@ worked out but aren't written yet.
 | T1 | Order filled | A limit order, or a market order queued after hours, fills | Built |
 | T2 | Order cancelled or expired | An order can't fill (no cash, game over) or passes its expiry date | Built |
 | T4 | Stock split | A split in a stock you hold is applied (`market.CheckSplits`) | Built |
+| T5 | Dividend | A stock you hold (or are short) goes ex-dividend (`market.CheckDividends`) | Built |
 
 - These follow the in-app notifications. Each minute, `internal/notify` emails
   any new ones, one email per person and category, so five orders filling at

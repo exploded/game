@@ -260,6 +260,36 @@ func TestHistoryListsInterest(t *testing.T) {
 	}
 }
 
+// TestHistoryListsDividends checks a dividend is listed with its amount a
+// share, and adds up in the ledger.
+func TestHistoryListsDividends(t *testing.T) {
+	srv, q, d := gameServerDB(t)
+	p, _ := q.GetParticipantByGameAndUser(t.Context(), db.GetParticipantByGameAndUserParams{GameID: 1, UserID: 1})
+	for _, stmt := range []string{
+		`INSERT INTO dividend_payments (participant_id, stock_id, ex_date, shares, per_share, amount, created_at)
+		 VALUES (?1, 1, '2026-10-30', 10, 176000, 176, '2026-10-30 10:00:00')`,
+		`UPDATE participants SET cash_balance = cash_balance + 176, portfolio_value = portfolio_value + 176 WHERE id = ?1`,
+	} {
+		if _, err := d.Exec(stmt, p.ID); err != nil {
+			t.Fatalf("seed: %v\n%s", err, stmt)
+		}
+	}
+
+	body := getPage(t, srv, "/games/1/history", "")
+	for _, want := range []string{
+		"Dividends</td><td class=\"num\">+$1.76",
+		"went ex-dividend 30 Oct 2026",
+		"$0.176",
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("history is missing %q", want)
+		}
+	}
+	if strings.Contains(body, "Other") {
+		t.Error("history doesn't add up: it has an Other line")
+	}
+}
+
 // TestHistoryReconciles checks a player's history lists their referral bonus
 // and adds up from the opening balance to their total, with a running cash
 // balance.

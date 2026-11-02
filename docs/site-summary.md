@@ -120,7 +120,7 @@ figures, recent news, and any of Rob's videos that mention it.
 - **Game activity** (the **Activity** tab): everything happening in the game,
   newest first: every player's trades (with the company's name, linked to its
   page), who joined, and referral bonuses earned.
-- **My history**: the player's own trades, interest and referral bonuses, with
+- **My history**: the player's own trades, interest, dividends and referral bonuses, with
   the cash balance after each. A summary at the top adds up from the opening
   balance through the cash to the total on the leaderboard (in the **More**
   menu on a phone, and linked from Game activity and the portfolio).
@@ -138,6 +138,11 @@ figures, recent news, and any of Rob's videos that mention it.
 - **Share splits**: when a company splits its shares (for example, 10 for 1),
   players' holdings and open orders are adjusted automatically, and holders are
   told.
+- **Dividends** (from 2 November 2026): when a share goes ex-dividend, everyone
+  holding it at that day's market open gets the dividend as cash, and is told.
+  A player who is short the share pays the dividend instead, as in real life.
+  Without this, holding a dividend payer lost money each time its price dropped
+  by the dividend.
 
 ### Inviting friends
 
@@ -212,7 +217,8 @@ The site sends these emails:
 
 - **Account**: sign-in codes, welcome, account deleted, and invitations from a
   friend. These can't be turned off.
-- **Trades**: an order filled, cancelled or expired; a share split.
+- **Trades**: an order filled, cancelled or expired; a share split; a
+  dividend paid.
 - **Games**: a game started, a game ends in 3 days and in 1 day, final results,
   and a referral bonus earned.
 - **Community**: an answer to your question, and new courses.
@@ -291,9 +297,10 @@ The site was reviewed for parts that were hidden, unfinished or no longer used.
 - **Google profile photos**, from when people signed in with Google, and the
   **Use Google Photo** button on the Profile page. Players now see the avatar
   they chose, or the default one.
-- **Every mention of dividends**, because the game doesn't pay them: the
+- **Every mention of dividends**, because the game didn't pay them then: the
   Terms said they were credited to players, the email settings mentioned
   dividend emails, and each share's page listed its dividend figures and dates.
+  Dividends have been paid since 2 November 2026 (see Extras above).
 - **Old web addresses** that only redirected visitors from the old site
   (game.mchugh.au), which has been retired.
 - Behind-the-scenes code that nothing used.
@@ -315,8 +322,9 @@ The site was reviewed for parts that were hidden, unfinished or no longer used.
   section 10, the wording on `/ai`, and whether Consortium Private Wealth is
   comfortable with players' own AI trading in the game at all.
 
-- **Rob to check the Terms change**: section 7 no longer says dividends are
-  credited to players.
+- **Rob to check the Terms change**: section 7 says again that dividends are
+  credited to players (from 2 November 2026, when the game started paying
+  them), and that a short pays them.
 - **Rob to check the two 2018 super courses** (Beginners Guide to Super and How
   Super Works). They quote 9.5% employer super, which is now 12%.
 - **Rob to delete two unused YouTube live streams.** YouTube still lists them

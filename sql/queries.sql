@@ -613,10 +613,12 @@ WHERE p.user_id = ?;
 
 -- name: ListHistory :many
 -- Everything that moved a player's cash in a game, oldest first: trades,
--- interest and referral bonuses. Interest rows have kind 'interest',
--- quantity is the cash it was paid on, and day is the day it was for;
--- payments that rounded to nothing are left out. Label is the company for
--- a trade and the friend who signed up for a bonus.
+-- interest, dividends and referral bonuses. Interest rows have kind
+-- 'interest', quantity is the cash it was paid on, and day is the day it was
+-- for; payments that rounded to nothing are left out. Dividend rows have
+-- kind 'dividend', quantity is the shares (negative for a short), price is
+-- per_share (x 1,000,000, not cents) and day is the ex-date. Label is the
+-- company for a trade or dividend and the friend who signed up for a bonus.
 SELECT t.type AS kind, t.quantity, s.symbol, s.name AS label, t.price, s.currency,
        t.converted_total AS amount, t.fee, CAST('' AS TEXT) AS day, t.source, t.created_at
 FROM transactions t
@@ -626,6 +628,11 @@ UNION ALL
 SELECT 'interest', ip.balance, '', '', 0, '', ip.amount, 0, ip.date, '', ip.created_at
 FROM interest_payments ip
 WHERE ip.participant_id = sqlc.arg(participant_id) AND ip.amount > 0
+UNION ALL
+SELECT 'dividend', dp.shares, s.symbol, s.name, dp.per_share, s.currency, dp.amount, 0, dp.ex_date, '', dp.created_at
+FROM dividend_payments dp
+JOIN stocks s ON s.id = dp.stock_id
+WHERE dp.participant_id = sqlc.arg(participant_id) AND dp.amount != 0
 UNION ALL
 SELECT 'bonus', 0, '', u.name, 0, '', rb.bonus_amount, 0, '', '', rb.created_at
 FROM referral_bonuses rb
@@ -772,8 +779,8 @@ UPDATE stock_prices SET
     volume = CAST(ROUND(volume / CAST(sqlc.arg(price_factor) AS REAL)) AS INTEGER)
 WHERE stock_id = sqlc.arg(stock_id) AND date < sqlc.arg(split_date) AND created_at < sqlc.arg(took_effect);
 
--- name: ListSplitHoldings :many
--- Positions in a stock in running games.
+-- name: ListRunningHoldings :many
+-- Positions in a stock in running games, for splits and dividends.
 SELECT h.*, p.user_id, p.game_id, g.base_currency
 FROM holdings h
 JOIN participants p ON p.id = h.participant_id
@@ -792,6 +799,17 @@ WHERE stock_id = ? AND status = 'open' AND created_at < ?;
 
 -- name: UpdateOrderForSplit :exec
 UPDATE limit_orders SET quantity = ?, limit_price = ? WHERE id = ?;
+
+-- name: RecordStockDividend :execrows
+-- 0 rows means it was paid already.
+INSERT OR IGNORE INTO stock_dividends (stock_id, ex_date, per_share) VALUES (?, ?, ?);
+
+-- name: InsertDividendPayment :exec
+INSERT INTO dividend_payments (participant_id, stock_id, ex_date, shares, per_share, amount)
+VALUES (?, ?, ?, ?, ?, ?);
+
+-- name: TotalDividends :one
+SELECT CAST(COALESCE(SUM(amount), 0) AS INTEGER) FROM dividend_payments WHERE participant_id = ?;
 
 -- name: ExpireOldLimitOrders :many
 UPDATE limit_orders SET status = 'expired'

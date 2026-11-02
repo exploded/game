@@ -142,7 +142,7 @@ func (h *Handler) apiGameInfo(ctx context.Context, user *db.User, game db.Game) 
 			"The Wealth Lab is a practice share game with play money. Nothing here is financial advice.",
 			"The biggest portfolio (cash plus holdings) when the game ends wins.",
 			"Prices are delayed. While the US market is open they're refreshed every few minutes.",
-			"Players get no dividends. Stock splits are applied for you.",
+			"Stock splits are applied for you. Dividends are paid in cash on the ex-dividend date to whoever held the stock at that day's open; a short pays the dividend instead.",
 		},
 	}
 	if game.AfterHoursTrading != 0 {
@@ -168,6 +168,7 @@ type apiPortfolio struct {
 	NextUp       string       `json:"next_player_up,omitempty"`
 	BehindBy     *money       `json:"behind_by,omitempty"`
 	Interest     money        `json:"interest_earned"`
+	Dividends    money        `json:"dividends"` // received, less what shorts paid
 	Holdings     []apiHolding `json:"holdings"`
 }
 
@@ -197,6 +198,7 @@ func (h *Handler) apiPortfolio(ctx context.Context, game db.Game, p db.Participa
 		Players:      pf.Standing.Of,
 		NextUp:       pf.Standing.Ahead,
 		Interest:     moneyOf(pf.Interest, cur),
+		Dividends:    moneyOf(pf.Dividends, cur),
 		Holdings:     []apiHolding{},
 	}
 	if pf.Today != nil {
@@ -623,15 +625,16 @@ func (h *Handler) apiCancel(ctx context.Context, user *db.User, orderID int64) (
 // --- History and leaderboard ---
 
 type apiHistoryRow struct {
-	Kind   string `json:"kind"` // buy | sell | interest | bonus
-	Symbol string `json:"symbol,omitempty"`
-	Name   string `json:"name,omitempty"` // the company, or the friend whose sign-up paid a bonus
-	Shares int64  `json:"shares,omitempty"`
-	Price  *money `json:"price,omitempty"`
-	Amount money  `json:"amount"` // in the game's currency
-	Fee    *money `json:"fee,omitempty"`
-	ViaAI  bool   `json:"via_ai,omitempty"`
-	At     string `json:"at"` // UTC
+	Kind     string `json:"kind"` // buy | sell | interest | dividend | bonus
+	Symbol   string `json:"symbol,omitempty"`
+	Name     string `json:"name,omitempty"` // the company, or the friend whose sign-up paid a bonus
+	Shares   int64  `json:"shares,omitempty"`
+	Price    *money `json:"price,omitempty"`
+	PerShare string `json:"dividend_per_share,omitempty"` // "$0.176": a dividend can be part of a cent
+	Amount   money  `json:"amount"`                       // in the game's currency
+	Fee      *money `json:"fee,omitempty"`
+	ViaAI    bool   `json:"via_ai,omitempty"`
+	At       string `json:"at"` // UTC
 }
 
 // apiHistory is the newest limit rows of the player's cash history.
@@ -652,6 +655,8 @@ func (h *Handler) apiHistory(ctx context.Context, game db.Game, p db.Participant
 			price := moneyOf(r.Price, r.Currency)
 			fee := moneyOf(r.Fee, game.BaseCurrency)
 			row.Symbol, row.Name, row.Shares, row.Price, row.Fee = r.Symbol, r.Label, r.Quantity, &price, &fee
+		case "dividend":
+			row.Symbol, row.Name, row.Shares, row.PerShare = r.Symbol, r.Label, r.Quantity, market.FmtPerShare(r.Price)+" "+r.Currency
 		case "bonus":
 			row.Name = r.Label
 		}

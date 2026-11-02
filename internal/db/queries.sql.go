@@ -2727,6 +2727,32 @@ func (q *Queries) InsertActivity(ctx context.Context, arg InsertActivityParams) 
 	return err
 }
 
+const insertDividendPayment = `-- name: InsertDividendPayment :exec
+INSERT INTO dividend_payments (participant_id, stock_id, ex_date, shares, per_share, amount)
+VALUES (?, ?, ?, ?, ?, ?)
+`
+
+type InsertDividendPaymentParams struct {
+	ParticipantID int64
+	StockID       int64
+	ExDate        string
+	Shares        int64
+	PerShare      int64
+	Amount        int64
+}
+
+func (q *Queries) InsertDividendPayment(ctx context.Context, arg InsertDividendPaymentParams) error {
+	_, err := q.db.ExecContext(ctx, insertDividendPayment,
+		arg.ParticipantID,
+		arg.StockID,
+		arg.ExDate,
+		arg.Shares,
+		arg.PerShare,
+		arg.Amount,
+	)
+	return err
+}
+
 const insertFetchLog = `-- name: InsertFetchLog :exec
 
 INSERT INTO price_fetch_log (market, mode, status, stocks_updated, symbols_ok, symbols_skipped, error_msg, duration_ms)
@@ -4235,6 +4261,11 @@ SELECT 'interest', ip.balance, '', '', 0, '', ip.amount, 0, ip.date, '', ip.crea
 FROM interest_payments ip
 WHERE ip.participant_id = ?1 AND ip.amount > 0
 UNION ALL
+SELECT 'dividend', dp.shares, s.symbol, s.name, dp.per_share, s.currency, dp.amount, 0, dp.ex_date, '', dp.created_at
+FROM dividend_payments dp
+JOIN stocks s ON s.id = dp.stock_id
+WHERE dp.participant_id = ?1 AND dp.amount != 0
+UNION ALL
 SELECT 'bonus', 0, '', u.name, 0, '', rb.bonus_amount, 0, '', '', rb.created_at
 FROM referral_bonuses rb
 JOIN participants p ON p.game_id = rb.game_id AND p.user_id = rb.referrer_id
@@ -4258,10 +4289,12 @@ type ListHistoryRow struct {
 }
 
 // Everything that moved a player's cash in a game, oldest first: trades,
-// interest and referral bonuses. Interest rows have kind 'interest',
-// quantity is the cash it was paid on, and day is the day it was for;
-// payments that rounded to nothing are left out. Label is the company for
-// a trade and the friend who signed up for a bonus.
+// interest, dividends and referral bonuses. Interest rows have kind
+// 'interest', quantity is the cash it was paid on, and day is the day it was
+// for; payments that rounded to nothing are left out. Dividend rows have
+// kind 'dividend', quantity is the shares (negative for a short), price is
+// per_share (x 1,000,000, not cents) and day is the ex-date. Label is the
+// company for a trade or dividend and the friend who signed up for a bonus.
 func (q *Queries) ListHistory(ctx context.Context, participantID int64) ([]ListHistoryRow, error) {
 	rows, err := q.db.QueryContext(ctx, listHistory, participantID)
 	if err != nil {
@@ -5770,6 +5803,64 @@ func (q *Queries) ListRelatedVideos(ctx context.Context, id int64) ([]ListRelate
 	return items, nil
 }
 
+const listRunningHoldings = `-- name: ListRunningHoldings :many
+SELECT h.id, h.participant_id, h.stock_id, h.quantity, h.avg_cost, h.current_value, h.updated_at, h.cost_basis, p.user_id, p.game_id, g.base_currency
+FROM holdings h
+JOIN participants p ON p.id = h.participant_id
+JOIN games g ON g.id = p.game_id
+WHERE h.stock_id = ? AND g.status = 'active'
+`
+
+type ListRunningHoldingsRow struct {
+	ID            int64
+	ParticipantID int64
+	StockID       int64
+	Quantity      int64
+	AvgCost       int64
+	CurrentValue  int64
+	UpdatedAt     string
+	CostBasis     int64
+	UserID        int64
+	GameID        int64
+	BaseCurrency  string
+}
+
+// Positions in a stock in running games, for splits and dividends.
+func (q *Queries) ListRunningHoldings(ctx context.Context, stockID int64) ([]ListRunningHoldingsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listRunningHoldings, stockID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListRunningHoldingsRow
+	for rows.Next() {
+		var i ListRunningHoldingsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ParticipantID,
+			&i.StockID,
+			&i.Quantity,
+			&i.AvgCost,
+			&i.CurrentValue,
+			&i.UpdatedAt,
+			&i.CostBasis,
+			&i.UserID,
+			&i.GameID,
+			&i.BaseCurrency,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listScreenerStocks = `-- name: ListScreenerStocks :many
 SELECT s.id, s.symbol, s.name, s.market, s.sector, s.currency,
        COALESCE(p.logo, '') AS logo,
@@ -5904,64 +5995,6 @@ func (q *Queries) ListSnapshots(ctx context.Context, arg ListSnapshotsParams) ([
 			&i.CashBalance,
 			&i.HoldingsValue,
 			&i.TotalValue,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listSplitHoldings = `-- name: ListSplitHoldings :many
-SELECT h.id, h.participant_id, h.stock_id, h.quantity, h.avg_cost, h.current_value, h.updated_at, h.cost_basis, p.user_id, p.game_id, g.base_currency
-FROM holdings h
-JOIN participants p ON p.id = h.participant_id
-JOIN games g ON g.id = p.game_id
-WHERE h.stock_id = ? AND g.status = 'active'
-`
-
-type ListSplitHoldingsRow struct {
-	ID            int64
-	ParticipantID int64
-	StockID       int64
-	Quantity      int64
-	AvgCost       int64
-	CurrentValue  int64
-	UpdatedAt     string
-	CostBasis     int64
-	UserID        int64
-	GameID        int64
-	BaseCurrency  string
-}
-
-// Positions in a stock in running games.
-func (q *Queries) ListSplitHoldings(ctx context.Context, stockID int64) ([]ListSplitHoldingsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listSplitHoldings, stockID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListSplitHoldingsRow
-	for rows.Next() {
-		var i ListSplitHoldingsRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.ParticipantID,
-			&i.StockID,
-			&i.Quantity,
-			&i.AvgCost,
-			&i.CurrentValue,
-			&i.UpdatedAt,
-			&i.CostBasis,
-			&i.UserID,
-			&i.GameID,
-			&i.BaseCurrency,
 		); err != nil {
 			return nil, err
 		}
@@ -7410,6 +7443,25 @@ func (q *Queries) QueueEmail(ctx context.Context, arg QueueEmailParams) error {
 	return err
 }
 
+const recordStockDividend = `-- name: RecordStockDividend :execrows
+INSERT OR IGNORE INTO stock_dividends (stock_id, ex_date, per_share) VALUES (?, ?, ?)
+`
+
+type RecordStockDividendParams struct {
+	StockID  int64
+	ExDate   string
+	PerShare int64
+}
+
+// 0 rows means it was paid already.
+func (q *Queries) RecordStockDividend(ctx context.Context, arg RecordStockDividendParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, recordStockDividend, arg.StockID, arg.ExDate, arg.PerShare)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const recordStockSplit = `-- name: RecordStockSplit :execrows
 
 INSERT OR IGNORE INTO stock_splits (stock_id, date, from_factor, to_factor, description)
@@ -7985,6 +8037,17 @@ func (q *Queries) TikTokStreamSeen(ctx context.Context, eventID sql.NullInt64) (
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const totalDividends = `-- name: TotalDividends :one
+SELECT CAST(COALESCE(SUM(amount), 0) AS INTEGER) FROM dividend_payments WHERE participant_id = ?
+`
+
+func (q *Queries) TotalDividends(ctx context.Context, participantID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, totalDividends, participantID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const totalInterest = `-- name: TotalInterest :one

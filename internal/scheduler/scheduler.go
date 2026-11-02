@@ -25,8 +25,8 @@ var newsRunning atomic.Bool
 var splitsRunning atomic.Bool
 var backupRunning atomic.Bool
 
-// splitsCheckedFor is the New York date of the last good splits check, and
-// splitsTriedAt when the last one started (Unix seconds).
+// splitsCheckedFor is the New York date of the last good splits and
+// dividends check, and splitsTriedAt when the last one started (Unix seconds).
 var splitsCheckedFor atomic.Value
 var splitsTriedAt atomic.Int64
 
@@ -109,7 +109,7 @@ func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, 
 		}
 	}
 	maybeFetchQuotes(ctx, q, rawDB, now)
-	maybeCheckSplits(ctx, q, rawDB, now)
+	maybeCheckSplits(ctx, q, rawDB, now) // and dividends
 	if utcNow.Minute()%15 == 0 {
 		go fetchRates(ctx, q, rawDB)
 	}
@@ -165,10 +165,12 @@ func startupBackfill(ctx context.Context, q *db.Queries, rawDB *sql.DB) {
 	SignalPricesChanged()
 }
 
-// maybeCheckSplits applies stock splits (market.CheckSplits) once each New
-// York weekday, from 10:00 UTC: after the night's daily fetch and before
-// the 13:30 or 14:30 UTC open, so holdings, orders and prices change
-// together. A failed check is tried again after dailyRetry.
+// maybeCheckSplits applies stock splits (market.CheckSplits), then pays
+// dividends (market.CheckDividends), once each New York weekday, from
+// 10:00 UTC: after the night's daily fetch and before the 13:30 or 14:30
+// UTC open, so holdings, orders and prices change together, and a dividend
+// goes to whoever held the stock at the close. If either fails, both are
+// tried again after dailyRetry; neither applies anything twice.
 func maybeCheckSplits(ctx context.Context, q *db.Queries, rawDB *sql.DB, now time.Time) {
 	if market.NewYork == nil || now.UTC().Hour() < 10 {
 		return
@@ -190,13 +192,19 @@ func maybeCheckSplits(ctx context.Context, q *db.Queries, rawDB *sql.DB, now tim
 	splitsTriedAt.Store(now.Unix())
 	go func() {
 		defer splitsRunning.Store(false)
-		n, err := market.NewFetcher(q, rawDB).CheckSplits(ctx, q, today)
+		f := market.NewFetcher(q, rawDB)
+		n, err := f.CheckSplits(ctx, q, today)
 		if err != nil {
 			slog.Error("stock splits", "error", err)
-			return
 		}
-		splitsCheckedFor.Store(today)
-		if n > 0 {
+		paid, derr := f.CheckDividends(ctx, q, today)
+		if derr != nil {
+			slog.Error("dividends", "error", derr)
+		}
+		if err == nil && derr == nil {
+			splitsCheckedFor.Store(today)
+		}
+		if n > 0 || paid > 0 {
 			SignalPricesChanged()
 		}
 	}()

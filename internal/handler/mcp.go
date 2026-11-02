@@ -188,7 +188,7 @@ func (h *Handler) mcpServer(r *http.Request) *mcp.Server {
 	})
 	addTool(s, &mcp.Tool{
 		Name:        "get_history",
-		Description: "The player's trades, interest and bonuses in this month's game, newest first.",
+		Description: "The player's trades, interest, dividends and bonuses in this month's game, newest first.",
 		Annotations: read,
 	}, func(ctx context.Context, in mcpLimit) (out mcpHistory, err error) {
 		err = inGame(ctx, func(ctx context.Context, g db.Game, p db.Participant) error {

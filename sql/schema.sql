@@ -525,6 +525,29 @@ CREATE TABLE IF NOT EXISTS stock_splits (
 );
 
 --------------------------------------------------------------------------------
+-- Dividends paid from Twelve Data's dividends calendar (market/dividends.go)
+--------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS stock_dividends (
+    stock_id   INTEGER NOT NULL REFERENCES stocks(id) ON DELETE CASCADE,
+    ex_date    TEXT    NOT NULL,                 -- YYYY-MM-DD, the first day it trades without the dividend
+    per_share  INTEGER NOT NULL,                 -- a share's dividend in the stock's currency, × 1,000,000 ($0.176 = 176000)
+    applied_at TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (stock_id, ex_date)
+);
+
+CREATE TABLE IF NOT EXISTS dividend_payments (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    participant_id INTEGER NOT NULL REFERENCES participants(id) ON DELETE CASCADE,
+    stock_id       INTEGER NOT NULL REFERENCES stocks(id) ON DELETE CASCADE,
+    ex_date        TEXT    NOT NULL,
+    shares         INTEGER NOT NULL,             -- held at the open on ex_date; negative for a short
+    per_share      INTEGER NOT NULL,             -- as in stock_dividends
+    amount         INTEGER NOT NULL,             -- cents credited in the game's currency; negative when a short pays it
+    created_at     TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(participant_id, stock_id, ex_date)
+);
+
+--------------------------------------------------------------------------------
 -- Rob's Picks: the stocks page's default chip, set at /admin/picks
 --------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS stock_picks (
