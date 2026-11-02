@@ -90,6 +90,8 @@ type apiGame struct {
 	LimitOrders       bool      `json:"limit_orders"`
 	AfterHoursTrading bool      `json:"after_hours_trading"`
 	AITrading         bool      `json:"ai_trading"`
+	AIOrdersPerDay    int64     `json:"ai_orders_per_day"` // orders the player's AI may place a day, from midnight in time_zone
+	AIOrdersLeft      int64     `json:"ai_orders_left_today"`
 	InterestOnCash    string    `json:"interest_on_cash"`
 	USMarket          apiMarket `json:"us_market"`
 	RulesURL          string    `json:"rules_url"`
@@ -114,7 +116,8 @@ func usMarket() apiMarket {
 	return m
 }
 
-func (h *Handler) apiGameInfo(game db.Game) apiGame {
+func (h *Handler) apiGameInfo(ctx context.Context, user *db.User, game db.Game) apiGame {
+	used, _ := h.q.CountAIOrders(ctx, db.CountAIOrdersParams{UserID: user.ID, Day: h.aiDay()})
 	g := apiGame{
 		ID:                game.ID,
 		Name:              game.Name,
@@ -130,6 +133,8 @@ func (h *Handler) apiGameInfo(game db.Game) apiGame {
 		LimitOrders:       game.LimitOrders != 0,
 		AfterHoursTrading: game.AfterHoursTrading != 0,
 		AITrading:         game.AiTrading != 0,
+		AIOrdersPerDay:    aiOrderLimit(user),
+		AIOrdersLeft:      max(aiOrderLimit(user)-used, 0),
 		InterestOnCash:    fmt.Sprintf("%.2f%% a year, paid daily", float64(game.CreditInterestRate)/100),
 		USMarket:          usMarket(),
 		RulesURL:          fmt.Sprintf("%s/games/%d/rules", publicURL(), game.ID),
@@ -505,8 +510,16 @@ func (h *Handler) apiOrder(ctx context.Context, user *db.User, req apiOrderReque
 		return apiOrderResult{}, refuse("side must be buy or sell")
 	}
 
+	release := func() {}
+	if !preview {
+		var err error
+		if release, err = h.reserveAIOrder(ctx, user); err != nil {
+			return apiOrderResult{}, err
+		}
+	}
 	res, err := h.PlaceOrder(ctx, o)
 	if err != nil {
+		release()
 		return apiOrderResult{}, err
 	}
 	out := apiOrderResult{
@@ -693,10 +706,9 @@ func (h *Handler) apiLeaderboard(ctx context.Context, game db.Game, p db.Partici
 
 // --- HTTP ---
 
-// SetAPILimiters limits each player's API and MCP requests, and their
-// orders, per minute.
-func (h *Handler) SetAPILimiters(requests, orders *RateLimiter) {
-	h.apiLimiter, h.orderLimiter = requests, orders
+// SetAPILimiter limits each player's API and MCP requests a minute.
+func (h *Handler) SetAPILimiter(requests *RateLimiter) {
+	h.apiLimiter = requests
 }
 
 // APILimit refuses a player's requests past the per-minute limit. It goes
@@ -712,9 +724,39 @@ func (h *Handler) APILimit(next http.Handler) http.Handler {
 	})
 }
 
-// allowOrder counts an order against the player's per-minute limit.
-func (h *Handler) allowOrder(userID int64) bool {
-	return h.orderLimiter == nil || h.orderLimiter.Allow(strconv.FormatInt(userID, 10))
+// aiOrderLimit is how many orders the player's AI may place a day.
+func aiOrderLimit(user *db.User) int64 {
+	if user.AiOrdersPerDay > 0 {
+		return user.AiOrdersPerDay
+	}
+	return AIOrdersPerDay
+}
+
+// aiDay is the day AI orders count against: today in TIMEZONE.
+func (h *Handler) aiDay() string {
+	return time.Now().In(h.loc).Format("2006-01-02")
+}
+
+// reserveAIOrder counts an order against the player's AI's daily limit, or
+// refuses it once the limit is used up. Call release if the order is then
+// refused, so it doesn't count.
+func (h *Handler) reserveAIOrder(ctx context.Context, user *db.User) (release func(), err error) {
+	day := h.aiDay()
+	if err := h.q.StartAIOrderDay(ctx, db.StartAIOrderDayParams{UserID: user.ID, Day: day}); err != nil {
+		return nil, err
+	}
+	limit := aiOrderLimit(user)
+	n, err := h.q.ReserveAIOrder(ctx, db.ReserveAIOrderParams{UserID: user.ID, Day: day, MaxOrders: limit})
+	if err != nil {
+		return nil, err
+	}
+	if n == 0 {
+		return nil, refuse("Your AI has placed its %d orders for today. It can place more from midnight %s, and you can still trade on the site. To ask for a higher limit, write to us at %s/contact.",
+			limit, time.Now().In(h.loc).Format("MST"), publicURL())
+	}
+	return func() {
+		_ = h.q.ReleaseAIOrder(context.WithoutCancel(ctx), db.ReleaseAIOrderParams{UserID: user.ID, Day: day})
+	}, nil
 }
 
 func tooMany(w http.ResponseWriter) {
@@ -779,8 +821,8 @@ func queryInt(r *http.Request, name string) int {
 // APIRoutes are /api/v1's routes, behind auth.RequireToken and APILimit.
 func (h *Handler) APIRoutes(r chi.Router) {
 	r.Get("/me", h.APIMe)
-	r.Get("/game", h.apiRoute(func(r *http.Request, _ *db.User, g db.Game, _ db.Participant) (any, error) {
-		return h.apiGameInfo(g), nil
+	r.Get("/game", h.apiRoute(func(r *http.Request, user *db.User, g db.Game, _ db.Participant) (any, error) {
+		return h.apiGameInfo(r.Context(), user, g), nil
 	}))
 	r.Get("/portfolio", h.apiRoute(func(r *http.Request, _ *db.User, g db.Game, p db.Participant) (any, error) {
 		return h.apiPortfolio(r.Context(), g, p), nil
@@ -831,7 +873,7 @@ func (h *Handler) apiMe(ctx context.Context, user *db.User, game db.Game) apiMe 
 		Name:     user.Name,
 		Access:   tok.Scope,
 		Via:      tok.Name,
-		Game:     h.apiGameInfo(game),
+		Game:     h.apiGameInfo(ctx, user, game),
 		Settings: publicURL() + "/settings/api",
 	}
 }
@@ -912,9 +954,7 @@ func (h *Handler) APIOrderCreate(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) orderResponse(r *http.Request, user *db.User) (int, []byte) {
 	var status int
 	var v any
-	if !h.allowOrder(user.ID) {
-		status, v = http.StatusTooManyRequests, map[string]string{"error": "Too many orders. Wait a minute and try again."}
-	} else if req, err := readOrder(r); err != nil {
+	if req, err := readOrder(r); err != nil {
 		status, v = apiErrorBody(err)
 	} else if res, err := h.apiOrder(r.Context(), user, req, "api", false); err != nil {
 		status, v = apiErrorBody(err)

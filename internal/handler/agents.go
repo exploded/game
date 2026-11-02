@@ -15,10 +15,11 @@ var agentsDoc string
 
 var agentsTmpl = template.Must(template.New("agents.md").Parse(agentsDoc))
 
-// Each player's API and MCP limits, set in main.go and quoted in agents.md.
+// Each player's API and MCP limits, quoted in agents.md and on /ai. An admin
+// can give a player more orders a day at /admin/users (users.ai_orders_per_day).
 const (
-	APIRequestsPerMinute = 120
-	APIOrdersPerMinute   = 30
+	APIRequestsPerMinute = 30
+	AIOrdersPerDay       = 12
 )
 
 // AgentsDoc serves /agents.md.
@@ -28,7 +29,7 @@ func (h *Handler) AgentsDoc(w http.ResponseWriter, r *http.Request) {
 	agentsTmpl.Execute(w, map[string]any{
 		"Site":     siteURL(r),
 		"Requests": APIRequestsPerMinute,
-		"Orders":   APIOrdersPerMinute,
+		"Orders":   AIOrdersPerDay,
 	})
 }
 
@@ -51,6 +52,6 @@ func (h *Handler) LLMsTxt(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) AIPage(w http.ResponseWriter, r *http.Request) {
 	h.render(w, r, "legal/ai", "", PageData{
 		Title: "Trade with your AI",
-		Extra: map[string]any{"MCPURL": siteURL(r) + "/mcp", "Site": siteURL(r)},
+		Extra: map[string]any{"MCPURL": siteURL(r) + "/mcp", "Site": siteURL(r), "AIOrders": AIOrdersPerDay},
 	})
 }

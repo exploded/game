@@ -27,6 +27,12 @@ type ActivityFeed struct {
 	Source    string
 }
 
+type AiOrderDay struct {
+	UserID int64
+	Day    string
+	Orders int64
+}
+
 type ApiIdempotency struct {
 	UserID    int64
 	Key       string
@@ -551,6 +557,7 @@ type User struct {
 	EmailToken     string
 	BlockedAt      sql.NullString
 	AgeConfirmedAt sql.NullString
+	AiOrdersPerDay int64
 }
 
 type UserAchievement struct {

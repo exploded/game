@@ -285,6 +285,64 @@ func TestAPILimitAndCancel(t *testing.T) {
 	}
 }
 
+func TestAPIDailyOrderLimit(t *testing.T) {
+	srv, q, _, d := apiServer(t)
+	key := newKey(t, q, "trade")
+	if _, err := d.Exec(`UPDATE users SET ai_orders_per_day = 2 WHERE id = 1`); err != nil {
+		t.Fatal(err)
+	}
+	order := `{"symbol": "ACME", "side": "buy", "quantity": 1}`
+	left := func() any { return decode(t, callAPI(srv, "GET", "/api/v1/game", key, ""))["ai_orders_left_today"] }
+
+	// Refused orders and previews don't count.
+	if w := callAPI(srv, "POST", "/api/v1/orders", key, `{"symbol": "ACME", "side": "buy", "quantity": 1000000}`); w.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("too big: %d %s", w.Code, w.Body.String())
+	}
+	if n := left(); n != float64(2) {
+		t.Errorf("after a refusal, %v left, want 2", n)
+	}
+	for i := range 2 {
+		if w := callAPI(srv, "POST", "/api/v1/orders", key, order); w.Code != http.StatusCreated {
+			t.Fatalf("order %d: %d %s", i+1, w.Code, w.Body.String())
+		}
+	}
+	if n := left(); n != float64(0) {
+		t.Errorf("after 2 orders, %v left, want 0", n)
+	}
+	w := callAPI(srv, "POST", "/api/v1/orders", key, order)
+	if w.Code != http.StatusUnprocessableEntity || !strings.Contains(w.Body.String(), "placed its 2 orders for today") {
+		t.Errorf("over the limit: %d %s", w.Code, w.Body.String())
+	}
+	if w := callAPI(srv, "POST", "/api/v1/orders/preview", key, order); w.Code != 200 {
+		t.Errorf("preview over the limit: %d %s", w.Code, w.Body.String())
+	}
+	// MCP shares the count.
+	ts := httptest.NewServer(srv)
+	defer ts.Close()
+	session, err := mcp.NewClient(&mcp.Implementation{Name: "test", Version: "1"}, nil).Connect(t.Context(), &mcp.StreamableClientTransport{
+		Endpoint: ts.URL + "/mcp", HTTPClient: &http.Client{Transport: bearer{key}},
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer session.Close()
+	res, err := session.CallTool(t.Context(), &mcp.CallToolParams{Name: "place_order", Arguments: map[string]any{"symbol": "ACME", "side": "buy", "quantity": 1}})
+	if err != nil || !res.IsError {
+		t.Errorf("MCP order over the limit: %v %+v", err, res)
+	}
+	if h := holding(t, q); h.Quantity != 2 {
+		t.Errorf("holding = %d, want 2", h.Quantity)
+	}
+
+	// An admin raising the limit lets the AI trade again today.
+	if _, err := d.Exec(`UPDATE users SET ai_orders_per_day = 3 WHERE id = 1`); err != nil {
+		t.Fatal(err)
+	}
+	if w := callAPI(srv, "POST", "/api/v1/orders", key, order); w.Code != http.StatusCreated {
+		t.Errorf("after raising the limit: %d %s", w.Code, w.Body.String())
+	}
+}
+
 func TestAPIStocks(t *testing.T) {
 	srv, q, _, _ := apiServer(t)
 	key := newKey(t, q, "read")
@@ -535,7 +593,7 @@ func TestOAuthConnect(t *testing.T) {
 func TestAgentsDoc(t *testing.T) {
 	srv, _, _, _ := apiServer(t)
 	w := callAPI(srv, "GET", "/agents.md", "", "")
-	if w.Code != 200 || !strings.Contains(w.Body.String(), "http://example.com/api/v1") || !strings.Contains(w.Body.String(), "120 requests and 30 orders a minute") {
+	if w.Code != 200 || !strings.Contains(w.Body.String(), "http://example.com/api/v1") || !strings.Contains(w.Body.String(), "30 requests a minute") || !strings.Contains(w.Body.String(), "can place 12 orders") {
 		t.Errorf("agents.md: %d\n%s", w.Code, w.Body.String())
 	}
 }

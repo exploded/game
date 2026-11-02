@@ -40,7 +40,7 @@ SELECT * FROM users ORDER BY created_at DESC;
 -- Every user with how much they've played, for /admin/users.
 -- name: ListUsersWithActivity :many
 SELECT u.id, u.name, u.email, u.avatar_id, u.is_admin,
-    u.created_at, u.last_seen, u.deleted_at, u.blocked_at,
+    u.created_at, u.last_seen, u.deleted_at, u.blocked_at, u.ai_orders_per_day,
     (SELECT COUNT(*) FROM participants p WHERE p.user_id = u.id) AS game_count,
     (SELECT COUNT(*) FROM transactions t JOIN participants p ON p.id = t.participant_id WHERE p.user_id = u.id) AS trade_count
 FROM users u
@@ -51,6 +51,9 @@ UPDATE users SET blocked_at = datetime('now') WHERE id = ? AND blocked_at IS NUL
 
 -- name: UnblockUser :exec
 UPDATE users SET blocked_at = NULL WHERE id = ?;
+
+-- name: SetUserAIOrders :exec
+UPDATE users SET ai_orders_per_day = ? WHERE id = ?;
 
 -- name: SoftDeleteUser :exec
 UPDATE users SET
@@ -1777,3 +1780,19 @@ DELETE FROM api_idempotency WHERE user_id = ? AND key = ? AND status = 0;
 
 -- name: DeleteOldIdempotency :exec
 DELETE FROM api_idempotency WHERE created_at < datetime('now', '-1 day');
+
+-- name: StartAIOrderDay :exec
+INSERT INTO ai_order_days (user_id, day) VALUES (?, ?) ON CONFLICT (user_id, day) DO NOTHING;
+
+-- name: ReserveAIOrder :execrows
+-- Counts an order against the player's AI's day (after StartAIOrderDay).
+-- 0 rows means the day's limit is used up.
+UPDATE ai_order_days SET orders = orders + 1
+WHERE user_id = sqlc.arg(user_id) AND day = sqlc.arg(day) AND orders < sqlc.arg(max_orders);
+
+-- name: ReleaseAIOrder :exec
+-- An order ReserveAIOrder counted that was then refused.
+UPDATE ai_order_days SET orders = orders - 1 WHERE user_id = ? AND day = ? AND orders > 0;
+
+-- name: CountAIOrders :one
+SELECT CAST(COALESCE(SUM(orders), 0) AS INTEGER) FROM ai_order_days WHERE user_id = ? AND day = ?;

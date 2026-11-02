@@ -227,7 +227,7 @@ func main() {
 	// Claude, ChatGPT and other apps use to connect to it. The API and MCP
 	// take bearer tokens, never cookies, so they sit outside the CSRF groups
 	// (api.go, mcp.go, oauth.go).
-	h.SetAPILimiters(handler.NewRateLimiter(handler.APIRequestsPerMinute, time.Minute), handler.NewRateLimiter(handler.APIOrdersPerMinute, time.Minute))
+	h.SetAPILimiter(handler.NewRateLimiter(handler.APIRequestsPerMinute, time.Minute))
 	requireToken := auth.RequireToken(queries, handler.ResourceMetadataURL)
 	registerLimiter := handler.NewRateLimiter(20, time.Hour)
 	r.Group(func(r chi.Router) {
@@ -414,6 +414,7 @@ func main() {
 			r.Get("/users", h.AdminUsers)
 			r.Post("/users/{id}/admin", h.AdminToggle)
 			r.Post("/users/{id}/block", h.AdminBlockToggle)
+			r.Post("/users/{id}/ai-orders", h.AdminSetAIOrders)
 			r.Get("/picks", h.AdminPicks)
 			r.Post("/picks", h.AdminPickAdd)
 			r.Post("/picks/{sid}", h.AdminPickUpdate)

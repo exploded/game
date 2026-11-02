@@ -33,7 +33,8 @@ CREATE TABLE IF NOT EXISTS users (
     last_game_id INTEGER REFERENCES games(id) ON DELETE SET NULL, -- the game the game bar last showed
     email_token TEXT    NOT NULL UNIQUE,                    -- random; identifies the user in unsubscribe links
     blocked_at  TEXT,                                       -- NULL = can sign in; set = an admin blocked them
-    age_confirmed_at TEXT                                   -- when they ticked "I'm 18 or older" on /welcome; NULL = signed up before 1 Nov 2026 or skipped it
+    age_confirmed_at TEXT,                                  -- when they ticked "I'm 18 or older" on /welcome; NULL = signed up before 1 Nov 2026 or skipped it
+    ai_orders_per_day INTEGER NOT NULL DEFAULT 0            -- orders their AI may place a day, set at /admin/users; 0 = AIOrdersPerDay
 );
 
 --------------------------------------------------------------------------------
@@ -796,4 +797,13 @@ CREATE TABLE IF NOT EXISTS api_idempotency (
     response   TEXT    NOT NULL DEFAULT '',
     created_at TEXT    NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (user_id, key)
+);
+
+-- Orders each player's AI placed each day (YYYY-MM-DD in TIMEZONE), counted
+-- against their daily limit. Previews, cancels and refused orders don't count.
+CREATE TABLE IF NOT EXISTS ai_order_days (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    day     TEXT    NOT NULL,
+    orders  INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, day)
 );

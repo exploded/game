@@ -55,7 +55,7 @@ func (h *Handler) AdminUsers(w http.ResponseWriter, r *http.Request) {
 	h.render(w, r, "admin/users", "", PageData{
 		Title: "Users",
 		Items: users,
-		Extra: map[string]any{"Sort": sort, "Blocked": blocked},
+		Extra: map[string]any{"Sort": sort, "Blocked": blocked, "AIOrders": AIOrdersPerDay},
 	})
 }
 
@@ -116,6 +116,42 @@ func (h *Handler) blockUser(w http.ResponseWriter, r *http.Request, user db.User
 	slog.Info("blocked user", "user", user.ID, "by", by)
 	setFlashCookie(w, "Blocked "+user.Name+". They're signed out and can't sign in.", "success")
 	return nil
+}
+
+// AdminSetAIOrders sets how many orders a player's AI may place a day. The
+// usual AIOrdersPerDay is stored as 0, so the player follows it if it changes.
+func (h *Handler) AdminSetAIOrders(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	user, err := h.q.GetUser(r.Context(), id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	back := "/admin/users"
+	if s := r.FormValue("sort"); userSorts[s] != nil {
+		back += "?sort=" + s
+	}
+	n, _ := strconv.ParseInt(r.FormValue("ai_orders_per_day"), 10, 64)
+	if n < 1 || n > 1000 {
+		setFlashCookie(w, "AI orders a day must be between 1 and 1,000", "error")
+		http.Redirect(w, r, back, http.StatusSeeOther)
+		return
+	}
+	stored := n
+	if n == AIOrdersPerDay {
+		stored = 0
+	}
+	if err := h.q.SetUserAIOrders(r.Context(), db.SetUserAIOrdersParams{AiOrdersPerDay: stored, ID: id}); err != nil {
+		h.serverError(w, "set AI orders", err)
+		return
+	}
+	slog.Info("set AI orders a day", "user", id, "orders", n, "by", auth.UserFromContext(r.Context()).ID)
+	setFlashCookie(w, fmt.Sprintf("%s's AI can now place %d orders a day.", user.Name, n), "success")
+	http.Redirect(w, r, back, http.StatusSeeOther)
 }
 
 func (h *Handler) AdminToggle(w http.ResponseWriter, r *http.Request) {

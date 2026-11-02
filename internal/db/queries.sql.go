@@ -336,6 +336,22 @@ func (q *Queries) ConfirmUserAge(ctx context.Context, id int64) error {
 	return err
 }
 
+const countAIOrders = `-- name: CountAIOrders :one
+SELECT CAST(COALESCE(SUM(orders), 0) AS INTEGER) FROM ai_order_days WHERE user_id = ? AND day = ?
+`
+
+type CountAIOrdersParams struct {
+	UserID int64
+	Day    string
+}
+
+func (q *Queries) CountAIOrders(ctx context.Context, arg CountAIOrdersParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countAIOrders, arg.UserID, arg.Day)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const countAllReferralBonuses = `-- name: CountAllReferralBonuses :one
 SELECT COUNT(*) FROM referral_bonuses WHERE referrer_id = ?
 `
@@ -1215,7 +1231,7 @@ const createUser = `-- name: CreateUser :one
 
 INSERT INTO users (email, name, email_token)
 VALUES (?, ?, ?)
-RETURNING id, email, name, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at, age_confirmed_at
+RETURNING id, email, name, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at, age_confirmed_at, ai_orders_per_day
 `
 
 type CreateUserParams struct {
@@ -1244,6 +1260,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.EmailToken,
 		&i.BlockedAt,
 		&i.AgeConfirmedAt,
+		&i.AiOrdersPerDay,
 	)
 	return i, err
 }
@@ -2453,7 +2470,7 @@ func (q *Queries) GetTopicBySlug(ctx context.Context, slug string) (Topic, error
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, email, name, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at, age_confirmed_at FROM users WHERE id = ?
+SELECT id, email, name, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at, age_confirmed_at, ai_orders_per_day FROM users WHERE id = ?
 `
 
 func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
@@ -2473,6 +2490,7 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 		&i.EmailToken,
 		&i.BlockedAt,
 		&i.AgeConfirmedAt,
+		&i.AiOrdersPerDay,
 	)
 	return i, err
 }
@@ -2492,7 +2510,7 @@ func (q *Queries) GetUserAvatarPath(ctx context.Context, id int64) (string, erro
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, name, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at, age_confirmed_at FROM users WHERE email = ?
+SELECT id, email, name, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at, age_confirmed_at, ai_orders_per_day FROM users WHERE email = ?
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -2512,12 +2530,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.EmailToken,
 		&i.BlockedAt,
 		&i.AgeConfirmedAt,
+		&i.AiOrdersPerDay,
 	)
 	return i, err
 }
 
 const getUserByEmailToken = `-- name: GetUserByEmailToken :one
-SELECT id, email, name, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at, age_confirmed_at FROM users WHERE email_token = ? AND deleted_at IS NULL
+SELECT id, email, name, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at, age_confirmed_at, ai_orders_per_day FROM users WHERE email_token = ? AND deleted_at IS NULL
 `
 
 func (q *Queries) GetUserByEmailToken(ctx context.Context, emailToken string) (User, error) {
@@ -2537,6 +2556,7 @@ func (q *Queries) GetUserByEmailToken(ctx context.Context, emailToken string) (U
 		&i.EmailToken,
 		&i.BlockedAt,
 		&i.AgeConfirmedAt,
+		&i.AiOrdersPerDay,
 	)
 	return i, err
 }
@@ -6805,7 +6825,7 @@ func (q *Queries) ListUserParticipations(ctx context.Context, userID int64) ([]L
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, email, name, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at, age_confirmed_at FROM users ORDER BY created_at DESC
+SELECT id, email, name, is_admin, avatar_id, created_at, last_login, last_seen, deleted_at, last_game_id, email_token, blocked_at, age_confirmed_at, ai_orders_per_day FROM users ORDER BY created_at DESC
 `
 
 func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
@@ -6831,6 +6851,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.EmailToken,
 			&i.BlockedAt,
 			&i.AgeConfirmedAt,
+			&i.AiOrdersPerDay,
 		); err != nil {
 			return nil, err
 		}
@@ -6847,7 +6868,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 
 const listUsersWithActivity = `-- name: ListUsersWithActivity :many
 SELECT u.id, u.name, u.email, u.avatar_id, u.is_admin,
-    u.created_at, u.last_seen, u.deleted_at, u.blocked_at,
+    u.created_at, u.last_seen, u.deleted_at, u.blocked_at, u.ai_orders_per_day,
     (SELECT COUNT(*) FROM participants p WHERE p.user_id = u.id) AS game_count,
     (SELECT COUNT(*) FROM transactions t JOIN participants p ON p.id = t.participant_id WHERE p.user_id = u.id) AS trade_count
 FROM users u
@@ -6855,17 +6876,18 @@ ORDER BY u.created_at DESC, u.id DESC
 `
 
 type ListUsersWithActivityRow struct {
-	ID         int64
-	Name       string
-	Email      string
-	AvatarID   sql.NullInt64
-	IsAdmin    int64
-	CreatedAt  string
-	LastSeen   sql.NullString
-	DeletedAt  sql.NullString
-	BlockedAt  sql.NullString
-	GameCount  int64
-	TradeCount int64
+	ID             int64
+	Name           string
+	Email          string
+	AvatarID       sql.NullInt64
+	IsAdmin        int64
+	CreatedAt      string
+	LastSeen       sql.NullString
+	DeletedAt      sql.NullString
+	BlockedAt      sql.NullString
+	AiOrdersPerDay int64
+	GameCount      int64
+	TradeCount     int64
 }
 
 // Every user with how much they've played, for /admin/users.
@@ -6888,6 +6910,7 @@ func (q *Queries) ListUsersWithActivity(ctx context.Context) ([]ListUsersWithAct
 			&i.LastSeen,
 			&i.DeletedAt,
 			&i.BlockedAt,
+			&i.AiOrdersPerDay,
 			&i.GameCount,
 			&i.TradeCount,
 		); err != nil {
@@ -7419,6 +7442,21 @@ func (q *Queries) RecordStockSplit(ctx context.Context, arg RecordStockSplitPara
 	return result.RowsAffected()
 }
 
+const releaseAIOrder = `-- name: ReleaseAIOrder :exec
+UPDATE ai_order_days SET orders = orders - 1 WHERE user_id = ? AND day = ? AND orders > 0
+`
+
+type ReleaseAIOrderParams struct {
+	UserID int64
+	Day    string
+}
+
+// An order ReserveAIOrder counted that was then refused.
+func (q *Queries) ReleaseAIOrder(ctx context.Context, arg ReleaseAIOrderParams) error {
+	_, err := q.db.ExecContext(ctx, releaseAIOrder, arg.UserID, arg.Day)
+	return err
+}
+
 const releaseIdempotencyKey = `-- name: ReleaseIdempotencyKey :exec
 DELETE FROM api_idempotency WHERE user_id = ? AND key = ? AND status = 0
 `
@@ -7488,6 +7526,27 @@ type RemoveVideoTopicParams struct {
 func (q *Queries) RemoveVideoTopic(ctx context.Context, arg RemoveVideoTopicParams) error {
 	_, err := q.db.ExecContext(ctx, removeVideoTopic, arg.VideoID, arg.TopicID)
 	return err
+}
+
+const reserveAIOrder = `-- name: ReserveAIOrder :execrows
+UPDATE ai_order_days SET orders = orders + 1
+WHERE user_id = ?1 AND day = ?2 AND orders < ?3
+`
+
+type ReserveAIOrderParams struct {
+	UserID    int64
+	Day       string
+	MaxOrders int64
+}
+
+// Counts an order against the player's AI's day (after StartAIOrderDay).
+// 0 rows means the day's limit is used up.
+func (q *Queries) ReserveAIOrder(ctx context.Context, arg ReserveAIOrderParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, reserveAIOrder, arg.UserID, arg.Day, arg.MaxOrders)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const revokeAPIKey = `-- name: RevokeAPIKey :execrows
@@ -7772,6 +7831,20 @@ func (q *Queries) SetQuestionVideo(ctx context.Context, arg SetQuestionVideoPara
 	return err
 }
 
+const setUserAIOrders = `-- name: SetUserAIOrders :exec
+UPDATE users SET ai_orders_per_day = ? WHERE id = ?
+`
+
+type SetUserAIOrdersParams struct {
+	AiOrdersPerDay int64
+	ID             int64
+}
+
+func (q *Queries) SetUserAIOrders(ctx context.Context, arg SetUserAIOrdersParams) error {
+	_, err := q.db.ExecContext(ctx, setUserAIOrders, arg.AiOrdersPerDay, arg.ID)
+	return err
+}
+
 const setVideoClassified = `-- name: SetVideoClassified :exec
 UPDATE videos SET classified_at = datetime('now') WHERE id = ?
 `
@@ -7833,6 +7906,20 @@ WHERE id = ?
 
 func (q *Queries) SoftDeleteUser(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, softDeleteUser, id)
+	return err
+}
+
+const startAIOrderDay = `-- name: StartAIOrderDay :exec
+INSERT INTO ai_order_days (user_id, day) VALUES (?, ?) ON CONFLICT (user_id, day) DO NOTHING
+`
+
+type StartAIOrderDayParams struct {
+	UserID int64
+	Day    string
+}
+
+func (q *Queries) StartAIOrderDay(ctx context.Context, arg StartAIOrderDayParams) error {
+	_, err := q.db.ExecContext(ctx, startAIOrderDay, arg.UserID, arg.Day)
 	return err
 }
 

@@ -29,8 +29,7 @@ type Handler struct {
 	moderator  moderate.Checker // checks lobby messages; nil without ANTHROPIC_API_KEY
 	screener   screenCache      // the stocks page's rows (screener.go)
 
-	apiLimiter   *RateLimiter // each player's API and MCP requests a minute; nil for no limit
-	orderLimiter *RateLimiter // each player's API and MCP orders a minute
+	apiLimiter *RateLimiter // each player's API and MCP requests a minute; nil for no limit
 }
 
 func New(q *db.Queries, rawDB *sql.DB, pages PageTemplates, production bool, loc *time.Location) *Handler {

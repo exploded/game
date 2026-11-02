@@ -6,7 +6,7 @@
     <a href="/admin" class="btn btn-sm">&larr; Admin</a>
 </div>
 
-<p class="text-muted" style="margin-bottom:12px">{{len .Items}} users{{if .Extra.Blocked}}, {{.Extra.Blocked}} blocked{{end}}. A blocked user is signed out, can't sign in again and gets no email.</p>
+<p class="text-muted" style="margin-bottom:12px">{{len .Items}} users{{if .Extra.Blocked}}, {{.Extra.Blocked}} blocked{{end}}. A blocked user is signed out, can't sign in again and gets no email. A player's AI can place {{.Extra.AIOrders}} orders a day unless you give them more.</p>
 
 <nav class="chips" aria-label="Sort by">
     <a href="/admin/users" class="chip{{if eq .Extra.Sort "joined"}} chip-on{{end}}">Newest</a>
@@ -20,6 +20,7 @@
             <th>User</th>
             <th>Games</th>
             <th>Trades</th>
+            <th>AI orders a day</th>
             <th>Joined</th>
             <th>Last seen</th>
             <th></th>
@@ -42,6 +43,13 @@
             </td>
             <td data-label="Games">{{.GameCount}}</td>
             <td data-label="Trades">{{.TradeCount}}</td>
+            <td data-label="AI orders a day">
+                <form method="POST" action="/admin/users/{{.ID}}/ai-orders" style="display:flex;gap:4px;align-items:center">
+                    <input type="hidden" name="sort" value="{{$.Extra.Sort}}">
+                    <input type="number" name="ai_orders_per_day" value="{{if .AiOrdersPerDay}}{{.AiOrdersPerDay}}{{else}}{{$.Extra.AIOrders}}{{end}}" min="1" max="1000" aria-label="AI orders a day for {{.Name}}" style="width:5em">
+                    <button type="submit" class="btn btn-sm">Save</button>
+                </form>
+            </td>
             <td data-label="Joined">{{day .CreatedAt}}</td>
             <td data-label="Last seen">{{if .LastSeen.Valid}}{{when .LastSeen}}{{else}}-{{end}}</td>
             <td class="c-action" style="white-space:nowrap">

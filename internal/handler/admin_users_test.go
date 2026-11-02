@@ -45,6 +45,7 @@ func adminUsersServer(t *testing.T) (http.Handler, *sql.DB, *db.Queries) {
 	})
 	r.Get("/admin/users", h.AdminUsers)
 	r.Post("/admin/users/{id}/block", h.AdminBlockToggle)
+	r.Post("/admin/users/{id}/ai-orders", h.AdminSetAIOrders)
 	return r, d, q
 }
 
@@ -66,6 +67,31 @@ func TestAdminUsersListsActivity(t *testing.T) {
 	if !strings.Contains(body, `href="/admin/users" class="btn btn-primary" aria-current="page">Users`) ||
 		!strings.Contains(body, `href="/admin/learn" class="btn btn-primary">Learn`) {
 		t.Errorf("the admin links are missing, or Users isn't marked current:\n%s", body)
+	}
+}
+
+func TestAdminSetAIOrders(t *testing.T) {
+	srv, d, _ := adminUsersServer(t)
+	stored := func() (n int64) {
+		d.QueryRow(`SELECT ai_orders_per_day FROM users WHERE id = 2`).Scan(&n)
+		return n
+	}
+	for _, c := range []struct {
+		value string
+		want  int64
+	}{
+		{"50", 50},
+		{"0", 50}, // refused
+		{"", 50},  // refused
+		{"12", 0}, // the usual limit, so Bob follows it if it changes
+	} {
+		w := post(srv, "/admin/users/2/ai-orders", url.Values{"ai_orders_per_day": {c.value}, "sort": {"seen"}})
+		if w.Code != http.StatusSeeOther || w.Header().Get("Location") != "/admin/users?sort=seen" {
+			t.Fatalf("set %q = %d to %q", c.value, w.Code, w.Header().Get("Location"))
+		}
+		if n := stored(); n != c.want {
+			t.Errorf("set %q: stored %d, want %d", c.value, n, c.want)
+		}
 	}
 }
 
