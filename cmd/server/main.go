@@ -140,11 +140,14 @@ func main() {
 	h.SetMedia(med)
 
 	// Lobby messages are checked against the chat rules before they're
-	// posted. Without the key they go up unchecked.
+	// posted, and Claude picks the stock news worth showing. Without the key
+	// messages go up unchecked and every story from the allowed sites shows.
+	var news market.NewsFilter
 	if os.Getenv("ANTHROPIC_API_KEY") != "" {
 		h.SetModerator(moderate.NewClaude())
+		news = moderate.NewNews()
 	} else {
-		slog.Info("lobby moderation off: set ANTHROPIC_API_KEY")
+		slog.Info("lobby moderation and news filter off: set ANTHROPIC_API_KEY")
 	}
 
 	// Daily database backup to S3, through its own IAM user that can only
@@ -162,7 +165,7 @@ func main() {
 	}
 
 	// Start background scheduler.
-	go scheduler.Start(ctx, queries, rawDB, loc, mailer, med, bk)
+	go scheduler.Start(ctx, queries, rawDB, loc, mailer, med, bk, news)
 
 	// The CSRF secret is kept in the database: a new one on every start would
 	// make every page left open across a restart or deploy fail its next POST.

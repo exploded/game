@@ -1,5 +1,5 @@
 // Package moderate checks lobby messages against the chat rules before they
-// are posted.
+// are posted, and picks the stock news worth showing (news.go).
 package moderate
 
 import (

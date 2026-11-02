@@ -430,6 +430,7 @@ type StockNews struct {
 	Url         string
 	PublishedAt int64
 	CreatedAt   string
+	Shown       int64
 }
 
 type StockPick struct {

@@ -114,6 +114,7 @@ var addedColumns = []struct{ table, column, ddl string }{
 	{"transactions", "source", "TEXT NOT NULL DEFAULT ''"},
 	{"limit_orders", "source", "TEXT NOT NULL DEFAULT ''"},
 	{"activity_feed", "source", "TEXT NOT NULL DEFAULT ''"},
+	{"stock_news", "shown", "INTEGER NOT NULL DEFAULT 0"},
 }
 
 // onceMigrations run exactly once per database, in order. Each is recorded in
@@ -255,6 +256,13 @@ var onceMigrations = []struct{ name, stmt string }{
 				AND abs(strftime('%s', t.created_at) - strftime('%s', activity_feed.created_at)) <= 5
 			LIMIT 1), '')
 		WHERE action IN ('buy', 'sell') AND stock_id IS NOT NULL`},
+	// News stored before 2 November 2026 wasn't filtered: shopping deals,
+	// filler and paywalled sites. Clear it so the next fetch refills it
+	// through the filter, which also needs one row per stock and URL.
+	{"clear-unfiltered-news", "DELETE FROM stock_news"},
+	// Not in schema.sql, which runs first and would fail on an older
+	// database holding the same URL twice.
+	{"idx-stock-news-url", "CREATE UNIQUE INDEX IF NOT EXISTS idx_stock_news_url ON stock_news(stock_id, url)"},
 }
 
 // droppedColumns are columns taken out of schema.sql. Older databases still

@@ -125,7 +125,7 @@ func (h *Handler) StockDetail(w http.ResponseWriter, r *http.Request) {
 
 	profile, _ := h.q.GetStockProfile(r.Context(), stock.ID)
 	profile.Logo = logoURL(profile.Logo)
-	news, _ := h.q.ListStockNews(r.Context(), db.ListStockNewsParams{StockID: stock.ID, Limit: 20})
+	news, _ := h.q.ListStockNews(r.Context(), db.ListStockNewsParams{StockID: stock.ID, Limit: stockNewsShown})
 
 	// Rob's videos that talk about this stock (picked by the classifier).
 	robVideos, _ := h.q.ListStockVideos(r.Context(), stock.ID)
@@ -163,6 +163,10 @@ func (h *Handler) ticketData(ctx context.Context, game db.Game, stock db.Stock, 
 		"Watching":    watching,
 	}
 }
+
+// stockNewsShown is how many stories the stock page shows: the newest the
+// news filter kept. More is mostly repetition.
+const stockNewsShown = 2
 
 // backTo is where the stock page's Back link goes.
 type backTo struct {

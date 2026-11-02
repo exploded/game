@@ -516,16 +516,25 @@ ON CONFLICT(stock_id) DO UPDATE SET
 -- name: UpdateStockLogo :exec
 UPDATE stock_profiles SET logo = ? WHERE stock_id = ?;
 
--- name: DeleteStockNews :exec
-DELETE FROM stock_news WHERE stock_id = ?;
-
 -- name: InsertStockNews :exec
-INSERT INTO stock_news (stock_id, headline, summary, source, url, published_at)
-VALUES (?, ?, ?, ?, ?, ?);
+-- shown is 0 for a story the news filter turned down. It's kept so the
+-- filter isn't asked about it again.
+INSERT OR IGNORE INTO stock_news (stock_id, headline, summary, source, url, published_at, shown)
+VALUES (?, ?, ?, ?, ?, ?, ?);
 
 -- name: ListStockNews :many
-SELECT * FROM stock_news WHERE stock_id = ?
+SELECT * FROM stock_news WHERE stock_id = ? AND shown = 1
 ORDER BY published_at DESC LIMIT ?;
+
+-- name: ListStockNewsURLs :many
+SELECT url FROM stock_news WHERE stock_id = ?;
+
+-- name: PruneStockNews :exec
+-- Keeps a stock's newest stories, shown or not.
+DELETE FROM stock_news WHERE stock_news.stock_id = sqlc.arg(stock_id) AND stock_news.id NOT IN (
+    SELECT n.id FROM stock_news n WHERE n.stock_id = sqlc.arg(stock_id)
+    ORDER BY n.published_at DESC, n.id DESC LIMIT sqlc.arg(keep)
+);
 
 -- name: GetStockNewsAge :one
 -- Returns the created_at of the newest news row for a stock, or NULL if none.

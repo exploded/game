@@ -1447,15 +1447,6 @@ func (q *Queries) DeleteStaleOAuthClients(ctx context.Context) error {
 	return err
 }
 
-const deleteStockNews = `-- name: DeleteStockNews :exec
-DELETE FROM stock_news WHERE stock_id = ?
-`
-
-func (q *Queries) DeleteStockNews(ctx context.Context, stockID int64) error {
-	_, err := q.db.ExecContext(ctx, deleteStockNews, stockID)
-	return err
-}
-
 const deleteStockPick = `-- name: DeleteStockPick :exec
 DELETE FROM stock_picks WHERE stock_id = ?
 `
@@ -2869,8 +2860,8 @@ func (q *Queries) InsertStock(ctx context.Context, arg InsertStockParams) error 
 }
 
 const insertStockNews = `-- name: InsertStockNews :exec
-INSERT INTO stock_news (stock_id, headline, summary, source, url, published_at)
-VALUES (?, ?, ?, ?, ?, ?)
+INSERT OR IGNORE INTO stock_news (stock_id, headline, summary, source, url, published_at, shown)
+VALUES (?, ?, ?, ?, ?, ?, ?)
 `
 
 type InsertStockNewsParams struct {
@@ -2880,8 +2871,11 @@ type InsertStockNewsParams struct {
 	Source      string
 	Url         string
 	PublishedAt int64
+	Shown       int64
 }
 
+// shown is 0 for a story the news filter turned down. It's kept so the
+// filter isn't asked about it again.
 func (q *Queries) InsertStockNews(ctx context.Context, arg InsertStockNewsParams) error {
 	_, err := q.db.ExecContext(ctx, insertStockNews,
 		arg.StockID,
@@ -2890,6 +2884,7 @@ func (q *Queries) InsertStockNews(ctx context.Context, arg InsertStockNewsParams
 		arg.Source,
 		arg.Url,
 		arg.PublishedAt,
+		arg.Shown,
 	)
 	return err
 }
@@ -6059,7 +6054,7 @@ func (q *Queries) ListStockLastDates(ctx context.Context, market string) ([]List
 }
 
 const listStockNews = `-- name: ListStockNews :many
-SELECT id, stock_id, headline, summary, source, url, published_at, created_at FROM stock_news WHERE stock_id = ?
+SELECT id, stock_id, headline, summary, source, url, published_at, created_at, shown FROM stock_news WHERE stock_id = ? AND shown = 1
 ORDER BY published_at DESC LIMIT ?
 `
 
@@ -6086,10 +6081,38 @@ func (q *Queries) ListStockNews(ctx context.Context, arg ListStockNewsParams) ([
 			&i.Url,
 			&i.PublishedAt,
 			&i.CreatedAt,
+			&i.Shown,
 		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listStockNewsURLs = `-- name: ListStockNewsURLs :many
+SELECT url FROM stock_news WHERE stock_id = ?
+`
+
+func (q *Queries) ListStockNewsURLs(ctx context.Context, stockID int64) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listStockNewsURLs, stockID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var url string
+		if err := rows.Scan(&url); err != nil {
+			return nil, err
+		}
+		items = append(items, url)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
@@ -7399,6 +7422,24 @@ WHERE template = 'login' AND status != 'pending' AND text_body != ''
 // sent. Other sent mail is kept for 90 days.
 func (q *Queries) PruneEmailOutbox(ctx context.Context) error {
 	_, err := q.db.ExecContext(ctx, pruneEmailOutbox)
+	return err
+}
+
+const pruneStockNews = `-- name: PruneStockNews :exec
+DELETE FROM stock_news WHERE stock_news.stock_id = ?1 AND stock_news.id NOT IN (
+    SELECT n.id FROM stock_news n WHERE n.stock_id = ?1
+    ORDER BY n.published_at DESC, n.id DESC LIMIT ?2
+)
+`
+
+type PruneStockNewsParams struct {
+	StockID int64
+	Keep    int64
+}
+
+// Keeps a stock's newest stories, shown or not.
+func (q *Queries) PruneStockNews(ctx context.Context, arg PruneStockNewsParams) error {
+	_, err := q.db.ExecContext(ctx, pruneStockNews, arg.StockID, arg.Keep)
 	return err
 }
 

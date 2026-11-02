@@ -1475,6 +1475,17 @@ dialog.confirm form { padding: 20px; }
 .vlist .vthumb { width: 42%; flex-shrink: 0; }
 .vlist .vtitle { font-size: 13px; }
 
+/* News on the stock page */
+.news-list { list-style: none; padding: 0; margin: 0; max-width: 80ch; }
+.news-list li { padding: 12px 0; border-bottom: 1px solid var(--color-border); }
+.news-title { display: block; color: var(--color-text); font-weight: 600; line-height: 1.35; }
+.news-meta { margin-top: 4px; font-size: 12px; color: var(--color-text-muted); }
+.news-summary {
+    margin: 6px 0 0; font-size: 14px; line-height: 1.45; color: var(--color-text-muted);
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.news-list .btn { margin-top: 10px; }
+
 /* The click-to-play player */
 .player {
     position: relative; aspect-ratio: 16 / 9; background: #000; border-radius: var(--radius);

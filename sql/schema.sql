@@ -558,7 +558,7 @@ CREATE TABLE IF NOT EXISTS stock_picks (
 );
 
 --------------------------------------------------------------------------------
--- Stock News (TickerTick API — replaced on each refresh)
+-- Stock News (TickerTick API, filtered; see internal/market/tickertick.go)
 --------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS stock_news (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -568,8 +568,10 @@ CREATE TABLE IF NOT EXISTS stock_news (
     source       TEXT    NOT NULL DEFAULT '',
     url          TEXT    NOT NULL,
     published_at INTEGER NOT NULL,              -- unix timestamp
-    created_at   TEXT    NOT NULL DEFAULT (datetime('now'))
+    created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
+    shown        INTEGER NOT NULL DEFAULT 0     -- 1 if the news filter kept it
 );
+-- UNIQUE(stock_id, url) is idx_stock_news_url, made by a migration in db.go.
 CREATE INDEX IF NOT EXISTS idx_stock_news_stock ON stock_news(stock_id, published_at DESC);
 
 --------------------------------------------------------------------------------

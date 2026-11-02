@@ -46,7 +46,9 @@ func SignalPricesChanged() { pricesChanged.Store(true) }
 // loc is the timezone used for game date comparisons (start/end dates).
 // med runs the Learn jobs (video sync, topics, live stream emails).
 // bk uploads the daily database backup; nil means backups are off.
-func Start(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, m *mail.Mailer, med *media.Service, bk *backup.Uploader) {
+// news picks the stock news worth showing; nil shows every story from the
+// allowed sites.
+func Start(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, m *mail.Mailer, med *media.Service, bk *backup.Uploader, news market.NewsFilter) {
 	// Kick off historical backfill in the background if no prices exist yet.
 	// Runs once at startup, independent of the hour gate used for daily updates.
 	go startupBackfill(ctx, q, rawDB)
@@ -65,14 +67,14 @@ func Start(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location
 			slog.Info("scheduler stopped")
 			return
 		case <-ticker.C:
-			run(ctx, q, rawDB, loc, m)
+			run(ctx, q, rawDB, loc, m, news)
 			med.Run(ctx, time.Now())
 			maybeBackup(ctx, q, bk, time.Now().In(loc))
 		}
 	}
 }
 
-func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, m *mail.Mailer) {
+func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, m *mail.Mailer, news market.NewsFilter) {
 	now := time.Now()
 	today := now.In(loc).Format("2006-01-02")
 
@@ -125,7 +127,7 @@ func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, 
 
 	// 5. Refresh news from TickerTick (every 4 hours, on the hour).
 	if utcNow.Minute() == 0 && utcNow.Hour()%4 == 0 {
-		maybeFetchNews(ctx, q, rawDB)
+		maybeFetchNews(ctx, q, rawDB, news)
 	}
 
 	// 6. Email order fills, game results and the like.
@@ -363,7 +365,7 @@ func refreshProfiles(ctx context.Context, q *db.Queries, rawDB *sql.DB) {
 // (TickerTick only knows US tickers; see market.TickerTickMarket).
 // Runs in a background goroutine since the full cycle takes ~90 minutes
 // due to rate limiting (10 req/min).
-func maybeFetchNews(ctx context.Context, q *db.Queries, rawDB *sql.DB) {
+func maybeFetchNews(ctx context.Context, q *db.Queries, rawDB *sql.DB, news market.NewsFilter) {
 	if !newsRunning.CompareAndSwap(false, true) {
 		slog.Warn("previous TickerTick news refresh still running, skipping")
 		return
@@ -372,7 +374,7 @@ func maybeFetchNews(ctx context.Context, q *db.Queries, rawDB *sql.DB) {
 	go func() {
 		defer newsRunning.Store(false)
 		fetcher := market.NewFetcher(q, rawDB)
-		if err := fetcher.FetchTickerTickNews(ctx, q, market.TickerTickMarket); err != nil {
+		if err := fetcher.FetchTickerTickNews(ctx, q, market.TickerTickMarket, news); err != nil {
 			slog.Error("scheduled tickertick news refresh", "error", err)
 		}
 	}()

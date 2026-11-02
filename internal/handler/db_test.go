@@ -242,7 +242,7 @@ func TestOpenDBCarriesOverLegacyGuard(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, q := range []string{
-		"DELETE FROM schema_migrations",
+		"DELETE FROM schema_migrations WHERE name = 'clear-finnhub-news'",
 		"CREATE TABLE _m_clear_finnhub_news (id INTEGER PRIMARY KEY)",
 		"INSERT INTO stocks (symbol, name, market, currency) VALUES ('AAPL', 'Apple', 'sp500', 'USD')",
 		"INSERT INTO stock_news (stock_id, headline, url, published_at) VALUES (1, 'h', 'u', 0)",
@@ -292,6 +292,44 @@ func TestClearASXNews(t *testing.T) {
 	d.QueryRow("SELECT COUNT(*), MAX(headline) FROM stock_news").Scan(&n, &headline)
 	if n != 1 || headline != "apple" {
 		t.Errorf("stock_news has %d rows (last %q), want only the S&P 500 story", n, headline)
+	}
+}
+
+// TestClearUnfilteredNews: news from before the filter is cleared, even when
+// it holds a URL twice, and then each stock holds each URL once.
+func TestClearUnfilteredNews(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "test.db")
+	d, err := OpenDB(path, game.Schema)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, q := range []string{
+		"DELETE FROM schema_migrations WHERE name IN ('clear-unfiltered-news', 'idx-stock-news-url')",
+		"DROP INDEX idx_stock_news_url",
+		"INSERT INTO stocks (symbol, name, market, currency) VALUES ('AMZN', 'Amazon', 'sp500', 'USD')",
+		"INSERT INTO stock_news (stock_id, headline, url, published_at) VALUES (1, 'deal', 'u', 0)",
+		"INSERT INTO stock_news (stock_id, headline, url, published_at) VALUES (1, 'deal', 'u', 0)",
+	} {
+		if _, err := d.Exec(q); err != nil {
+			t.Fatalf("%s: %v", q, err)
+		}
+	}
+	d.Close()
+
+	d = openTestDBAt(t, path)
+	var n int
+	d.QueryRow("SELECT COUNT(*) FROM stock_news").Scan(&n)
+	if n != 0 {
+		t.Errorf("stock_news has %d rows, want 0", n)
+	}
+	for range 2 {
+		if _, err := d.Exec("INSERT OR IGNORE INTO stock_news (stock_id, headline, url, published_at) VALUES (1, 'news', 'u', 0)"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	d.QueryRow("SELECT COUNT(*) FROM stock_news").Scan(&n)
+	if n != 1 {
+		t.Errorf("the same URL was stored %d times, want once", n)
 	}
 }
 

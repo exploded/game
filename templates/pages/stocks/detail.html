@@ -364,15 +364,14 @@ app.js goes back through history when it can. */}}
 {{end}}
 
 {{if .Extra.News}}
-<h2 style="margin-top:2rem">Recent News</h2>
-<ul style="list-style:none; padding:0; margin:0;">
+<h2 style="margin-top:2rem">In the news</h2>
+<ul class="news-list">
     {{range .Extra.News}}
-    <li style="padding:0.75rem 0; border-bottom:1px solid #2a2d3a;">
-        <a href="{{.Url}}" target="_blank" rel="noopener noreferrer" style="color:#e5e7eb; font-weight:500;">{{.Headline}}</a>
-        <div style="color:#9ca3af; font-size:0.8rem; margin-top:0.25rem;">
-            {{.Source}} &middot; {{unixDate .PublishedAt}}
-        </div>
-        {{if .Summary}}<div style="color:#9ca3af; font-size:0.85rem; margin-top:0.35rem; line-height:1.45; max-width:80ch;">{{.Summary}}</div>{{end}}
+    <li>
+        <a href="{{.Url}}" target="_blank" rel="noopener noreferrer" class="news-title">{{.Headline}}</a>
+        <div class="news-meta">{{.Source}} &middot; {{unixDate .PublishedAt}}</div>
+        {{if .Summary}}<p class="news-summary">{{.Summary}}</p>{{end}}
+        <a href="{{.Url}}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-secondary">Read on {{.Source}} &#8599;</a>
     </li>
     {{end}}
 </ul>
