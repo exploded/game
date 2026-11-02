@@ -152,6 +152,7 @@ func TestSitemapAndRobots(t *testing.T) {
 	}
 	for _, s := range []string{
 		"<loc>https://site.example/login</loc>",
+		"<loc>https://site.example/ai</loc>",
 		"<loc>https://site.example/learn/topics/super</loc>",
 		"<loc>https://site.example/learn/v/1</loc><lastmod>2026-10-01</lastmod>",
 		"<loc>https://site.example/learn/v/2</loc>",

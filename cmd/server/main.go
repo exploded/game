@@ -175,6 +175,10 @@ func main() {
 
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
+	// Answer HEAD on every GET route. Link checkers (Outlook's scanner,
+	// Microsoft's crawlers) send HEAD, and a 405 reads as a dead link. Safe
+	// because no GET signs anyone in or uses up a link (see LoginVerifyPage).
+	r.Use(middleware.GetHead)
 	r.Use(handler.RequestLogger)
 	r.Use(middleware.Compress(5))
 	r.Use(handler.SecurityHeaders)

@@ -14,10 +14,12 @@ import (
 // Everything else needs an account, so it isn't listed.
 
 // sitemapPages are the public pages that aren't one of Rob's videos, topics
-// or questions. /login is the landing page for visitors.
+// or questions. /login is the landing page for visitors. /ai and /agents.md
+// are listed so AI assistants, which mostly read only pages their search
+// engine has indexed, can find the connector and API instructions.
 var sitemapPages = []string{
 	"/login", "/learn", "/learn/live", "/learn/questions", "/learn/courses",
-	"/about", "/help", "/contact", "/terms", "/privacy",
+	"/about", "/help", "/contact", "/terms", "/privacy", "/ai", "/agents.md",
 }
 
 // sitemapVideos caps how many videos of each shape (wide and vertical) are
