@@ -1,0 +1,40 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div style="max-width:520px;margin:24px auto">
+{{with .Extra.Problem}}
+<div class="settings-card">
+    <h1 style="font-size:20px;margin-bottom:12px">Couldn't connect the app</h1>
+    <p>{{.}}</p>
+    <p><a href="/settings/api">Connect your AI</a></p>
+</div>
+{{else}}
+{{with .Item}}
+<div class="settings-card">
+    <h1 style="font-size:20px;margin-bottom:12px">Connect {{.Client.Name}} to The Wealth Lab?</h1>
+    <p>It will act as you, {{$.User.Name}}, in this month's share game. Your AI chooses what it does, not The Wealth Lab. You can disconnect it at any time on <a href="/settings/api">Connect your AI</a>.</p>
+    <p>Afterwards you'll go back to <strong>{{.RedirectHost}}</strong>.</p>
+    {{if .LoopbackOnly}}
+    <p style="color:var(--color-warning)">This app runs on your own computer. Only allow it if you started connecting it just now.</p>
+    {{end}}
+
+    <form method="POST" action="/oauth/authorize">
+        <input type="hidden" name="query" value="{{$.Extra.Query}}">
+        <label class="checkbox-label" style="align-items:flex-start;padding-top:8px">
+            <input type="radio" name="access" value="read"{{if not .AskedForTrade}} checked{{end}} style="margin-top:3px">
+            <span><strong>See my portfolio</strong><br><span class="text-muted">Cash, holdings, orders, history, prices and the leaderboard</span></span>
+        </label>
+        <label class="checkbox-label" style="align-items:flex-start;padding-top:8px">
+            <input type="radio" name="access" value="trade"{{if .AskedForTrade}} checked{{end}} style="margin-top:3px">
+            <span><strong>See my portfolio and trade</strong><br><span class="text-muted">Also place and cancel orders for me</span></span>
+        </label>
+        <div style="display:flex;gap:8px;margin-top:16px">
+            <button type="submit" name="decision" value="allow" class="btn btn-primary">Allow</button>
+            <button type="submit" name="decision" value="deny" class="btn">Cancel</button>
+        </div>
+    </form>
+</div>
+{{end}}
+{{end}}
+</div>
+{{end}}

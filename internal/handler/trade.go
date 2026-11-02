@@ -2,11 +2,13 @@ package handler
 
 import (
 	"context"
-	"database/sql"
+	"errors"
 	"fmt"
+	"log/slog"
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/db"
@@ -64,6 +66,8 @@ func (h *Handler) loadTradeContext(ctx context.Context, game db.Game, stock db.S
 	return tc, true
 }
 
+// TradeExecute places an order from the stock page's ticket, or the home
+// page's Close position button. The work is PlaceOrder's.
 func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	gameID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -77,269 +81,69 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	game, err := h.q.GetGame(r.Context(), gameID)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-
-	if game.Status != "active" {
-		tradeError(w, r, "Game is not active", fmt.Sprintf("/games/%d", gameID))
-		return
-	}
-
-	stock, err := h.q.GetStock(r.Context(), stockID)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-
-	participant, err := h.q.GetParticipantByGameAndUser(r.Context(), db.GetParticipantByGameAndUserParams{
-		GameID: gameID, UserID: user.ID,
-	})
-	if err != nil {
-		tradeError(w, r, "You're not playing in this game", fmt.Sprintf("/games/%d", gameID))
-		return
-	}
-
 	back := fmt.Sprintf("/games/%d/stocks/%d", gameID, stockID)
 	r.ParseForm()
-	if r.FormValue("from") == "home" {
+	fromHome := r.FormValue("from") == "home"
+	if fromHome {
 		// The Close position button on the game's home page.
 		back = fmt.Sprintf("/games/%d", gameID)
 	}
-	tradeType := r.FormValue("side") // "buy" or "sell"
-	if tradeType == "" {
-		tradeType = r.FormValue("type") // the old trade page's field
+	side := r.FormValue("side") // "buy" or "sell"
+	if side == "" {
+		side = r.FormValue("type") // the old trade page's field
 	}
-	if r.FormValue("order_type") == "limit" {
-		h.placeLimitOrder(w, r, game, participant, stock, tradeType)
+	o := Order{
+		UserID:   user.ID,
+		GameID:   gameID,
+		StockID:  stockID,
+		Side:     side,
+		Limit:    r.FormValue("order_type") == "limit",
+		CloseAll: r.FormValue("all") == "1",
+	}
+	o.Quantity, _ = strconv.ParseInt(r.FormValue("quantity"), 10, 64)
+	if o.Limit {
+		back = fmt.Sprintf("/games/%d/stocks/%d", gameID, stockID)
+		o.LimitPrice = parseDollars(r.FormValue("limit_price"))
+		o.ExpiresAt = r.FormValue("expires_at")
+	}
+	h.placeFromForm(w, r, o, back, fromHome)
+}
+
+// placeFromForm places o for a form post and answers it: the ticket is drawn
+// again with a confirmation, or a refusal is a toast or flash. back is where
+// the order came from; a waiting order goes to the Orders tab, except a
+// queued one from the home page, which stays there.
+func (h *Handler) placeFromForm(w http.ResponseWriter, r *http.Request, o Order, back string, fromHome bool) {
+	res, err := h.PlaceOrder(r.Context(), o)
+	var refused *OrderError
+	switch {
+	case errors.Is(err, errNotFound):
+		http.NotFound(w, r)
 		return
-	}
-
-	latestPrice, err := h.q.GetLatestPrice(r.Context(), stock.ID)
-	if err != nil || latestPrice.Close == 0 {
-		tradeError(w, r, "No price data available for this stock", back)
+	case errors.As(err, &refused):
+		tradeError(w, r, refused.Msg, back)
 		return
-	}
-
-	quantity, _ := strconv.ParseInt(r.FormValue("quantity"), 10, 64)
-
-	// all=1 closes the whole position, however many shares that is now: a
-	// sell for shares held, a buy for a short. A second tap then finds
-	// nothing to close instead of going short or long.
-	closeAll := r.FormValue("all") == "1"
-	if closeAll {
-		held, _ := h.q.GetHolding(r.Context(), db.GetHoldingParams{
-			ParticipantID: participant.ID, StockID: stock.ID,
-		})
-		switch {
-		case tradeType == "sell" && held.Quantity > 0:
-			quantity = held.Quantity
-		case tradeType == "buy" && held.Quantity < 0:
-			quantity = -held.Quantity
-		case tradeType == "buy":
-			tradeError(w, r, "You aren't short "+stock.Symbol, back)
-			return
-		default:
-			tradeError(w, r, "You don't hold any "+stock.Symbol, back)
-			return
-		}
-	}
-
-	if quantity <= 0 {
-		tradeError(w, r, "Quantity must be positive", back)
-		return
-	}
-
-	// Get exchange rate. Without one, converting 1:1 would misprice the trade.
-	var exchangeRate int64 = 1000000
-	if stock.Currency != game.BaseCurrency {
-		rate, err := h.q.GetLatestExchangeRate(r.Context())
-		if err != nil {
-			tradeError(w, r, "We don't have an exchange rate yet. Try again in a minute.", back)
-			return
-		}
-		exchangeRate = rate.RateAudUsd
-	}
-
-	pricePerShare := latestPrice.Close
-
-	// Guard against integer overflow (quantity * price).
-	if pricePerShare != 0 && quantity > math.MaxInt64/pricePerShare {
-		tradeError(w, r, "Trade value too large", back)
-		return
-	}
-
-	totalNative := quantity * pricePerShare
-	totalBase := convertCurrency(totalNative, stock.Currency, game.BaseCurrency, exchangeRate)
-	fee := market.TradeFees(game, stock.Currency, totalBase)
-
-	if queuesMarketOrder(game, stock.Market) {
-		if closeAll && h.closeQueued(r.Context(), participant.ID, stock.ID, tradeType) {
-			tradeError(w, r, "You've already queued an order to close "+stock.Symbol, back)
-			return
-		}
-		h.queueMarketOrder(w, r, game, participant, stock, tradeType, quantity, totalBase, back)
-		return
-	}
-
-	tx, err := h.rawDB.BeginTx(r.Context(), nil)
-	if err != nil {
-		tradeError(w, r, "Internal error", back)
-		return
-	}
-	defer tx.Rollback()
-	qtx := h.q.WithTx(tx)
-
-	if tradeType == "buy" {
-		cost := totalBase + fee
-		if cost > participant.CashBalance {
-			tradeError(w, r, "Insufficient funds", back)
-			return
-		}
-
-		// Deduct cash.
-		err = qtx.UpdateCashBalance(r.Context(), db.UpdateCashBalanceParams{
-			CashBalance: participant.CashBalance - cost,
-			ID:          participant.ID,
-		})
-		if err != nil {
-			tradeError(w, r, "Failed to update balance", back)
-			return
-		}
-
-		// Upsert holding.
-		existing, _ := qtx.GetHolding(r.Context(), db.GetHoldingParams{
-			ParticipantID: participant.ID, StockID: stock.ID,
-		})
-		if closeAll && existing.Quantity != -quantity {
-			// Another trade got in first.
-			tradeError(w, r, "Your "+stock.Symbol+" position just changed. Check it and try again.", back)
-			return
-		}
-		newQty, newCost := market.Fill(existing.Quantity, existing.CostBasis, "buy", quantity, pricePerShare)
-		if newQty == 0 {
-			// Bought back a short exactly.
-			err = qtx.DeleteHolding(r.Context(), db.DeleteHoldingParams{
-				ParticipantID: participant.ID, StockID: stock.ID,
-			})
-		} else {
-			err = qtx.UpsertHolding(r.Context(), db.UpsertHoldingParams{
-				ParticipantID: participant.ID,
-				StockID:       stock.ID,
-				Quantity:      newQty,
-				AvgCost:       market.AvgCost(newQty, newCost),
-				CostBasis:     newCost,
-				CurrentValue:  newQty * pricePerShare,
-			})
-		}
-		if err != nil {
-			tradeError(w, r, "Failed to update holding", back)
-			return
-		}
-
-		// Insert transaction.
-		_, err = qtx.InsertTransaction(r.Context(), db.InsertTransactionParams{
-			ParticipantID:    participant.ID,
-			StockID:          stock.ID,
-			Type:             "buy",
-			Quantity:         quantity,
-			Price:            pricePerShare,
-			Total:            totalNative,
-			ConvertedTotal:   totalBase,
-			ExchangeRateUsed: exchangeRate,
-			Fee:              fee,
-		})
-
-	} else if tradeType == "sell" {
-		holding, _ := qtx.GetHolding(r.Context(), db.GetHoldingParams{
-			ParticipantID: participant.ID, StockID: stock.ID,
-		})
-		if holding.Quantity < quantity && game.AllowShort == 0 {
-			tradeError(w, r, "Insufficient shares (short selling not allowed)", back)
-			return
-		}
-		if closeAll && holding.Quantity != quantity {
-			// Another trade got in first.
-			tradeError(w, r, "Your "+stock.Symbol+" holding just changed. Check it and try again.", back)
-			return
-		}
-
-		proceeds := totalBase - fee
-		if proceeds < 0 {
-			proceeds = 0
-		}
-
-		// Add cash.
-		err = qtx.UpdateCashBalance(r.Context(), db.UpdateCashBalanceParams{
-			CashBalance: participant.CashBalance + proceeds,
-			ID:          participant.ID,
-		})
-		if err != nil {
-			tradeError(w, r, "Failed to update balance", back)
-			return
-		}
-
-		// Update or delete holding. Supports negative qty for short positions.
-		newQty, newCost := market.Fill(holding.Quantity, holding.CostBasis, "sell", quantity, pricePerShare)
-		if newQty == 0 {
-			_ = qtx.DeleteHolding(r.Context(), db.DeleteHoldingParams{
-				ParticipantID: participant.ID, StockID: stock.ID,
-			})
-		} else {
-			_ = qtx.UpsertHolding(r.Context(), db.UpsertHoldingParams{
-				ParticipantID: participant.ID,
-				StockID:       stock.ID,
-				Quantity:      newQty,
-				AvgCost:       market.AvgCost(newQty, newCost),
-				CostBasis:     newCost,
-				CurrentValue:  newQty * pricePerShare,
-			})
-		}
-
-		// Insert transaction.
-		_, err = qtx.InsertTransaction(r.Context(), db.InsertTransactionParams{
-			ParticipantID:    participant.ID,
-			StockID:          stock.ID,
-			Type:             "sell",
-			Quantity:         quantity,
-			Price:            pricePerShare,
-			Total:            totalNative,
-			ConvertedTotal:   totalBase,
-			ExchangeRateUsed: exchangeRate,
-			Fee:              fee,
-		})
-	} else {
-		tradeError(w, r, "Invalid trade type", back)
-		return
-	}
-
-	if err != nil {
+	case err != nil:
+		slog.Error("place order", "user", o.UserID, "game", o.GameID, "stock", o.StockID, "error", err)
 		tradeError(w, r, "Trade failed", back)
 		return
 	}
-
-	if err := tx.Commit(); err != nil {
-		tradeError(w, r, "Trade failed", back)
-		return
+	game, _ := h.q.GetGame(r.Context(), o.GameID)
+	done := back
+	if res.Status != orderFilled && !(res.Status == orderQueued && fromHome) {
+		done = fmt.Sprintf("/games/%d/orders", o.GameID)
 	}
+	h.orderPlaced(w, r, game, res.Stock, tradeDone{Message: res.Message, ToOrders: res.Status != orderFilled}, done)
+}
 
-	// Immediately revalue this participant's portfolio so the summary is correct.
-	h.revalueParticipant(r.Context(), participant.ID, game.BaseCurrency)
-
-	action := "Bought"
-	if tradeType == "sell" {
-		action = "Sold"
+// parseDollars reads a dollar amount, such as "12.34", as cents. Anything
+// else is 0.
+func parseDollars(s string) int64 {
+	f, err := strconv.ParseFloat(strings.TrimSpace(s), 64)
+	if err != nil || f <= 0 || f > math.MaxInt64/100 {
+		return 0
 	}
-
-	// Record in activity feed.
-	h.InsertTradeActivity(r, gameID, user.ID, tradeType, stock, quantity)
-
-	// Check achievements.
-	go h.CheckAndGrantAchievements(context.Background(), user.ID, gameID, participant.ID)
-
-	h.orderPlaced(w, r, game, stock, tradeDone{Message: fmt.Sprintf("%s %s of %s", action, shares(quantity), stock.Symbol)}, back)
+	return int64(math.Round(f * 100))
 }
 
 // tradeError refuses an order. The stock page's ticket posts through htmx
@@ -431,12 +235,3 @@ func convertCurrency(amount int64, from, to string, rateAUDUSD int64) int64 {
 	}
 	return amount
 }
-
-// Ensure the Queries type has WithTx method.
-func init() {
-	// This is a compile-time check that db.Queries has WithTx.
-	var _ = (*db.Queries)(nil).WithTx
-}
-
-// Suppress unused import warning.
-var _ = sql.ErrNoRows

@@ -258,3 +258,16 @@ document.addEventListener("click", function(e) {
     frame.referrerPolicy = "strict-origin-when-cross-origin";
     btn.replaceWith(frame);
 });
+
+// data-copy on a button: copy the text of the element whose id it names
+// (the API key page's boxes).
+document.addEventListener("click", function(e) {
+    const btn = e.target.closest("[data-copy]");
+    if (!btn) return;
+    const src = document.getElementById(btn.getAttribute("data-copy"));
+    if (!src) return;
+    const text = src.textContent.trim();
+    const failed = function() { showToast("Couldn't copy. Select the text and copy it yourself.", "error"); };
+    if (!navigator.clipboard) { failed(); return; }
+    navigator.clipboard.writeText(text).then(function() { showToast("Copied", "success"); }, failed);
+});

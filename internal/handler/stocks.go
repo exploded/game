@@ -50,7 +50,7 @@ func (h *Handler) StocksBrowse(w http.ResponseWriter, r *http.Request) {
 	f, sector, search := filterKey(v.Get("f")), v.Get("sector"), strings.TrimSpace(v.Get("q"))
 	var holders map[int64]int64
 	if f == "popular" && search == "" {
-		holders = h.holderCounts(r, gameID)
+		holders = h.holderCounts(r.Context(), gameID)
 	}
 	res := applyFilter(rows, f, sector, search, holders)
 	h.markRows(r.Context(), participant.ID, user.ID, res.Rows)
@@ -81,8 +81,8 @@ func (h *Handler) StocksBrowse(w http.ResponseWriter, r *http.Request) {
 }
 
 // holderCounts maps each stock to how many players in the game hold it.
-func (h *Handler) holderCounts(r *http.Request, gameID int64) map[int64]int64 {
-	counts, _ := h.q.ListGameHolderCounts(r.Context(), gameID)
+func (h *Handler) holderCounts(ctx context.Context, gameID int64) map[int64]int64 {
+	counts, _ := h.q.ListGameHolderCounts(ctx, gameID)
 	m := make(map[int64]int64, len(counts))
 	for _, c := range counts {
 		m[c.StockID] = c.Holders
@@ -136,7 +136,7 @@ func (h *Handler) StockDetail(w http.ResponseWriter, r *http.Request) {
 
 	extra := h.ticketData(r.Context(), game, stock, auth.UserFromContext(r.Context()).ID)
 	extra["Back"] = backLink(r.Referer(), r.Host, gameID, stock.ID)
-	extra["PriceStats"] = h.loadPriceStats(r, gameID, stock.ID)
+	extra["PriceStats"] = h.loadPriceStats(r.Context(), gameID, stock.ID)
 	extra["Profile"] = profile
 	extra["News"] = news
 	extra["RobVideos"] = robVideos
@@ -224,9 +224,9 @@ type priceStats struct {
 // loadPriceStats builds the price header from the newest two price rows. While
 // the market is open, intraday quotes keep the newest row current, so this
 // reads only the database and costs no Twelve Data credits.
-func (h *Handler) loadPriceStats(r *http.Request, gameID, stockID int64) priceStats {
+func (h *Handler) loadPriceStats(ctx context.Context, gameID, stockID int64) priceStats {
 	ps := priceStats{GameID: gameID, StockID: stockID}
-	rows, err := h.q.ListLatestPrices(r.Context(), stockID)
+	rows, err := h.q.ListLatestPrices(ctx, stockID)
 	if err != nil || len(rows) == 0 {
 		return ps
 	}
@@ -276,7 +276,7 @@ func (h *Handler) StockPrice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.render(w, r, "stocks/detail", "price-stats", PageData{
-		Extra: map[string]any{"PriceStats": h.loadPriceStats(r, gameID, stockID)},
+		Extra: map[string]any{"PriceStats": h.loadPriceStats(r.Context(), gameID, stockID)},
 	})
 }
 

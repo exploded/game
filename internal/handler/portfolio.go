@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"net/http"
@@ -175,17 +176,22 @@ func rankPlayer(p db.Participant, board []db.ListParticipantsByGameRow) standing
 	return s
 }
 
-// portfolio renders a player's home page for a game: what they're worth,
-// how it moved today and since the start, their leaderboard spot, and how
-// each holding is doing.
-func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game, participant db.Participant) {
-	ctx := r.Context()
+// portfolioFigures is what a player is worth in a game and how it moved:
+// their home page, and the API's portfolio.
+type portfolioFigures struct {
+	Rows     []holdingRow
+	Over     bool    // the game has ended: values are from its end, with no Today
+	Today    *change // today's move across every position; nil once the game is over
+	Session  string  // the newest bar's date: the session Today covers
+	Total    change  // against the starting balance
+	Standing standing
+	Board    []db.ListParticipantsByGameRow
+	Interest int64
+}
+
+// portfolioFigures works out a player's holdings, moves and rank.
+func (h *Handler) portfolioFigures(ctx context.Context, game db.Game, participant db.Participant) portfolioFigures {
 	holdings, _ := h.q.ListHoldings(ctx, participant.ID)
-	snapshots, _ := h.q.ListSnapshots(ctx, db.ListSnapshotsParams{
-		ParticipantID: participant.ID,
-		Date:          game.StartDate,
-		Date_2:        game.EndDate,
-	})
 	board, _ := h.q.ListParticipantsByGame(ctx, game.ID)
 
 	var rate int64 = 1000000
@@ -253,6 +259,29 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 		today = &change{todayBase, participant.PortfolioValue - todayBase}
 	}
 	interest, _ := h.q.TotalInterest(ctx, participant.ID)
+	return portfolioFigures{
+		Rows:     rows,
+		Over:     over,
+		Today:    today,
+		Session:  session,
+		Total:    change{participant.PortfolioValue - game.StartingBalance, game.StartingBalance},
+		Standing: rankPlayer(participant, board),
+		Board:    board,
+		Interest: interest,
+	}
+}
+
+// portfolio renders a player's home page for a game: what they're worth,
+// how it moved today and since the start, their leaderboard spot, and how
+// each holding is doing.
+func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game, participant db.Participant) {
+	ctx := r.Context()
+	pf := h.portfolioFigures(ctx, game, participant)
+	snapshots, _ := h.q.ListSnapshots(ctx, db.ListSnapshotsParams{
+		ParticipantID: participant.ID,
+		Date:          game.StartDate,
+		Date_2:        game.EndDate,
+	})
 	var invites []db.ListInvitesSentRow
 	var inviteJoined bool
 	if invitesOpen(game) {
@@ -265,16 +294,16 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 	h.render(w, r, "portfolio/index", "", PageData{
 		Title: game.Name,
 		Item:  game,
-		Items: rows,
+		Items: pf.Rows,
 		Extra: map[string]any{
 			"Participant":  participant,
 			"Snapshots":    snapshots,
-			"Over":         over,
-			"Today":        today,
-			"SessionDay":   sessionDay(session, marketNow()),
-			"Total":        change{participant.PortfolioValue - game.StartingBalance, game.StartingBalance},
-			"Standing":     rankPlayer(participant, board),
-			"Interest":     interest,
+			"Over":         pf.Over,
+			"Today":        pf.Today,
+			"SessionDay":   sessionDay(pf.Session, marketNow()),
+			"Total":        pf.Total,
+			"Standing":     pf.Standing,
+			"Interest":     pf.Interest,
 			"InvitesOpen":  invitesOpen(game),
 			"InviteJoined": inviteJoined,
 			"Bonus":        fmtDollars(referralBonus(game)),

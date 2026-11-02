@@ -127,6 +127,7 @@ CREATE TABLE IF NOT EXISTS games (
     credit_interest_rate INTEGER NOT NULL DEFAULT 525,           -- basis points (525 = 5.25%)
     limit_orders         INTEGER NOT NULL DEFAULT 0,             -- 1 = enabled
     after_hours_trading  INTEGER NOT NULL DEFAULT 1,             -- 1 = market orders fill at the last price while the market is closed
+    ai_trading           INTEGER NOT NULL DEFAULT 1,             -- 1 = players' own AI can place orders through the API and MCP
     quarter              TEXT,                                   -- the month's key, '2026-11', for a monthly game; NULL for older games
     created_at           TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at           TEXT    NOT NULL DEFAULT (datetime('now'))
@@ -225,7 +226,8 @@ CREATE TABLE IF NOT EXISTS transactions (
     converted_total    INTEGER NOT NULL,         -- total in game's base currency cents
     exchange_rate_used INTEGER NOT NULL DEFAULT 1000000, -- rate * 1,000,000 at time of trade
     fee                INTEGER NOT NULL DEFAULT 0,
-    created_at         TEXT    NOT NULL DEFAULT (datetime('now'))
+    created_at         TEXT    NOT NULL DEFAULT (datetime('now')),
+    source             TEXT    NOT NULL DEFAULT ''  -- '' the site, 'api' or 'mcp': placed by the player's AI
 );
 CREATE INDEX IF NOT EXISTS idx_transactions_participant ON transactions(participant_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_transactions_stock       ON transactions(stock_id);
@@ -289,7 +291,8 @@ CREATE TABLE IF NOT EXISTS limit_orders (
     created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
     expires_at      TEXT,                           -- optional expiry date YYYY-MM-DD
     filled_at       TEXT,
-    kind            TEXT    NOT NULL DEFAULT 'limit' -- limit | market (placed while the market was closed; fills at the open)
+    kind            TEXT    NOT NULL DEFAULT 'limit', -- limit | market (placed while the market was closed; fills at the open)
+    source          TEXT    NOT NULL DEFAULT ''       -- as transactions.source; copied to the transaction when it fills
 );
 CREATE INDEX IF NOT EXISTS idx_limit_orders_participant ON limit_orders(participant_id, status);
 CREATE INDEX IF NOT EXISTS idx_limit_orders_stock ON limit_orders(stock_id, status);
@@ -733,4 +736,63 @@ CREATE TABLE IF NOT EXISTS media_state (
 CREATE TABLE IF NOT EXISTS app_secrets (
     name  TEXT PRIMARY KEY,
     value BLOB NOT NULL
+);
+
+--------------------------------------------------------------------------------
+-- Players' own AI (api.go, oauth.go, mcp.go). Claude, ChatGPT and agents
+-- connect with OAuth (a connector) or a personal API key. Only a SHA-256 of
+-- each token or code is kept.
+--------------------------------------------------------------------------------
+
+-- Apps registered through OAuth dynamic client registration (RFC 7591).
+-- All are public clients: no secret.
+CREATE TABLE IF NOT EXISTS oauth_clients (
+    id            TEXT PRIMARY KEY,
+    name          TEXT NOT NULL DEFAULT '',
+    redirect_uris TEXT NOT NULL,                    -- JSON array
+    created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+    last_used_at  TEXT
+);
+
+-- Authorisation codes, single use, 10 minutes.
+CREATE TABLE IF NOT EXISTS oauth_codes (
+    code_hash      TEXT PRIMARY KEY,
+    client_id      TEXT    NOT NULL REFERENCES oauth_clients(id) ON DELETE CASCADE,
+    user_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    scope          TEXT    NOT NULL,
+    redirect_uri   TEXT    NOT NULL,
+    code_challenge TEXT    NOT NULL,                -- PKCE S256
+    expires_at     TEXT    NOT NULL                 -- UTC
+);
+
+-- API keys a player made on /settings/api, and OAuth access and refresh
+-- tokens. An OAuth connection's tokens share a grant_id; revoking the
+-- connection revokes them all.
+CREATE TABLE IF NOT EXISTS api_tokens (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    kind         TEXT    NOT NULL,                  -- key | access | refresh
+    name         TEXT    NOT NULL DEFAULT '',       -- the player's name for a key; the app's name for OAuth
+    token_hash   TEXT    NOT NULL UNIQUE,
+    prefix       TEXT    NOT NULL DEFAULT '',       -- start of a key, so the player can tell keys apart
+    scope        TEXT    NOT NULL DEFAULT 'read',   -- read | trade
+    grant_id     TEXT,
+    client_id    TEXT REFERENCES oauth_clients(id) ON DELETE CASCADE,
+    expires_at   TEXT,                              -- UTC; NULL for a key
+    last_used_at TEXT,
+    created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
+    revoked_at   TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_api_tokens_user  ON api_tokens(user_id, kind);
+CREATE INDEX IF NOT EXISTS idx_api_tokens_grant ON api_tokens(grant_id);
+
+-- Responses to orders sent with an Idempotency-Key, kept a day, so an agent
+-- retrying after a timeout doesn't trade twice. status 0 is still running.
+CREATE TABLE IF NOT EXISTS api_idempotency (
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    key        TEXT    NOT NULL,
+    status     INTEGER NOT NULL DEFAULT 0,
+    response   TEXT    NOT NULL DEFAULT '',
+    created_at TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (user_id, key)
 );

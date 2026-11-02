@@ -168,6 +168,7 @@ func fillLimitOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrde
 			ConvertedTotal:   totalBase,
 			ExchangeRateUsed: exchangeRate,
 			Fee:              fee,
+			Source:           order.Source,
 		})
 
 	} else { // sell
@@ -218,6 +219,7 @@ func fillLimitOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrde
 			ConvertedTotal:   totalBase,
 			ExchangeRateUsed: exchangeRate,
 			Fee:              fee,
+			Source:           order.Source,
 		})
 	}
 

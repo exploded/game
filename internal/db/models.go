@@ -26,6 +26,30 @@ type ActivityFeed struct {
 	CreatedAt string
 }
 
+type ApiIdempotency struct {
+	UserID    int64
+	Key       string
+	Status    int64
+	Response  string
+	CreatedAt string
+}
+
+type ApiToken struct {
+	ID         int64
+	UserID     int64
+	Kind       string
+	Name       string
+	TokenHash  string
+	Prefix     string
+	Scope      string
+	GrantID    sql.NullString
+	ClientID   sql.NullString
+	ExpiresAt  sql.NullString
+	LastUsedAt sql.NullString
+	CreatedAt  string
+	RevokedAt  sql.NullString
+}
+
 type AppSecret struct {
 	Name  string
 	Value []byte
@@ -123,6 +147,7 @@ type Game struct {
 	CreditInterestRate int64
 	LimitOrders        int64
 	AfterHoursTrading  int64
+	AiTrading          int64
 	Quarter            sql.NullString
 	CreatedAt          string
 	UpdatedAt          string
@@ -197,6 +222,7 @@ type LimitOrder struct {
 	ExpiresAt     sql.NullString
 	FilledAt      sql.NullString
 	Kind          string
+	Source        string
 }
 
 type LiveEvent struct {
@@ -257,6 +283,24 @@ type Notification struct {
 	IsRead    int64
 	CreatedAt string
 	Emailed   int64
+}
+
+type OauthClient struct {
+	ID           string
+	Name         string
+	RedirectUris string
+	CreatedAt    string
+	LastUsedAt   sql.NullString
+}
+
+type OauthCode struct {
+	CodeHash      string
+	ClientID      string
+	UserID        int64
+	Scope         string
+	RedirectUri   string
+	CodeChallenge string
+	ExpiresAt     string
 }
 
 type OauthToken struct {
@@ -489,6 +533,7 @@ type Transaction struct {
 	ExchangeRateUsed int64
 	Fee              int64
 	CreatedAt        string
+	Source           string
 }
 
 type User struct {

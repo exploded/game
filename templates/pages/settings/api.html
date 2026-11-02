@@ -1,0 +1,91 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1>Connect your AI</h1>
+    <a href="/settings" class="btn btn-sm">&larr; Settings</a>
+</div>
+
+<p style="margin-bottom:16px">Let Claude, ChatGPT or your own AI agent check your portfolio and trade for you in this month's game. Your AI chooses the trades, not The Wealth Lab. <a href="/ai">How it works and example prompts</a></p>
+
+{{with .Extra.NewKey}}
+<div class="settings-card key-new">
+    <h2>Your new API key</h2>
+    <p>Copy it now. It won't be shown again, and anyone with it can use your account in the game.</p>
+    <div class="copy-box"><pre id="new-key">{{.}}</pre><button type="button" class="btn btn-sm" data-copy="new-key">Copy</button></div>
+
+    <p><strong>Save it where your agent can read it</strong>, rather than pasting it into a chat.</p>
+    <p class="text-muted">Windows (PowerShell), then open a new terminal:</p>
+    <div class="copy-box"><pre id="key-setx">setx WEALTHLAB_API_KEY "{{.}}"</pre><button type="button" class="btn btn-sm" data-copy="key-setx">Copy</button></div>
+    <p class="text-muted">Mac or Linux (add it to ~/.zshrc or ~/.bashrc to keep it):</p>
+    <div class="copy-box"><pre id="key-export">export WEALTHLAB_API_KEY="{{.}}"</pre><button type="button" class="btn btn-sm" data-copy="key-export">Copy</button></div>
+
+    <p><strong>Then paste this into your agent:</strong></p>
+    <div class="copy-box"><pre id="agent-prompt">Read {{$.Extra.Site}}/agents.md and use The Wealth Lab API to manage my share game portfolio. My API key is in the WEALTHLAB_API_KEY environment variable.</pre><button type="button" class="btn btn-sm" data-copy="agent-prompt">Copy</button></div>
+
+    <p><strong>Or add it to Claude Code</strong> as a connector, in a terminal:</p>
+    <div class="copy-box"><pre id="claude-code">claude mcp add --transport http wealthlab {{$.Extra.MCPURL}} --header "Authorization: Bearer {{.}}"</pre><button type="button" class="btn btn-sm" data-copy="claude-code">Copy</button></div>
+</div>
+{{end}}
+
+<div class="settings-card">
+    <h2>Claude or ChatGPT app</h2>
+    <p>Nothing to paste into the chat. Add The Wealth Lab as a connector once:</p>
+    <ol class="ai-steps">
+        <li><strong>Claude:</strong> Settings &rarr; Connectors &rarr; Add custom connector.</li>
+        <li><strong>ChatGPT:</strong> Settings &rarr; Apps &amp; Connectors &rarr; Create (developer mode).</li>
+        <li>Paste this address, then sign in to The Wealth Lab when asked:</li>
+    </ol>
+    <div class="copy-box"><pre id="mcp-url">{{.Extra.MCPURL}}</pre><button type="button" class="btn btn-sm" data-copy="mcp-url">Copy</button></div>
+    <p class="text-muted">Then ask it things like &ldquo;What's in my Wealth Lab portfolio?&rdquo; or &ldquo;Buy 20 Nvidia&rdquo;. It shows you each order before placing it.</p>
+</div>
+
+<div class="settings-card">
+    <h2>Agents and scripts: API keys</h2>
+    <p>For agents that can run commands or send web requests, such as Claude Code, Codex or your own script.</p>
+    {{with .Items}}
+    <ul class="key-list" style="margin-bottom:12px">
+        {{range .}}
+        <li>
+            <span><strong>{{.Name}}</strong> <span class="mono text-muted">{{.Prefix}}&hellip;</span><br>
+            <span class="text-muted">{{if eq .Scope "trade"}}Can trade{{else}}Read only{{end}} &middot; made {{day .CreatedAt}} &middot; {{with .LastUsedAt.String}}last used {{when .}}{{else}}never used{{end}}</span></span>
+            <form method="POST" action="/settings/api/keys/{{.ID}}/revoke">
+                <button type="submit" class="btn btn-sm btn-danger" data-confirm="Revoke the key &ldquo;{{.Name}}&rdquo;? Anything using it will stop working.">Revoke</button>
+            </form>
+        </li>
+        {{end}}
+    </ul>
+    {{end}}
+    {{if .Extra.Full}}
+    <p class="text-muted">You have 10 keys, the most you can have. Revoke one to make another.</p>
+    {{else}}
+    <form method="POST" action="/settings/api/keys">
+        {{with .Extra.Problem}}<p class="form-error" style="color:var(--color-danger)">{{.}}</p>{{end}}
+        <div class="form-group" style="max-width:320px">
+            <label for="key-name">Name</label>
+            <input type="text" id="key-name" name="name" maxlength="40" placeholder="Claude Code on my laptop" required>
+        </div>
+        <label class="checkbox-label"><input type="radio" name="access" value="read" checked> Read only: portfolio, prices, orders</label>
+        <label class="checkbox-label"><input type="radio" name="access" value="trade"> Can trade: also place and cancel orders</label>
+        <button type="submit" class="btn btn-sm" style="margin-top:12px">Make a key</button>
+    </form>
+    {{end}}
+</div>
+
+{{with .Extra.Apps}}
+<div class="settings-card">
+    <h2>Connected apps</h2>
+    <ul class="key-list">
+        {{range .}}
+        <li>
+            <span><strong>{{.Name}}</strong><br>
+            <span class="text-muted">{{if eq .Scope "trade"}}Can trade{{else}}Read only{{end}} &middot; last active {{when .CreatedAt}}</span></span>
+            <form method="POST" action="/settings/api/apps/{{.GrantID.String}}/revoke">
+                <button type="submit" class="btn btn-sm btn-danger" data-confirm="Disconnect {{.Name}}? It won't be able to see your portfolio or trade." data-confirm-ok="Disconnect">Disconnect</button>
+            </form>
+        </li>
+        {{end}}
+    </ul>
+</div>
+{{end}}
+{{end}}

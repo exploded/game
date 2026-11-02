@@ -218,6 +218,30 @@ func main() {
 	// CSRF token, so it gets the same cross-origin check as sign-in.
 	r.With(crossOrigin.Handler).Post("/logout", auth.HandleLogout(queries))
 
+	// Players' own AI: the API, the MCP server, and the OAuth sign-in that
+	// Claude, ChatGPT and other apps use to connect to it. The API and MCP
+	// take bearer tokens, never cookies, so they sit outside the CSRF groups
+	// (api.go, mcp.go, oauth.go).
+	h.SetAPILimiters(handler.NewRateLimiter(handler.APIRequestsPerMinute, time.Minute), handler.NewRateLimiter(handler.APIOrdersPerMinute, time.Minute))
+	requireToken := auth.RequireToken(queries, handler.ResourceMetadataURL)
+	registerLimiter := handler.NewRateLimiter(20, time.Hour)
+	r.Group(func(r chi.Router) {
+		r.Use(handler.OpenCORS)
+		r.Route("/api/v1", func(r chi.Router) {
+			r.Use(requireToken, h.APILimit)
+			h.APIRoutes(r)
+		})
+		r.With(requireToken, h.APILimit).Handle("/mcp", h.MCPHandler())
+		r.Get("/.well-known/oauth-protected-resource", h.OAuthProtectedResource)
+		r.Get("/.well-known/oauth-protected-resource/*", h.OAuthProtectedResource)
+		r.Get("/.well-known/oauth-authorization-server", h.OAuthServerMetadata)
+		r.With(registerLimiter.Middleware).Post("/oauth/register", h.OAuthRegister)
+		r.Post("/oauth/token", h.OAuthToken)
+		r.Options("/oauth/*", func(http.ResponseWriter, *http.Request) {})
+		r.Get("/agents.md", h.AgentsDoc)
+		r.Get("/llms.txt", h.LLMsTxt)
+	})
+
 	// Unsubscribe links work without signing in. The POST also takes the
 	// RFC 8058 one-click request from mail clients, which has no session.
 	r.Get("/email/unsubscribe", h.UnsubscribePage)
@@ -257,6 +281,11 @@ func main() {
 		r.Get("/learn/courses", h.LearnCourses)
 		// An emailed invite: signed-out visitors get the sign-up form.
 		r.Get("/invite/{code}", h.InviteLanding)
+		// An app asking to connect: the consent page, which sends a
+		// signed-out visitor to sign in first.
+		r.Get("/oauth/authorize", h.OAuthAuthorize)
+		r.Post("/oauth/authorize", h.OAuthDecide)
+		r.Get("/ai", h.AIPage)
 	})
 
 	// Authenticated routes.
@@ -362,6 +391,10 @@ func main() {
 		r.Post("/settings/email", h.SettingsEmail)
 		r.Post("/settings/delete", h.AccountDelete)
 		r.Get("/settings/export", h.ExportPersonalData)
+		r.Get("/settings/api", h.APIKeysPage)
+		r.Post("/settings/api/keys", h.APIKeyCreate)
+		r.Post("/settings/api/keys/{kid}/revoke", h.APIKeyRevoke)
+		r.Post("/settings/api/apps/{grant}/revoke", h.AppRevoke)
 
 		// Admin
 		r.Route("/admin", func(r chi.Router) {

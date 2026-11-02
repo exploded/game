@@ -504,7 +504,7 @@ func noAfterHours(t *testing.T, q *db.Queries) {
 		ID: g.ID, Name: g.Name, Description: g.Description,
 		StartingBalance: g.StartingBalance, BaseCurrency: g.BaseCurrency, MaxParticipants: g.MaxParticipants,
 		TradeFee: g.TradeFee, FxFee: g.FxFee, AllowShort: g.AllowShort, LimitOrders: g.LimitOrders,
-		ReferralBonusPct: g.ReferralBonusPct, CreditInterestRate: g.CreditInterestRate,
+		ReferralBonusPct: g.ReferralBonusPct, CreditInterestRate: g.CreditInterestRate, AiTrading: g.AiTrading,
 	}); err != nil {
 		t.Fatal(err)
 	}

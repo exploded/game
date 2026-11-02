@@ -1685,3 +1685,21 @@ dialog.confirm form { padding: 20px; }
     .rtable .c-watch { order: 0; width: auto; margin-right: -8px; }
     .screener .sc-logo { width: 28px; height: 28px; }
 }
+
+/* Connect your AI (/settings/api): text to paste, each with a Copy button,
+   and the lists of keys and connected apps. */
+.copy-box { display: flex; gap: 8px; align-items: flex-start; margin: 8px 0 14px; }
+.copy-box pre {
+    flex: 1; min-width: 0; margin: 0; padding: 10px 12px;
+    background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: var(--radius);
+    font-family: var(--font-mono); font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.copy-box .btn { flex: none; }
+.key-new { border-color: var(--color-success); }
+.key-list { list-style: none; padding: 0; margin: 0; }
+.key-list li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--color-border); }
+.key-list li:first-child { border-top: 0; }
+.key-list .text-muted { font-size: 12px; }
+.ai-steps { margin: 4px 0 8px 20px; }
+.ai-steps li { margin-bottom: 4px; }
+.ai-badge { margin-left: 4px; font-size: 13px; cursor: help; }

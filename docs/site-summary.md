@@ -229,7 +229,20 @@ they get, download a copy of all their data, and delete their account.
 **Notifications**, in the menu at the top, list everything that happened to
 them in the games, with a count of unread ones.
 
-The footer links to About, Help, Contact, Privacy and Terms. The Contact form
+**Connect your AI** (`/settings/api`, linked from Settings) lets a player's
+own AI check their portfolio and trade for them in this month's game. Claude
+and ChatGPT add the site as a connector at `/mcp` and the player signs in on
+a consent page, choosing read only or trading. Agents and scripts (Claude
+Code, Codex, a cron job) use a personal API key with the JSON API at
+`/api/v1`; the page shows the key once, with a prompt to paste that points
+the agent at `/agents.md`. Players can revoke keys and disconnect apps there.
+The site never runs an AI to choose trades: the player's AI does. Trades made
+this way are marked "via AI" in History, and players who use it get a robot
+beside their name on the leaderboard. `/ai` explains it all, with example
+prompts. Admins can turn AI trading off for a game.
+
+The footer links to About, Help, Trade with your AI, Contact, Privacy and
+Terms. The Contact form
 needs an account, because everything sent through it while it was open to the
 public was spam.
 
@@ -297,6 +310,10 @@ The site was reviewed for parts that were hidden, unfinished or no longer used.
 - **All trades now shows each player's avatar**, as the Lobby already did.
 
 ## Things still to decide or do
+
+- **Rob, and his lawyer, to check AI trading**: the new paragraph in Terms
+  section 10, the wording on `/ai`, and whether Consortium Private Wealth is
+  comfortable with players' own AI trading in the game at all.
 
 - **Rob to check the Terms change**: section 7 no longer says dividends are
   credited to players.

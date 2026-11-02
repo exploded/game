@@ -20,7 +20,7 @@
         {{range $i, $p := .Items}}
         <tr {{if and $.Extra.MyParticipant.ID (eq $p.ID $.Extra.MyParticipant.ID)}}class="highlight-row"{{end}}>
             <td>{{add $i 1}}</td>
-            <td>{{$p.UserName}}</td>
+            <td>{{$p.UserName}}{{if $p.UsesAi}} <span class="ai-badge" title="Trades through an AI assistant" aria-label="Trades through an AI assistant">&#129302;</span>{{end}}</td>
             <td class="num">{{cents $p.PortfolioValue}}</td>
             <td class="num hide-sm {{if gt $p.PortfolioValue $.Item.StartingBalance}}text-green{{else if lt $p.PortfolioValue $.Item.StartingBalance}}text-red{{end}}">
                 {{cents (subtract $p.PortfolioValue $.Item.StartingBalance)}}

@@ -228,6 +228,19 @@ func (q *Queries) CancelLive(ctx context.Context, id int64) error {
 	return err
 }
 
+const cancelOpenOrder = `-- name: CancelOpenOrder :execrows
+UPDATE limit_orders SET status = 'cancelled' WHERE id = ? AND status = 'open'
+`
+
+// 0 rows means it had already filled, expired or been cancelled.
+func (q *Queries) CancelOpenOrder(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, cancelOpenOrder, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const cancelOrdersInExpiredGames = `-- name: CancelOrdersInExpiredGames :exec
 UPDATE limit_orders SET status = 'cancelled'
 WHERE status = 'open' AND participant_id IN (
@@ -256,6 +269,25 @@ type ClaimGameEmailParams struct {
 
 func (q *Queries) ClaimGameEmail(ctx context.Context, arg ClaimGameEmailParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, claimGameEmail, arg.GameID, arg.Kind)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const claimIdempotencyKey = `-- name: ClaimIdempotencyKey :execrows
+INSERT INTO api_idempotency (user_id, key) VALUES (?, ?)
+ON CONFLICT (user_id, key) DO NOTHING
+`
+
+type ClaimIdempotencyKeyParams struct {
+	UserID int64
+	Key    string
+}
+
+// 0 rows means the key was used already: GetIdempotency has its response.
+func (q *Queries) ClaimIdempotencyKey(ctx context.Context, arg ClaimIdempotencyKeyParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, claimIdempotencyKey, arg.UserID, arg.Key)
 	if err != nil {
 		return 0, err
 	}
@@ -592,6 +624,59 @@ func (q *Queries) CountWatchlist(ctx context.Context, userID int64) (int64, erro
 	return count, err
 }
 
+const createAPIToken = `-- name: CreateAPIToken :one
+
+INSERT INTO api_tokens (user_id, kind, name, token_hash, prefix, scope, grant_id, client_id, expires_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, user_id, kind, name, token_hash, prefix, scope, grant_id, client_id, expires_at, last_used_at, created_at, revoked_at
+`
+
+type CreateAPITokenParams struct {
+	UserID    int64
+	Kind      string
+	Name      string
+	TokenHash string
+	Prefix    string
+	Scope     string
+	GrantID   sql.NullString
+	ClientID  sql.NullString
+	ExpiresAt sql.NullString
+}
+
+// =============================================================================
+// Players' own AI: API keys, OAuth (api.go, oauth.go)
+// =============================================================================
+func (q *Queries) CreateAPIToken(ctx context.Context, arg CreateAPITokenParams) (ApiToken, error) {
+	row := q.db.QueryRowContext(ctx, createAPIToken,
+		arg.UserID,
+		arg.Kind,
+		arg.Name,
+		arg.TokenHash,
+		arg.Prefix,
+		arg.Scope,
+		arg.GrantID,
+		arg.ClientID,
+		arg.ExpiresAt,
+	)
+	var i ApiToken
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Kind,
+		&i.Name,
+		&i.TokenHash,
+		&i.Prefix,
+		&i.Scope,
+		&i.GrantID,
+		&i.ClientID,
+		&i.ExpiresAt,
+		&i.LastUsedAt,
+		&i.CreatedAt,
+		&i.RevokedAt,
+	)
+	return i, err
+}
+
 const createBroadcast = `-- name: CreateBroadcast :exec
 INSERT INTO email_broadcasts (subject, body, sent_by, recipients) VALUES (?, ?, ?, ?)
 `
@@ -659,9 +744,9 @@ func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (int
 
 const createGame = `-- name: CreateGame :one
 
-INSERT INTO games (created_by, name, description, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at
+INSERT INTO games (created_by, name, description, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, ai_trading, quarter)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, ai_trading, quarter, created_at, updated_at
 `
 
 type CreateGameParams struct {
@@ -681,6 +766,7 @@ type CreateGameParams struct {
 	CreditInterestRate int64
 	LimitOrders        int64
 	AfterHoursTrading  int64
+	AiTrading          int64
 	Quarter            sql.NullString
 }
 
@@ -705,6 +791,7 @@ func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) (Game, e
 		arg.CreditInterestRate,
 		arg.LimitOrders,
 		arg.AfterHoursTrading,
+		arg.AiTrading,
 		arg.Quarter,
 	)
 	var i Game
@@ -727,6 +814,7 @@ func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) (Game, e
 		&i.CreditInterestRate,
 		&i.LimitOrders,
 		&i.AfterHoursTrading,
+		&i.AiTrading,
 		&i.Quarter,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -806,9 +894,9 @@ func (q *Queries) CreateLesson(ctx context.Context, arg CreateLessonParams) erro
 
 const createLimitOrder = `-- name: CreateLimitOrder :one
 
-INSERT INTO limit_orders (participant_id, stock_id, type, quantity, limit_price, expires_at)
-VALUES (?, ?, ?, ?, ?, ?)
-RETURNING id, participant_id, stock_id, type, quantity, limit_price, status, created_at, expires_at, filled_at, kind
+INSERT INTO limit_orders (participant_id, stock_id, type, quantity, limit_price, expires_at, source)
+VALUES (?, ?, ?, ?, ?, ?, ?)
+RETURNING id, participant_id, stock_id, type, quantity, limit_price, status, created_at, expires_at, filled_at, kind, source
 `
 
 type CreateLimitOrderParams struct {
@@ -818,6 +906,7 @@ type CreateLimitOrderParams struct {
 	Quantity      int64
 	LimitPrice    int64
 	ExpiresAt     sql.NullString
+	Source        string
 }
 
 // =============================================================================
@@ -831,6 +920,7 @@ func (q *Queries) CreateLimitOrder(ctx context.Context, arg CreateLimitOrderPara
 		arg.Quantity,
 		arg.LimitPrice,
 		arg.ExpiresAt,
+		arg.Source,
 	)
 	var i LimitOrder
 	err := row.Scan(
@@ -845,6 +935,7 @@ func (q *Queries) CreateLimitOrder(ctx context.Context, arg CreateLimitOrderPara
 		&i.ExpiresAt,
 		&i.FilledAt,
 		&i.Kind,
+		&i.Source,
 	)
 	return i, err
 }
@@ -938,9 +1029,9 @@ func (q *Queries) CreateLoginRequest(ctx context.Context, arg CreateLoginRequest
 }
 
 const createMarketOrder = `-- name: CreateMarketOrder :one
-INSERT INTO limit_orders (participant_id, stock_id, type, quantity, limit_price, kind)
-VALUES (?, ?, ?, ?, 0, 'market')
-RETURNING id, participant_id, stock_id, type, quantity, limit_price, status, created_at, expires_at, filled_at, kind
+INSERT INTO limit_orders (participant_id, stock_id, type, quantity, limit_price, kind, source)
+VALUES (?, ?, ?, ?, 0, 'market', ?)
+RETURNING id, participant_id, stock_id, type, quantity, limit_price, status, created_at, expires_at, filled_at, kind, source
 `
 
 type CreateMarketOrderParams struct {
@@ -948,6 +1039,7 @@ type CreateMarketOrderParams struct {
 	StockID       int64
 	Type          string
 	Quantity      int64
+	Source        string
 }
 
 func (q *Queries) CreateMarketOrder(ctx context.Context, arg CreateMarketOrderParams) (LimitOrder, error) {
@@ -956,6 +1048,7 @@ func (q *Queries) CreateMarketOrder(ctx context.Context, arg CreateMarketOrderPa
 		arg.StockID,
 		arg.Type,
 		arg.Quantity,
+		arg.Source,
 	)
 	var i LimitOrder
 	err := row.Scan(
@@ -970,6 +1063,7 @@ func (q *Queries) CreateMarketOrder(ctx context.Context, arg CreateMarketOrderPa
 		&i.ExpiresAt,
 		&i.FilledAt,
 		&i.Kind,
+		&i.Source,
 	)
 	return i, err
 }
@@ -998,6 +1092,49 @@ func (q *Queries) CreateNotification(ctx context.Context, arg CreateNotification
 		arg.Type,
 		arg.Title,
 		arg.Message,
+	)
+	return err
+}
+
+const createOAuthClient = `-- name: CreateOAuthClient :exec
+INSERT INTO oauth_clients (id, name, redirect_uris) VALUES (?, ?, ?)
+`
+
+type CreateOAuthClientParams struct {
+	ID           string
+	Name         string
+	RedirectUris string
+}
+
+func (q *Queries) CreateOAuthClient(ctx context.Context, arg CreateOAuthClientParams) error {
+	_, err := q.db.ExecContext(ctx, createOAuthClient, arg.ID, arg.Name, arg.RedirectUris)
+	return err
+}
+
+const createOAuthCode = `-- name: CreateOAuthCode :exec
+INSERT INTO oauth_codes (code_hash, client_id, user_id, scope, redirect_uri, code_challenge, expires_at)
+VALUES (?, ?, ?, ?, ?, ?, ?)
+`
+
+type CreateOAuthCodeParams struct {
+	CodeHash      string
+	ClientID      string
+	UserID        int64
+	Scope         string
+	RedirectUri   string
+	CodeChallenge string
+	ExpiresAt     string
+}
+
+func (q *Queries) CreateOAuthCode(ctx context.Context, arg CreateOAuthCodeParams) error {
+	_, err := q.db.ExecContext(ctx, createOAuthCode,
+		arg.CodeHash,
+		arg.ClientID,
+		arg.UserID,
+		arg.Scope,
+		arg.RedirectUri,
+		arg.CodeChallenge,
+		arg.ExpiresAt,
 	)
 	return err
 }
@@ -1147,6 +1284,15 @@ func (q *Queries) DeleteCourse(ctx context.Context, id int64) error {
 	return err
 }
 
+const deleteExpiredOAuthCodes = `-- name: DeleteExpiredOAuthCodes :exec
+DELETE FROM oauth_codes WHERE expires_at < datetime('now')
+`
+
+func (q *Queries) DeleteExpiredOAuthCodes(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, deleteExpiredOAuthCodes)
+	return err
+}
+
 const deleteExpiredSessions = `-- name: DeleteExpiredSessions :exec
 DELETE FROM sessions WHERE expires_at <= datetime('now')
 `
@@ -1206,12 +1352,33 @@ func (q *Queries) DeleteOAuthToken(ctx context.Context, provider string) error {
 	return err
 }
 
+const deleteOldAPITokens = `-- name: DeleteOldAPITokens :exec
+DELETE FROM api_tokens
+WHERE (expires_at IS NOT NULL AND expires_at < datetime('now', '-1 day'))
+   OR (revoked_at IS NOT NULL AND revoked_at < datetime('now', '-30 days'))
+`
+
+// Expired OAuth tokens, and anything revoked a month ago.
+func (q *Queries) DeleteOldAPITokens(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, deleteOldAPITokens)
+	return err
+}
+
 const deleteOldEmails = `-- name: DeleteOldEmails :exec
 DELETE FROM email_outbox WHERE status != 'pending' AND created_at < datetime('now', '-90 days')
 `
 
 func (q *Queries) DeleteOldEmails(ctx context.Context) error {
 	_, err := q.db.ExecContext(ctx, deleteOldEmails)
+	return err
+}
+
+const deleteOldIdempotency = `-- name: DeleteOldIdempotency :exec
+DELETE FROM api_idempotency WHERE created_at < datetime('now', '-1 day')
+`
+
+func (q *Queries) DeleteOldIdempotency(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, deleteOldIdempotency)
 	return err
 }
 
@@ -1247,6 +1414,19 @@ DELETE FROM sessions WHERE id = ?
 
 func (q *Queries) DeleteSession(ctx context.Context, id string) error {
 	_, err := q.db.ExecContext(ctx, deleteSession, id)
+	return err
+}
+
+const deleteStaleOAuthClients = `-- name: DeleteStaleOAuthClients :exec
+DELETE FROM oauth_clients
+WHERE (last_used_at IS NULL AND created_at < datetime('now', '-1 day'))
+   OR last_used_at < datetime('now', '-90 days')
+`
+
+// Registered but never used within a day, or unused for 90 days (refresh
+// tokens last 60). Their tokens and codes go with them.
+func (q *Queries) DeleteStaleOAuthClients(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, deleteStaleOAuthClients)
 	return err
 }
 
@@ -1382,7 +1562,7 @@ func (q *Queries) FillLimitOrder(ctx context.Context, id int64) error {
 const finishExpiredGames = `-- name: FinishExpiredGames :many
 UPDATE games SET status = 'finished', updated_at = datetime('now')
 WHERE status = 'active' AND end_date < ?
-RETURNING id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at
+RETURNING id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, ai_trading, quarter, created_at, updated_at
 `
 
 // The games it finishes, for market.AwardPlaces.
@@ -1414,6 +1594,7 @@ func (q *Queries) FinishExpiredGames(ctx context.Context, endDate string) ([]Gam
 			&i.CreditInterestRate,
 			&i.LimitOrders,
 			&i.AfterHoursTrading,
+			&i.AiTrading,
 			&i.Quarter,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -1429,6 +1610,31 @@ func (q *Queries) FinishExpiredGames(ctx context.Context, endDate string) ([]Gam
 		return nil, err
 	}
 	return items, nil
+}
+
+const getAPITokenByHash = `-- name: GetAPITokenByHash :one
+SELECT id, user_id, kind, name, token_hash, prefix, scope, grant_id, client_id, expires_at, last_used_at, created_at, revoked_at FROM api_tokens WHERE token_hash = ?
+`
+
+func (q *Queries) GetAPITokenByHash(ctx context.Context, tokenHash string) (ApiToken, error) {
+	row := q.db.QueryRowContext(ctx, getAPITokenByHash, tokenHash)
+	var i ApiToken
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Kind,
+		&i.Name,
+		&i.TokenHash,
+		&i.Prefix,
+		&i.Scope,
+		&i.GrantID,
+		&i.ClientID,
+		&i.ExpiresAt,
+		&i.LastUsedAt,
+		&i.CreatedAt,
+		&i.RevokedAt,
+	)
+	return i, err
 }
 
 const getAchievementByKey = `-- name: GetAchievementByKey :one
@@ -1508,7 +1714,7 @@ func (q *Queries) GetCourseBySlug(ctx context.Context, slug string) (Course, err
 }
 
 const getGame = `-- name: GetGame :one
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at FROM games WHERE id = ?
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, ai_trading, quarter, created_at, updated_at FROM games WHERE id = ?
 `
 
 func (q *Queries) GetGame(ctx context.Context, id int64) (Game, error) {
@@ -1533,6 +1739,7 @@ func (q *Queries) GetGame(ctx context.Context, id int64) (Game, error) {
 		&i.CreditInterestRate,
 		&i.LimitOrders,
 		&i.AfterHoursTrading,
+		&i.AiTrading,
 		&i.Quarter,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -1541,7 +1748,7 @@ func (q *Queries) GetGame(ctx context.Context, id int64) (Game, error) {
 }
 
 const getGameByMonth = `-- name: GetGameByMonth :one
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at FROM games WHERE quarter = ?
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, ai_trading, quarter, created_at, updated_at FROM games WHERE quarter = ?
 `
 
 // A month's game. The column is still called quarter: games were quarterly
@@ -1568,6 +1775,7 @@ func (q *Queries) GetGameByMonth(ctx context.Context, quarter sql.NullString) (G
 		&i.CreditInterestRate,
 		&i.LimitOrders,
 		&i.AfterHoursTrading,
+		&i.AiTrading,
 		&i.Quarter,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -1608,6 +1816,28 @@ func (q *Queries) GetHolding(ctx context.Context, arg GetHoldingParams) (Holding
 		&i.CurrentValue,
 		&i.UpdatedAt,
 		&i.CostBasis,
+	)
+	return i, err
+}
+
+const getIdempotency = `-- name: GetIdempotency :one
+SELECT user_id, "key", status, response, created_at FROM api_idempotency WHERE user_id = ? AND key = ?
+`
+
+type GetIdempotencyParams struct {
+	UserID int64
+	Key    string
+}
+
+func (q *Queries) GetIdempotency(ctx context.Context, arg GetIdempotencyParams) (ApiIdempotency, error) {
+	row := q.db.QueryRowContext(ctx, getIdempotency, arg.UserID, arg.Key)
+	var i ApiIdempotency
+	err := row.Scan(
+		&i.UserID,
+		&i.Key,
+		&i.Status,
+		&i.Response,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -1674,7 +1904,7 @@ func (q *Queries) GetLatestExchangeRate(ctx context.Context) (ExchangeRate, erro
 }
 
 const getLatestMonthlyGame = `-- name: GetLatestMonthlyGame :one
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at FROM games WHERE quarter IS NOT NULL ORDER BY start_date DESC LIMIT 1
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, ai_trading, quarter, created_at, updated_at FROM games WHERE quarter IS NOT NULL ORDER BY start_date DESC LIMIT 1
 `
 
 // The most recent month's game, whose settings the next one copies.
@@ -1700,6 +1930,7 @@ func (q *Queries) GetLatestMonthlyGame(ctx context.Context) (Game, error) {
 		&i.CreditInterestRate,
 		&i.LimitOrders,
 		&i.AfterHoursTrading,
+		&i.AiTrading,
 		&i.Quarter,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -1752,7 +1983,7 @@ func (q *Queries) GetLesson(ctx context.Context, id int64) (Lesson, error) {
 }
 
 const getLimitOrder = `-- name: GetLimitOrder :one
-SELECT id, participant_id, stock_id, type, quantity, limit_price, status, created_at, expires_at, filled_at, kind FROM limit_orders WHERE id = ?
+SELECT id, participant_id, stock_id, type, quantity, limit_price, status, created_at, expires_at, filled_at, kind, source FROM limit_orders WHERE id = ?
 `
 
 func (q *Queries) GetLimitOrder(ctx context.Context, id int64) (LimitOrder, error) {
@@ -1770,6 +2001,7 @@ func (q *Queries) GetLimitOrder(ctx context.Context, id int64) (LimitOrder, erro
 		&i.ExpiresAt,
 		&i.FilledAt,
 		&i.Kind,
+		&i.Source,
 	)
 	return i, err
 }
@@ -1873,6 +2105,23 @@ func (q *Queries) GetMediaState(ctx context.Context, key string) (string, error)
 	var value string
 	err := row.Scan(&value)
 	return value, err
+}
+
+const getOAuthClient = `-- name: GetOAuthClient :one
+SELECT id, name, redirect_uris, created_at, last_used_at FROM oauth_clients WHERE id = ?
+`
+
+func (q *Queries) GetOAuthClient(ctx context.Context, id string) (OauthClient, error) {
+	row := q.db.QueryRowContext(ctx, getOAuthClient, id)
+	var i OauthClient
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.RedirectUris,
+		&i.CreatedAt,
+		&i.LastUsedAt,
+	)
+	return i, err
 }
 
 const getOAuthToken = `-- name: GetOAuthToken :one
@@ -2599,9 +2848,9 @@ func (q *Queries) InsertStockNews(ctx context.Context, arg InsertStockNewsParams
 
 const insertTransaction = `-- name: InsertTransaction :one
 
-INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total, converted_total, exchange_rate_used, fee)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING id, participant_id, stock_id, type, quantity, price, total, converted_total, exchange_rate_used, fee, created_at
+INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total, converted_total, exchange_rate_used, fee, source)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, participant_id, stock_id, type, quantity, price, total, converted_total, exchange_rate_used, fee, created_at, source
 `
 
 type InsertTransactionParams struct {
@@ -2614,6 +2863,7 @@ type InsertTransactionParams struct {
 	ConvertedTotal   int64
 	ExchangeRateUsed int64
 	Fee              int64
+	Source           string
 }
 
 // =============================================================================
@@ -2630,6 +2880,7 @@ func (q *Queries) InsertTransaction(ctx context.Context, arg InsertTransactionPa
 		arg.ConvertedTotal,
 		arg.ExchangeRateUsed,
 		arg.Fee,
+		arg.Source,
 	)
 	var i Transaction
 	err := row.Scan(
@@ -2644,6 +2895,7 @@ func (q *Queries) InsertTransaction(ctx context.Context, arg InsertTransactionPa
 		&i.ExchangeRateUsed,
 		&i.Fee,
 		&i.CreatedAt,
+		&i.Source,
 	)
 	return i, err
 }
@@ -2716,6 +2968,49 @@ func (q *Queries) JoinGame(ctx context.Context, arg JoinGameParams) (Participant
 	return i, err
 }
 
+const listAPIKeys = `-- name: ListAPIKeys :many
+SELECT id, user_id, kind, name, token_hash, prefix, scope, grant_id, client_id, expires_at, last_used_at, created_at, revoked_at FROM api_tokens
+WHERE user_id = ? AND kind = 'key' AND revoked_at IS NULL
+ORDER BY id DESC
+`
+
+func (q *Queries) ListAPIKeys(ctx context.Context, userID int64) ([]ApiToken, error) {
+	rows, err := q.db.QueryContext(ctx, listAPIKeys, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ApiToken
+	for rows.Next() {
+		var i ApiToken
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Kind,
+			&i.Name,
+			&i.TokenHash,
+			&i.Prefix,
+			&i.Scope,
+			&i.GrantID,
+			&i.ClientID,
+			&i.ExpiresAt,
+			&i.LastUsedAt,
+			&i.CreatedAt,
+			&i.RevokedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listAchievements = `-- name: ListAchievements :many
 SELECT id, "key", name, description, icon FROM achievements ORDER BY id
 `
@@ -2750,7 +3045,7 @@ func (q *Queries) ListAchievements(ctx context.Context) ([]Achievement, error) {
 }
 
 const listActiveGamesEndingOn = `-- name: ListActiveGamesEndingOn :many
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at FROM games WHERE status = 'active' AND end_date = ?
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, ai_trading, quarter, created_at, updated_at FROM games WHERE status = 'active' AND end_date = ?
 `
 
 func (q *Queries) ListActiveGamesEndingOn(ctx context.Context, endDate string) ([]Game, error) {
@@ -2781,6 +3076,7 @@ func (q *Queries) ListActiveGamesEndingOn(ctx context.Context, endDate string) (
 			&i.CreditInterestRate,
 			&i.LimitOrders,
 			&i.AfterHoursTrading,
+			&i.AiTrading,
 			&i.Quarter,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -2799,7 +3095,7 @@ func (q *Queries) ListActiveGamesEndingOn(ctx context.Context, endDate string) (
 }
 
 const listActiveGamesStartedSince = `-- name: ListActiveGamesStartedSince :many
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at FROM games WHERE status = 'active' AND start_date >= ?
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, ai_trading, quarter, created_at, updated_at FROM games WHERE status = 'active' AND start_date >= ?
 `
 
 func (q *Queries) ListActiveGamesStartedSince(ctx context.Context, startDate string) ([]Game, error) {
@@ -2830,6 +3126,7 @@ func (q *Queries) ListActiveGamesStartedSince(ctx context.Context, startDate str
 			&i.CreditInterestRate,
 			&i.LimitOrders,
 			&i.AfterHoursTrading,
+			&i.AiTrading,
 			&i.Quarter,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -3147,7 +3444,7 @@ func (q *Queries) ListAllLiveEvents(ctx context.Context) ([]LiveEvent, error) {
 }
 
 const listAllOpenOrders = `-- name: ListAllOpenOrders :many
-SELECT lo.id, lo.participant_id, lo.stock_id, lo.type, lo.quantity, lo.limit_price, lo.status, lo.created_at, lo.expires_at, lo.filled_at, lo.kind, s.symbol, s.market, s.currency, p.game_id
+SELECT lo.id, lo.participant_id, lo.stock_id, lo.type, lo.quantity, lo.limit_price, lo.status, lo.created_at, lo.expires_at, lo.filled_at, lo.kind, lo.source, s.symbol, s.market, s.currency, p.game_id
 FROM limit_orders lo
 JOIN stocks s ON s.id = lo.stock_id
 JOIN participants p ON p.id = lo.participant_id
@@ -3167,6 +3464,7 @@ type ListAllOpenOrdersRow struct {
 	ExpiresAt     sql.NullString
 	FilledAt      sql.NullString
 	Kind          string
+	Source        string
 	Symbol        string
 	Market        string
 	Currency      string
@@ -3194,6 +3492,7 @@ func (q *Queries) ListAllOpenOrders(ctx context.Context) ([]ListAllOpenOrdersRow
 			&i.ExpiresAt,
 			&i.FilledAt,
 			&i.Kind,
+			&i.Source,
 			&i.Symbol,
 			&i.Market,
 			&i.Currency,
@@ -3259,7 +3558,7 @@ func (q *Queries) ListAllStocksByMarket(ctx context.Context, arg ListAllStocksBy
 const listAllTransactions = `-- name: ListAllTransactions :many
 
 
-SELECT t.id, t.participant_id, t.stock_id, t.type, t.quantity, t.price, t.total, t.converted_total, t.exchange_rate_used, t.fee, t.created_at, s.symbol, s.name AS stock_name, s.market, s.currency
+SELECT t.id, t.participant_id, t.stock_id, t.type, t.quantity, t.price, t.total, t.converted_total, t.exchange_rate_used, t.fee, t.created_at, t.source, s.symbol, s.name AS stock_name, s.market, s.currency
 FROM transactions t
 JOIN stocks s ON s.id = t.stock_id
 WHERE t.participant_id = ?
@@ -3278,6 +3577,7 @@ type ListAllTransactionsRow struct {
 	ExchangeRateUsed int64
 	Fee              int64
 	CreatedAt        string
+	Source           string
 	Symbol           string
 	StockName        string
 	Market           string
@@ -3311,10 +3611,56 @@ func (q *Queries) ListAllTransactions(ctx context.Context, participantID int64) 
 			&i.ExchangeRateUsed,
 			&i.Fee,
 			&i.CreatedAt,
+			&i.Source,
 			&i.Symbol,
 			&i.StockName,
 			&i.Market,
 			&i.Currency,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listAppConnections = `-- name: ListAppConnections :many
+SELECT id, user_id, kind, name, token_hash, prefix, scope, grant_id, client_id, expires_at, last_used_at, created_at, revoked_at FROM api_tokens
+WHERE user_id = ? AND kind = 'refresh' AND revoked_at IS NULL AND expires_at > datetime('now')
+ORDER BY id DESC
+`
+
+// One row per OAuth connection: its live refresh token, which is replaced
+// each time the app refreshes, so created_at is when it was last active.
+func (q *Queries) ListAppConnections(ctx context.Context, userID int64) ([]ApiToken, error) {
+	rows, err := q.db.QueryContext(ctx, listAppConnections, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ApiToken
+	for rows.Next() {
+		var i ApiToken
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Kind,
+			&i.Name,
+			&i.TokenHash,
+			&i.Prefix,
+			&i.Scope,
+			&i.GrantID,
+			&i.ClientID,
+			&i.ExpiresAt,
+			&i.LastUsedAt,
+			&i.CreatedAt,
+			&i.RevokedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -3629,7 +3975,7 @@ func (q *Queries) ListFetchLogs(ctx context.Context) ([]PriceFetchLog, error) {
 
 const listFinishedGames = `-- name: ListFinishedGames :many
 
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at FROM games WHERE status IN ('finished', 'cancelled')
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, ai_trading, quarter, created_at, updated_at FROM games WHERE status IN ('finished', 'cancelled')
 ORDER BY end_date DESC
 LIMIT ? OFFSET ?
 `
@@ -3670,6 +4016,7 @@ func (q *Queries) ListFinishedGames(ctx context.Context, arg ListFinishedGamesPa
 			&i.CreditInterestRate,
 			&i.LimitOrders,
 			&i.AfterHoursTrading,
+			&i.AiTrading,
 			&i.Quarter,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -3688,7 +4035,7 @@ func (q *Queries) ListFinishedGames(ctx context.Context, arg ListFinishedGamesPa
 }
 
 const listFinishedGamesEndedSince = `-- name: ListFinishedGamesEndedSince :many
-SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter, created_at, updated_at FROM games WHERE status = 'finished' AND end_date >= ?
+SELECT id, created_by, name, description, status, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, ai_trading, quarter, created_at, updated_at FROM games WHERE status = 'finished' AND end_date >= ?
 `
 
 func (q *Queries) ListFinishedGamesEndedSince(ctx context.Context, endDate string) ([]Game, error) {
@@ -3719,6 +4066,7 @@ func (q *Queries) ListFinishedGamesEndedSince(ctx context.Context, endDate strin
 			&i.CreditInterestRate,
 			&i.LimitOrders,
 			&i.AfterHoursTrading,
+			&i.AiTrading,
 			&i.Quarter,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -3774,7 +4122,7 @@ func (q *Queries) ListGameHolderCounts(ctx context.Context, gameID int64) ([]Lis
 }
 
 const listGamesWithPlayers = `-- name: ListGamesWithPlayers :many
-SELECT g.id, g.created_by, g.name, g.description, g.status, g.markets, g.starting_balance, g.base_currency, g.max_participants, g.start_date, g.end_date, g.allow_short, g.trade_fee, g.fx_fee, g.referral_bonus_pct, g.credit_interest_rate, g.limit_orders, g.after_hours_trading, g.quarter, g.created_at, g.updated_at, (SELECT COUNT(*) FROM participants p WHERE p.game_id = g.id) AS players
+SELECT g.id, g.created_by, g.name, g.description, g.status, g.markets, g.starting_balance, g.base_currency, g.max_participants, g.start_date, g.end_date, g.allow_short, g.trade_fee, g.fx_fee, g.referral_bonus_pct, g.credit_interest_rate, g.limit_orders, g.after_hours_trading, g.ai_trading, g.quarter, g.created_at, g.updated_at, (SELECT COUNT(*) FROM participants p WHERE p.game_id = g.id) AS players
 FROM games g
 ORDER BY g.start_date DESC, g.id DESC
 `
@@ -3798,6 +4146,7 @@ type ListGamesWithPlayersRow struct {
 	CreditInterestRate int64
 	LimitOrders        int64
 	AfterHoursTrading  int64
+	AiTrading          int64
 	Quarter            sql.NullString
 	CreatedAt          string
 	UpdatedAt          string
@@ -3832,6 +4181,7 @@ func (q *Queries) ListGamesWithPlayers(ctx context.Context) ([]ListGamesWithPlay
 			&i.CreditInterestRate,
 			&i.LimitOrders,
 			&i.AfterHoursTrading,
+			&i.AiTrading,
 			&i.Quarter,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -3852,16 +4202,16 @@ func (q *Queries) ListGamesWithPlayers(ctx context.Context) ([]ListGamesWithPlay
 
 const listHistory = `-- name: ListHistory :many
 SELECT t.type AS kind, t.quantity, s.symbol, s.name AS label, t.price, s.currency,
-       t.converted_total AS amount, t.fee, CAST('' AS TEXT) AS day, t.created_at
+       t.converted_total AS amount, t.fee, CAST('' AS TEXT) AS day, t.source, t.created_at
 FROM transactions t
 JOIN stocks s ON s.id = t.stock_id
 WHERE t.participant_id = ?1
 UNION ALL
-SELECT 'interest', ip.balance, '', '', 0, '', ip.amount, 0, ip.date, ip.created_at
+SELECT 'interest', ip.balance, '', '', 0, '', ip.amount, 0, ip.date, '', ip.created_at
 FROM interest_payments ip
 WHERE ip.participant_id = ?1 AND ip.amount > 0
 UNION ALL
-SELECT 'bonus', 0, '', u.name, 0, '', rb.bonus_amount, 0, '', rb.created_at
+SELECT 'bonus', 0, '', u.name, 0, '', rb.bonus_amount, 0, '', '', rb.created_at
 FROM referral_bonuses rb
 JOIN participants p ON p.game_id = rb.game_id AND p.user_id = rb.referrer_id
 JOIN users u ON u.id = rb.referred_id
@@ -3879,6 +4229,7 @@ type ListHistoryRow struct {
 	Amount    int64
 	Fee       int64
 	Day       string
+	Source    string
 	CreatedAt string
 }
 
@@ -3906,6 +4257,7 @@ func (q *Queries) ListHistory(ctx context.Context, participantID int64) ([]ListH
 			&i.Amount,
 			&i.Fee,
 			&i.Day,
+			&i.Source,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -4751,7 +5103,7 @@ func (q *Queries) ListOnAirAnswersToMail(ctx context.Context) ([]ListOnAirAnswer
 }
 
 const listOpenLimitOrders = `-- name: ListOpenLimitOrders :many
-SELECT lo.id, lo.participant_id, lo.stock_id, lo.type, lo.quantity, lo.limit_price, lo.status, lo.created_at, lo.expires_at, lo.filled_at, lo.kind, s.symbol, s.name AS stock_name, s.market, s.currency
+SELECT lo.id, lo.participant_id, lo.stock_id, lo.type, lo.quantity, lo.limit_price, lo.status, lo.created_at, lo.expires_at, lo.filled_at, lo.kind, lo.source, s.symbol, s.name AS stock_name, s.market, s.currency
 FROM limit_orders lo
 JOIN stocks s ON s.id = lo.stock_id
 WHERE lo.participant_id = ? AND lo.status = 'open'
@@ -4770,6 +5122,7 @@ type ListOpenLimitOrdersRow struct {
 	ExpiresAt     sql.NullString
 	FilledAt      sql.NullString
 	Kind          string
+	Source        string
 	Symbol        string
 	StockName     string
 	Market        string
@@ -4797,6 +5150,7 @@ func (q *Queries) ListOpenLimitOrders(ctx context.Context, participantID int64) 
 			&i.ExpiresAt,
 			&i.FilledAt,
 			&i.Kind,
+			&i.Source,
 			&i.Symbol,
 			&i.StockName,
 			&i.Market,
@@ -4816,7 +5170,7 @@ func (q *Queries) ListOpenLimitOrders(ctx context.Context, participantID int64) 
 }
 
 const listOpenOrdersPlacedBefore = `-- name: ListOpenOrdersPlacedBefore :many
-SELECT id, participant_id, stock_id, type, quantity, limit_price, status, created_at, expires_at, filled_at, kind FROM limit_orders
+SELECT id, participant_id, stock_id, type, quantity, limit_price, status, created_at, expires_at, filled_at, kind, source FROM limit_orders
 WHERE stock_id = ? AND status = 'open' AND created_at < ?
 `
 
@@ -4846,6 +5200,7 @@ func (q *Queries) ListOpenOrdersPlacedBefore(ctx context.Context, arg ListOpenOr
 			&i.ExpiresAt,
 			&i.FilledAt,
 			&i.Kind,
+			&i.Source,
 		); err != nil {
 			return nil, err
 		}
@@ -4861,7 +5216,7 @@ func (q *Queries) ListOpenOrdersPlacedBefore(ctx context.Context, arg ListOpenOr
 }
 
 const listParticipantTrades = `-- name: ListParticipantTrades :many
-SELECT t.id, t.participant_id, t.stock_id, t.type, t.quantity, t.price, t.total, t.converted_total, t.exchange_rate_used, t.fee, t.created_at, s.currency
+SELECT t.id, t.participant_id, t.stock_id, t.type, t.quantity, t.price, t.total, t.converted_total, t.exchange_rate_used, t.fee, t.created_at, t.source, s.currency
 FROM transactions t
 JOIN stocks s ON s.id = t.stock_id
 WHERE t.participant_id = ?
@@ -4880,6 +5235,7 @@ type ListParticipantTradesRow struct {
 	ExchangeRateUsed int64
 	Fee              int64
 	CreatedAt        string
+	Source           string
 	Currency         string
 }
 
@@ -4908,6 +5264,7 @@ func (q *Queries) ListParticipantTrades(ctx context.Context, participantID int64
 			&i.ExchangeRateUsed,
 			&i.Fee,
 			&i.CreatedAt,
+			&i.Source,
 			&i.Currency,
 		); err != nil {
 			return nil, err
@@ -4924,7 +5281,9 @@ func (q *Queries) ListParticipantTrades(ctx context.Context, participantID int64
 }
 
 const listParticipantsByGame = `-- name: ListParticipantsByGame :many
-SELECT p.id, p.game_id, p.user_id, p.cash_balance, p.portfolio_value, p.joined_at, u.name AS user_name
+SELECT p.id, p.game_id, p.user_id, p.cash_balance, p.portfolio_value, p.joined_at, u.name AS user_name,
+       CAST(EXISTS (SELECT 1 FROM transactions t WHERE t.participant_id = p.id AND t.source != '')
+         OR EXISTS (SELECT 1 FROM limit_orders lo WHERE lo.participant_id = p.id AND lo.source != '') AS INTEGER) AS uses_ai
 FROM participants p
 JOIN users u ON u.id = p.user_id
 WHERE p.game_id = ? AND u.blocked_at IS NULL
@@ -4939,10 +5298,12 @@ type ListParticipantsByGameRow struct {
 	PortfolioValue int64
 	JoinedAt       string
 	UserName       string
+	UsesAi         int64
 }
 
 // Blocked players are left out of standings, as their messages are from
-// ListLobbyMessages.
+// ListLobbyMessages. uses_ai is 1 for a player who has traded through the
+// API or MCP in this game.
 func (q *Queries) ListParticipantsByGame(ctx context.Context, gameID int64) ([]ListParticipantsByGameRow, error) {
 	rows, err := q.db.QueryContext(ctx, listParticipantsByGame, gameID)
 	if err != nil {
@@ -4960,6 +5321,7 @@ func (q *Queries) ListParticipantsByGame(ctx context.Context, gameID int64) ([]L
 			&i.PortfolioValue,
 			&i.JoinedAt,
 			&i.UserName,
+			&i.UsesAi,
 		); err != nil {
 			return nil, err
 		}
@@ -6309,7 +6671,7 @@ func (q *Queries) ListUserAchievements(ctx context.Context, userID int64) ([]Lis
 }
 
 const listUserGames = `-- name: ListUserGames :many
-SELECT g.id, g.created_by, g.name, g.description, g.status, g.markets, g.starting_balance, g.base_currency, g.max_participants, g.start_date, g.end_date, g.allow_short, g.trade_fee, g.fx_fee, g.referral_bonus_pct, g.credit_interest_rate, g.limit_orders, g.after_hours_trading, g.quarter, g.created_at, g.updated_at FROM games g
+SELECT g.id, g.created_by, g.name, g.description, g.status, g.markets, g.starting_balance, g.base_currency, g.max_participants, g.start_date, g.end_date, g.allow_short, g.trade_fee, g.fx_fee, g.referral_bonus_pct, g.credit_interest_rate, g.limit_orders, g.after_hours_trading, g.ai_trading, g.quarter, g.created_at, g.updated_at FROM games g
 JOIN participants p ON p.game_id = g.id
 WHERE p.user_id = ?
 ORDER BY g.start_date DESC
@@ -6343,6 +6705,7 @@ func (q *Queries) ListUserGames(ctx context.Context, userID int64) ([]Game, erro
 			&i.CreditInterestRate,
 			&i.LimitOrders,
 			&i.AfterHoursTrading,
+			&i.AiTrading,
 			&i.Quarter,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -7052,6 +7415,21 @@ func (q *Queries) RecordStockSplit(ctx context.Context, arg RecordStockSplitPara
 	return result.RowsAffected()
 }
 
+const releaseIdempotencyKey = `-- name: ReleaseIdempotencyKey :exec
+DELETE FROM api_idempotency WHERE user_id = ? AND key = ? AND status = 0
+`
+
+type ReleaseIdempotencyKeyParams struct {
+	UserID int64
+	Key    string
+}
+
+// A request that failed before answering, so a retry can run.
+func (q *Queries) ReleaseIdempotencyKey(ctx context.Context, arg ReleaseIdempotencyKeyParams) error {
+	_, err := q.db.ExecContext(ctx, releaseIdempotencyKey, arg.UserID, arg.Key)
+	return err
+}
+
 const removeFromWatchlist = `-- name: RemoveFromWatchlist :exec
 DELETE FROM watchlist WHERE user_id = ? AND stock_id = ?
 `
@@ -7105,6 +7483,94 @@ type RemoveVideoTopicParams struct {
 
 func (q *Queries) RemoveVideoTopic(ctx context.Context, arg RemoveVideoTopicParams) error {
 	_, err := q.db.ExecContext(ctx, removeVideoTopic, arg.VideoID, arg.TopicID)
+	return err
+}
+
+const revokeAPIKey = `-- name: RevokeAPIKey :execrows
+UPDATE api_tokens SET revoked_at = datetime('now')
+WHERE id = ? AND user_id = ? AND kind = 'key' AND revoked_at IS NULL
+`
+
+type RevokeAPIKeyParams struct {
+	ID     int64
+	UserID int64
+}
+
+func (q *Queries) RevokeAPIKey(ctx context.Context, arg RevokeAPIKeyParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, revokeAPIKey, arg.ID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const revokeAPIToken = `-- name: RevokeAPIToken :execrows
+UPDATE api_tokens SET revoked_at = datetime('now') WHERE id = ? AND revoked_at IS NULL
+`
+
+// 0 rows means it was revoked already: a refresh token used twice.
+func (q *Queries) RevokeAPIToken(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, revokeAPIToken, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const revokeGrant = `-- name: RevokeGrant :exec
+UPDATE api_tokens SET revoked_at = datetime('now') WHERE grant_id = ? AND revoked_at IS NULL
+`
+
+func (q *Queries) RevokeGrant(ctx context.Context, grantID sql.NullString) error {
+	_, err := q.db.ExecContext(ctx, revokeGrant, grantID)
+	return err
+}
+
+const revokeUserAPITokens = `-- name: RevokeUserAPITokens :exec
+UPDATE api_tokens SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL
+`
+
+func (q *Queries) RevokeUserAPITokens(ctx context.Context, userID int64) error {
+	_, err := q.db.ExecContext(ctx, revokeUserAPITokens, userID)
+	return err
+}
+
+const revokeUserGrant = `-- name: RevokeUserGrant :execrows
+UPDATE api_tokens SET revoked_at = datetime('now')
+WHERE grant_id = ? AND user_id = ? AND revoked_at IS NULL
+`
+
+type RevokeUserGrantParams struct {
+	GrantID sql.NullString
+	UserID  int64
+}
+
+func (q *Queries) RevokeUserGrant(ctx context.Context, arg RevokeUserGrantParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, revokeUserGrant, arg.GrantID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const saveIdempotency = `-- name: SaveIdempotency :exec
+UPDATE api_idempotency SET status = ?, response = ? WHERE user_id = ? AND key = ?
+`
+
+type SaveIdempotencyParams struct {
+	Status   int64
+	Response string
+	UserID   int64
+	Key      string
+}
+
+func (q *Queries) SaveIdempotency(ctx context.Context, arg SaveIdempotencyParams) error {
+	_, err := q.db.ExecContext(ctx, saveIdempotency,
+		arg.Status,
+		arg.Response,
+		arg.UserID,
+		arg.Key,
+	)
 	return err
 }
 
@@ -7366,6 +7832,26 @@ func (q *Queries) SoftDeleteUser(ctx context.Context, id int64) error {
 	return err
 }
 
+const takeOAuthCode = `-- name: TakeOAuthCode :one
+DELETE FROM oauth_codes WHERE code_hash = ? RETURNING code_hash, client_id, user_id, scope, redirect_uri, code_challenge, expires_at
+`
+
+// Deleted as it's read, so a code works once.
+func (q *Queries) TakeOAuthCode(ctx context.Context, codeHash string) (OauthCode, error) {
+	row := q.db.QueryRowContext(ctx, takeOAuthCode, codeHash)
+	var i OauthCode
+	err := row.Scan(
+		&i.CodeHash,
+		&i.ClientID,
+		&i.UserID,
+		&i.Scope,
+		&i.RedirectUri,
+		&i.CodeChallenge,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
 const tikTokBlockedSince = `-- name: TikTokBlockedSince :one
 SELECT EXISTS(SELECT 1 FROM tiktok_live_checks
               WHERE account = ? AND http_status IN (403, 429) AND checked_at >= ?)
@@ -7421,6 +7907,17 @@ func (q *Queries) TotalInterest(ctx context.Context, participantID int64) (int64
 	return column_1, err
 }
 
+const touchAPIToken = `-- name: TouchAPIToken :exec
+UPDATE api_tokens SET last_used_at = datetime('now')
+WHERE id = ? AND (last_used_at IS NULL OR last_used_at < datetime('now', '-1 minute'))
+`
+
+// At most once a minute, so an agent's requests don't each write.
+func (q *Queries) TouchAPIToken(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, touchAPIToken, id)
+	return err
+}
+
 const touchLastLogin = `-- name: TouchLastLogin :exec
 UPDATE users SET last_login = datetime('now') WHERE id = ?
 `
@@ -7436,6 +7933,15 @@ UPDATE users SET last_seen = datetime('now') WHERE id = ?
 
 func (q *Queries) TouchLastSeen(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, touchLastSeen, id)
+	return err
+}
+
+const touchOAuthClient = `-- name: TouchOAuthClient :exec
+UPDATE oauth_clients SET last_used_at = datetime('now') WHERE id = ?
+`
+
+func (q *Queries) TouchOAuthClient(ctx context.Context, id string) error {
+	_, err := q.db.ExecContext(ctx, touchOAuthClient, id)
 	return err
 }
 
@@ -7511,7 +8017,7 @@ UPDATE games SET
     name = ?, description = ?, starting_balance = ?,
     base_currency = ?, max_participants = ?, trade_fee = ?, fx_fee = ?, allow_short = ?,
     limit_orders = ?, referral_bonus_pct = ?, credit_interest_rate = ?,
-    after_hours_trading = ?, updated_at = datetime('now')
+    after_hours_trading = ?, ai_trading = ?, updated_at = datetime('now')
 WHERE id = ?
 `
 
@@ -7528,6 +8034,7 @@ type UpdateGameSettingsParams struct {
 	ReferralBonusPct   int64
 	CreditInterestRate int64
 	AfterHoursTrading  int64
+	AiTrading          int64
 	ID                 int64
 }
 
@@ -7546,6 +8053,7 @@ func (q *Queries) UpdateGameSettings(ctx context.Context, arg UpdateGameSettings
 		arg.ReferralBonusPct,
 		arg.CreditInterestRate,
 		arg.AfterHoursTrading,
+		arg.AiTrading,
 		arg.ID,
 	)
 	return err

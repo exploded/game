@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -51,13 +52,13 @@ func (h *Handler) ActivityFeed(w http.ResponseWriter, r *http.Request) {
 }
 
 // InsertTradeActivity records a trade in the activity feed.
-func (h *Handler) InsertTradeActivity(r *http.Request, gameID, userID int64, action string, stock db.Stock, quantity int64) {
+func (h *Handler) InsertTradeActivity(ctx context.Context, gameID, userID int64, action string, stock db.Stock, quantity int64) {
 	verb := "bought"
 	if action == "sell" {
 		verb = "sold"
 	}
 	detail := fmt.Sprintf("%s %s of %s", verb, shares(quantity), stock.Symbol)
-	_ = h.q.InsertActivity(r.Context(), db.InsertActivityParams{
+	_ = h.q.InsertActivity(ctx, db.InsertActivityParams{
 		GameID:  gameID,
 		UserID:  userID,
 		Action:  action,

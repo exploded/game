@@ -99,6 +99,13 @@
         <p class="text-muted" style="font-size:12px;margin-top:4px">While the US market is closed, market orders fill straight away at the last close. Untick to queue them for the open. Limit orders always wait for the market to open.</p>
     </div>
 
+    <div class="form-group">
+        <label class="checkbox-label">
+            <input type="checkbox" name="ai_trading" value="1"{{if $g.AiTrading}} checked{{end}}> AI trading
+        </label>
+        <p class="text-muted" style="font-size:12px;margin-top:4px">Players' own AI assistants (Claude, ChatGPT, their own agents) can place orders through the API and the connector. Untick to stop new orders from them; they can still read portfolios and prices.</p>
+    </div>
+
     <button type="submit" class="btn btn-primary">Save settings</button>
 </form>
 
