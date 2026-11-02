@@ -51,8 +51,9 @@ func (h *Handler) ActivityFeed(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// InsertTradeActivity records a trade in the activity feed.
-func (h *Handler) InsertTradeActivity(ctx context.Context, gameID, userID int64, action string, stock db.Stock, quantity int64) {
+// InsertTradeActivity records a trade in the activity feed. source is the
+// order's ("api" or "mcp" when the player's AI placed it).
+func (h *Handler) InsertTradeActivity(ctx context.Context, gameID, userID int64, action string, stock db.Stock, quantity int64, source string) {
 	verb := "bought"
 	if action == "sell" {
 		verb = "sold"
@@ -64,5 +65,6 @@ func (h *Handler) InsertTradeActivity(ctx context.Context, gameID, userID int64,
 		Action:  action,
 		Detail:  detail,
 		StockID: nint64(stock.ID),
+		Source:  source,
 	})
 }

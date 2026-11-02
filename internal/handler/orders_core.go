@@ -232,7 +232,7 @@ func (h *Handler) PlaceOrder(ctx context.Context, o Order) (OrderResult, error) 
 
 	// Revalue now so the portfolio summary is right straight away.
 	h.revalueParticipant(ctx, participant.ID, game.BaseCurrency)
-	h.InsertTradeActivity(ctx, game.ID, o.UserID, o.Side, stock, quantity)
+	h.InsertTradeActivity(ctx, game.ID, o.UserID, o.Side, stock, quantity, o.Source)
 	go h.CheckAndGrantAchievements(context.Background(), o.UserID, game.ID, participant.ID)
 
 	action := "Bought"

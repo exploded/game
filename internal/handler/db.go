@@ -112,6 +112,7 @@ var addedColumns = []struct{ table, column, ddl string }{
 	{"games", "ai_trading", "INTEGER NOT NULL DEFAULT 1"},
 	{"transactions", "source", "TEXT NOT NULL DEFAULT ''"},
 	{"limit_orders", "source", "TEXT NOT NULL DEFAULT ''"},
+	{"activity_feed", "source", "TEXT NOT NULL DEFAULT ''"},
 }
 
 // onceMigrations run exactly once per database, in order. Each is recorded in
@@ -242,6 +243,17 @@ var onceMigrations = []struct{ name, stmt string }{
 	// Finnhub's analyst ratings. Nothing has filled the table since the move
 	// to Twelve Data. Dropped on 1 November 2026.
 	{"drop-stock-recommendations", "DROP TABLE IF EXISTS stock_recommendations"},
+	// The activity feed marks AI trades from 2 November 2026. Earlier ones
+	// take the source of the player's trade in the same stock and direction
+	// made within 5 seconds of them.
+	{"activity-feed-source", `UPDATE activity_feed SET source = COALESCE((
+			SELECT t.source FROM transactions t
+			JOIN participants p ON p.id = t.participant_id
+			WHERE p.game_id = activity_feed.game_id AND p.user_id = activity_feed.user_id
+				AND t.stock_id = activity_feed.stock_id AND t.type = activity_feed.action
+				AND abs(strftime('%s', t.created_at) - strftime('%s', activity_feed.created_at)) <= 5
+			LIMIT 1), '')
+		WHERE action IN ('buy', 'sell') AND stock_id IS NOT NULL`},
 }
 
 // droppedColumns are columns taken out of schema.sql. Older databases still

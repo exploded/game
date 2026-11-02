@@ -2679,8 +2679,8 @@ func (q *Queries) HideQuestion(ctx context.Context, id int64) error {
 
 const insertActivity = `-- name: InsertActivity :exec
 
-INSERT INTO activity_feed (game_id, user_id, action, detail, stock_id)
-VALUES (?, ?, ?, ?, ?)
+INSERT INTO activity_feed (game_id, user_id, action, detail, stock_id, source)
+VALUES (?, ?, ?, ?, ?, ?)
 `
 
 type InsertActivityParams struct {
@@ -2689,6 +2689,7 @@ type InsertActivityParams struct {
 	Action  string
 	Detail  string
 	StockID sql.NullInt64
+	Source  string
 }
 
 // =============================================================================
@@ -2701,6 +2702,7 @@ func (q *Queries) InsertActivity(ctx context.Context, arg InsertActivityParams) 
 		arg.Action,
 		arg.Detail,
 		arg.StockID,
+		arg.Source,
 	)
 	return err
 }
@@ -3224,7 +3226,7 @@ func (q *Queries) ListActiveUserIDs(ctx context.Context) ([]int64, error) {
 }
 
 const listActivityFeed = `-- name: ListActivityFeed :many
-SELECT af.id, af.game_id, af.user_id, af."action", af.detail, af.stock_id, af.created_at, u.name AS user_name,
+SELECT af.id, af.game_id, af.user_id, af."action", af.detail, af.stock_id, af.created_at, af.source, u.name AS user_name,
     COALESCE(a.image_path, '') AS avatar_path,
     COALESCE(s.name, '') AS stock_name
 FROM activity_feed af
@@ -3250,6 +3252,7 @@ type ListActivityFeedRow struct {
 	Detail     string
 	StockID    sql.NullInt64
 	CreatedAt  string
+	Source     string
 	UserName   string
 	AvatarPath string
 	StockName  string
@@ -3272,6 +3275,7 @@ func (q *Queries) ListActivityFeed(ctx context.Context, arg ListActivityFeedPara
 			&i.Detail,
 			&i.StockID,
 			&i.CreatedAt,
+			&i.Source,
 			&i.UserName,
 			&i.AvatarPath,
 			&i.StockName,

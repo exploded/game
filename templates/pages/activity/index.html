@@ -18,7 +18,7 @@
             {{end}}
         </div>
         <div class="activity-content">
-            <strong>{{.UserName}}</strong>
+            <strong>{{.UserName}}</strong>{{if .Source}}<a href="/ai" class="ai-badge" title="Placed by the player's AI assistant: find out how" aria-label="Placed by the player's AI assistant: find out how">&#129302;</a>{{end}}
             <span class="activity-detail">{{.Detail}}{{if .StockName}} · <a href="/games/{{$.Item.ID}}/stocks/{{.StockID.Int64}}">{{.StockName}}</a>{{end}}</span>
             <span class="text-muted activity-time">{{when .CreatedAt}}</span>
         </div>

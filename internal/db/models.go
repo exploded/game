@@ -24,6 +24,7 @@ type ActivityFeed struct {
 	Detail    string
 	StockID   sql.NullInt64
 	CreatedAt string
+	Source    string
 }
 
 type ApiIdempotency struct {

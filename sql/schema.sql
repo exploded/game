@@ -354,7 +354,8 @@ CREATE TABLE IF NOT EXISTS activity_feed (
     action         TEXT    NOT NULL,                -- 'buy' | 'sell' | 'join' | 'referral'
     detail         TEXT    NOT NULL DEFAULT '',     -- e.g. "bought 100 shares of BHP"
     stock_id       INTEGER DEFAULT NULL REFERENCES stocks(id) ON DELETE SET NULL, -- the stock traded
-    created_at     TEXT    NOT NULL DEFAULT (datetime('now'))
+    created_at     TEXT    NOT NULL DEFAULT (datetime('now')),
+    source         TEXT    NOT NULL DEFAULT ''      -- a trade's: '' the site, 'api' or 'mcp': placed by the player's AI
 );
 CREATE INDEX IF NOT EXISTS idx_activity_game ON activity_feed(game_id, created_at DESC);
 

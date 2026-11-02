@@ -886,8 +886,8 @@ SELECT * FROM achievements WHERE key = ?;
 -- =============================================================================
 
 -- name: InsertActivity :exec
-INSERT INTO activity_feed (game_id, user_id, action, detail, stock_id)
-VALUES (?, ?, ?, ?, ?);
+INSERT INTO activity_feed (game_id, user_id, action, detail, stock_id, source)
+VALUES (?, ?, ?, ?, ?, ?);
 
 -- name: ListActivityFeed :many
 SELECT af.*, u.name AS user_name,

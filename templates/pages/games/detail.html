@@ -59,6 +59,10 @@
                 <span class="info-label">After Hours</span>
                 <span class="info-value">{{if .Item.AfterHoursTrading}}Market orders fill at the last close{{else}}Market orders wait for the open{{end}}</span>
             </div>
+            <div class="info-item">
+                <span class="info-label">AI Trading</span>
+                <span class="info-value">{{if .Item.AiTrading}}Your own AI can trade for you{{else}}Your own AI can check your portfolio, but not trade{{end}} (<a href="/ai">how</a>)</span>
+            </div>
         </div>
 
         <h2>When the game ends</h2>

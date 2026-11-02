@@ -328,6 +328,20 @@ func TestActivityShowsEveryPlayer(t *testing.T) {
 			t.Errorf("page is missing %q", want)
 		}
 	}
+	if strings.Contains(body, `class="ai-badge"`) {
+		t.Error("a trade from the site has the AI badge")
+	}
+
+	// A trade the player's AI placed gets the robot.
+	if err := q.InsertActivity(t.Context(), db.InsertActivityParams{
+		GameID: 1, UserID: 2, Action: "sell", Detail: "sold 1 share of ACME", StockID: nint64(1), Source: "mcp",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	body = getPage(t, srv, "/games/1/activity", "")
+	if !strings.Contains(body, `<strong>Bob</strong><a href="/ai" class="ai-badge"`) {
+		t.Error("an AI trade has no AI badge")
+	}
 }
 
 func TestGameHomeIsRulesForNonPlayers(t *testing.T) {

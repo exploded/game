@@ -238,11 +238,11 @@ Code, Codex, a cron job) use a personal API key with the JSON API at
 the agent at `/agents.md`. Players can revoke keys and disconnect apps there.
 The site never runs an AI to choose trades: the player's AI does. Trades made
 this way are marked "via AI" in History, and players who use it get a robot
-beside their name on the leaderboard. `/ai` explains it all, with example
-prompts. Admins can turn AI trading off for a game.
+beside their name on the leaderboard (and on their trades in Activity), which
+links to `/ai`. `/ai` explains it all, with example prompts; Help and each
+game's rules link to it too. Admins can turn AI trading off for a game.
 
-The footer links to About, Help, Trade with your AI, Contact, Privacy and
-Terms. The Contact form
+The footer links to About, Help, Contact, Privacy and Terms. The Contact form
 needs an account, because everything sent through it while it was open to the
 public was spam.
 

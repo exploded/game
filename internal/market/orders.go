@@ -257,6 +257,7 @@ func fillLimitOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrde
 		Action:  order.Type,
 		Detail:  verb + " " + itoa(order.Quantity) + noun + order.Symbol + how,
 		StockID: sql.NullInt64{Int64: order.StockID, Valid: true},
+		Source:  order.Source,
 	})
 
 	return nil
