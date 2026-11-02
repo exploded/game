@@ -339,6 +339,7 @@ app.js goes back through history when it can. */}}
     </div>{{end}}
 </div>
 
+{{if or $p.LastSplitFactor $p.LastSplitDate}}
 <h2 style="margin-top:2rem">Splits</h2>
 <div class="info-grid">
     {{if $p.LastSplitFactor}}<div class="info-item">
@@ -350,6 +351,7 @@ app.js goes back through history when it can. */}}
         <span class="info-value">{{$p.LastSplitDate}}</span>
     </div>{{end}}
 </div>
+{{end}}
 
 {{with .Extra.RobVideos}}
 <h2 style="margin-top:2rem">Rob talks about {{$.Item.Symbol}}</h2>
