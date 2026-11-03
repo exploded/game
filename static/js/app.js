@@ -168,36 +168,28 @@ document.addEventListener("click", function(e) {
 
 // The Stocks tab goes back to the list as the player left it (chip, sector
 // or search) rather than the default list. Remembered for this browser tab.
+// data-stocks-tab on the link names its game, so it works from any page.
 (function() {
-    const m = location.pathname.match(/^\/games\/(\d+)(\/stocks\/?$)?/);
-    if (!m) return;
-    const key = "stocks-list:" + m[1];
     try {
-        if (m[2]) {
+        const m = location.pathname.match(/^\/games\/(\d+)\/stocks\/?$/);
+        if (m) {
             // The chips and search change the address without reloading.
-            const save = function() { sessionStorage.setItem(key, location.pathname + location.search); };
+            const save = function() { sessionStorage.setItem("stocks-list:" + m[1], location.pathname + location.search); };
             save();
             window.addEventListener("pagehide", save);
             document.body.addEventListener("htmx:after:swap", save);
-            return;
         }
-        const list = sessionStorage.getItem(key);
-        if (list) document.querySelectorAll("a[data-stocks-tab]").forEach(function(a) { a.href = list; });
+        document.querySelectorAll("a[data-stocks-tab]").forEach(function(a) {
+            const list = sessionStorage.getItem("stocks-list:" + a.getAttribute("data-stocks-tab"));
+            if (list) a.href = list;
+        });
     } catch (err) {
         // Storage blocked: the tab opens the default list.
     }
 })();
 
-// data-nav-toggle: open and close the mobile nav.
-document.addEventListener("click", function(e) {
-    const btn = e.target.closest("[data-nav-toggle]");
-    if (btn) {
-        btn.parentElement.classList.toggle("nav-open");
-    }
-});
-
-// details[data-dismiss] (the game switcher and the phone tab bar's More
-// menu): close when tapping anywhere outside it.
+// details[data-dismiss] (the account menu and the game switcher): close
+// when tapping anywhere outside it.
 document.addEventListener("click", function(e) {
     document.querySelectorAll("details[data-dismiss][open]").forEach(function(d) {
         if (!d.contains(e.target)) d.removeAttribute("open");

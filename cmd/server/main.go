@@ -344,7 +344,6 @@ func main() {
 			r.Post("/orders/{oid}/cancel", h.LimitOrderCancel)
 
 			// Watchlist (Feature 2)
-			r.Get("/watchlist", h.WatchlistPage)
 			r.Post("/watchlist/{sid}", h.WatchlistAdd)
 			r.Delete("/watchlist/{sid}", h.WatchlistRemove)
 
@@ -353,12 +352,6 @@ func main() {
 
 			// Activity Feed (Feature 10)
 			r.Get("/activity", h.ActivityFeed)
-
-			// Analytics (Features 9, 12, 13, 14, 15)
-			r.Get("/analytics", h.TradeAnalytics)
-			r.Get("/sectors", h.SectorBreakdown)
-			r.Get("/compare", h.PortfolioComparison)
-			r.Get("/benchmark", h.BenchmarkComparison)
 		})
 
 		// Learn: asking, voting and stream reminders
@@ -381,7 +374,6 @@ func main() {
 		r.With(chatLimiter.Middleware).Post("/lobby", h.LobbySend)
 
 		// Profile & Avatars
-		r.Get("/profile", h.ProfilePage)
 		r.Post("/profile/avatar", h.ProfileUpdateAvatar)
 
 		// Achievements (Feature 8)
@@ -389,7 +381,6 @@ func main() {
 
 		// Notifications (Feature 19)
 		r.Get("/notifications", h.NotificationsPage)
-		r.Get("/notifications/count", h.NotificationCount)
 		r.Post("/notifications/{nid}/read", h.NotificationMarkRead)
 		r.Post("/notifications/read-all", h.NotificationMarkAllRead)
 

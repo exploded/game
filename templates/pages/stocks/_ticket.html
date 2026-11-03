@@ -29,7 +29,7 @@ were. All money in cents; data-rate is AUD/USD * 1,000,000. */}}
             {{with $.Extra.Back}}<a href="{{.URL}}" class="btn btn-primary" data-back>&lsaquo; {{if eq .Label "Back"}}Back{{else}}Back to {{.Label}}{{end}}</a>{{end}}
             <button type="button" class="btn btn-secondary" data-ticket-again>Trade again</button>
         </div>
-        {{if .ToOrders}}<a href="/games/{{$g.ID}}/orders" class="ticket-done-link">See it on the Orders tab</a>{{else}}<a href="/games/{{$g.ID}}" class="ticket-done-link">View your portfolio</a>{{end}}
+        {{if .ToOrders}}<a href="/games/{{$g.ID}}/orders" class="ticket-done-link">See it in your orders</a>{{else}}<a href="/games/{{$g.ID}}" class="ticket-done-link">View your portfolio</a>{{end}}
     </div>
     {{end}}
 
@@ -133,7 +133,7 @@ were. All money in cents; data-rate is AUD/USD * 1,000,000. */}}
 {{end}}
 
 {{/* The reply to an order from the ticket: the ticket again, with the
-confirmation, and the game bar's cash and value swapped in beside it. */}}
+confirmation, and the top bar's cash and value swapped in beside it. */}}
 {{define "ticket-update"}}
 {{template "ticket" .}}
 {{with .Extra.Trade}}{{template "gamebar-stats" dict "Game" $.Extra.Game "P" .Participant "OOB" true}}{{end}}

@@ -22,10 +22,18 @@ func (h *Handler) SettingsPage(w http.ResponseWriter, r *http.Request) {
 	for i, c := range mail.Optional {
 		rows[i] = emailPref{CategoryInfo: c, On: prefs[c.Key]}
 	}
+	// Avatars, with the achievement each locked one needs.
+	avatars, _ := h.q.ListAvatars(r.Context())
+	achieved, _ := h.q.ListUserAchievements(r.Context(), user.ID)
+	earned := make(map[string]bool, len(achieved))
+	for _, ua := range achieved {
+		earned[ua.Key] = true
+	}
 	h.render(w, r, "settings/index", "", PageData{
-		Title: "Account Settings",
+		Title: "Settings",
 		Item:  user,
 		Items: rows,
+		Extra: map[string]any{"Avatars": avatars, "EarnedKeys": earned},
 	})
 }
 

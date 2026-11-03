@@ -111,7 +111,7 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 
 // placeFromForm places o for a form post and answers it: the ticket is drawn
 // again with a confirmation, or a refusal is a toast or flash. back is where
-// the order came from; a waiting order goes to the Orders tab, except a
+// the order came from; a waiting order goes to the Orders page, except a
 // queued one from the home page, which stays there.
 func (h *Handler) placeFromForm(w http.ResponseWriter, r *http.Request, o Order, back string, fromHome bool) {
 	res, err := h.PlaceOrder(r.Context(), o)
@@ -163,7 +163,7 @@ func tradeError(w http.ResponseWriter, r *http.Request, msg, back string) {
 // tradeDone is the confirmation at the top of the ticket after an order.
 type tradeDone struct {
 	Message  string
-	ToOrders bool // a limit or queued order, waiting on the Orders tab
+	ToOrders bool // a limit or queued order, waiting on the Orders page
 }
 
 // orderPlaced finishes a successful order. The ticket (htmx) is drawn again

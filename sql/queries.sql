@@ -1006,18 +1006,7 @@ ORDER BY s.symbol;
 -- =============================================================================
 
 -- =============================================================================
--- Trade Analytics (Feature 15)
--- =============================================================================
-
--- name: ListAllTransactions :many
-SELECT t.*, s.symbol, s.name AS stock_name, s.market, s.currency
-FROM transactions t
-JOIN stocks s ON s.id = t.stock_id
-WHERE t.participant_id = ?
-ORDER BY t.created_at ASC;
-
--- =============================================================================
--- Sector Holdings (Feature 12)
+-- Sector Holdings (the home page's sectors)
 -- =============================================================================
 
 -- name: ListHoldingsBySector :many

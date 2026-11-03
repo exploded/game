@@ -65,14 +65,3 @@ func (h *Handler) NotificationMarkAllRead(w http.ResponseWriter, r *http.Request
 	setFlashCookie(w, "All notifications marked as read", "success")
 	http.Redirect(w, r, "/notifications", http.StatusSeeOther)
 }
-
-// NotificationCount returns the unread count as an HTMX fragment for the nav badge.
-func (h *Handler) NotificationCount(w http.ResponseWriter, r *http.Request) {
-	user := auth.UserFromContext(r.Context())
-	count, _ := h.q.CountUnreadNotifications(r.Context(), user.ID)
-
-	w.Header().Set("Content-Type", "text/html")
-	if count > 0 {
-		w.Write([]byte(strconv.FormatInt(count, 10)))
-	}
-}

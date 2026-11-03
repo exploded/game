@@ -1,39 +1,84 @@
+{{/* The top bar. Signed in, it holds the five sections (as links on a wide
+screen; a phone gets them in the tab bar at the bottom, _dock.html), the
+game's cash, the bell and the account menu. .Nav is set by render
+(sitenav.go). Nothing in it loads after the page, so it never shifts. */}}
 {{define "nav"}}
-<nav class="nav">
-    <div class="container nav-inner">
-        <a href="/dashboard" class="nav-brand">The Wealth Lab</a>
-        {{if .User}}
-        <button class="nav-toggle" data-nav-toggle aria-label="Menu">
-            <span></span><span></span><span></span>
-        </button>
-        <div class="nav-links">
-            <a href="/dashboard">Play</a>
-            <a href="/lobby">Lobby</a>
-            <a href="/learn/questions">Learn</a>
-            <a href="/achievements">Achievements</a>
-            <a href="/notifications" class="nav-notif">
-                Notifications
-                <span class="notif-badge"
-                    hx-get="/notifications/count"
-                    hx-trigger="load"
-                    hx-swap="innerHTML"></span>
+<header class="topbar">
+    <div class="container topbar-inner">
+        <a href="{{with .Nav}}{{.Home}}{{else}}/{{end}}" class="brand" aria-label="The Wealth Lab: home">
+            <img src="{{asset "favicon.svg"}}" alt="" width="26" height="26" class="brand-mark">
+            <span class="brand-name">The Wealth Lab</span>
+        </a>
+        {{with .Nav}}
+        <nav class="topbar-links" aria-label="Main">{{template "nav-sections" .}}</nav>
+        <div class="topbar-end">
+            {{/* The home page shows these in its summary card. */}}
+            {{with $.GameBar}}{{if and .Participant (ne .Tab "home") (eq .Game.ID $.Nav.GameID)}}{{template "gamebar-stats" dict "Game" .Game "P" .Participant}}{{end}}{{end}}
+            <a href="/notifications" class="topbar-icon{{if eq .Tab "notifications"}} active{{end}}" title="Notifications" aria-label="Notifications{{with .Unread}}, {{.}} unread{{end}}">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 003.4 0"/></svg>
+                {{with .Unread}}<span class="bell-count">{{if gt . 9}}9+{{else}}{{.}}{{end}}</span>{{end}}
             </a>
-            {{if .User.IsAdmin}}
-            <a href="/admin">Admin</a>
-            {{end}}
-            <a href="/profile" class="nav-user-link" title="Profile">
-                <img src="{{avatarURL .User.AvatarID}}" alt="" class="avatar-nav">
-                <span class="nav-user">{{.User.Name}}</span>
-            </a>
-            <a href="/settings" class="nav-settings" title="Account Settings">Settings</a>
-            <form method="POST" action="/logout" style="display:inline"><button type="submit" class="nav-logout">Logout</button></form>
+            <details class="acct" data-dismiss>
+                <summary class="topbar-icon" title="Account" aria-label="Account menu">
+                    <img src="{{avatarURL $.User.AvatarID}}" alt="" width="28" height="28" class="acct-avatar">
+                </summary>
+                <div class="acct-menu">
+                    <div class="acct-who">
+                        <strong>{{$.User.Name}}</strong>
+                        <span class="text-muted">{{$.User.Email}}</span>
+                    </div>
+                    <a href="{{.In "orders"}}">Orders</a>
+                    <a href="{{.In "history"}}">My history</a>
+                    <a href="/achievements">Achievements</a>
+                    <a href="{{.In "rules"}}">Game rules</a>
+                    <a href="/games">Past and upcoming games</a>
+                    <hr>
+                    <a href="/settings">Settings and avatar</a>
+                    <a href="/settings/api">Connect your AI</a>
+                    <a href="/help">Help</a>
+                    {{if $.User.IsAdmin}}<a href="/admin">Admin</a>{{end}}
+                    <form method="POST" action="/logout"><button type="submit">Sign out</button></form>
+                </div>
+            </details>
         </div>
         {{else}}
-        <div class="nav-links nav-links-public">
+        <nav class="topbar-public" aria-label="Main">
             <a href="/learn/questions">Learn</a>
-            <a href="/login" class="btn btn-sm btn-primary nav-signin">Sign in</a>
-        </div>
+            <a href="/login" class="btn btn-sm btn-primary">Sign in</a>
+        </nav>
         {{end}}
     </div>
-</nav>
+</header>
+{{end}}
+
+{{/* The phone's tab bar: the same five sections, in thumb reach. Desktop
+never shows it. . is PageData. */}}
+{{define "dock"}}{{with .Nav}}
+<nav class="dock" aria-label="Main">{{template "nav-sections" .}}</nav>
+{{end}}{{end}}
+
+{{/* The five sections, for the top bar and the tab bar; the top bar hides
+the icons. data-stocks-tab names the game, so app.js can reopen the list
+the player left. . is the siteNav. */}}
+{{define "nav-sections"}}{{$tab := .Tab}}
+<a href="{{.Home}}"{{if eq $tab "home"}} class="active" aria-current="page"{{end}}>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9v11h14V9"/><path d="M10 20v-6h4v6"/></svg>
+    <span>Home</span>
+</a>
+<a href="{{.In "stocks"}}" data-stocks-tab="{{.GameID}}"{{if eq $tab "stocks"}} class="active" aria-current="page"{{end}}>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+    <span>Stocks</span>
+</a>
+<a href="{{.In "leaderboard"}}"{{if eq $tab "ranks"}} class="active" aria-current="page"{{end}}>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0z"/><path d="M17 5h3v2a3 3 0 01-3 3M7 5H4v2a3 3 0 003 3"/></svg>
+    <span>Ranks</span>
+</a>
+<a href="/learn/questions"{{if eq $tab "learn"}} class="active" aria-current="page"{{end}}>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9.5v5l4.5-2.5z"/></svg>
+    <span>Learn</span>
+</a>
+<a href="/lobby"{{if eq $tab "chat"}} class="active" aria-current="page"{{end}}>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 01-11.6 7.1L4 20l1-4.4A8 8 0 1121 12z"/></svg>
+    <span>Chat</span>
+</a>
 {{end}}

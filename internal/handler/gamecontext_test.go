@@ -23,9 +23,8 @@ func TestGameTab(t *testing.T) {
 		"/games/7/stocks":         "stocks",
 		"/games/7/stocks/12":      "stocks",
 		"/games/7/orders":         "orders",
-		"/games/7/watchlist":      "watchlist",
 		"/games/7/leaderboard":    "leaderboard",
-		"/games/7/sectors":        "analytics",
+		"/games/7/sectors":        "", // removed
 		"/games/7/activity":       "activity",
 		"/games/7/export/history": "",
 	} {
@@ -126,7 +125,7 @@ func TestGameHomeIsPortfolio(t *testing.T) {
 
 	body := getPage(t, srv, "/games/1", "")
 	for _, want := range []string{
-		`href="/games/1" class="active">Portfolio`,
+		`href="/games/1" class="active" aria-current="page">`, // Home
 		`<span class="rank-place">2nd</span>`,
 		`$1,000.00 behind Bob`,
 		`<span class="pill pill-up">&#43;5.00%</span> <span class="c-amt">&#43;$5.00</span>`,   // today
@@ -350,7 +349,7 @@ func TestActivityShowsEveryPlayer(t *testing.T) {
 	body := getPage(t, srv, "/games/1/activity", "")
 	for _, want := range []string{
 		"Game activity",
-		`href="/games/1/activity" class="active">Activity`,
+		`href="/games/1/leaderboard" class="active" aria-current="page">`, // under Ranks
 		"<strong>Bob</strong>",
 		`bought 3 shares of ACME · <a href="/games/1/stocks/1">Acme Corp</a>`,
 	} {
@@ -377,8 +376,13 @@ func TestActivityShowsEveryPlayer(t *testing.T) {
 func TestGameHomeIsRulesForNonPlayers(t *testing.T) {
 	srv, _ := gameServer(t)
 	body := getPage(t, srv, "/games/1", "2")
-	if !strings.Contains(body, `href="/games/1" class="active">Overview`) {
-		t.Error("Overview tab isn't active for a non-player")
+	// Not this month's game, so the strip names it, and the nav opens this
+	// month's (none in the test, so the dashboard).
+	if !strings.Contains(body, `<a href="/games/1" aria-current="page">Overview</a>`) {
+		t.Error("the game strip's Overview isn't current for a non-player")
+	}
+	if !strings.Contains(body, `class="dock"`) || !strings.Contains(body, `href="/dashboard" class="active"`) {
+		t.Error("a non-player's tab bar doesn't open this month's game")
 	}
 	if !strings.Contains(body, "Starting Balance") || !strings.Contains(body, "Join Game") {
 		t.Error("non-player isn't shown the rules and a Join button")
@@ -388,8 +392,8 @@ func TestGameHomeIsRulesForNonPlayers(t *testing.T) {
 func TestRulesPage(t *testing.T) {
 	srv, _ := gameServer(t)
 	body := getPage(t, srv, "/games/1/rules", "")
-	if !strings.Contains(body, `href="/games/1/rules" class="active">Rules`) || !strings.Contains(body, "Starting Balance") {
-		t.Error("rules page doesn't show the rules under the Rules tab")
+	if !strings.Contains(body, `href="/games/1" class="active" aria-current="page">`) || !strings.Contains(body, "Starting Balance") {
+		t.Error("rules page doesn't show the rules under Home")
 	}
 }
 
@@ -484,11 +488,10 @@ func TestStockPageHasGameBarAndTicket(t *testing.T) {
 	}
 	body := w.Body.String()
 	for _, want := range []string{
-		`class="game-bar has-dock"`,
-		`class="game-dock"`, // the phone tab bar, for players only
-		`Spring Cup`,
-		`href="/games/1/stocks" data-stocks-tab class="active">Stocks`,
-		`href="/games/1/orders"`,
+		`class="dock"`, // the phone's tab bar
+		`href="/games/1/stocks" data-stocks-tab="1" class="active" aria-current="page">`,
+		`id="game-bar-stats"`,    // cash in the top bar
+		`href="/games/1/orders"`, // in the account menu
 		`id="ticket-form"`,
 		`hx-post="/games/1/trade/1"`, // trades in place, adding no history
 		`<option value="limit">`,

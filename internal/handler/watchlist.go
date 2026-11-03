@@ -9,47 +9,6 @@ import (
 	"github.com/exploded/game/internal/db"
 )
 
-func (h *Handler) WatchlistPage(w http.ResponseWriter, r *http.Request) {
-	user := auth.UserFromContext(r.Context())
-	gameID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-
-	game, err := h.q.GetGame(r.Context(), gameID)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-
-	// The watchlist is the player's, not the game's: it's the same in every
-	// game. The game only sets where its links go.
-	items, _ := h.q.ListWatchlist(r.Context(), user.ID)
-
-	// Get latest prices for each watchlist item.
-	type WatchlistItem struct {
-		db.ListWatchlistRow
-		LatestPrice int64
-		PriceDate   string
-	}
-	var enriched []WatchlistItem
-	for _, item := range items {
-		wi := WatchlistItem{ListWatchlistRow: item}
-		if p, err := h.q.GetLatestPrice(r.Context(), item.StockID); err == nil {
-			wi.LatestPrice = p.Close
-			wi.PriceDate = p.Date
-		}
-		enriched = append(enriched, wi)
-	}
-
-	h.render(w, r, "watchlist/index", "", PageData{
-		Title: "Watchlist - " + game.Name,
-		Item:  game,
-		Items: enriched,
-	})
-}
-
 func (h *Handler) WatchlistAdd(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	gameID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)

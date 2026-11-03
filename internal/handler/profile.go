@@ -9,27 +9,8 @@ import (
 	"github.com/exploded/game/internal/db"
 )
 
-func (h *Handler) ProfilePage(w http.ResponseWriter, r *http.Request) {
-	user := auth.UserFromContext(r.Context())
-
-	avatars, _ := h.q.ListAvatars(r.Context())
-	userAchievements, _ := h.q.ListUserAchievements(r.Context(), user.ID)
-
-	// Build set of earned achievement keys.
-	earned := make(map[string]bool)
-	for _, ua := range userAchievements {
-		earned[ua.Key] = true
-	}
-
-	h.render(w, r, "profile/index", "", PageData{
-		Title: "Profile",
-		Items: avatars,
-		Extra: map[string]any{
-			"EarnedKeys": earned,
-		},
-	})
-}
-
+// ProfileUpdateAvatar sets the player's avatar, from Settings. Locked
+// avatars need their achievement.
 func (h *Handler) ProfileUpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	r.ParseForm()
@@ -64,7 +45,7 @@ func (h *Handler) ProfileUpdateAvatar(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			setFlashCookie(w, "You haven't unlocked this avatar yet!", "error")
-			http.Redirect(w, r, "/profile", http.StatusSeeOther)
+			http.Redirect(w, r, "/settings", http.StatusSeeOther)
 			return
 		}
 	}
@@ -80,5 +61,5 @@ func (h *Handler) ProfileUpdateAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	setFlashCookie(w, "Avatar updated!", "success")
-	http.Redirect(w, r, "/profile", http.StatusSeeOther)
+	http.Redirect(w, r, "/settings", http.StatusSeeOther)
 }

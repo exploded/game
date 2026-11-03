@@ -2,19 +2,26 @@
 
 {{define "content"}}
 {{- $pt := .Extra.Participant -}}
-{{with .Extra.Standing}}{{if gt .Of 1}}
-<a href="/games/{{$.Item.ID}}/leaderboard" class="rank-strip">
-    <span class="rank-place">{{.Place}}</span>
-    <span class="rank-text">
-        <span>of {{.Of}} players</span>
-        <span class="text-muted">{{if .Ahead}}{{cents .Gap}} behind {{.Ahead}}{{else}}You're in the lead{{end}}</span>
-    </span>
-    <span class="rank-more">Leaderboard &rsaquo;</span>
-</a>
-{{end}}{{end}}
+<div class="home-head">
+    <h1>{{.Item.Name}}</h1>
+    {{with .Extra.DaysLeft}}<span class="text-muted">{{.}}</span>{{end}}
+    {{with .GameBar}}{{with .Others}}
+    <details class="game-switcher" data-dismiss>
+        <summary>Switch game</summary>
+        <ul>{{range .}}<li><a href="/games/{{.ID}}">{{.Name}}</a></li>{{end}}</ul>
+    </details>
+    {{end}}{{end}}
+</div>
 
+{{/* The value, its moves, the player's place and the month's chart in one
+card, as the trading apps lead with. */}}
 <div class="portfolio-hero">
-    <span class="stat-label">{{if .Extra.Over}}Final value{{else}}Total value{{end}}</span>
+    <div class="hero-top">
+        <span class="stat-label">{{if .Extra.Over}}Final value{{else}}Total value{{end}}</span>
+        {{with .Extra.Standing}}{{if gt .Of 1}}
+        <a href="/games/{{$.Item.ID}}/leaderboard" class="hero-rank"><span class="rank-place">{{.Place}}</span> of {{.Of}} &rsaquo;</a>
+        {{end}}{{end}}
+    </div>
     <div class="hero-value mono">{{cents $pt.PortfolioValue}}</div>
     <div class="hero-change">
         {{/* Today is only the shares' move in the last US session, so it's
@@ -23,6 +30,8 @@
         {{with .Extra.Today}}{{if .Amount}}<span><span class="pill {{.Class}}">{{.Text}} ({{.Pct}})</span> <span class="text-muted">{{with $.Extra.SessionDay}}on {{.}}{{else}}today{{end}}</span></span>{{end}}{{end}}
         {{with .Extra.Total}}<span><span class="pill {{.Class}}">{{.Text}} ({{.Pct}})</span> <span class="text-muted">since the start</span></span>{{end}}
     </div>
+    {{with .Extra.Standing}}{{if gt .Of 1}}<p class="hero-gap text-muted">{{if .Ahead}}{{cents .Gap}} behind {{.Ahead}}{{else}}You're in the lead{{end}}</p>{{end}}{{end}}
+    {{if .Extra.Snapshots}}<div class="perf-chart"><canvas id="portfolio-chart" role="img" aria-label="Your portfolio's value each day this month"></canvas></div>{{end}}
     <div class="hero-split">
         <div><span class="stat-label">Cash</span><span class="mono">{{cents $pt.CashBalance}}</span></div>
         <div><span class="stat-label">Invested</span><span class="mono">{{cents (subtract $pt.PortfolioValue $pt.CashBalance)}}</span></div>
@@ -31,7 +40,27 @@
     </div>
 </div>
 
+{{/* Orders waiting to fill: limit orders, and market orders placed while
+the US market was closed. The Orders page has them all. */}}
+{{with .Extra.Orders}}
 <section class="section">
+    <div class="section-header">
+        <h2>Waiting orders</h2>
+        <a href="/games/{{$.Item.ID}}/orders" class="learn-more">{{if $.Extra.MoreOrders}}All orders{{else}}Orders{{end}} &rsaquo;</a>
+    </div>
+    <ul class="order-list">
+        {{range .}}
+        <li>
+            <a href="/games/{{$.Item.ID}}/stocks/{{.StockID}}"><span class="badge {{if eq .Type "buy"}}badge-active{{else}}badge-cancelled{{end}}">{{.Type}}</span> {{.Quantity}} <strong>{{.Symbol}}</strong></a>
+            <span class="text-muted">{{if eq .Kind "market"}}At the next open{{else}}Limit {{cents .LimitPrice}}{{end}}</span>
+        </li>
+        {{end}}
+    </ul>
+</section>
+{{end}}
+
+<section class="section">
+    {{if .Items}}
     <div class="section-header">
         <h2>Holdings</h2>
         <div class="page-header-actions">
@@ -39,7 +68,6 @@
             {{if eq .Item.Status "active"}}<a href="/games/{{.Item.ID}}/stocks" class="btn btn-primary btn-sm">Buy stocks</a>{{end}}
         </div>
     </div>
-    {{if .Items}}
     {{/* rtable: a table on desktop, one tappable card per row on a phone.
     Today and Total are in the stock's own currency. A finished game shows
     the values from its end, so there's no Today. */}}
@@ -93,11 +121,24 @@
             {{end}}
         </tbody>
     </table>
-    {{else}}
-    {{if eq .Item.Status "active"}}
-    <p class="text-muted">You haven't bought anything yet. Find a stock to buy:</p>
-    <div class="search-bar">
-        <input type="search" placeholder="Search by symbol or name"
+    {{else if eq .Item.Status "active"}}
+    {{/* A first visit: how the game works, then stocks to tap straight away. */}}
+    <ol class="howto">
+        <li><strong>You have {{cents $pt.CashBalance}}</strong> of play money to invest.</li>
+        <li><strong>Buy US shares.</strong> Tap a stock, then Buy.</li>
+        <li><strong>Top the leaderboard</strong> when the month ends to win.</li>
+    </ol>
+    {{with .Extra.Picks}}
+    <div class="section-header">
+        <h2>Start with Rob's Picks</h2>
+        <a href="/games/{{$.Item.ID}}/stocks" class="learn-more">All stocks &rsaquo;</a>
+    </div>
+    <table class="rtable screener">
+        <tbody>{{template "stock-rows" dict "Items" . "Item" $.Item "Extra" (dict "ShowNotes" true)}}</tbody>
+    </table>
+    {{end}}
+    <div class="search-bar home-search">
+        <input type="search" placeholder="Or search by symbol or name"
             hx-get="/games/{{.Item.ID}}/search"
             hx-trigger="input changed delay:300ms, search"
             hx-target="#stock-results"
@@ -106,23 +147,31 @@
             aria-label="Search stocks"
             class="search-input">
     </div>
-    {{/* StockSearch fills this with the rows from stocks/browse.html. */}}
-    <table class="rtable">
+    {{/* StockSearch fills this with the rows from partials/_stockrows.html. */}}
+    <table class="rtable screener">
         <tbody id="stock-results"></tbody>
     </table>
-    <p><a href="/games/{{.Item.ID}}/stocks" class="btn btn-primary">Browse all stocks</a></p>
     {{else}}
     <div class="empty-state">
-        <p>No holdings yet.</p>
+        <p>No holdings.</p>
     </div>
-    {{end}}
     {{end}}
 </section>
 
-{{if .Extra.Snapshots}}
+{{/* Where the money is, by sector: one bar per sector, so it reads without
+a colour key. */}}
+{{with .Extra.Sectors}}
 <section class="section">
-    <h2>Performance</h2>
-    <div class="perf-chart"><canvas id="portfolio-chart"></canvas></div>
+    <h2>Sectors</h2>
+    <ul class="sector-bars">
+        {{range .}}
+        <li>
+            <span class="sb-name">{{.Name}}</span>
+            <span class="sb-pct mono">{{printf "%.0f" .Pct}}%</span>
+            <span class="sb-track" aria-hidden="true"><span class="sb-fill" style="width:{{printf "%.1f" .Pct}}%"></span></span>
+        </li>
+        {{end}}
+    </ul>
 </section>
 {{end}}
 

@@ -43,7 +43,7 @@ type mcpNoInput struct{}
 
 type mcpFindStocks struct {
 	Query  string `json:"query,omitempty" jsonschema:"Search by symbol or company name, such as NVDA or nvidia. Searches every stock and ignores filter and sector."`
-	Filter string `json:"filter,omitempty" jsonschema:"A list or financial filter from the filters this tool returns, such as picks (Rob's Picks, the default), all, mag7, tech, up (gainers), down (losers), big, active (most traded), aus, intl, crypto, popular (players' favourites) or score (health score 4 or 5)."`
+	Filter string `json:"filter,omitempty" jsonschema:"A list or financial filter from the filters this tool returns, such as picks (Rob's Picks, the default), watch (the player's watchlist), all, mag7, tech, up (gainers), down (losers), big, active (most traded), aus, intl, crypto, popular (players' favourites) or score (health score 4 or 5)."`
 	Sector string `json:"sector,omitempty" jsonschema:"Only stocks in this sector, such as Information Technology."`
 	Limit  int    `json:"limit,omitempty" jsonschema:"How many stocks to return. Default 50."`
 }

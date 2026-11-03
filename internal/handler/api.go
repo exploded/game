@@ -284,12 +284,7 @@ func (h *Handler) apiStocks(ctx context.Context, game db.Game, p db.Participant,
 	if err != nil {
 		return apiStockList{}, err
 	}
-	f := filterKey(filter)
-	var holders map[int64]int64
-	if f == "popular" && strings.TrimSpace(q) == "" {
-		holders = h.holderCounts(ctx, game.ID)
-	}
-	res := applyFilter(rows, f, sector, q, holders)
+	res := h.screen(ctx, game.ID, p.UserID, rows, filterKey(filter), sector, q)
 	h.markRows(ctx, p.ID, p.UserID, res.Rows)
 	if limit <= 0 {
 		limit = apiListLimit

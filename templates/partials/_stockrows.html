@@ -1,0 +1,27 @@
+{{/* One row per stock, for the stocks page and the start of an empty
+portfolio. Also served alone by StockSearch for the search there. */}}
+{{define "stock-rows"}}
+{{range .Items}}
+<tr>
+    <td class="c-main">
+        <div class="sc-stock">
+            {{if .Logo}}<img src="{{.Logo}}" alt="" width="32" height="32" loading="lazy" referrerpolicy="no-referrer" class="sc-logo">{{else}}<span class="sc-logo sc-letter" aria-hidden="true">{{.Initial}}</span>{{end}}
+            <div class="sc-text">
+                <a href="/games/{{$.Item.ID}}/stocks/{{.ID}}" class="stretch"><strong>{{.Symbol}}</strong></a>
+                <span class="c-sub">{{.Name}}</span>
+                {{if gt .Held 0}}<span class="badge badge-held">You hold {{.Held}}</span>{{else if lt .Held 0}}<span class="badge badge-held">Short {{.HeldShares}}</span>{{end}}
+                {{if and $.Extra.ShowNotes .PickNote}}<span class="c-sub sc-note">{{.PickNote}}</span>{{end}}
+                {{if .Holders}}<span class="c-sub">{{.Holders}} {{if eq .Holders 1}}player{{else}}players{{end}}</span>{{end}}
+                {{if or .Figure .HasHealth}}<span class="c-sub sc-fin">{{with .Figure}}<span>{{.}}</span>{{end}}{{if .HasHealth}}<span class="badge badge-health" title="Health score: a point each for a profit, positive free cash flow, debt-to-equity under 1, a current ratio over 1 and revenue up on a year earlier">Health {{.Health}}/5</span>{{end}}</span>{{end}}
+            </div>
+        </div>
+    </td>
+    <td class="c-spark">{{if .Spark}}<svg class="spark {{if .SparkUp}}spark-up{{else}}spark-down{{end}}" viewBox="0 0 60 20" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{.Spark}}"/></svg>{{end}}</td>
+    <td class="c-end num">{{if .Price}}<span class="sc-price">{{if eq .Currency "USD"}}US{{end}}{{cents .Price}}</span>{{with .Today}}{{if .Base}}<span class="pill {{.Class}}">{{.Pct}}</span>{{end}}{{end}}{{else}}<span class="text-muted">N/A</span>{{end}}</td>
+    <td class="text-muted hide-sm">{{.Sector}}</td>
+    <td class="c-watch">{{template "watch-star" dict "Game" $.Item.ID "Stock" .ID "Symbol" .Symbol "Watching" .Watching}}</td>
+</tr>
+{{else}}
+<tr><td colspan="5" class="text-muted">No stocks match.</td></tr>
+{{end}}
+{{end}}

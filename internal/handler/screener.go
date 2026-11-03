@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -261,6 +262,7 @@ type screenFilter struct {
 	Group      string                    // what the chip lists, for the caption
 	Order      string                    // how it's ordered, if the caption should say
 	Explain    string                    // what a financial chip's test means, under the caption
+	Empty      string                    // what to say when it lists nothing; "" for "No stocks match."
 	keep       func(screenRow) bool      // nil keeps every row
 	less       func(a, b screenRow) bool // nil keeps the rows' A–Z order
 	limit      int                       // how many rows it shows; 0 for all
@@ -273,6 +275,12 @@ func biggerCap(a, b screenRow) bool { return a.MarketCap > b.MarketCap }
 // financials (from firstFinFilter). Financial labels say what the test is,
 // not what to make of it: The Wealth Lab mustn't read as advice.
 var screenFilters = []screenFilter{
+	{
+		// Rows are marked with the player's watchlist first (screen).
+		Key: "watch", Label: "Watchlist", Group: "Your watchlist", Order: "A–Z",
+		Empty: "Nothing on your watchlist yet. Tap the star beside any stock to add it.",
+		keep:  func(r screenRow) bool { return r.Watching },
+	},
 	{Key: "all", Label: "All A–Z", Group: "Every stock", Order: "A–Z"},
 	{
 		Key: "picks", Label: "Rob's Picks", Group: "Rob's Picks",
@@ -423,6 +431,7 @@ type screenResult struct {
 	Filter  string // the chip's key, or "" for a search
 	Caption string
 	Explain string // what a financial chip's test means
+	Empty   string // what to say when Rows is empty
 	Rows    []screenRow
 }
 
@@ -451,7 +460,7 @@ func applyFilter(rows []screenRow, f, sector, q string, holders map[int64]int64)
 			sf = c
 		}
 	}
-	res := screenResult{Filter: f, Caption: sf.Group, Explain: sf.Explain}
+	res := screenResult{Filter: f, Caption: sf.Group, Explain: sf.Explain, Empty: sf.Empty}
 	if sector != "" {
 		res.Caption += " in " + sector
 	}
@@ -507,6 +516,32 @@ func searchRows(rows []screenRow, q string) screenResult {
 		out = out[:searchLimit]
 	}
 	return screenResult{Caption: "Results for “" + q + "”", Rows: out}
+}
+
+// screen is applyFilter with what two chips need from outside the cached
+// rows: how many players hold each stock (Players' favourites), and the
+// player's watchlist (Watchlist), marked on a copy since the cached rows are
+// shared.
+func (h *Handler) screen(ctx context.Context, gameID, userID int64, rows []screenRow, f, sector, q string) screenResult {
+	var holders map[int64]int64
+	if strings.TrimSpace(q) == "" {
+		switch filterKey(f) {
+		case "popular":
+			holders = h.holderCounts(ctx, gameID)
+		case "watch":
+			watching := map[int64]bool{}
+			if ws, err := h.q.ListWatchlist(ctx, userID); err == nil {
+				for _, x := range ws {
+					watching[x.StockID] = true
+				}
+			}
+			rows = slices.Clone(rows)
+			for i := range rows {
+				rows[i].Watching = watching[rows[i].ID]
+			}
+		}
+	}
+	return applyFilter(rows, f, sector, q, holders)
 }
 
 // markRows sets Held (from the player's position in this game) and Watching

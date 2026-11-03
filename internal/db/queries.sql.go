@@ -3600,81 +3600,6 @@ func (q *Queries) ListAllStocksByMarket(ctx context.Context, arg ListAllStocksBy
 	return items, nil
 }
 
-const listAllTransactions = `-- name: ListAllTransactions :many
-
-
-SELECT t.id, t.participant_id, t.stock_id, t.type, t.quantity, t.price, t.total, t.converted_total, t.exchange_rate_used, t.fee, t.created_at, t.source, s.symbol, s.name AS stock_name, s.market, s.currency
-FROM transactions t
-JOIN stocks s ON s.id = t.stock_id
-WHERE t.participant_id = ?
-ORDER BY t.created_at ASC
-`
-
-type ListAllTransactionsRow struct {
-	ID               int64
-	ParticipantID    int64
-	StockID          int64
-	Type             string
-	Quantity         int64
-	Price            int64
-	Total            int64
-	ConvertedTotal   int64
-	ExchangeRateUsed int64
-	Fee              int64
-	CreatedAt        string
-	Source           string
-	Symbol           string
-	StockName        string
-	Market           string
-	Currency         string
-}
-
-// =============================================================================
-// Admin - User Activity (Feature 22)
-// =============================================================================
-// =============================================================================
-// Trade Analytics (Feature 15)
-// =============================================================================
-func (q *Queries) ListAllTransactions(ctx context.Context, participantID int64) ([]ListAllTransactionsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listAllTransactions, participantID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListAllTransactionsRow
-	for rows.Next() {
-		var i ListAllTransactionsRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.ParticipantID,
-			&i.StockID,
-			&i.Type,
-			&i.Quantity,
-			&i.Price,
-			&i.Total,
-			&i.ConvertedTotal,
-			&i.ExchangeRateUsed,
-			&i.Fee,
-			&i.CreatedAt,
-			&i.Source,
-			&i.Symbol,
-			&i.StockName,
-			&i.Market,
-			&i.Currency,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listAppConnections = `-- name: ListAppConnections :many
 SELECT id, user_id, kind, name, token_hash, prefix, scope, grant_id, client_id, expires_at, last_used_at, created_at, revoked_at FROM api_tokens
 WHERE user_id = ? AND kind = 'refresh' AND revoked_at IS NULL AND expires_at > datetime('now')
@@ -4386,6 +4311,7 @@ func (q *Queries) ListHoldings(ctx context.Context, participantID int64) ([]List
 
 const listHoldingsBySector = `-- name: ListHoldingsBySector :many
 
+
 SELECT s.sector, SUM(h.current_value) AS total_value
 FROM holdings h
 JOIN stocks s ON s.id = h.stock_id
@@ -4400,7 +4326,10 @@ type ListHoldingsBySectorRow struct {
 }
 
 // =============================================================================
-// Sector Holdings (Feature 12)
+// Admin - User Activity (Feature 22)
+// =============================================================================
+// =============================================================================
+// Sector Holdings (the home page's sectors)
 // =============================================================================
 func (q *Queries) ListHoldingsBySector(ctx context.Context, participantID int64) ([]ListHoldingsBySectorRow, error) {
 	rows, err := q.db.QueryContext(ctx, listHoldingsBySector, participantID)

@@ -2,21 +2,43 @@
 
 {{define "content"}}
 <div class="page-header">
-    <h1>Account Settings</h1>
-    <a href="/dashboard" class="btn btn-sm">&larr; Dashboard</a>
+    <h1>Settings</h1>
 </div>
 
 <div class="settings-card">
-    <h2>Your Profile</h2>
-    <p><strong>Email:</strong> {{.Item.Email}}</p>
-    <p class="text-muted" style="margin-bottom:12px">Member since {{slice .Item.CreatedAt 0 10}}</p>
-    <form method="POST" action="/settings/profile">
-        <div class="form-group" style="max-width:320px">
+    <h2>Your profile</h2>
+    <div class="current-avatar">
+        <img src="{{avatarURL .Item.AvatarID}}" alt="Your avatar" class="avatar-lg">
+        <div>
+            <p><strong>{{.Item.Name}}</strong></p>
+            <p class="text-muted">{{.Item.Email}} &middot; member since {{slice .Item.CreatedAt 0 10}}</p>
+        </div>
+    </div>
+    <form method="POST" action="/settings/profile" class="name-form">
+        <div class="form-group">
             <label for="name">Display name</label>
             <input type="text" id="name" name="name" value="{{.Item.Name}}" maxlength="40" required>
         </div>
         <button type="submit" class="btn btn-sm">Save name</button>
     </form>
+    {{/* Free avatars for everyone; the rest unlock with an achievement. */}}
+    <details class="avatar-picker">
+        <summary>Change avatar</summary>
+        <p class="text-muted">Locked avatars unlock with <a href="/achievements">achievements</a>.</p>
+        <div class="avatar-grid">
+            {{range .Extra.Avatars}}
+            {{$locked := and (eq .Category "achievement") (not (index $.Extra.EarnedKeys .AchievementKey.String))}}
+            <form method="POST" action="/profile/avatar" class="avatar-option{{if $locked}} locked{{end}}{{if and $.Item.AvatarID.Valid (eq $.Item.AvatarID.Int64 .ID)}} selected{{end}}">
+                <input type="hidden" name="avatar_id" value="{{.ID}}">
+                <button type="submit" class="avatar-btn"{{if $locked}} disabled title="Unlocks with an achievement"{{end}}>
+                    <img src="{{.ImagePath}}" alt="" class="avatar-preview">
+                    <span class="avatar-name">{{.Name}}</span>
+                    {{if $locked}}<span class="avatar-lock" aria-label="Locked">&#128274;</span>{{end}}
+                </button>
+            </form>
+            {{end}}
+        </div>
+    </details>
 </div>
 
 <div class="settings-card">

@@ -114,6 +114,7 @@ func LoadTemplates(fsys fs.FS, static *Static) (PageTemplates, error) {
 			}
 			return fmtThousands(v)
 		},
+		"compact": compactNumber,
 		"rawDollars": func(c int64) string {
 			return fmt.Sprintf("%.2f", float64(c)/100)
 		},

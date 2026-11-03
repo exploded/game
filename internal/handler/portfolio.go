@@ -187,7 +187,8 @@ type portfolioFigures struct {
 	Standing  standing
 	Board     []db.ListParticipantsByGameRow
 	Interest  int64
-	Dividends int64 // received, less what shorts paid
+	Dividends int64                       // received, less what shorts paid
+	Orders    []db.ListOpenLimitOrdersRow // waiting to fill
 }
 
 // portfolioFigures works out a player's holdings, moves and rank.
@@ -202,14 +203,13 @@ func (h *Handler) portfolioFigures(ctx context.Context, game db.Game, participan
 
 	// Queued market orders, by stock and side.
 	queued := map[int64]map[string]bool{}
-	if orders, err := h.q.ListOpenLimitOrders(ctx, participant.ID); err == nil {
-		for _, o := range orders {
-			if o.Kind == "market" {
-				if queued[o.StockID] == nil {
-					queued[o.StockID] = map[string]bool{}
-				}
-				queued[o.StockID][o.Type] = true
+	orders, _ := h.q.ListOpenLimitOrders(ctx, participant.ID)
+	for _, o := range orders {
+		if o.Kind == "market" {
+			if queued[o.StockID] == nil {
+				queued[o.StockID] = map[string]bool{}
 			}
+			queued[o.StockID][o.Type] = true
 		}
 	}
 
@@ -271,6 +271,7 @@ func (h *Handler) portfolioFigures(ctx context.Context, game db.Game, participan
 		Board:     board,
 		Interest:  interest,
 		Dividends: dividends,
+		Orders:    orders,
 	}
 }
 
@@ -294,6 +295,17 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 		}
 	}
 
+	// A player who holds nothing yet starts from Rob's Picks.
+	var picks []screenRow
+	if len(pf.Rows) == 0 && game.Status == "active" {
+		if rows, err := h.screenRows(ctx, game.Markets); err == nil {
+			picks = applyFilter(rows, defaultFilter, "", "", nil).Rows
+			picks = picks[:min(len(picks), homePicks)]
+			h.markRows(ctx, participant.ID, participant.UserID, picks)
+		}
+	}
+	sectors, _ := h.q.ListHoldingsBySector(ctx, participant.ID)
+
 	h.render(w, r, "portfolio/index", "", PageData{
 		Title: game.Name,
 		Item:  game,
@@ -312,8 +324,73 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 			"InviteJoined": inviteJoined,
 			"Bonus":        fmtDollars(referralBonus(game)),
 			"Invites":      invites,
+			"Orders":       pf.Orders[:min(len(pf.Orders), homeOrders)],
+			"MoreOrders":   len(pf.Orders) > homeOrders,
+			"Sectors":      sectorShares(sectors),
+			"Picks":        picks,
+			"DaysLeft":     daysLeft(game, time.Now().In(h.loc)),
 		},
 	})
+}
+
+// How many waiting orders and Rob's Picks the home page lists.
+const (
+	homeOrders = 3
+	homePicks  = 5
+)
+
+// sectorShare is one line of the home page's sector breakdown.
+type sectorShare struct {
+	Name  string
+	Value int64   // in the stocks' own currency
+	Pct   float64 // of the total held, 0 to 100
+}
+
+// sectorShares turns the holdings' value by sector into shares of the
+// total, biggest first. Shorts aren't counted: a sector the player is
+// short in isn't part of what they hold.
+func sectorShares(rows []db.ListHoldingsBySectorRow) []sectorShare {
+	var out []sectorShare
+	var total int64
+	for _, r := range rows {
+		v := int64(math.Round(r.TotalValue.Float64))
+		if v <= 0 {
+			continue
+		}
+		name := r.Sector
+		if name == "" {
+			name = "Other"
+		}
+		out = append(out, sectorShare{Name: name, Value: v})
+		total += v
+	}
+	for i := range out {
+		out[i].Pct = float64(out[i].Value) / float64(total) * 100
+	}
+	slices.SortStableFunc(out, func(a, b sectorShare) int { return int(b.Value - a.Value) })
+	return out
+}
+
+// daysLeft says where a game is in its month: "12 days left", "Last day",
+// "Starts 1 Dec" or "Finished". A game ends at midnight after its end date.
+func daysLeft(g db.Game, now time.Time) string {
+	start, err1 := time.ParseInLocation(time.DateOnly, g.StartDate, now.Location())
+	end, err2 := time.ParseInLocation(time.DateOnly, g.EndDate, now.Location())
+	if err1 != nil || err2 != nil {
+		return ""
+	}
+	y, m, d := now.Date()
+	today := time.Date(y, m, d, 0, 0, 0, 0, now.Location())
+	switch n := int(math.Round(end.Sub(today).Hours()/24)) + 1; {
+	case g.Status == "pending" || today.Before(start):
+		return "Starts " + start.Format("2 Jan")
+	case g.Status != "active" || n <= 0:
+		return "Finished"
+	case n == 1:
+		return "Last day"
+	default:
+		return strconv.Itoa(n) + " days left"
+	}
 }
 
 func (h *Handler) TransactionHistory(w http.ResponseWriter, r *http.Request) {

@@ -66,6 +66,7 @@ type PageData struct {
 	GameBar   *gameBar      // set by the GameContext middleware on /games/{id} pages
 	LiveNow   *db.LiveEvent // a stream on now, for the "Rob is live" banner
 	AdminNav  *adminNav     // the admin links, on /admin pages
+	Nav       *siteNav      // the top bar's and tab bar's links, for signed-in users (sitenav.go)
 }
 
 // adminNav is the row of links at the top of every admin page
@@ -135,6 +136,9 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, pageName, fragm
 		}
 		if data.LiveNow == nil {
 			data.LiveNow = h.liveNow(r)
+		}
+		if data.User != nil && data.Nav == nil {
+			data.Nav = h.siteNav(r, data.User, data.GameBar)
 		}
 		if data.User != nil && data.User.IsAdmin == 1 {
 			if tab := adminTab(r.URL.Path); tab != "" {
@@ -221,6 +225,20 @@ func bigMoney(v int64) string {
 	default:
 		return "$" + fmtThousands(v)
 	}
+}
+
+// compactNumber shortens a count of shares: 48.2M, 15.6B, 920K.
+func compactNumber(v int64) string {
+	f := float64(v)
+	switch {
+	case v >= 1_000_000_000:
+		return fmt.Sprintf("%.1fB", f/1_000_000_000)
+	case v >= 1_000_000:
+		return fmt.Sprintf("%.1fM", f/1_000_000)
+	case v >= 10_000:
+		return fmt.Sprintf("%.0fK", f/1_000)
+	}
+	return fmtThousands(v)
 }
 
 func fmtThousands(n int64) string {

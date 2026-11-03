@@ -48,11 +48,7 @@ func (h *Handler) StocksBrowse(w http.ResponseWriter, r *http.Request) {
 	}
 	v := r.URL.Query()
 	f, sector, search := filterKey(v.Get("f")), v.Get("sector"), strings.TrimSpace(v.Get("q"))
-	var holders map[int64]int64
-	if f == "popular" && search == "" {
-		holders = h.holderCounts(r.Context(), gameID)
-	}
-	res := applyFilter(rows, f, sector, search, holders)
+	res := h.screen(r.Context(), gameID, user.ID, rows, f, sector, search)
 	h.markRows(r.Context(), participant.ID, user.ID, res.Rows)
 
 	data := PageData{
@@ -141,6 +137,11 @@ func (h *Handler) StockDetail(w http.ResponseWriter, r *http.Request) {
 	extra["News"] = news
 	extra["RobVideos"] = robVideos
 	extra["Pick"] = pick
+	extra["Health"], extra["HasHealth"] = profileHealth(stock, profile)
+	if t, _ := extra["Trade"].(*tradeContext); t != nil && t.Holding.Quantity != 0 {
+		latest, _ := extra["LatestPrice"].(db.StockPrice)
+		extra["Position"] = newPosition(t.Holding, latest.Close)
+	}
 	h.render(w, r, "stocks/detail", "", PageData{
 		Title: stock.Symbol + " - " + stock.Name,
 		Item:  stock,
@@ -164,6 +165,47 @@ func (h *Handler) ticketData(ctx context.Context, game db.Game, stock db.Stock, 
 	}
 }
 
+// position is the player's holding in a stock, for the stock page, in the
+// stock's own currency.
+type position struct {
+	Shares int64 // without the sign
+	Short  bool
+	Value  int64
+	Return change // value against what the shares cost
+	Avg    int64
+}
+
+// newPosition values a holding at the latest close (or its stored value
+// with no price yet).
+func newPosition(ho db.Holding, close int64) *position {
+	value := ho.CurrentValue
+	if close != 0 {
+		value = ho.Quantity * close
+	}
+	return &position{
+		Shares: max(ho.Quantity, -ho.Quantity),
+		Short:  ho.Quantity < 0,
+		Value:  value,
+		Return: change{value - ho.CostBasis, ho.CostBasis},
+		Avg:    market.AvgCost(ho.Quantity, ho.CostBasis),
+	}
+}
+
+// profileHealth is a stock's health score, worked out as the stocks page
+// does (healthScore).
+func profileHealth(stock db.Stock, p db.StockProfile) (int, bool) {
+	return healthScore(screenRow{ListScreenerStocksRow: db.ListScreenerStocksRow{
+		Sector:             stock.Sector,
+		Revenue:            p.Revenue,
+		NetIncome:          p.NetIncome,
+		FreeCashFlow:       p.FreeCashFlow,
+		TotalDebt:          p.TotalDebt,
+		DebtToEquity:       p.DebtToEquity,
+		CurrentRatio:       p.CurrentRatio,
+		QuarterlyRevGrowth: p.QuarterlyRevGrowth,
+	}})
+}
+
 // stockNewsShown is how many stories the stock page shows: the newest the
 // news filter kept. More is mostly repetition.
 const stockNewsShown = 2
@@ -171,7 +213,7 @@ const stockNewsShown = 2
 // backTo is where the stock page's Back link goes.
 type backTo struct {
 	URL   string
-	Label string // "Stocks", "Portfolio", ..., or "Back" for another page
+	Label string // "Stocks", "Home", ..., or "Back" for another page
 }
 
 // backLink is the page in this game that the player opened the stock from,
@@ -201,11 +243,9 @@ func backLink(ref, host string, gameID, stockID int64) backTo {
 	parts := strings.Split(strings.Trim(rest, "/"), "/")
 	switch {
 	case rest == "" || rest == "/":
-		return backTo{URL: link, Label: "Portfolio"}
+		return backTo{URL: link, Label: "Home"}
 	case len(parts) == 1 && parts[0] == "stocks":
 		return backTo{URL: link, Label: "Stocks"}
-	case len(parts) == 1 && parts[0] == "watchlist":
-		return backTo{URL: link, Label: "Watchlist"}
 	case len(parts) == 1 && parts[0] == "orders":
 		return backTo{URL: link, Label: "Orders"}
 	case parts[0] == "trade" || (parts[0] == "stocks" && len(parts) == 2 && parts[1] == strconv.FormatInt(stockID, 10)):

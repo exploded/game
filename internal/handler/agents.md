@@ -66,7 +66,8 @@ example "Insufficient funds"), `429` too many requests.
 | GET | `/history?limit=50` | Trades, interest, dividends and bonuses, newest first |
 | GET | `/leaderboard` | The top 20 and where the player stands |
 
-Filters for `/stocks`: `picks` (Rob's Picks, the default), `all`, `mag7`,
+Filters for `/stocks`: `picks` (Rob's Picks, the default), `watch` (the
+player's watchlist), `all`, `mag7`,
 `tech`, `up` (today's gainers), `down` (losers), `big` (biggest), `active`
 (most traded), `aus`, `intl`, `crypto`, `popular` (players' favourites), and
 tests of a company's financials: `profit`, `loss`, `fcf`, `margin`, `pe`,

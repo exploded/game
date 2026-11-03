@@ -6,10 +6,10 @@ app.js goes back through history when it can. */}}
 {{with .Extra.Back}}<a href="{{.URL}}" class="back-link" data-back>&lsaquo; {{.Label}}</a>{{end}}
 <div class="page-header stock-header">
     <div class="stock-title">
-        {{if .Extra.Profile.Logo}}<img src="{{.Extra.Profile.Logo}}" alt="" referrerpolicy="no-referrer" class="stock-logo">{{end}}
+        {{if .Extra.Profile.Logo}}<img src="{{.Extra.Profile.Logo}}" alt="" width="44" height="44" referrerpolicy="no-referrer" class="stock-logo">{{end}}
         <div>
             <h1>{{.Item.Symbol}}</h1>
-            <div class="text-muted">{{.Item.Name}}</div>
+            <div class="text-muted">{{.Item.Name}} &middot; {{with marketLabel .Item.Symbol .Item.Market}}{{if eq . "SP500"}}S&amp;P 500{{else}}{{.}}{{end}}{{end}}</div>
             {{with .Extra.Pick}}<div class="stock-pick"><span class="badge badge-pick">Rob's pick</span>{{with .Note}} {{.}}{{end}}</div>{{end}}
         </div>
     </div>
@@ -39,344 +39,153 @@ app.js goes back through history when it can. */}}
 <div class="sheet-backdrop" data-ticket-close></div>
 {{end}}
 
-<div class="info-grid" id="info-grid">
-    <div class="info-item">
-        <span class="info-label">Market</span>
-        <span class="info-value">{{marketLabel .Item.Symbol .Item.Market}}</span>
-    </div>
-    <div class="info-item">
-        <span class="info-label">Currency</span>
-        <span class="info-value">{{.Item.Currency}}</span>
-    </div>
-    <div class="info-item">
-        <span class="info-label">Sector</span>
-        <span class="info-value">{{.Item.Sector}}</span>
-    </div>
-    {{if .Extra.LatestPrice.ID}}
-    <div class="info-item">
-        <span class="info-label">Latest Close</span>
-        <span class="info-value">{{cents .Extra.LatestPrice.Close}} {{.Item.Currency}}</span>
-    </div>
-    <div class="info-item">
-        <span class="info-label">Date</span>
-        <span class="info-value">{{.Extra.LatestPrice.Date}}</span>
-    </div>
-    {{end}}
-    {{if .Items}}
-    <div class="info-item">
-        <span class="info-label">30-Day High</span>
-        <span class="info-value" id="stat-high">--</span>
-    </div>
-    <div class="info-item">
-        <span class="info-label">30-Day Low</span>
-        <span class="info-value" id="stat-low">--</span>
-    </div>
-    <div class="info-item">
-        <span class="info-label">Avg Volume</span>
-        <span class="info-value" id="stat-vol">--</span>
-    </div>
-    {{end}}
-</div>
+{{/* The player's own position first, as the trading apps do: on a phone the
+ticket that also shows it is folded away in the sheet. In the stock's own
+currency. */}}
+{{with .Extra.Position}}
+<section class="stock-section position">
+    <h2 class="stock-h2">Your position</h2>
+    <dl class="kv">
+        <div><dt>{{if .Short}}Short{{else}}Shares{{end}}</dt><dd class="mono">{{.Shares}}</dd></div>
+        <div><dt>Value</dt><dd class="mono">{{cents .Value}}</dd></div>
+        <div><dt>Return</dt><dd>{{with .Return}}{{if .Base}}<span class="pill {{.Class}}">{{.Pct}}</span> <span class="mono">{{.Text}}</span>{{end}}{{end}}</dd></div>
+        <div><dt>Average cost</dt><dd class="mono">{{cents .Avg}}</dd></div>
+    </dl>
+</section>
+{{end}}
 
 {{- $p := .Extra.Profile -}}
 {{if $p.StockID}}
+<section class="stock-section">
+    <h2 class="stock-h2">Key stats</h2>
+    <dl class="kv">
+        {{if $p.MarketCap}}<div><dt>Market cap</dt><dd>{{bigMoney $p.MarketCap}}</dd></div>{{end}}
+        {{if and $p.TrailingPe (gt $p.NetIncome 0)}}<div><dt>P/E</dt><dd>{{ratio100 $p.TrailingPe}}</dd></div>{{end}}
+        {{if $p.Week52High}}<div><dt>52-week high</dt><dd>{{cents $p.Week52High}}</dd></div>{{end}}
+        {{if $p.Week52Low}}<div><dt>52-week low</dt><dd>{{cents $p.Week52Low}}</dd></div>{{end}}
+        {{if $p.Week52Change}}<div><dt>52-week change</dt><dd>{{bps $p.Week52Change}}</dd></div>{{end}}
+        {{with or $p.Avg90Volume $p.Avg10Volume}}<div><dt>Average volume</dt><dd>{{compact .}}</dd></div>{{end}}
+        {{if $p.Beta}}<div><dt>Beta</dt><dd>{{ratio100 $p.Beta}}</dd></div>{{end}}
+        {{with .Item.Sector}}<div><dt>Sector</dt><dd>{{.}}</dd></div>{{end}}
+        {{if .Extra.HasHealth}}<div><dt><abbr title="A point each for a profit, positive free cash flow, debt-to-equity under 1, a current ratio over 1 and revenue up on a year earlier">Health score</abbr></dt><dd>{{.Extra.Health}}/5</dd></div>{{end}}
+    </dl>
+</section>
 
-<h2 style="margin-top:2rem">Company Overview</h2>
-<div class="info-grid">
-    {{if $p.Industry}}<div class="info-item">
-        <span class="info-label">Industry</span>
-        <span class="info-value">{{$p.Industry}}</span>
-    </div>{{end}}
-    {{if $p.Exchange}}<div class="info-item">
-        <span class="info-label">Exchange</span>
-        <span class="info-value">{{$p.Exchange}}</span>
-    </div>{{end}}
-    {{if $p.Type}}<div class="info-item">
-        <span class="info-label">Type</span>
-        <span class="info-value">{{$p.Type}}</span>
-    </div>{{end}}
-    {{if $p.Ceo}}<div class="info-item">
-        <span class="info-label">CEO</span>
-        <span class="info-value">{{$p.Ceo}}</span>
-    </div>{{end}}
-    {{if $p.Employees}}<div class="info-item">
-        <span class="info-label">Employees</span>
-        <span class="info-value">{{commas $p.Employees}}</span>
-    </div>{{end}}
-    {{if $p.Website}}<div class="info-item">
-        <span class="info-label">Website</span>
-        <span class="info-value"><a href="{{$p.Website}}" target="_blank" rel="noopener">{{$p.Website}}</a></span>
-    </div>{{end}}
-    {{if $p.City}}<div class="info-item">
-        <span class="info-label">Location</span>
-        <span class="info-value">{{$p.City}}{{if $p.State}}, {{$p.State}}{{end}}, {{$p.Country}}</span>
-    </div>{{end}}
-    {{if $p.Phone}}<div class="info-item">
-        <span class="info-label">Phone</span>
-        <span class="info-value">{{$p.Phone}}</span>
-    </div>{{end}}
-    {{if $p.FiscalYearEnds}}<div class="info-item">
-        <span class="info-label">Fiscal Year Ends</span>
-        <span class="info-value">{{$p.FiscalYearEnds}}</span>
-    </div>{{end}}
-    {{if $p.MostRecentQuarter}}<div class="info-item">
-        <span class="info-label">Most Recent Quarter</span>
-        <span class="info-value">{{$p.MostRecentQuarter}}</span>
-    </div>{{end}}
-</div>
-
-{{if $p.Description}}
-<div style="margin-top:1rem; color:#9ca3af; line-height:1.6; max-width:72ch;">
-    {{$p.Description}}
-</div>
+{{if or $p.Description $p.Ceo $p.Employees $p.City $p.Website}}
+<section class="stock-section">
+    <h2 class="stock-h2">About</h2>
+    {{/* Three lines until tapped. The whole text is the summary, so the
+    browser opens and closes it with no script. */}}
+    {{with $p.Description}}
+    <details class="about">
+        <summary><span class="about-text">{{.}}</span><span class="about-more" aria-hidden="true"></span></summary>
+    </details>
+    {{end}}
+    <p class="about-meta text-muted">
+        {{- $sep := false -}}
+        {{with $p.Ceo}}CEO {{.}}{{$sep = true}}{{end}}
+        {{- with $p.Employees}}{{if $sep}} &middot; {{end}}{{commas .}} staff{{$sep = true}}{{end}}
+        {{- with $p.City}}{{if $sep}} &middot; {{end}}{{.}}{{with $p.Country}}, {{.}}{{end}}{{$sep = true}}{{end}}
+        {{- with $p.Website}}{{if $sep}} &middot; {{end}}<a href="{{.}}" target="_blank" rel="noopener">Website &#8599;</a>{{end -}}
+    </p>
+</section>
 {{end}}
 
-<h2 style="margin-top:2rem">Valuation</h2>
-<div class="info-grid">
-    {{if $p.MarketCap}}<div class="info-item">
-        <span class="info-label">Market Cap</span>
-        <span class="info-value">{{bigMoney $p.MarketCap}}</span>
-    </div>{{end}}
-    {{if $p.EnterpriseValue}}<div class="info-item">
-        <span class="info-label">Enterprise Value</span>
-        <span class="info-value">{{bigMoney $p.EnterpriseValue}}</span>
-    </div>{{end}}
-    {{if $p.TrailingPe}}<div class="info-item">
-        <span class="info-label">P/E (Trailing)</span>
-        <span class="info-value">{{ratio100 $p.TrailingPe}}</span>
-    </div>{{end}}
-    {{if $p.ForwardPe}}<div class="info-item">
-        <span class="info-label">P/E (Forward)</span>
-        <span class="info-value">{{ratio100 $p.ForwardPe}}</span>
-    </div>{{end}}
-    {{if $p.PegRatio}}<div class="info-item">
-        <span class="info-label">PEG Ratio</span>
-        <span class="info-value">{{ratio100 $p.PegRatio}}</span>
-    </div>{{end}}
-    {{if $p.PriceToBook}}<div class="info-item">
-        <span class="info-label">Price / Book</span>
-        <span class="info-value">{{ratio100 $p.PriceToBook}}</span>
-    </div>{{end}}
-    {{if $p.PriceToSales}}<div class="info-item">
-        <span class="info-label">Price / Sales</span>
-        <span class="info-value">{{ratio100 $p.PriceToSales}}</span>
-    </div>{{end}}
-    {{if $p.EvToRevenue}}<div class="info-item">
-        <span class="info-label">EV / Revenue</span>
-        <span class="info-value">{{ratio100 $p.EvToRevenue}}</span>
-    </div>{{end}}
-    {{if $p.EvToEbitda}}<div class="info-item">
-        <span class="info-label">EV / EBITDA</span>
-        <span class="info-value">{{ratio100 $p.EvToEbitda}}</span>
-    </div>{{end}}
-</div>
-
-<h2 style="margin-top:2rem">Income Statement</h2>
-<div class="info-grid">
-    {{if $p.Revenue}}<div class="info-item">
-        <span class="info-label">Revenue (TTM)</span>
-        <span class="info-value">{{bigMoney $p.Revenue}}</span>
-    </div>{{end}}
-    {{if $p.RevenuePerShare}}<div class="info-item">
-        <span class="info-label">Revenue / Share</span>
-        <span class="info-value">{{cents $p.RevenuePerShare}}</span>
-    </div>{{end}}
-    {{if $p.QuarterlyRevGrowth}}<div class="info-item">
-        <span class="info-label">Quarterly Rev Growth</span>
-        <span class="info-value">{{bps $p.QuarterlyRevGrowth}}</span>
-    </div>{{end}}
-    {{if $p.GrossProfit}}<div class="info-item">
-        <span class="info-label">Gross Profit (TTM)</span>
-        <span class="info-value">{{bigMoney $p.GrossProfit}}</span>
-    </div>{{end}}
-    {{if $p.Ebitda}}<div class="info-item">
-        <span class="info-label">EBITDA</span>
-        <span class="info-value">{{bigMoney $p.Ebitda}}</span>
-    </div>{{end}}
-    {{if $p.NetIncome}}<div class="info-item">
-        <span class="info-label">Net Income (TTM)</span>
-        <span class="info-value">{{bigMoney $p.NetIncome}}</span>
-    </div>{{end}}
-    {{if $p.DilutedEps}}<div class="info-item">
-        <span class="info-label">EPS (Diluted)</span>
-        <span class="info-value">{{cents $p.DilutedEps}}</span>
-    </div>{{end}}
-    {{if $p.QuarterlyEarnGrowth}}<div class="info-item">
-        <span class="info-label">Quarterly Earnings Growth</span>
-        <span class="info-value">{{bps $p.QuarterlyEarnGrowth}}</span>
-    </div>{{end}}
-</div>
-
-<h2 style="margin-top:2rem">Margins &amp; Returns</h2>
-<div class="info-grid">
-    {{if $p.GrossMargin}}<div class="info-item">
-        <span class="info-label">Gross Margin</span>
-        <span class="info-value">{{bps $p.GrossMargin}}</span>
-    </div>{{end}}
-    {{if $p.OperatingMargin}}<div class="info-item">
-        <span class="info-label">Operating Margin</span>
-        <span class="info-value">{{bps $p.OperatingMargin}}</span>
-    </div>{{end}}
-    {{if $p.ProfitMargin}}<div class="info-item">
-        <span class="info-label">Profit Margin</span>
-        <span class="info-value">{{bps $p.ProfitMargin}}</span>
-    </div>{{end}}
-    {{if $p.ReturnOnEquity}}<div class="info-item">
-        <span class="info-label">Return on Equity</span>
-        <span class="info-value">{{bps $p.ReturnOnEquity}}</span>
-    </div>{{end}}
-    {{if $p.ReturnOnAssets}}<div class="info-item">
-        <span class="info-label">Return on Assets</span>
-        <span class="info-value">{{bps $p.ReturnOnAssets}}</span>
-    </div>{{end}}
-</div>
-
-<h2 style="margin-top:2rem">Balance Sheet</h2>
-<div class="info-grid">
-    {{if $p.TotalCash}}<div class="info-item">
-        <span class="info-label">Total Cash</span>
-        <span class="info-value">{{bigMoney $p.TotalCash}}</span>
-    </div>{{end}}
-    {{if $p.CashPerShare}}<div class="info-item">
-        <span class="info-label">Cash / Share</span>
-        <span class="info-value">{{cents $p.CashPerShare}}</span>
-    </div>{{end}}
-    {{if $p.TotalDebt}}<div class="info-item">
-        <span class="info-label">Total Debt</span>
-        <span class="info-value">{{bigMoney $p.TotalDebt}}</span>
-    </div>{{end}}
-    {{if $p.DebtToEquity}}<div class="info-item">
-        <span class="info-label">Debt / Equity</span>
-        <span class="info-value">{{ratio100 $p.DebtToEquity}}</span>
-    </div>{{end}}
-    {{if $p.CurrentRatio}}<div class="info-item">
-        <span class="info-label">Current Ratio</span>
-        <span class="info-value">{{ratio100 $p.CurrentRatio}}</span>
-    </div>{{end}}
-    {{if $p.BookValuePerShare}}<div class="info-item">
-        <span class="info-label">Book Value / Share</span>
-        <span class="info-value">{{cents $p.BookValuePerShare}}</span>
-    </div>{{end}}
-</div>
-
-<h2 style="margin-top:2rem">Cash Flow</h2>
-<div class="info-grid">
-    {{if $p.OperatingCashFlow}}<div class="info-item">
-        <span class="info-label">Operating Cash Flow</span>
-        <span class="info-value">{{bigMoney $p.OperatingCashFlow}}</span>
-    </div>{{end}}
-    {{if $p.FreeCashFlow}}<div class="info-item">
-        <span class="info-label">Free Cash Flow</span>
-        <span class="info-value">{{bigMoney $p.FreeCashFlow}}</span>
-    </div>{{end}}
-</div>
-
-<h2 style="margin-top:2rem">Stock Statistics</h2>
-<div class="info-grid">
-    {{if $p.SharesOutstanding}}<div class="info-item">
-        <span class="info-label">Shares Outstanding</span>
-        <span class="info-value">{{commas $p.SharesOutstanding}}</span>
-    </div>{{end}}
-    {{if $p.FloatShares}}<div class="info-item">
-        <span class="info-label">Float</span>
-        <span class="info-value">{{commas $p.FloatShares}}</span>
-    </div>{{end}}
-    {{if $p.Avg10Volume}}<div class="info-item">
-        <span class="info-label">Avg Volume (10d)</span>
-        <span class="info-value">{{commas $p.Avg10Volume}}</span>
-    </div>{{end}}
-    {{if $p.Avg90Volume}}<div class="info-item">
-        <span class="info-label">Avg Volume (90d)</span>
-        <span class="info-value">{{commas $p.Avg90Volume}}</span>
-    </div>{{end}}
-    {{if $p.SharesShort}}<div class="info-item">
-        <span class="info-label">Shares Short</span>
-        <span class="info-value">{{commas $p.SharesShort}}</span>
-    </div>{{end}}
-    {{if $p.ShortRatio}}<div class="info-item">
-        <span class="info-label">Short Ratio</span>
-        <span class="info-value">{{ratio100 $p.ShortRatio}}</span>
-    </div>{{end}}
-    {{if $p.ShortPctOutstanding}}<div class="info-item">
-        <span class="info-label">Short % of Outstanding</span>
-        <span class="info-value">{{bps $p.ShortPctOutstanding}}</span>
-    </div>{{end}}
-    {{if $p.PctHeldInsiders}}<div class="info-item">
-        <span class="info-label">Held by Insiders</span>
-        <span class="info-value">{{bps $p.PctHeldInsiders}}</span>
-    </div>{{end}}
-    {{if $p.PctHeldInstitutions}}<div class="info-item">
-        <span class="info-label">Held by Institutions</span>
-        <span class="info-value">{{bps $p.PctHeldInstitutions}}</span>
-    </div>{{end}}
-</div>
-
-<h2 style="margin-top:2rem">Price Summary</h2>
-<div class="info-grid">
-    {{if $p.Week52High}}<div class="info-item">
-        <span class="info-label">52-Week High</span>
-        <span class="info-value">{{cents $p.Week52High}}</span>
-    </div>{{end}}
-    {{if $p.Week52Low}}<div class="info-item">
-        <span class="info-label">52-Week Low</span>
-        <span class="info-value">{{cents $p.Week52Low}}</span>
-    </div>{{end}}
-    {{if $p.Week52Change}}<div class="info-item">
-        <span class="info-label">52-Week Change</span>
-        <span class="info-value">{{bps $p.Week52Change}}</span>
-    </div>{{end}}
-    {{if $p.Beta}}<div class="info-item">
-        <span class="info-label">Beta</span>
-        <span class="info-value">{{ratio100 $p.Beta}}</span>
-    </div>{{end}}
-    {{if $p.Day50Ma}}<div class="info-item">
-        <span class="info-label">50-Day Return</span>
-        <span class="info-value">{{pct100 $p.Day50Ma}}</span>
-    </div>{{end}}
-    {{if $p.Day200Ma}}<div class="info-item">
-        <span class="info-label">200-Day Return</span>
-        <span class="info-value">{{pct100 $p.Day200Ma}}</span>
-    </div>{{end}}
-</div>
-
-{{if or $p.LastSplitFactor $p.LastSplitDate}}
-<h2 style="margin-top:2rem">Splits</h2>
-<div class="info-grid">
-    {{if $p.LastSplitFactor}}<div class="info-item">
-        <span class="info-label">Last Split</span>
-        <span class="info-value">{{$p.LastSplitFactor}}</span>
-    </div>{{end}}
-    {{if $p.LastSplitDate}}<div class="info-item">
-        <span class="info-label">Last Split Date</span>
-        <span class="info-value">{{$p.LastSplitDate}}</span>
-    </div>{{end}}
-</div>
+{{/* The rest of the company's figures, folded shut: most players never
+open them, and they took a phone's whole screen many times over. */}}
+{{if $p.Revenue}}
+<section class="stock-section">
+    <h2 class="stock-h2">Financials</h2>
+    <p class="text-muted fin-note">From the company's latest reports, updated weekly.</p>
+    <details class="fin">
+        <summary>Valuation</summary>
+        <dl class="kv">
+            {{if $p.EnterpriseValue}}<div><dt>Enterprise value</dt><dd>{{bigMoney $p.EnterpriseValue}}</dd></div>{{end}}
+            {{if $p.ForwardPe}}<div><dt>Forward P/E</dt><dd>{{ratio100 $p.ForwardPe}}</dd></div>{{end}}
+            {{if $p.PegRatio}}<div><dt>PEG ratio</dt><dd>{{ratio100 $p.PegRatio}}</dd></div>{{end}}
+            {{if $p.PriceToBook}}<div><dt>Price / book</dt><dd>{{ratio100 $p.PriceToBook}}</dd></div>{{end}}
+            {{if $p.PriceToSales}}<div><dt>Price / sales</dt><dd>{{ratio100 $p.PriceToSales}}</dd></div>{{end}}
+            {{if $p.EvToRevenue}}<div><dt>EV / revenue</dt><dd>{{ratio100 $p.EvToRevenue}}</dd></div>{{end}}
+            {{if $p.EvToEbitda}}<div><dt>EV / EBITDA</dt><dd>{{ratio100 $p.EvToEbitda}}</dd></div>{{end}}
+        </dl>
+    </details>
+    <details class="fin">
+        <summary>Income</summary>
+        <dl class="kv">
+            <div><dt>Revenue (12 months)</dt><dd>{{bigMoney $p.Revenue}}</dd></div>
+            {{if $p.QuarterlyRevGrowth}}<div><dt>Revenue growth (quarter)</dt><dd>{{bps $p.QuarterlyRevGrowth}}</dd></div>{{end}}
+            {{if $p.GrossProfit}}<div><dt>Gross profit</dt><dd>{{bigMoney $p.GrossProfit}}</dd></div>{{end}}
+            {{if $p.Ebitda}}<div><dt>EBITDA</dt><dd>{{bigMoney $p.Ebitda}}</dd></div>{{end}}
+            {{if $p.NetIncome}}<div><dt>Net income (12 months)</dt><dd>{{bigMoney $p.NetIncome}}</dd></div>{{end}}
+            {{if $p.DilutedEps}}<div><dt>Earnings per share</dt><dd>{{cents $p.DilutedEps}}</dd></div>{{end}}
+            {{if $p.QuarterlyEarnGrowth}}<div><dt>Earnings growth (quarter)</dt><dd>{{bps $p.QuarterlyEarnGrowth}}</dd></div>{{end}}
+        </dl>
+    </details>
+    <details class="fin">
+        <summary>Margins and returns</summary>
+        <dl class="kv">
+            {{if $p.GrossMargin}}<div><dt>Gross margin</dt><dd>{{bps $p.GrossMargin}}</dd></div>{{end}}
+            {{if $p.OperatingMargin}}<div><dt>Operating margin</dt><dd>{{bps $p.OperatingMargin}}</dd></div>{{end}}
+            {{if $p.ProfitMargin}}<div><dt>Profit margin</dt><dd>{{bps $p.ProfitMargin}}</dd></div>{{end}}
+            {{if $p.ReturnOnEquity}}<div><dt>Return on equity</dt><dd>{{bps $p.ReturnOnEquity}}</dd></div>{{end}}
+            {{if $p.ReturnOnAssets}}<div><dt>Return on assets</dt><dd>{{bps $p.ReturnOnAssets}}</dd></div>{{end}}
+        </dl>
+    </details>
+    <details class="fin">
+        <summary>Balance sheet and cash flow</summary>
+        <dl class="kv">
+            {{if $p.TotalCash}}<div><dt>Cash</dt><dd>{{bigMoney $p.TotalCash}}</dd></div>{{end}}
+            {{if $p.TotalDebt}}<div><dt>Debt</dt><dd>{{bigMoney $p.TotalDebt}}</dd></div>{{end}}
+            {{if $p.DebtToEquity}}<div><dt>Debt / equity</dt><dd>{{ratio100 $p.DebtToEquity}}</dd></div>{{end}}
+            {{if $p.CurrentRatio}}<div><dt>Current ratio</dt><dd>{{ratio100 $p.CurrentRatio}}</dd></div>{{end}}
+            {{if $p.BookValuePerShare}}<div><dt>Book value / share</dt><dd>{{cents $p.BookValuePerShare}}</dd></div>{{end}}
+            {{if $p.OperatingCashFlow}}<div><dt>Operating cash flow</dt><dd>{{bigMoney $p.OperatingCashFlow}}</dd></div>{{end}}
+            {{if $p.FreeCashFlow}}<div><dt>Free cash flow</dt><dd>{{bigMoney $p.FreeCashFlow}}</dd></div>{{end}}
+        </dl>
+    </details>
+    <details class="fin">
+        <summary>Shares</summary>
+        <dl class="kv">
+            {{if $p.SharesOutstanding}}<div><dt>Shares on issue</dt><dd>{{compact $p.SharesOutstanding}}</dd></div>{{end}}
+            {{if $p.ShortPctOutstanding}}<div><dt>Sold short</dt><dd>{{bps $p.ShortPctOutstanding}}</dd></div>{{end}}
+            {{if $p.ShortRatio}}<div><dt>Short ratio</dt><dd>{{ratio100 $p.ShortRatio}}</dd></div>{{end}}
+            {{if $p.PctHeldInsiders}}<div><dt>Held by insiders</dt><dd>{{bps $p.PctHeldInsiders}}</dd></div>{{end}}
+            {{if $p.PctHeldInstitutions}}<div><dt>Held by institutions</dt><dd>{{bps $p.PctHeldInstitutions}}</dd></div>{{end}}
+            {{if $p.Day50Ma}}<div><dt>50-day return</dt><dd>{{pct100 $p.Day50Ma}}</dd></div>{{end}}
+            {{if $p.Day200Ma}}<div><dt>200-day return</dt><dd>{{pct100 $p.Day200Ma}}</dd></div>{{end}}
+        </dl>
+    </details>
+</section>
 {{end}}
 
 {{with .Extra.RobVideos}}
-<h2 style="margin-top:2rem">Rob talks about {{$.Item.Symbol}}</h2>
-<div class="vlist" style="max-width:640px">
-    {{range .}}
-    <a href="/learn/v/{{.ID}}" class="vcard{{if .Vertical}} vcard-tall{{end}}">
-        <span class="vthumb"><img src="{{thumb .ThumbUrl .ID}}" alt="" loading="lazy">{{with duration .DurationSeconds}}<span class="vbadge">{{.}}</span>{{end}}</span>
-        <span><span class="vtitle">{{.Title}}</span><span class="vmeta">{{day .PublishedAt}}</span></span>
-    </a>
-    {{end}}
-</div>
+<section class="stock-section">
+    <h2 class="stock-h2">Rob talks about {{$.Item.Symbol}}</h2>
+    <div class="vlist" style="max-width:640px">
+        {{range .}}
+        <a href="/learn/v/{{.ID}}" class="vcard{{if .Vertical}} vcard-tall{{end}}">
+            <span class="vthumb"><img src="{{thumb .ThumbUrl .ID}}" alt="" loading="lazy">{{with duration .DurationSeconds}}<span class="vbadge">{{.}}</span>{{end}}</span>
+            <span><span class="vtitle">{{.Title}}</span><span class="vmeta">{{day .PublishedAt}}</span></span>
+        </a>
+        {{end}}
+    </div>
+</section>
 {{end}}
 
 {{if .Extra.News}}
-<h2 style="margin-top:2rem">In the news</h2>
-<ul class="news-list">
-    {{range .Extra.News}}
-    <li>
-        <a href="{{.Url}}" target="_blank" rel="noopener noreferrer" class="news-title">{{.Headline}}</a>
-        <div class="news-meta">{{.Source}} &middot; {{unixDate .PublishedAt}}</div>
-        {{if .Summary}}<p class="news-summary">{{.Summary}}</p>{{end}}
-        <a href="{{.Url}}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-secondary">Read on {{.Source}} &#8599;</a>
-    </li>
-    {{end}}
-</ul>
+<section class="stock-section">
+    <h2 class="stock-h2">In the news</h2>
+    <ul class="news-list">
+        {{range .Extra.News}}
+        <li>
+            <a href="{{.Url}}" target="_blank" rel="noopener noreferrer" class="news-title">{{.Headline}}</a>
+            <div class="news-meta">{{.Source}} &middot; {{unixDate .PublishedAt}}</div>
+            {{if .Summary}}<p class="news-summary">{{.Summary}}</p>{{end}}
+            <a href="{{.Url}}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-secondary">Read on {{.Source}} &#8599;</a>
+        </li>
+        {{end}}
+    </ul>
+</section>
 {{end}}
 {{end}}
 
@@ -407,20 +216,6 @@ app.js goes back through history when it can. */}}
         value: d.v,
         color: d.c >= d.o ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)',
     }));
-
-    // 30-day stats.
-    const recent = raw.slice(-22); // ~30 calendar days = ~22 trading days
-    const highs = recent.map(d => d.h / 100);
-    const lows = recent.map(d => d.l / 100);
-    const vols = recent.map(d => d.v);
-    document.getElementById('stat-high').textContent = '$' + Math.max(...highs).toFixed(2);
-    document.getElementById('stat-low').textContent = '$' + Math.min(...lows).toFixed(2);
-    const avgVol = vols.reduce((a,b) => a+b, 0) / vols.length;
-    document.getElementById('stat-vol').textContent = avgVol >= 1e6
-        ? (avgVol/1e6).toFixed(1) + 'M'
-        : avgVol >= 1e3
-        ? (avgVol/1e3).toFixed(0) + 'K'
-        : avgVol.toFixed(0);
 
     // Create chart.
     const container = document.getElementById('chart-container');

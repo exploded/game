@@ -3,6 +3,7 @@
 {{define "content"}}
 <div class="page-header">
     <h1>Game activity</h1>
+    {{template "ranktabs" dict "Game" .Item.ID "Tab" "activity"}}
 </div>
 <p class="text-muted">Everything happening in {{.Item.Name}}, newest first: every player's trades, who joined and bonuses earned. Your own trades, interest and bonuses are in <a href="/games/{{.Item.ID}}/history">My history</a>.</p>
 

@@ -292,7 +292,7 @@ func TestTicketRefusalIsAToast(t *testing.T) {
 }
 
 // TestTicketOrdersStayOnTheStock: limit and queued orders used to send the
-// player to the Orders tab; from the ticket they stay and link to it.
+// player to the Orders page; from the ticket they stay and link to it.
 func TestTicketOrdersStayOnTheStock(t *testing.T) {
 	srv, q := gameServer(t)
 	setMarketOpen(t, true)
@@ -317,8 +317,7 @@ func TestBackLink(t *testing.T) {
 	for _, c := range []struct{ ref, url, label string }{
 		{"http://example.com/games/1/stocks?f=tech&q=", "/games/1/stocks?f=tech&q=", "Stocks"},
 		{"/games/1/stocks", "/games/1/stocks", "Stocks"},
-		{"http://example.com/games/1", "/games/1", "Portfolio"},
-		{"http://example.com/games/1/watchlist", "/games/1/watchlist", "Watchlist"},
+		{"http://example.com/games/1", "/games/1", "Home"},
 		{"http://example.com/games/1/orders", "/games/1/orders", "Orders"},
 		{"http://example.com/games/1/stocks/2", "/games/1/stocks/2", "Back"}, // a peer
 		{"http://example.com/games/1/stocks/1", "/games/1/stocks", "Stocks"}, // this stock

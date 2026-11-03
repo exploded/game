@@ -50,17 +50,39 @@ Wealth. It has two halves:
 - US shares are priced in US dollars. The site converts them at the real
   Australian dollar exchange rate, updated every 15 minutes.
 
+### Getting around
+
+Every signed-in page has the same five sections: **Home**, **Stocks**,
+**Ranks**, **Learn** and **Chat** (the lobby). On a phone they're a row of icons
+at the bottom of the screen; on a computer they're links in the bar at the top.
+The bar at the top also has the logo (back to Home), the player's cash on a
+game's pages, a bell for notifications with the unread count, and the player's
+picture, which opens a menu: Orders, My history, Achievements, Game rules, Past
+and upcoming games, Settings, Connect your AI, Help and Sign out. (Before 3
+November 2026 the site had two bars of links and a separate game bar, and the
+phone's icons showed only on game pages.)
+
+The sections always open this month's game. On a page of another game, such as
+last month's, a strip under the top bar names that game and links back to this
+month's.
+
 ### The player's home page
 
 When a player opens the game they see:
 
-- What their portfolio is worth, how much it moved today, and how much since
-  the game started.
-- Their place on the leaderboard and how far they are behind the player above.
-- A chart of their portfolio's value across the month.
+- The game's name and how many days are left.
+- What their portfolio is worth, how much it moved today and since the game
+  started, their place on the leaderboard and how far they are behind the
+  player above, and a chart of their portfolio's value across the month, all in
+  one card.
+- **Waiting orders**, when they have orders that haven't filled yet.
 - Each share they hold, with today's move and the overall gain or loss, and a
   **Close position** button to sell it all in one tap.
+- **Sectors**: how their shares are spread across industries, one bar each.
 - **Invite a friend** (see [Inviting friends](#inviting-friends)).
+
+A player who hasn't bought anything yet sees three steps explaining the game,
+then the first five of Rob's Picks to tap straight into, and a search box.
 
 When a game is over, the page shows the final values from the end of the game.
 
@@ -69,6 +91,8 @@ When a game is over, the page shows the final values from the end of the game.
 The **Stocks** page lists shares with each company's logo, latest price, today's
 move and a small 30-day chart. Quick filters pick a list:
 
+- **Watchlist** (shares the player has starred; it carries over from one
+  month's game to the next)
 - **Rob's Picks** (the default, chosen by Rob)
 - **Mag 7** (Apple, Microsoft, Amazon, Nvidia, Alphabet, Meta and Tesla)
 - **Tech**, **Gainers**, **Losers**, **Biggest** and **Most traded**
@@ -94,8 +118,11 @@ ratio over 1 and revenue up on a year earlier. Banks and insurers don't get one,
 because those measures don't suit them. The figures come from Twelve Data and
 are updated weekly.
 
-Each share has its own page with a long-term price chart, company details and
-figures, recent news, and any of Rob's videos that mention it.
+Each share has its own page with a long-term price chart, then the player's own
+position in it, eight key figures (market value, P/E, 52-week high and low,
+average volume, beta, industry and health score), a short company description
+that opens in full when tapped, the rest of the company's figures folded into
+five groups, recent news, and any of Rob's videos that mention it.
 
 ### Buying and selling
 
@@ -109,24 +136,20 @@ figures, recent news, and any of Rob's videos that mention it.
   a game, so that orders wait for the market to open instead.
 - **Short selling** (betting a share will fall) is available only if an admin
   turns it on for that game. It's off by default.
-- Open orders are listed on the **Orders** tab, where they can be cancelled.
-  Orders still open when a game ends are cancelled.
+- Open orders show on the home page and on the **Orders** page (in the menu
+  under the player's picture), where they can be cancelled. Orders still open
+  when a game ends are cancelled.
 
 ### Other game pages
 
-- **Watchlist**: shares a player wants to keep an eye on, starred from a
-  share's page. It carries over from one month's game to the next.
-- **Leaderboard**: every player in the game, ranked by portfolio value.
-- **Game activity** (the **Activity** tab): everything happening in the game,
-  newest first: every player's trades (with the company's name, linked to its
-  page), who joined, and referral bonuses earned.
+- **Ranks** has two halves: **Players**, every player in the game ranked by
+  portfolio value, and **Activity**, everything happening in the game, newest
+  first: every player's trades (with the company's name, linked to its page),
+  who joined, and referral bonuses earned.
 - **My history**: the player's own trades, interest, dividends and referral bonuses, with
   the cash balance after each. A summary at the top adds up from the opening
-  balance through the cash to the total on the leaderboard (in the **More**
-  menu on a phone, and linked from Game activity and the portfolio).
-- **Analytics**: the player's trade statistics (how many trades, how many made
-  money, the best and worst), a breakdown by industry, their portfolio against
-  simply holding cash, and a side-by-side comparison with any other player.
+  balance through the cash to the total on the leaderboard (in the menu under
+  the player's picture, and linked from Game activity and the home page).
 - **Rules**: the game's settings and dates.
 - **Past games**: finished games and their final standings, linked from the
   bottom of the home page.
@@ -175,7 +198,7 @@ Champion and Podium Finish count only players who made at least one trade, so
 someone who joined and never traded can't win on interest alone. Players who
 finish level share the place. Each badge is earned once, not once per game.
 
-On the **Profile** page players choose an avatar picture. Nine are free; four
+Under **Change avatar** in Settings players choose an avatar picture. Nine are free; four
 (Crown, Wizard, On Fire and Trophy) unlock with a badge.
 
 ### Talking to other players
@@ -190,7 +213,7 @@ they can check them (see Admin tools). Admins can also delete any message.
 ## Learn
 
 Learn is open to everyone, signed in or not. It has four tabs, which also show
-on the course pages. The menu's Learn link opens Ask Rob.
+on the course pages. The Learn section opens Ask Rob.
 
 - **Ask Rob**: members post questions and vote for the ones they want answered.
   Rob answers in writing, with a video, or live on air, and the asker and
@@ -230,10 +253,10 @@ except account emails has a one-click unsubscribe link.
 
 ## Account settings
 
-On **Settings** a player can change their display name, choose which emails
-they get, download a copy of all their data, and delete their account.
-**Notifications**, in the menu at the top, list everything that happened to
-them in the games, with a count of unread ones.
+On **Settings** a player can change their display name and avatar, choose
+which emails they get, download a copy of all their data, and delete their
+account. **Notifications**, under the bell at the top, list everything that
+happened to them in the games; the bell shows how many are unread.
 
 **Connect your AI** (`/settings/api`, linked from Settings) lets a player's
 own AI check their portfolio and trade for them in this month's game. Claude
@@ -315,6 +338,24 @@ The site was reviewed for parts that were hidden, unfinished or no longer used.
   On Fire were refused for players who had earned them. All four badge avatars
   now unlock properly.
 - **All trades now shows each player's avatar**, as the Lobby already did.
+
+## What was cleaned up on 3 November 2026
+
+Prod logs from 30 October to 3 November showed about 24 signed-in visitors.
+Pages that only 3 to 5 of them opened (most likely the team) were removed or
+folded into others:
+
+- **Analytics**, **Compare** and **Benchmark** were deleted. Benchmark only
+  compared a portfolio with holding cash. The sector breakdown moved to the
+  home page.
+- The **Watchlist** page became the Watchlist button on the Stocks page.
+- The **Profile** page became Change avatar in Settings.
+- **Activity** moved under Ranks; **Orders** and **Rules** moved into the
+  menu under the player's picture, with waiting orders also on the home page.
+- The stock page's 50 or so boxes of company figures became eight key figures
+  and five folded groups. Phone number, fiscal year end, most recent quarter,
+  share type, exchange, revenue and cash per share, float, shares sold short
+  and the last split were dropped.
 
 ## Things still to decide or do
 
