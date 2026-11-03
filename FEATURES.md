@@ -195,7 +195,7 @@ page ends with the licensee's general advice warning.
 - Rob's upcoming and current live streams. YouTube streams appear by
   themselves; admins add TikTok, Facebook and Instagram streams, or tap **I'm
   live now**. TikTok streams start when Rob goes live on TikTok and end when
-  he stops, without anyone tapping anything. Between 8 am and 7 pm, a TikTok
+  he stops, without anyone tapping anything. Between 6 am and 10 pm, a TikTok
   stream he didn't book shows up too, within about 5 minutes.
 - A "Rob is live" banner shows across the whole site while he's on air.
 - Visitors can add a stream to their calendar, and members can ask for a

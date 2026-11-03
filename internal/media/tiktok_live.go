@@ -34,12 +34,12 @@ func newTikTokLive() *tiktokLive {
 // tiktokAccount is Rob's TikTok account, which is also checked all day.
 const tiktokAccount = "rob_goudie"
 
-// The all-day check: every 5 minutes from 8 am to 7 pm (TIMEZONE), so a
+// The all-day check: every 5 minutes from 6 am to 10 pm (TIMEZONE), so a
 // stream Rob didn't book still shows on the site. Around a booked stream,
 // and while one is on, the check runs every minute.
 const (
-	allDayFrom  = 8
-	allDayUntil = 19
+	allDayFrom  = 6
+	allDayUntil = 22
 	allDayEvery = 5
 )
 
@@ -149,7 +149,7 @@ func (s *Service) checkTikTokLive(ctx context.Context, now time.Time) error {
 }
 
 // allDayDue says whether the all-day check of Rob's account is due at local:
-// every 5 minutes from 8 am to 7 pm, unless TikTok refused a check today.
+// every 5 minutes from 6 am to 10 pm, unless TikTok refused a check today.
 func (s *Service) allDayDue(ctx context.Context, local time.Time) bool {
 	if local.Hour() < allDayFrom || local.Hour() >= allDayUntil || local.Minute()%allDayEvery != 0 {
 		return false

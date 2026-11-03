@@ -182,8 +182,8 @@ func TestTikTokLiveCheckAllDay(t *testing.T) {
 	at := func(hour, minute int) time.Time { return time.Date(2026, 10, 31, hour, minute, 0, 0, time.UTC) }
 	check := func(now time.Time) error { return media.CheckTikTokLive(s, ctx, now) }
 
-	// Outside 8 am to 7 pm, and between the 5 minutes, nothing is asked.
-	for _, now := range []time.Time{at(7, 55), at(19, 0), at(10, 3)} {
+	// Outside 6 am to 10 pm, and between the 5 minutes, nothing is asked.
+	for _, now := range []time.Time{at(5, 55), at(22, 0), at(10, 3)} {
 		check(now)
 	}
 	if n := tt.count(); n != 0 {

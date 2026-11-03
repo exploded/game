@@ -78,7 +78,7 @@ reminders need an account.
   he's been off air for 5 minutes. The Add a stream form fills itself in from
   the last stream on the platform chosen.
 - [x] **All-day TikTok check and log** (2026-10-31). Rob's account is also
-  checked every 5 minutes from 8 am to 7 pm; a stream he didn't book is added
+  checked every 5 minutes from 6 am to 10 pm; a stream he didn't book is added
   (banner only, no email). A 403 or 429 from TikTok stops the all-day checks
   until the next day. Every check is logged in `tiktok_live_checks` (30 days)
   and listed on `/admin/learn/live`.
