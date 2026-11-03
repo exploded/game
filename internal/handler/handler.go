@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"math"
 	"net/http"
 	"strings"
 	"time"
@@ -225,6 +226,20 @@ func bigMoney(v int64) string {
 	default:
 		return "$" + fmtThousands(v)
 	}
+}
+
+// pctChange is c against total as a signed percentage to 2 places: "+1.25".
+// A change that rounds to nothing is "0.00", never "-0.00" (a loss of $37
+// on $1M).
+func pctChange(c, total int64) string {
+	if total == 0 {
+		return "0.00"
+	}
+	pct := math.Round(float64(c-total)/float64(total)*10000) / 100
+	if pct == 0 {
+		return "0.00"
+	}
+	return fmt.Sprintf("%+.2f", pct)
 }
 
 // compactNumber shortens a count of shares: 48.2M, 15.6B, 920K.

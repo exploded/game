@@ -40,16 +40,16 @@ app.js goes back through history when it can. */}}
 {{end}}
 
 {{/* The player's own position first, as the trading apps do: on a phone the
-ticket that also shows it is folded away in the sheet. In the stock's own
-currency. */}}
+ticket that also shows it is folded away in the sheet. Value and Return are
+in the game's currency, the average cost in the stock's. */}}
 {{with .Extra.Position}}
 <section class="stock-section position">
     <h2 class="stock-h2">Your position</h2>
     <dl class="kv">
         <div><dt>{{if .Short}}Short{{else}}Shares{{end}}</dt><dd class="mono">{{.Shares}}</dd></div>
         <div><dt>Value</dt><dd class="mono">{{cents .Value}}</dd></div>
-        <div><dt>Return</dt><dd>{{with .Return}}{{if .Base}}<span class="pill {{.Class}}">{{.Pct}}</span> <span class="mono">{{.Text}}</span>{{end}}{{end}}</dd></div>
-        <div><dt>Average cost</dt><dd class="mono">{{cents .Avg}}</dd></div>
+        <div><dt>Return</dt><dd>{{if .Move.Base}}<span class="pill {{.Move.Class}}">{{.Move.Pct}}</span> <span class="mono">{{.Return.Text}}</span>{{end}}</dd></div>
+        <div><dt>Average cost</dt><dd class="mono">{{if .Native}}{{curPrefix $.Item.Currency}}{{end}}{{cents .Avg}}</dd></div>
     </dl>
 </section>
 {{end}}
@@ -250,6 +250,10 @@ open them, and they took a phone's whole screen many times over. */}}
 
     // Candlestick series.
     const candleSeries = chart.addCandlestickSeries({
+        // The price axis leaves room under the lowest price for the volume
+        // bars, which on a long chart runs below $0. A price is never
+        // negative, so those labels stay blank.
+        priceFormat: { type: 'custom', minMove: 0.01, formatter: p => p < 0 ? '' : p.toFixed(2) },
         upColor: '#22c55e',
         downColor: '#ef4444',
         borderUpColor: '#22c55e',

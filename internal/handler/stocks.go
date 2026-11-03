@@ -140,7 +140,7 @@ func (h *Handler) StockDetail(w http.ResponseWriter, r *http.Request) {
 	extra["Health"], extra["HasHealth"] = profileHealth(stock, profile)
 	if t, _ := extra["Trade"].(*tradeContext); t != nil && t.Holding.Quantity != 0 {
 		latest, _ := extra["LatestPrice"].(db.StockPrice)
-		extra["Position"] = newPosition(t.Holding, latest.Close)
+		extra["Position"] = newPosition(t.Holding, latest.Close, stock.Currency, game.BaseCurrency, t.ExchangeRate)
 	}
 	h.render(w, r, "stocks/detail", "", PageData{
 		Title: stock.Symbol + " - " + stock.Name,
@@ -165,29 +165,35 @@ func (h *Handler) ticketData(ctx context.Context, game db.Game, stock db.Stock, 
 	}
 }
 
-// position is the player's holding in a stock, for the stock page, in the
-// stock's own currency.
+// position is the player's holding in a stock, for the stock page. Value
+// and Return are in the game's currency, like the ticket's Worth; Avg is in
+// the stock's.
 type position struct {
 	Shares int64 // without the sign
 	Short  bool
 	Value  int64
 	Return change // value against what the shares cost
+	Move   change // Return in the stock's own currency, for its percentage
 	Avg    int64
+	Native bool // the stock's currency isn't the game's, so Avg is marked
 }
 
 // newPosition values a holding at the latest close (or its stored value
-// with no price yet).
-func newPosition(ho db.Holding, close int64) *position {
+// with no price yet), converted at rate (AUD/USD × 1,000,000).
+func newPosition(ho db.Holding, close int64, currency, base string, rate int64) *position {
 	value := ho.CurrentValue
 	if close != 0 {
 		value = ho.Quantity * close
 	}
+	conv := func(v int64) int64 { return convertCurrency(v, currency, base, rate) }
 	return &position{
 		Shares: max(ho.Quantity, -ho.Quantity),
 		Short:  ho.Quantity < 0,
-		Value:  value,
-		Return: change{value - ho.CostBasis, ho.CostBasis},
+		Value:  conv(value),
+		Return: change{conv(value - ho.CostBasis), conv(ho.CostBasis)},
+		Move:   change{value - ho.CostBasis, ho.CostBasis},
 		Avg:    market.AvgCost(ho.Quantity, ho.CostBasis),
+		Native: currency != base,
 	}
 }
 

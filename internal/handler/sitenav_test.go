@@ -135,3 +135,54 @@ func TestHomeWaitingOrders(t *testing.T) {
 		t.Error("an open limit order isn't on the home page")
 	}
 }
+
+// TestPctChange: a change too small to show is 0.00, not -0.00.
+func TestPctChange(t *testing.T) {
+	for _, c := range []struct {
+		v, total int64
+		want     string
+	}{
+		{99996289, 100000000, "0.00"}, // -$37.11 on $1M
+		{100003000, 100000000, "0.00"},
+		{100125000, 100000000, "+0.13"},
+		{98000000, 100000000, "-2.00"},
+		{5, 0, "0.00"},
+	} {
+		if got := pctChange(c.v, c.total); got != c.want {
+			t.Errorf("pctChange(%d, %d) = %q, want %q", c.v, c.total, got, c.want)
+		}
+	}
+}
+
+// TestHomeInGameCurrency: in an Australian dollar game, a US stock's value
+// and gains are in Australian dollars beside the cash, its own value and
+// prices marked US$, and the percentages are the share price's.
+func TestHomeInGameCurrency(t *testing.T) {
+	srv, q, d := gameServerDB(t)
+	for _, stmt := range []string{
+		`UPDATE games SET base_currency = 'AUD' WHERE id = 1`,
+		`INSERT INTO exchange_rates (date, rate_aud_usd) VALUES ('2026-10-28', 650000)`,
+	} {
+		if _, err := d.Exec(stmt); err != nil {
+			t.Fatal(err)
+		}
+	}
+	p, _ := q.GetParticipantByGameAndUser(t.Context(), db.GetParticipantByGameAndUserParams{GameID: 1, UserID: 1})
+	// 10 ACME bought for US$90.00, now worth US$105.00.
+	if err := q.UpsertHolding(t.Context(), db.UpsertHoldingParams{
+		ParticipantID: p.ID, StockID: 1, Quantity: 10, AvgCost: 900, CostBasis: 9000, CurrentValue: 10500,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	body := getPage(t, srv, "/games/1", "")
+	for _, want := range []string{
+		`$161.53 <span class="text-muted c-cur">US$105.00</span>`,                              // A$ = US$ / 0.65
+		`<span class="pill pill-up">&#43;16.67%</span> <span class="c-amt">&#43;$23.07</span>`, // US$15.00 gained
+		`US$10.50`, // the price
+		`US$9.00`,  // the average cost
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("page is missing %q", want)
+		}
+	}
+}

@@ -69,8 +69,11 @@ the US market was closed. The Orders page has them all. */}}
         </div>
     </div>
     {{/* rtable: a table on desktop, one tappable card per row on a phone.
-    Today and Total are in the stock's own currency. A finished game shows
-    the values from its end, so there's no Today. */}}
+    Value and the Today and Total amounts are in the game's currency, like
+    the cash above (the percentages are the share price's own moves);
+    a stock priced in another currency shows its own value under Value, and
+    its prices marked (US$). A finished game shows the values from its end,
+    so there's no Today. */}}
     {{if .Extra.Over}}<p class="text-muted">This game is over. Positions are valued at the last prices before it ended.</p>{{end}}
     <table class="rtable">
         <thead>
@@ -93,12 +96,13 @@ the US market was closed. The Orders page has them all. */}}
                     <a href="/games/{{$.Item.ID}}/stocks/{{.StockID}}" class="stretch"><strong>{{.Symbol}}</strong></a>
                     <span class="c-sub">{{.StockName}}</span>
                 </td>
-                <td class="c-end num">{{cents .CurrentValue}} <span class="text-muted c-cur">{{.Currency}}</span></td>
-                {{if not $.Extra.Over}}<td class="num c-move" data-label="{{with $.Extra.SessionDay}}{{.}}{{else}}Today{{end}}">{{with .Today}}{{if .Base}}<span class="pill {{.Class}}">{{.Pct}}</span> <span class="c-amt">{{.Text}}</span>{{end}}{{end}}</td>{{end}}
-                <td class="num c-move" data-label="Total">{{with .Total}}{{if .Base}}<span class="pill {{.Class}}">{{.Pct}}</span> <span class="c-amt">{{.Text}}</span>{{end}}{{end}}</td>
+                {{- $cur := "" -}}{{if ne .Currency $.Item.BaseCurrency}}{{$cur = curPrefix .Currency}}{{end}}
+                <td class="c-end num">{{cents .ValueBase}}{{if $cur}} <span class="text-muted c-cur">{{$cur}}{{cents .CurrentValue}}</span>{{end}}</td>
+                {{if not $.Extra.Over}}<td class="num c-move" data-label="{{with $.Extra.SessionDay}}{{.}}{{else}}Today{{end}}">{{if .Today.Base}}<span class="pill {{.Today.Class}}">{{.Today.Pct}}</span> <span class="c-amt">{{.TodayBase.Text}}</span>{{end}}</td>{{end}}
+                <td class="num c-move" data-label="Total">{{if .Total.Base}}<span class="pill {{.Total.Class}}">{{.Total.Pct}}</span> <span class="c-amt">{{.TotalBase.Text}}</span>{{end}}</td>
                 <td class="num" data-label="Qty">{{.Quantity}}</td>
-                <td class="num" data-label="Price">{{if .Price}}{{cents .Price}}{{end}}</td>
-                <td class="num hide-sm">{{cents .Avg}}</td>
+                <td class="num" data-label="Price">{{if .Price}}{{$cur}}{{cents .Price}}{{end}}</td>
+                <td class="num hide-sm">{{$cur}}{{cents .Avg}}</td>
                 <td class="hide-sm">{{marketLabel .Symbol .Market}}</td>
                 <td class="c-action">
                     <div class="btn-group">

@@ -62,6 +62,12 @@ type holdingRow struct {
 	Today       change // what the position made since the previous close (dayMove)
 	Total       change // value against what the shares cost
 	CloseQueued bool   // an order closing the position waits for the market to open
+
+	// Value, Today and Total in the game's currency, to sit beside the
+	// player's cash. Price and Avg stay in the stock's own currency.
+	ValueBase int64
+	TodayBase change
+	TotalBase change
 }
 
 // CloseSide is the trade that closes the position: sell shares held, buy
@@ -245,7 +251,15 @@ func (h *Handler) portfolioFigures(ctx context.Context, game db.Game, participan
 			row.Today = dayMove(ho.Quantity, bars, trades[ho.StockID])
 			session = max(session, bars[0].Date)
 		}
-		todayBase += convertCurrency(row.Today.Amount, ho.Currency, game.BaseCurrency, rate)
+		toBase := func(c change) change {
+			return change{
+				convertCurrency(c.Amount, ho.Currency, game.BaseCurrency, rate),
+				convertCurrency(c.Base, ho.Currency, game.BaseCurrency, rate),
+			}
+		}
+		row.ValueBase = convertCurrency(ho.CurrentValue, ho.Currency, game.BaseCurrency, rate)
+		row.TodayBase, row.TotalBase = toBase(row.Today), toBase(row.Total)
+		todayBase += row.TodayBase.Amount
 		rows = append(rows, row)
 		delete(trades, ho.StockID)
 	}

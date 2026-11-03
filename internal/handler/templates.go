@@ -78,13 +78,7 @@ func LoadTemplates(fsys fs.FS, static *Static) (PageTemplates, error) {
 			}
 			return m
 		},
-		"pct": func(c int64, total int64) string {
-			if total == 0 {
-				return "0.00"
-			}
-			pct := float64(c-total) / float64(total) * 100
-			return fmt.Sprintf("%+.2f", pct)
-		},
+		"pct":         pctChange,
 		"upper":       strings.ToUpper,
 		"paragraphs":  mail.Paragraphs,
 		"marketLabel": market.MarketLabel,
@@ -115,6 +109,17 @@ func LoadTemplates(fsys fs.FS, static *Static) (PageTemplates, error) {
 			return fmtThousands(v)
 		},
 		"compact": compactNumber,
+		// curPrefix marks a price in a currency other than the game's:
+		// "US" before "$521.91".
+		"curPrefix": func(cur string) string {
+			switch cur {
+			case "USD":
+				return "US"
+			case "AUD":
+				return "A"
+			}
+			return cur + " "
+		},
 		"rawDollars": func(c int64) string {
 			return fmt.Sprintf("%.2f", float64(c)/100)
 		},
