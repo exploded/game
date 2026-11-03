@@ -5608,7 +5608,8 @@ func (q *Queries) ListQuestions(ctx context.Context, arg ListQuestionsParams) ([
 
 const listRecentCloses = `-- name: ListRecentCloses :many
 SELECT stock_id, date, close, volume FROM stock_prices
-WHERE date >= (SELECT date(MAX(date), '-45 days') FROM stock_prices)
+WHERE stock_id IN (SELECT id FROM stocks)
+  AND date >= (SELECT date(MAX(date), '-45 days') FROM stock_prices)
 ORDER BY stock_id, date
 `
 
@@ -5620,7 +5621,9 @@ type ListRecentClosesRow struct {
 }
 
 // The last 45 days of bars for every stock, counted back from the newest
-// bar stored, so the page still has moves if prices stop updating.
+// bar stored, so the page still has moves if prices stop updating. The
+// stock_id test makes SQLite seek each stock's bars in the (stock_id, date)
+// index; without it, it reads every price stored to get the order.
 func (q *Queries) ListRecentCloses(ctx context.Context) ([]ListRecentClosesRow, error) {
 	rows, err := q.db.QueryContext(ctx, listRecentCloses)
 	if err != nil {
@@ -5808,7 +5811,7 @@ FROM stocks s
 LEFT JOIN stock_profiles p ON p.stock_id = s.id
 LEFT JOIN stock_picks pk ON pk.stock_id = s.id
 WHERE s.is_active = 1 AND (s.market = ? OR ? = 'both')
-  AND s.id IN (SELECT DISTINCT stock_id FROM stock_prices)
+  AND EXISTS (SELECT 1 FROM stock_prices sp WHERE sp.stock_id = s.id)
 ORDER BY s.symbol ASC
 `
 
