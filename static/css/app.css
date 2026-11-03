@@ -341,6 +341,23 @@ body:has(.login-page) main.container { padding: 0; max-width: none; }
 .login-team figcaption { margin-top: 10px; font-size: 13px; color: var(--color-text-muted); }
 .login-team-phone { display: none; }
 
+/* Two phone screenshots of the game, the second set lower. Placed like the
+   team photo: in the hero on a wide screen, under the form on a phone. */
+.login-shots { margin: 40px auto 0; }
+.login-shots-row { display: flex; justify-content: center; align-items: flex-start; gap: 16px; }
+.login-shots img {
+    display: block;
+    width: 180px;
+    min-width: 0;
+    height: auto;
+    border-radius: 18px;
+    border: 1px solid var(--color-border);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+.login-shots img + img { margin-top: 28px; }
+.login-shots figcaption { margin-top: 10px; font-size: 13px; color: var(--color-text-muted); }
+.login-shots-phone { display: none; }
+
 /* Right panel — sign-in form */
 .login-right {
     width: 480px;
@@ -986,6 +1003,8 @@ dialog.confirm form { padding: 20px; }
    ============================================================ */
 .stock-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; margin-bottom: 20px; }
 .stock-main .chart-container { margin-bottom: 0; }
+.chart-ranges { margin-bottom: 8px; }
+.chart-ranges .chip { font: inherit; font-size: 13px; padding: 5px 14px; cursor: pointer; }
 .ticket {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
@@ -1164,6 +1183,9 @@ dialog.confirm form { padding: 20px; }
     .login-stat-value { font-size: 18px; }
     .login-team-wide { display: none; }
     .login-team-phone { display: block; margin-top: 32px; text-align: center; }
+    .login-shots-wide { display: none; }
+    .login-shots-phone { display: block; margin-top: 32px; text-align: center; }
+    .login-shots-phone img { flex: 1 1 0; width: auto; max-width: 180px; }
 
     /* Readable type and thumb-sized targets. 16px inputs stop iOS
        zooming the page when a field is focused. */
@@ -1589,7 +1611,9 @@ dialog.confirm form { padding: 20px; }
 
 .sc-stock { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .sc-text { min-width: 0; }
-.sc-text .badge-held { margin-top: 3px; }
+/* Sentence case like the health badge, to fit a phone's narrow name column;
+   if it still doesn't, it wraps rather than running into the spark. */
+.sc-text .badge-held { margin-top: 3px; max-width: 100%; white-space: normal; text-transform: none; letter-spacing: 0; }
 /* Wraps on a phone too: the .c-sub ellipsis would clip the figure's number. */
 .rtable .sc-fin { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; margin-top: 2px; white-space: normal; overflow: visible; }
 .badge-health { background: var(--color-surface-3); color: var(--color-text-muted); text-transform: none; }
@@ -1622,6 +1646,9 @@ dialog.confirm form { padding: 20px; }
     .screener-controls { grid-template-columns: minmax(0, 1fr); }
     .screener-sector { height: 44px; font-size: 16px; flex: 1 1 0; min-width: 0; }
     .screener .c-spark { order: 0; width: auto; }
+    /* A narrower spark and gaps leave the name column room for its badges. */
+    .screener .spark { width: 48px; }
+    .rtable.screener tr { column-gap: 10px; }
     .screener .c-end { text-align: right; }
     .rtable .c-watch { order: 0; width: auto; margin-right: -8px; }
     .screener .sc-logo { width: 28px; height: 28px; }

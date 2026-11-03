@@ -19,11 +19,24 @@
                     <span class="login-stat-label">Real Risk</span>
                 </div>
             </div>
-            {{/* On a phone this is hidden, and login.html shows it under the form. */}}
+            {{/* On a phone these are hidden, and login.html shows them under the form. */}}
+            {{template "login-shots" "login-shots-wide"}}
             <figure class="login-team login-team-wide">
                 <img src="{{asset "img/team.jpg"}}" width="1200" height="727" alt="The Consortium Private Wealth team" loading="lazy" decoding="async">
                 <figcaption>Rob Goudie and the team at <a href="https://www.consortiumpw.com.au/" target="_blank" rel="noopener">Consortium Private Wealth</a></figcaption>
             </figure>
         </div>
     </div>
+{{end}}
+
+{{/* Two phone screenshots of the share game, from a demo player on a local
+copy of the database. The argument is the class that picks wide or phone. */}}
+{{define "login-shots"}}
+<figure class="login-shots {{.}}">
+    <div class="login-shots-row">
+        <img src="{{asset "img/shot-stocks.webp"}}" width="780" height="1688" alt="The Stocks page on a phone: Rob's Picks, each with its price, today's move and a 30-day chart" loading="lazy" decoding="async">
+        <img src="{{asset "img/shot-stock.webp"}}" width="780" height="1688" alt="A stock's page on a phone: price, chart, your position and Buy and Sell buttons" loading="lazy" decoding="async">
+    </div>
+    <figcaption>The share game on your phone</figcaption>
+</figure>
 {{end}}
