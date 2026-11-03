@@ -143,6 +143,30 @@ document.addEventListener("change", function(e) {
     if (box) box.value = "";
 });
 
+// A logo that fails to load (Twelve Data names some it doesn't have) becomes
+// the stock's letter in a list, and disappears on the stock page. Error
+// events don't bubble, so this listens in the capture phase, and logos that
+// failed before this script ran are caught once the page has loaded.
+function brokenLogo(img) {
+    if (img.matches("img.sc-logo")) {
+        const letter = document.createElement("span");
+        letter.className = "sc-logo sc-letter";
+        letter.setAttribute("aria-hidden", "true");
+        letter.textContent = img.dataset.initial || "";
+        img.replaceWith(letter);
+    } else if (img.matches("img.stock-logo")) {
+        img.remove();
+    }
+}
+document.addEventListener("error", function(e) {
+    if (e.target instanceof HTMLImageElement) brokenLogo(e.target);
+}, true);
+document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll("img.sc-logo, img.stock-logo").forEach(function(img) {
+        if (img.complete && img.naturalWidth === 0) brokenLogo(img);
+    });
+});
+
 // A row of chips scrolls sideways on a phone: bring the chosen one into view.
 document.addEventListener("DOMContentLoaded", function() {
     document.querySelectorAll(".chips .chip:has(:checked)").forEach(function(chip) {

@@ -103,9 +103,33 @@ func (f *Fetcher) refreshProfile(ctx context.Context, q *db.Queries, s db.Stock)
 		URL string `json:"url"`
 	}
 	if err := f.getJSON(ctx, "logo", 1, s.Symbol, &logo); err == nil && logo.URL != "" {
+		if !logoLoads(ctx, logo.URL) {
+			logo.URL = ""
+		}
 		q.UpdateStockLogo(ctx, db.UpdateStockLogoParams{Logo: logo.URL, StockID: s.ID})
 	}
 	return nil
+}
+
+// logoClient fetches logo images. It isn't the Fetcher's client, so the
+// images go without the API key.
+var logoClient = &http.Client{Timeout: 10 * time.Second}
+
+// logoLoads reports whether a logo URL serves an image. Twelve Data names
+// some logos it doesn't have (Lululemon's, Best Buy's), which 404. It uses
+// GET because the logo host answers HEAD with 404 even for good logos. A
+// network error counts as loading, so a blip doesn't clear a logo.
+func logoLoads(ctx context.Context, u string) bool {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return false
+	}
+	resp, err := logoClient.Do(req)
+	if err != nil {
+		return true
+	}
+	resp.Body.Close()
+	return resp.StatusCode == http.StatusOK
 }
 
 // getJSON calls a Twelve Data endpoint that costs the given credits for one

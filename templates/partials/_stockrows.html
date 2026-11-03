@@ -5,7 +5,7 @@ portfolio. Also served alone by StockSearch for the search there. */}}
 <tr>
     <td class="c-main">
         <div class="sc-stock">
-            {{if .Logo}}<img src="{{.Logo}}" alt="" width="32" height="32" loading="lazy" referrerpolicy="no-referrer" class="sc-logo">{{else}}<span class="sc-logo sc-letter" aria-hidden="true">{{.Initial}}</span>{{end}}
+            {{if .Logo}}<img src="{{.Logo}}" alt="" width="32" height="32" loading="lazy" referrerpolicy="no-referrer" class="sc-logo" data-initial="{{.Initial}}">{{else}}<span class="sc-logo sc-letter" aria-hidden="true">{{.Initial}}</span>{{end}}
             <div class="sc-text">
                 <a href="/games/{{$.Item.ID}}/stocks/{{.ID}}" class="stretch"><strong>{{.Symbol}}</strong></a>
                 <span class="c-sub">{{.Name}}</span>
