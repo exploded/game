@@ -34,6 +34,19 @@ func (sw *statusWriter) WriteHeader(code int) {
 	sw.ResponseWriter.WriteHeader(code)
 }
 
+// Flush passes flushes through, so a stream (MCP's subscriptions/listen)
+// reaches the client as it's written. Without it, chi's Compress finds no
+// Flusher and the stream sits in the server's buffer: Claude's connector got
+// nothing back and retried every 30 seconds (4 November 2026).
+func (sw *statusWriter) Flush() {
+	if f, ok := sw.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+// Unwrap lets http.ResponseController reach the underlying writer.
+func (sw *statusWriter) Unwrap() http.ResponseWriter { return sw.ResponseWriter }
+
 // SecurityHeaders adds security-related headers to every response.
 // HSTS is only sent when SecurityHeadersProd is set.
 var SecurityHeadersProd bool

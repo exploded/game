@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"bufio"
+	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
@@ -18,6 +20,7 @@ import (
 	"github.com/exploded/game/internal/db"
 	"github.com/exploded/game/internal/market"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -449,6 +452,42 @@ func TestMCPTools(t *testing.T) {
 	if b, _ := json.Marshal(res.StructuredContent); !strings.Contains(string(b), `"symbol":"ACME"`) {
 		t.Errorf("portfolio = %s", b)
 	}
+}
+
+// TestMCPListenStreams checks that MCP's subscriptions/listen stream gets
+// through main.go's middleware: the request logger and compression must pass
+// flushes on, or the stream's first event never leaves the server.
+func TestMCPListenStreams(t *testing.T) {
+	srv, q, _, _ := apiServer(t)
+	ts := httptest.NewServer(RequestLogger(middleware.Compress(5)(srv)))
+	defer ts.Close()
+	key := newKey(t, q, "read")
+
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	body := `{"jsonrpc":"2.0","id":1,"method":"subscriptions/listen","params":{"notifications":{"toolsListChanged":true},` +
+		`"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"test","version":"1"},"io.modelcontextprotocol/clientCapabilities":{}}}}`
+	req, _ := http.NewRequestWithContext(ctx, "POST", ts.URL+"/mcp", strings.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+key)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json, text/event-stream")
+	req.Header.Set("Mcp-Protocol-Version", "2026-07-28")
+	req.Header.Set("Mcp-Method", "subscriptions/listen")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer resp.Body.Close()
+	if ct := resp.Header.Get("Content-Type"); resp.StatusCode != 200 || ct != "text/event-stream" {
+		t.Fatalf("listen = %d %s", resp.StatusCode, ct)
+	}
+	sc := bufio.NewScanner(resp.Body)
+	for sc.Scan() {
+		if strings.Contains(sc.Text(), "notifications/subscriptions/acknowledged") {
+			return
+		}
+	}
+	t.Fatalf("no acknowledgement on the stream: %v", sc.Err())
 }
 
 func TestRedirectRules(t *testing.T) {
