@@ -23,3 +23,17 @@ func TestMarketLabel(t *testing.T) {
 		}
 	}
 }
+
+func TestStockLabel(t *testing.T) {
+	cases := []struct{ symbol, name, want string }{
+		{"C", "Citigroup Inc.", "Citigroup Inc. (C)"},
+		{"C", "", "C"},
+		{"C", "  ", "C"},
+		{"IBIT", "ibit", "IBIT"},
+	}
+	for _, c := range cases {
+		if got := StockLabel(c.symbol, c.name); got != c.want {
+			t.Errorf("StockLabel(%q, %q) = %q, want %q", c.symbol, c.name, got, c.want)
+		}
+	}
+}

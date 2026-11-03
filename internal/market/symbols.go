@@ -151,6 +151,17 @@ func MarketLabel(symbol, market string) string {
 	return strings.ToUpper(market)
 }
 
+// StockLabel names a stock for players in messages: "Citigroup Inc. (C)",
+// so a short ticker like C still says which company it is. With no name
+// stored it is just the symbol.
+func StockLabel(symbol, name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" || strings.EqualFold(name, symbol) {
+		return symbol
+	}
+	return name + " (" + symbol + ")"
+}
+
 // SP500 contains the top S&P 500 constituents.
 var SP500 = []StockInfo{
 	{"AAPL", "Apple Inc.", "Information Technology"},

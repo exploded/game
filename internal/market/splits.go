@@ -187,7 +187,8 @@ func (f *Fetcher) applySplit(ctx context.Context, q *db.Queries, stock db.Stock,
 			return false, err
 		}
 
-		msg := fmt.Sprintf("%s had a %s on %s: your %d shares are now %d.", stock.Symbol, s.Description, s.Date, abs(before), abs(whole))
+		label := StockLabel(stock.Symbol, stock.Name)
+		msg := fmt.Sprintf("%s had a %s on %s: your %d shares are now %d.", label, s.Description, s.Date, abs(before), abs(whole))
 		if cash != 0 {
 			if stock.Currency != h.BaseCurrency && rate == 0 {
 				slog.Error("split cash unpaid: no exchange rate", "symbol", stock.Symbol, "participant", h.ParticipantID)
@@ -201,7 +202,7 @@ func (f *Fetcher) applySplit(ctx context.Context, q *db.Queries, stock db.Stock,
 		}
 		if err := qtx.CreateNotification(ctx, db.CreateNotificationParams{
 			UserID: h.UserID, GameID: sql.NullInt64{Int64: h.GameID, Valid: true},
-			Type: "stock_split", Title: stock.Symbol + " split", Message: msg,
+			Type: "stock_split", Title: label + " split", Message: msg,
 		}); err != nil {
 			return false, err
 		}

@@ -191,13 +191,14 @@ func (f *Fetcher) payDividend(ctx context.Context, q *db.Queries, stock db.Stock
 		if stock.Currency != h.BaseCurrency {
 			each, total = each+" "+stock.Currency, total+" "+h.BaseCurrency
 		}
-		title := stock.Symbol + " paid a dividend"
+		label := StockLabel(stock.Symbol, stock.Name)
+		title := label + " paid a dividend"
 		msg := fmt.Sprintf("%s paid a dividend of %s a share. You held %d shares, so %s was added to your cash.",
-			stock.Symbol, each, shares, total)
+			label, each, shares, total)
 		if shares < 0 {
-			title = "You paid " + stock.Symbol + "'s dividend"
+			title = "You paid " + label + "'s dividend"
 			msg = fmt.Sprintf("%s paid a dividend of %s a share. You were short %d shares, so you paid it: %s was taken from your cash.",
-				stock.Symbol, each, -shares, total)
+				label, each, -shares, total)
 		}
 		if err := qtx.CreateNotification(ctx, db.CreateNotificationParams{
 			UserID: h.UserID, GameID: sql.NullInt64{Int64: h.GameID, Valid: true},
