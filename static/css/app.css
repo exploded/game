@@ -1111,10 +1111,14 @@ dialog.confirm form { padding: 20px; }
 .rtable .c-sub { display: block; color: var(--color-text-muted); font-size: 12px; }
 .rtable .c-main .badge { margin-right: 4px; }
 .rtable .c-action form { display: inline; }
-/* a.stretch makes the whole row a link; buttons sit above it. */
-.rtable tr:has(a.stretch) { position: relative; cursor: pointer; }
+/* a.stretch makes the whole row a link; buttons and the star sit above it.
+   In a table, app.js follows it from a click anywhere in the row. Don't use
+   an overlay here: Safari won't keep one inside a table row (WebKit bug
+   240961), so every row's overlay covered the top of the page and an iPad
+   opened the list's last stock whatever was tapped. On a phone the row is a
+   card, and the link's ::after covers it (below). */
+.rtable tr:has(a.stretch) { cursor: pointer; }
 .rtable tr:has(a.stretch):hover td { background: var(--color-surface-2); }
-.rtable a.stretch::after { content: ""; position: absolute; inset: 0; }
 .rtable .c-action, .rtable .c-watch { position: relative; z-index: 1; }
 .show-sm { display: none !important; }
 
@@ -1284,6 +1288,7 @@ dialog.confirm form { padding: 20px; }
     .rtable .c-action { margin-left: auto; }
     .rtable tr:has(a.stretch):hover td { background: none; }
     .rtable a.stretch { color: var(--color-text); }
+    .rtable a.stretch::after { content: ""; position: absolute; inset: 0; }
     .rtable td[colspan] { order: 0; }
     .rtable .c-amt { display: inline; margin: 0; }
 

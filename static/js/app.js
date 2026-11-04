@@ -190,6 +190,21 @@ document.addEventListener("click", function(e) {
     }
 });
 
+// a.stretch in a table row (the stocks list, holdings): a click anywhere in
+// the row follows the link, as the link's overlay does on a phone (see
+// app.css for why tables can't have one). The star, buttons and other links
+// keep their own clicks, and dragging to select text doesn't count.
+document.addEventListener("click", function(e) {
+    const row = e.target.closest(".rtable tr");
+    const link = row && row.querySelector("a.stretch");
+    if (!link || e.defaultPrevented || e.button !== 0
+        || e.target.closest("a, button, input, select, textarea, label, .c-action, .c-watch")) return;
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed) return;
+    if (e.ctrlKey || e.metaKey) window.open(link.href);
+    else link.click();
+});
+
 // The Stocks tab goes back to the list as the player left it (chip, sector
 // or search) rather than the default list. Remembered for this browser tab.
 // data-stocks-tab on the link names its game, so it works from any page.
