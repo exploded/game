@@ -1,0 +1,85 @@
+{{/* Pieces of Rob's home page (mockup of 4 November 2026) shared by the
+signed-in home page (dashboard/index.html) and the sign-in page
+(auth/login.html), so the two look the same. All inline SVG, so there's
+nothing extra to load. */}}
+
+{{/* The rising chart behind the home page's headline. */}}
+{{define "home-rise-art"}}<svg class="{{.}}" viewBox="0 0 400 220" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">
+        <defs>
+            <linearGradient id="home-hero-fill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#02C77A" stop-opacity="0.28"/>
+                <stop offset="1" stop-color="#02C77A" stop-opacity="0"/>
+            </linearGradient>
+        </defs>
+        <g class="home-candles">
+            <path d="M40 150v40M80 140v45M120 120v50M160 125v45M200 100v50M240 95v45M280 70v50M320 60v45M360 40v45"/>
+            <rect x="35" y="160" width="10" height="20"/><rect x="75" y="150" width="10" height="25"/>
+            <rect x="115" y="130" width="10" height="28"/><rect x="155" y="135" width="10" height="22"/>
+            <rect x="195" y="110" width="10" height="28"/><rect x="235" y="105" width="10" height="24"/>
+            <rect x="275" y="80" width="10" height="30"/><rect x="315" y="70" width="10" height="24"/>
+            <rect x="355" y="50" width="10" height="24"/>
+        </g>
+        <path d="M0 200L40 182L75 190L115 158L150 168L190 130L225 140L265 100L300 110L340 62L372 70L392 30V220H0Z" fill="url(#home-hero-fill)"/>
+        <path class="home-hero-line" d="M0 200L40 182L75 190L115 158L150 168L190 130L225 140L265 100L300 110L340 62L372 70L392 30"/>
+        <path class="home-hero-head" d="M375 30L396 22L392 46Z"/>
+    </svg>{{end}}
+
+{{/* The tiles' icons and the round arrow at the foot of each tile. */}}
+{{define "home-icon-game"}}<span class="home-tile-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" class="stroke"><path d="M2.5 17.5l6.5-6.5 4 4 8-8"/><path d="M15 6.5h6.5V13"/></svg>
+        </span>{{end}}
+{{define "home-icon-ask"}}<span class="home-tile-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" class="fill"/><path class="on-fill" d="M8.8 9.2a3.3 3.3 0 016.4 1.1c0 2.2-3.2 2.7-3.2 4.7"/><circle cx="12" cy="18.2" r="1.4" class="on-fill-dot"/></svg>
+        </span>{{end}}
+{{define "home-icon-learn"}}<span class="home-tile-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path class="fill" d="M12 3L1 8.5 12 14l11-5.5z"/><path class="fill" d="M5.5 11.6v4.3c0 1.9 2.9 3.4 6.5 3.4s6.5-1.5 6.5-3.4v-4.3L12 14.9z"/><path class="stroke-only" d="M21.2 9.4v5.4"/><circle cx="21.2" cy="15.8" r="1.2" class="fill"/></svg>
+        </span>{{end}}
+{{define "home-go"}}<span class="home-tile-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>{{end}}
+
+{{/* The Ask a Question tile's live line: Rob on air now, or his next booked
+stream. The argument is the page's data. */}}
+{{define "home-ask-live"}}{{with .LiveNow}}<span class="home-tile-live"><span class="live-dot"></span> Rob is live now</span>
+        {{else}}{{with index .Extra "NextLive"}}{{with .ScheduledAt.String}}<span class="home-tile-live">Next live {{when .}}</span>{{end}}{{end}}{{end}}{{end}}
+
+{{/* The intro video in its card over faint candles. */}}
+{{define "home-video"}}<section class="home-video">
+    <svg class="home-video-art" viewBox="0 0 400 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <g class="home-candles">
+            <path d="M20 120v30M50 110v35M80 115v30M110 95v35M140 100v30M170 80v35M200 85v30M230 65v35M260 70v30M290 50v35M320 55v30M350 35v35M380 25v35"/>
+            <rect x="16" y="128" width="8" height="14"/><rect x="46" y="118" width="8" height="18"/><rect x="76" y="122" width="8" height="14"/>
+            <rect x="106" y="103" width="8" height="18"/><rect x="136" y="108" width="8" height="14"/><rect x="166" y="88" width="8" height="18"/>
+            <rect x="196" y="92" width="8" height="14"/><rect x="226" y="73" width="8" height="18"/><rect x="256" y="77" width="8" height="14"/>
+            <rect x="286" y="58" width="8" height="18"/><rect x="316" y="62" width="8" height="14"/><rect x="346" y="43" width="8" height="18"/>
+            <rect x="376" y="33" width="8" height="18"/>
+        </g>
+    </svg>
+    <div class="home-video-head">
+        <p class="home-kicker">Welcome to The Wealth Lab</p>
+        <h2>Watch this short video<br>to learn how it all works</h2>
+        <p class="home-video-note" aria-hidden="true">Play<br>Learn<br>Grow
+            <svg viewBox="0 0 40 40"><path d="M34 4C30 20 20 30 6 34"/><path d="M6 34l9-1M6 34l3-8"/></svg>
+        </p>
+    </div>
+    {{template "introvideo"}}
+</section>{{end}}
+
+{{/* Compete / Learn / Be part of it, and the quote. */}}
+{{define "home-points"}}<div class="home-points">
+    <div class="home-point">
+        <span class="home-point-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0z"/><path d="M17 5h3v2a3 3 0 01-3 3M7 5H4v2a3 3 0 003 3"/></svg></span>
+        <strong>Compete</strong>
+        <span>Climb the ranks and see how you stack up.</span>
+    </div>
+    <div class="home-point">
+        <span class="home-point-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 6.5C10 5 7 4.5 3 5v13c4-.5 7 0 9 1.5 2-1.5 5-2 9-1.5V5c-4-.5-7 0-9 1.5z"/><path d="M12 6.5v13"/></svg></span>
+        <strong>Learn</strong>
+        <span>Gain real knowledge and confidence.</span>
+    </div>
+    <div class="home-point">
+        <span class="home-point-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2"/><path d="M6.5 19.5a5.5 5.5 0 0111 0"/><circle cx="5" cy="10" r="2.2"/><circle cx="19" cy="10" r="2.2"/><path d="M1.5 18a3.6 3.6 0 014.2-3.4M22.5 18a3.6 3.6 0 00-4.2-3.4"/></svg></span>
+        <strong>Be part of it</strong>
+        <span>A community that supports your journey.</span>
+    </div>
+</div>
+
+<p class="home-quote">&ldquo;Practise today. Invest in tomorrow.&rdquo;</p>{{end}}

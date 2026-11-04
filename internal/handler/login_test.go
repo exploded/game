@@ -217,6 +217,15 @@ func TestHome(t *testing.T) {
 	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `action="/login"`) {
 		t.Errorf("signed out: GET / = %d, want 200 with the sign-in form", w.Code)
 	}
+	if !strings.Contains(w.Body.String(), `<source src="/static/video/the-wealth-lab-tour.mp4?v=`) {
+		t.Error("sign-in page has no tour video")
+	}
+	// The home page's headline, tiles and points, from partials/_home.html.
+	for _, want := range []string{"Build real skills.", `href="#sign-in"`, `href="/learn/questions"`, `href="/learn"`, "Be part of it"} {
+		if !strings.Contains(w.Body.String(), want) {
+			t.Errorf("sign-in page has no %q", want)
+		}
+	}
 
 	w = httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/", nil)

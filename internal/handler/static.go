@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"io/fs"
 	"log/slog"
+	"mime"
 	"net/http"
 	"strings"
 )
@@ -15,6 +16,12 @@ import (
 type Static struct {
 	fsys   fs.FS
 	hashes map[string]string // path relative to static/ -> short content hash
+}
+
+// Go's own list of types has no .mp4, and the server's /etc/mime.types may
+// not either, so the intro video (static/video) is named here.
+func init() {
+	_ = mime.AddExtensionType(".mp4", "video/mp4")
 }
 
 // NewStatic hashes every file in fsys. Only files found here are served, so

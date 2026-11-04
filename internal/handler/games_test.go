@@ -2,6 +2,7 @@ package handler
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -126,22 +127,64 @@ func TestAdminChangesGameSettings(t *testing.T) {
 }
 
 // TestDashboardJoinsCurrentGame: a player who has never joined anything
-// lands in this month's game with its starting cash.
+// is put in this month's game, and the home page's Game Home tile opens it
+// with their value and place.
 func TestDashboardJoinsCurrentGame(t *testing.T) {
 	srv, d := monthServer(t)
+	var body string
 	for range 2 { // the second visit mustn't join again
-		req := httptest.NewRequest("GET", "/dashboard", nil)
-		req.Header.Set("X-User", "2")
-		w := httptest.NewRecorder()
-		srv.ServeHTTP(w, req)
-		if w.Code != http.StatusSeeOther || w.Header().Get("Location") != "/games/1" {
-			t.Fatalf("got %d to %q, want 303 to /games/1", w.Code, w.Header().Get("Location"))
-		}
+		body = getPage(t, srv, "/dashboard", "2")
 	}
 	var n int
 	var cash int64
 	if err := d.QueryRow("SELECT COUNT(*), SUM(cash_balance) FROM participants WHERE game_id = 1 AND user_id = 2").Scan(&n, &cash); err != nil || n != 1 || cash != 100000000 {
 		t.Errorf("Bob in game 1: %d rows with %d cash (%v), want 1 with 100000000", n, cash, err)
+	}
+	for _, want := range []string{
+		`href="/dashboard" class="active" aria-current="page">`, // Home
+		`Build real skills.<br>Play for a <span class="home-hl">brighter future.</span>`,
+		`<a href="/games/1" class="home-tile home-tile-game">`,
+		`<a href="/learn/questions" class="home-tile home-tile-ask">`,
+		`<a href="/learn" class="home-tile home-tile-learn">`,
+		`<strong>$1.00M</strong> &middot; 1st of 2`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("home page is missing %q", want)
+		}
+	}
+	if !strings.Contains(body, `<source src="/static/video/the-wealth-lab-tour.mp4?v=`) {
+		t.Error("home page has no tour video")
+	}
+}
+
+// The tour's music is CC BY 4.0, so it needs a credit. It's on the About
+// page, not under the video.
+func TestAboutCreditsTourMusic(t *testing.T) {
+	d := openTestDB(t)
+	h := New(db.New(d), d, loadTestTemplates(t), false, time.UTC)
+	w := httptest.NewRecorder()
+	h.AboutPage(w, httptest.NewRequest("GET", "/about", nil))
+	if !strings.Contains(w.Body.String(), "Kevin MacLeod") || !strings.Contains(w.Body.String(), "CC BY 4.0") {
+		t.Error("About page has no credit for the tour's music")
+	}
+}
+
+// TestDashboardCreatesMissingGame: just after midnight on the 1st the
+// scheduler may not have made the month's game yet. Game Home still opens
+// it, already joined: players never join by hand.
+func TestDashboardCreatesMissingGame(t *testing.T) {
+	srv, d := monthServer(t)
+	if _, err := d.Exec("DELETE FROM participants; DELETE FROM games WHERE id = 1"); err != nil {
+		t.Fatal(err)
+	}
+	body := getPage(t, srv, "/dashboard", "2")
+	var id int64
+	key := market.MonthOf(time.Now().UTC()).Key()
+	if err := d.QueryRow("SELECT g.id FROM games g JOIN participants p ON p.game_id = g.id AND p.user_id = 2 WHERE g.quarter = ?", key).Scan(&id); err != nil {
+		t.Fatalf("this month's game wasn't created and joined: %v", err)
+	}
+	if want := fmt.Sprintf(`<a href="/games/%d" class="home-tile home-tile-game">`, id); !strings.Contains(body, want) {
+		t.Errorf("Game Home doesn't open the new game: missing %q", want)
 	}
 }
 

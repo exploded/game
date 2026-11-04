@@ -12,21 +12,22 @@ pages and the way back. . is PageData. */}}
             <a href="/games/{{$g.ID}}/leaderboard"{{if eq .Tab "leaderboard"}} aria-current="page"{{end}}>Ranks</a>
             {{if .Participant}}<a href="/games/{{$g.ID}}/history"{{if eq .Tab "portfolio"}} aria-current="page"{{end}}>History</a>{{end}}
         </nav>
-        {{if $.Nav.GameID}}<a href="{{$.Nav.Home}}" class="game-strip-back">This month's game &rsaquo;</a>{{end}}
+        {{if $.Nav.GameID}}<a href="/games/{{$.Nav.GameID}}" class="game-strip-back">This month's game &rsaquo;</a>{{end}}
     </div>
 </div>
 {{end}}{{end}}{{end}}
 
 {{/* Cash, value and P&L in the top bar (a phone has room for the cash). P is
-the player's participant row.
+the player's participant row. It links to the game's home page, which is
+otherwise two taps away (Home, then Game Home).
 OOB is set when the order ticket redraws it after a trade (_ticket.html). */}}
 {{define "gamebar-stats"}}
-<div class="game-bar-stats" id="game-bar-stats"{{if .OOB}} hx-swap-oob="true"{{end}}>
+<a href="/games/{{.Game.ID}}" class="game-bar-stats" title="Your portfolio" id="game-bar-stats"{{if .OOB}} hx-swap-oob="true"{{end}}>
     <span><span class="game-bar-label">Cash</span> <span class="mono">{{cents .P.CashBalance}}</span></span>
     <span class="hide-sm"><span class="game-bar-label">Value</span> <span class="mono">{{cents .P.PortfolioValue}}</span></span>
     {{$pl := subtract .P.PortfolioValue .Game.StartingBalance}}
     <span class="hide-sm"><span class="game-bar-label">P&amp;L</span> <span class="mono {{if gt $pl 0}}text-green{{else if lt $pl 0}}text-red{{end}}">{{cents $pl}}</span></span>
-</div>
+</a>
 {{end}}
 
 {{/* Players and Activity, the two halves of the Ranks tab. Takes dict

@@ -20,12 +20,10 @@ type siteNav struct {
 	Unread int64  // notifications not yet read, for the bell
 }
 
-// Home is the player's home page in the nav's game.
+// Home is the home page with the three section tiles (Dashboard), where the
+// logo and the Home tab go. The game's own home page is its first tile.
 func (n *siteNav) Home() string {
-	if n.GameID == 0 {
-		return "/dashboard"
-	}
-	return fmt.Sprintf("/games/%d", n.GameID)
+	return "/dashboard"
 }
 
 // In is a page of the nav's game, such as In "stocks".
@@ -55,8 +53,9 @@ func (h *Handler) siteNav(r *http.Request, user *db.User, bar *gameBar) *siteNav
 	return n
 }
 
-// navTab is the section a path belongs to. Orders, history and the rules
-// count as Home, which links to them; Activity sits under Ranks.
+// navTab is the section a path belongs to. A game's home page, orders,
+// history and rules count as Home, whose Game Home tile leads to them;
+// Activity sits under Ranks.
 func navTab(path string) string {
 	under := func(prefix string) bool {
 		return path == prefix || strings.HasPrefix(path, prefix+"/")
@@ -71,6 +70,8 @@ func navTab(path string) string {
 		case "leaderboard", "activity":
 			return "ranks"
 		}
+	case path == "/dashboard":
+		return "home"
 	case under("/learn"), under("/courses"):
 		return "learn"
 	case path == "/lobby":

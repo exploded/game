@@ -125,7 +125,7 @@ func TestGameHomeIsPortfolio(t *testing.T) {
 
 	body := getPage(t, srv, "/games/1", "")
 	for _, want := range []string{
-		`href="/games/1" class="active" aria-current="page">`, // Home
+		`href="/dashboard" class="active" aria-current="page">`, // Home, which the game's home sits under
 		`<span class="rank-place">2nd</span>`,
 		`$1,000.00 behind Bob`,
 		`<span class="pill pill-up">&#43;5.00%</span> <span class="c-amt">&#43;$5.00</span>`,   // today
@@ -376,13 +376,13 @@ func TestActivityShowsEveryPlayer(t *testing.T) {
 func TestGameHomeIsRulesForNonPlayers(t *testing.T) {
 	srv, _ := gameServer(t)
 	body := getPage(t, srv, "/games/1", "2")
-	// Not this month's game, so the strip names it, and the nav opens this
-	// month's (none in the test, so the dashboard).
+	// Not this month's game, so the strip names it. Home is the home page
+	// either way.
 	if !strings.Contains(body, `<a href="/games/1" aria-current="page">Overview</a>`) {
 		t.Error("the game strip's Overview isn't current for a non-player")
 	}
 	if !strings.Contains(body, `class="dock"`) || !strings.Contains(body, `href="/dashboard" class="active"`) {
-		t.Error("a non-player's tab bar doesn't open this month's game")
+		t.Error("a non-player's tab bar has no Home")
 	}
 	if !strings.Contains(body, "Starting Balance") || !strings.Contains(body, "Join Game") {
 		t.Error("non-player isn't shown the rules and a Join button")
@@ -392,7 +392,7 @@ func TestGameHomeIsRulesForNonPlayers(t *testing.T) {
 func TestRulesPage(t *testing.T) {
 	srv, _ := gameServer(t)
 	body := getPage(t, srv, "/games/1/rules", "")
-	if !strings.Contains(body, `href="/games/1" class="active" aria-current="page">`) || !strings.Contains(body, "Starting Balance") {
+	if !strings.Contains(body, `href="/dashboard" class="active" aria-current="page">`) || !strings.Contains(body, "Starting Balance") {
 		t.Error("rules page doesn't show the rules under Home")
 	}
 }

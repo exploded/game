@@ -1,44 +1,49 @@
 {{template "base" .}}
 
+{{/* The signed-in home page (Dashboard in dashboard.go), laid out and worded
+from Rob's mockup of 4 November 2026: a hero over a rising chart, the three
+sections as big tiles, his intro video, then three lines on what the site
+offers. The graphics are in partials/_home.html, shared with the sign-in
+page. */}}
 {{define "content"}}
-<h1>Dashboard</h1>
-<div class="disclaimer-banner">
-    This is a fantasy game &mdash; no real money is involved. Not financial advice. <a href="/terms">Learn more</a>
+<section class="home-hero">
+    {{template "home-rise-art" "home-hero-art"}}
+    <div class="home-hero-text">
+        <p class="home-kicker">Trade &bull; Learn &bull; Grow</p>
+        <h1>Build real skills.<br>Play for a <span class="home-hl">brighter future.</span></h1>
+        <p class="home-sub">A hands-on share trading game with education, community and real-world insights.</p>
+    </div>
+</section>
+
+<div class="home-tiles">
+    {{$game := index .Extra "Game"}}
+    <a href="{{with index .Extra "GameID"}}/games/{{.}}{{else}}/games{{end}}" class="home-tile home-tile-game">
+        {{template "home-icon-game"}}
+        <span class="home-tile-title">Game Home</span>
+        <span class="home-tile-text">View your portfolio, make trades, see stocks and check your rank.</span>
+        {{with $game}}<span class="home-tile-live"><strong>{{.Value}}</strong>{{if gt .Standing.Of 1}} &middot; {{.Standing.Place}} of {{.Standing.Of}}{{end}}</span>{{end}}
+        {{template "home-go"}}
+    </a>
+
+    <a href="/learn/questions" class="home-tile home-tile-ask">
+        {{template "home-icon-ask"}}
+        <span class="home-tile-title">Ask a Question</span>
+        <span class="home-tile-text">Submit a question for next week&rsquo;s TikTok Q&amp;A Live.</span>
+        {{template "home-ask-live" .}}
+        {{template "home-go"}}
+    </a>
+
+    <a href="/learn" class="home-tile home-tile-learn">
+        {{template "home-icon-learn"}}
+        <span class="home-tile-title">Learn</span>
+        <span class="home-tile-text">Watch our YouTube channel, TikTok Live replays and access our courses.</span>
+        {{template "home-go"}}
+    </a>
 </div>
 
-<section class="section">
-    {{if .Items}}
-    <div class="game-grid">
-        {{range .Items}}{{template "gamecard" .}}{{end}}
-    </div>
-    {{else}}
-    <p class="text-muted">This month's game isn't ready yet. Check back in a minute.</p>
-    {{end}}
-    <p style="margin-top:12px"><a href="/games">Past games and results</a></p>
-</section>
+{{template "home-video"}}
 
-{{if or (index .Extra "RobVideos") (index .Extra "NextLive")}}
-<section class="section">
-    <div class="learn-section-head">
-        <h2 class="learn-h2">New from Rob</h2>
-        <a href="/learn" class="learn-more">All videos &rarr;</a>
-    </div>
-    {{with index .Extra "NextLive"}}
-    <a href="/learn/live/{{.ID}}" class="live-card">
-        <span class="live-pill live-pill-soon">NEXT LIVE</span>
-        <span class="live-card-title">{{.Title}}</span>
-        <span class="text-muted">{{with .ScheduledAt.String}}{{when .}} &middot; {{end}}{{platform .Platform}}. Send your questions now.</span>
-    </a>
-    {{end}}
-    <div class="vrow">
-        {{range index .Extra "RobVideos"}}
-        <a href="/learn/v/{{.ID}}" class="vcard">
-            <span class="vthumb"><img src="{{thumb .ThumbUrl .ID}}" alt="" loading="lazy">{{with duration .DurationSeconds}}<span class="vbadge">{{.}}</span>{{end}}</span>
-            <span class="vtitle">{{.Title}}</span>
-            <span class="vmeta">{{day .PublishedAt}}</span>
-        </a>
-        {{end}}
-    </div>
-</section>
-{{end}}
+{{template "home-points"}}
+
+<p class="text-muted home-foot">A game with play money. Nothing here is financial advice. <a href="/terms">Terms</a></p>
 {{end}}

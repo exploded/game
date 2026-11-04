@@ -163,12 +163,12 @@ func (h *Handler) InviteLanding(w http.ResponseWriter, r *http.Request) {
 	})
 	h.render(w, r, "auth/login", "", PageData{
 		Title: "Join " + from.Name + " on The Wealth Lab",
-		Extra: map[string]any{
+		Extra: h.homeExtra(ctx, map[string]any{
 			"Email":     invite.Email.String,
 			"InvitedBy": from.Name,
 			"Game":      game.Name,
 			"Starting":  fmtDollars(game.StartingBalance),
-		},
+		}),
 	})
 }
 

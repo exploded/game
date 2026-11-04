@@ -56,7 +56,7 @@ Every signed-in page has the same five sections: **Home**, **Stocks**,
 **Ranks**, **Learn** and **Chat** (the lobby). On a phone they're a row of icons
 at the bottom of the screen; on a computer they're links in the bar at the top.
 The bar at the top also has the logo (back to Home), the player's cash on a
-game's pages, a bell for notifications with the unread count, and the player's
+game's pages (tap it to open the game's home page), a bell for notifications with the unread count, and the player's
 picture, which opens a menu: Orders, My history, Achievements, Game rules, Past
 and upcoming games, Settings, Connect your AI, Help and Sign out. (Before 3
 November 2026 the site had two bars of links and a separate game bar, and the
@@ -66,9 +66,47 @@ The sections always open this month's game. On a page of another game, such as
 last month's, a strip under the top bar names that game and links back to this
 month's.
 
-### The player's home page
+### Home
 
-When a player opens the game they see:
+Signing in, the logo and **Home** open the home page (since 4 November 2026,
+laid out and worded from Rob's design). Under the heading "Build real skills.
+Play for a brighter future." are three big tiles:
+
+- **Game Home**: straight into this month's game (players are always in it),
+  showing what their portfolio is worth and their place.
+- **Ask a Question**: send Rob a question for the next TikTok Q&A Live, with
+  the next live's date when one is booked.
+- **Learn**: Rob's YouTube videos, TikTok Live replays and courses.
+
+Under the tiles is Rob's intro video on what the site is about, then three
+lines (Compete, Learn, Be part of it) and "Practise today. Invest in
+tomorrow." The same video is on the sign-in page for people who haven't
+joined yet.
+
+#### Intro video
+
+The video is a file on our own site, not YouTube, so it plays in a plain
+player with no YouTube branding. It's built into the program with the CSS and
+images, so it ships with every deploy. For now it's a placeholder: a short tour
+of the site with "Inspired" by Kevin MacLeod as music. That track is licensed
+CC BY 4.0, so its credit must stay while the track is used. It's under
+Credits on the About page, not under the video. The originals are in `.local/video` (not in git).
+
+To replace it with Rob's video:
+
+1. Make a web copy at 720p, with the index at the front so it starts playing
+   straight away (in PowerShell, in the folder with Rob's file):
+   `ffmpeg -i rob.mp4 -vf scale=-2:720 -c:v libx264 -preset slow -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -movflags +faststart the-wealth-lab-tour.mp4`
+2. Make a cover from a frame, here 1 second in:
+   `ffmpeg -ss 1 -i rob.mp4 -frames:v 1 -vf scale=1280:-2 -q:v 4 the-wealth-lab-tour.jpg`
+3. Replace both files in `static/video`, change or remove the music credit on
+   the About page (`templates/pages/legal/about.html`), then build and deploy.
+
+Keep it under about 20 MB; every deploy carries it.
+
+### The game's home page
+
+When a player opens the game (the Game Home tile) they see:
 
 - The game's name and how many days are left.
 - What their portfolio is worth, how much it moved today and since the game

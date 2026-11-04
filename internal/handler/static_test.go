@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"testing/fstest"
+
+	"github.com/exploded/game"
 )
 
 func newTestStatic(t *testing.T) *Static {
@@ -62,5 +64,24 @@ func TestStaticCaching(t *testing.T) {
 	s.ServeHTTP(w, req)
 	if w.Code != http.StatusNotModified {
 		t.Errorf("revalidation status = %d, want 304", w.Code)
+	}
+}
+
+// TestIntroVideoServes: the site tour plays from the binary as video/mp4,
+// and a phone can ask for part of it (iOS won't play a video otherwise).
+func TestIntroVideoServes(t *testing.T) {
+	s, err := NewStatic(game.Static())
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest("GET", s.URL("video/the-wealth-lab-tour.mp4"), nil)
+	req.Header.Set("Range", "bytes=0-1023")
+	w := httptest.NewRecorder()
+	s.ServeHTTP(w, req)
+	if w.Code != http.StatusPartialContent || w.Body.Len() != 1024 || w.Header().Get("Content-Type") != "video/mp4" {
+		t.Errorf("GET with Range = %d, %d bytes, %q; want 206, 1024 bytes, video/mp4", w.Code, w.Body.Len(), w.Header().Get("Content-Type"))
+	}
+	if _, ok := s.hashes["video/the-wealth-lab-tour.jpg"]; !ok {
+		t.Error("the tour's cover image is missing")
 	}
 }

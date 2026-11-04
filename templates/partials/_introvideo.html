@@ -1,0 +1,16 @@
+{{/* The site tour on the home page and the sign-in page. It's a file in
+static/video, built into the binary like the CSS (5 MB at 720p), so it plays
+in our own player with no YouTube branding and nothing third-party on the
+sign-in page. preload="none" means nothing downloads until Play is pressed;
+the big play button (data-intro-play in app.js) is the mockup's.
+To swap it: encode the new one as in docs/site-summary.md ("Intro video"),
+replace the two files and update the music credit on the About page
+(legal/about.html). */}}
+{{define "introvideo"}}<div class="intro-video">
+    <div class="intro-frame">
+        <video controls preload="none" playsinline poster="{{asset "video/the-wealth-lab-tour.jpg"}}" aria-label="A quick tour of The Wealth Lab">
+            <source src="{{asset "video/the-wealth-lab-tour.mp4"}}" type="video/mp4">
+        </video>
+        <button type="button" class="intro-play" data-intro-play aria-label="Play the tour"></button>
+    </div>
+</div>{{end}}

@@ -11,6 +11,7 @@ import (
 
 func TestNavTab(t *testing.T) {
 	for path, want := range map[string]string{
+		"/dashboard":            "home",
 		"/games/7":              "home",
 		"/games/7/history":      "home",
 		"/games/7/rules":        "home",

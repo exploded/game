@@ -290,6 +290,20 @@ document.addEventListener("click", function(e) {
     btn.replaceWith(frame);
 });
 
+// data-intro-play: the big play button over the site tour (the home and
+// sign-in pages). It starts the video; once playing, the video's own controls
+// take over. Without JavaScript the button is hidden and the controls work.
+document.addEventListener("click", function(e) {
+    const btn = e.target.closest("[data-intro-play]");
+    if (!btn) return;
+    const video = btn.parentElement.querySelector("video");
+    if (video) video.play();
+});
+document.addEventListener("play", function(e) {
+    const frame = e.target.closest && e.target.closest(".intro-frame");
+    if (frame) frame.classList.add("playing");
+}, true);
+
 // data-copy on a button: copy the text of the element whose id it names
 // (the API key page's boxes).
 document.addEventListener("click", function(e) {

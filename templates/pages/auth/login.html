@@ -13,7 +13,7 @@
             <h1 class="login-title">Sign in or sign up</h1>
             <p class="login-subtitle">Enter your email and we'll send you a sign-in link. New here? The same link creates your account.</p>
             {{end}}
-            <form method="POST" action="/login">
+            <form method="POST" action="/login" id="sign-in">
                 <div class="form-group">
                     <label for="email">Email address</label>
                     <input type="email" id="email" name="email" value="{{index .Extra "Email"}}" autocomplete="email" inputmode="email" required autofocus>
@@ -22,12 +22,52 @@
                 <button type="submit" class="btn btn-primary" style="width:100%;height:44px">Email me a sign-in link</button>
             </form>
             <p class="login-footer-text">By signing in, you agree to our <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</p>
-            {{template "login-shots" "login-shots-phone"}}
-            <figure class="login-team login-team-phone">
-                <img src="{{asset "img/team.jpg"}}" width="1200" height="727" alt="The Consortium Private Wealth team" loading="lazy" decoding="async">
-                <figcaption>Rob Goudie and the team at <a href="https://www.consortiumpw.com.au/" target="_blank" rel="noopener">Consortium Private Wealth</a></figcaption>
-            </figure>
         </div>
     </div>
+</div>
+
+{{/* Under the form, across the page: what's inside, from Rob's home page
+(partials/_home.html), with the tiles worded for someone without an account.
+The share game tile goes back up to the form; Ask a Question and Learn are
+public. On a phone the screenshots and team photo come last (on a wide
+screen they're in the hero). */}}
+<div class="login-more">
+    <p class="home-kicker login-more-kicker">Inside The Wealth Lab</p>
+    <div class="home-tiles">
+        <a href="#sign-in" class="home-tile home-tile-game">
+            {{template "home-icon-game"}}
+            <span class="home-tile-title">The Share Game</span>
+            <span class="home-tile-text">Get $1M of play money each month to trade real US shares, and see where you rank.</span>
+            <span class="home-tile-live">Sign up with your email</span>
+            {{template "home-go"}}
+        </a>
+
+        <a href="/learn/questions" class="home-tile home-tile-ask">
+            {{template "home-icon-ask"}}
+            <span class="home-tile-title">Ask a Question</span>
+            <span class="home-tile-text">Submit a question for next week&rsquo;s TikTok Q&amp;A Live.</span>
+            {{template "home-ask-live" .}}
+            {{template "home-go"}}
+        </a>
+
+        <a href="/learn" class="home-tile home-tile-learn">
+            {{template "home-icon-learn"}}
+            <span class="home-tile-title">Learn</span>
+            <span class="home-tile-text">Watch our YouTube channel, TikTok Live replays and access our courses.</span>
+            {{template "home-go"}}
+        </a>
+    </div>
+
+    {{template "home-video"}}
+
+    {{template "home-points"}}
+
+    {{template "login-shots" "login-shots-phone"}}
+    <figure class="login-team login-team-phone">
+        <img src="{{asset "img/team.jpg"}}" width="1200" height="727" alt="The Consortium Private Wealth team" loading="lazy" decoding="async">
+        <figcaption>Rob Goudie and the team at <a href="https://www.consortiumpw.com.au/" target="_blank" rel="noopener">Consortium Private Wealth</a></figcaption>
+    </figure>
+
+    <p class="text-muted home-foot">A game with play money. Nothing here is financial advice. <a href="/terms">Terms</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/about">About</a></p>
 </div>
 {{end}}

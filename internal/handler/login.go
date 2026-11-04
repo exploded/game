@@ -55,7 +55,20 @@ func (h *Handler) LoginPage(w http.ResponseWriter, r *http.Request) {
 			MaxAge: int(loginTTL.Seconds()) * 2, HttpOnly: true, Secure: SecurityHeadersProd, SameSite: http.SameSiteLaxMode,
 		})
 	}
-	h.render(w, r, "auth/login", "", PageData{Title: "Sign in"})
+	h.render(w, r, "auth/login", "", PageData{Title: "Sign in", Extra: h.homeExtra(r.Context(), nil)})
+}
+
+// homeExtra adds what the Ask a Question tile shows (Rob's next booked live)
+// to extra, which may be nil. The home page and the sign-in page both have
+// the tile.
+func (h *Handler) homeExtra(ctx context.Context, extra map[string]any) map[string]any {
+	if extra == nil {
+		extra = map[string]any{}
+	}
+	if upcoming, _ := h.q.ListUpcomingLive(ctx); len(upcoming) > 0 {
+		extra["NextLive"] = upcoming[0]
+	}
+	return extra
 }
 
 // Home is the site root. A signed-in user goes to the dashboard; anyone else
@@ -149,7 +162,7 @@ func (h *Handler) loginError(w http.ResponseWriter, r *http.Request, email, msg 
 	h.render(w, r, "auth/login", "", PageData{
 		Title:  "Sign in",
 		Errors: map[string]string{"email": msg},
-		Extra:  map[string]any{"Email": email},
+		Extra:  h.homeExtra(r.Context(), map[string]any{"Email": email}),
 	})
 }
 

@@ -170,11 +170,18 @@ func (h *Handler) isCurrentGame(g db.Game) bool {
 	return g.Quarter.Valid && g.Quarter.String == market.MonthOf(time.Now().In(h.loc)).Key()
 }
 
-// currentGame is this month's game, with the user joined to it. It's false
-// until the scheduler has created the game.
+// currentGame is this month's game, with the user joined to it: players are
+// always in it, and never join by hand. If the scheduler hasn't created the
+// game yet (just after midnight on the 1st, or a fresh database), it's
+// created here. It's false only if that fails.
 func (h *Handler) currentGame(ctx context.Context, userID int64) (db.Game, bool) {
-	month := market.MonthOf(time.Now().In(h.loc))
-	g, err := h.q.GetGameByMonth(ctx, sql.NullString{String: month.Key(), Valid: true})
+	now := time.Now().In(h.loc)
+	key := sql.NullString{String: market.MonthOf(now).Key(), Valid: true}
+	g, err := h.q.GetGameByMonth(ctx, key)
+	if errors.Is(err, sql.ErrNoRows) {
+		market.EnsureMonthlyGames(ctx, h.q, now)
+		g, err = h.q.GetGameByMonth(ctx, key)
+	}
 	if err != nil {
 		return db.Game{}, false
 	}
