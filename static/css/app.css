@@ -1017,13 +1017,22 @@ dialog.confirm form { padding: 20px; }
 .ticket-game strong { color: var(--color-text); }
 .ticket-position { display: flex; gap: 20px; margin-bottom: 14px; }
 .ticket-position .mono { font-size: 14px; font-weight: 600; }
-.ticket-sides { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-bottom: 14px; border: 1px solid var(--color-border); border-radius: var(--radius); overflow: hidden; }
+/* Buy/Sell: a small labelled toggle with a slanted divide, tinted rather than
+   filled, so it doesn't look like the button that places the order. */
+.ticket-side-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.ticket-side-label { font-size: 11px; font-weight: 500; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.ticket-sides { position: relative; display: flex; width: 168px; border: 1px solid var(--color-border); border-radius: 999px; overflow: hidden; isolation: isolate; }
 .ticket-sides input { position: absolute; opacity: 0; pointer-events: none; }
-.ticket-sides label { text-align: center; padding: 8px 0; font-weight: 600; cursor: pointer; color: var(--color-text-muted); background: var(--color-bg); }
+.ticket-sides label { position: relative; flex: 1; text-align: center; padding: 5px 0; font-size: 14px; font-weight: 600; cursor: pointer; color: var(--color-text-muted); }
 .ticket-sides label:hover { color: var(--color-text); }
-.ticket-sides input:focus-visible + label { outline: 2px solid var(--color-primary); outline-offset: -2px; }
-#side-buy:checked + label { background: var(--color-success); color: #000; }
-#side-sell:checked + label { background: var(--color-danger); color: #fff; }
+/* The tint is a skewed block that runs past the outer end (clipped by the
+   rounded edge) and meets the other half on a slant. */
+.ticket-sides input:checked + label::before { content: ""; position: absolute; top: 0; bottom: 0; z-index: -1; transform: skewX(-20deg); }
+#side-buy:checked + label::before { left: -16px; right: 0; background: rgba(2, 199, 122, 0.18); }
+#side-sell:checked + label::before { left: 0; right: -16px; background: rgba(255, 59, 105, 0.18); }
+#side-buy:checked + label { color: var(--color-success); }
+#side-sell:checked + label { color: var(--color-danger); }
+.ticket-sides input:focus-visible + label { outline: 2px solid var(--color-primary); outline-offset: -2px; border-radius: 999px; }
 .ticket-sides input:disabled + label { opacity: 0.4; cursor: not-allowed; }
 .ticket .form-group { margin-bottom: 12px; }
 .ticket-note { font-size: 12px; line-height: 1.45; margin-bottom: 12px; padding: 8px 10px; border-radius: var(--radius); background: rgba(255, 177, 26, 0.12); color: var(--color-warning); }
@@ -1312,7 +1321,8 @@ dialog.confirm form { padding: 20px; }
     .info-item { padding: 10px 12px; }
     .info-value { font-size: 14px; overflow-wrap: anywhere; }
     .ticket { padding: 14px; }
-    .ticket-sides label { padding: 11px 0; font-size: 15px; }
+    .ticket-sides { width: 180px; }
+    .ticket-sides label { padding: 8px 0; font-size: 15px; }
     .ticket .slider, .ticket .form-group input.slider { height: 6px; margin: 14px 0 6px; }
     .ticket .slider::-webkit-slider-thumb { width: 28px; height: 28px; }
     .ticket .slider::-moz-range-thumb { width: 28px; height: 28px; }

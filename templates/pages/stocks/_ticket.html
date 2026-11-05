@@ -1,5 +1,6 @@
 {{/* Order ticket beside the chart on the stock page; on a phone it's a sheet
-that the Buy and Sell bar opens. Buy/Sell are radio inputs styled as tabs;
+that the Buy and Sell bar opens. Buy/Sell are radio inputs styled as a small
+labelled toggle (not big blocks, which looked like the button that trades);
 static/js/ticket.js does the sums from the form's data- attributes. The form
 posts through htmx, and the reply (ticket-update) redraws the ticket in place
 with a confirmation, so the page and the browser's history stay as they
@@ -46,11 +47,14 @@ were. All money in cents; data-rate is AUD/USD * 1,000,000. */}}
         data-fee="{{$g.TradeFee}}" data-fx-fee="{{$g.FxFee}}" data-currency="{{.Item.Currency}}" data-base="{{$g.BaseCurrency}}" data-rate="{{$t.ExchangeRate}}"
         {{- if $g.AllowShort}} data-short{{end}}{{if $t.Queued}} data-queued{{end}}>
         {{with .Extra.Back}}<input type="hidden" name="back" value="{{.URL}}">{{end}}
-        <div class="ticket-sides">
-            <input type="radio" name="side" value="buy" id="side-buy" checked>
-            <label for="side-buy">Buy</label>
-            <input type="radio" name="side" value="sell" id="side-sell"{{if and (le $t.Holding.Quantity 0) (not $g.AllowShort)}} disabled{{end}}>
-            <label for="side-sell"{{if and (le $t.Holding.Quantity 0) (not $g.AllowShort)}} title="You don't hold any {{.Item.Symbol}}"{{end}}>Sell</label>
+        <div class="ticket-side-row">
+            <span class="ticket-side-label" id="side-label">I want to</span>
+            <div class="ticket-sides" role="radiogroup" aria-labelledby="side-label">
+                <input type="radio" name="side" value="buy" id="side-buy" checked>
+                <label for="side-buy">Buy</label>
+                <input type="radio" name="side" value="sell" id="side-sell"{{if and (le $t.Holding.Quantity 0) (not $g.AllowShort)}} disabled{{end}}>
+                <label for="side-sell"{{if and (le $t.Holding.Quantity 0) (not $g.AllowShort)}} title="You don't hold any {{.Item.Symbol}}"{{end}}>Sell</label>
+            </div>
         </div>
 
         {{if $g.LimitOrders}}

@@ -192,6 +192,13 @@ Highest impact for the effort first.
 - [x] **Update the ASX wording.** No page mentions ASX now. Update the wording
   again if the ASX licence comes through.
 
+## Promotion
+
+- [ ] **Get listed on Finder** (2026-11-05). Ask Finder to add the share game
+  to its share trading games page:
+  https://www.finder.com.au/share-trading/share-trading-games. Check with Rob
+  first, since the listing names Consortium Private Wealth's site.
+
 ## Ideas for Rob to approve
 
 - [ ] **Drop Facebook and Instagram videos from Learn?** (2026-11-05). Today
