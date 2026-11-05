@@ -97,6 +97,12 @@ reminders need an account.
   API), pass TikTok's app review, set `TIKTOK_CLIENT_KEY` and
   `TIKTOK_CLIENT_SECRET`, then Rob clicks **Connect TikTok**. Reconnect
   before the year is up; the admin page warns 30 days ahead.
+- [ ] **Pasted TikToks have no cover** (2026-11-05). TikTok's oEmbed no
+  longer gives a title or cover, so a TikTok pasted at `/admin/learn` needs a
+  typed title and shows a plain cover. Once the TikTok app is approved and
+  connected, the sync adds the missing covers by itself (videos 63427 and
+  63430 on prod). Check they appear then; if the app is refused, add a cover
+  upload to the video's admin page.
 - [ ] **From Rob:** whether the topic list suits him (`/admin/learn/topics`).
   His general advice wording is in; no podcast link is needed (2026-10-30).
 - [ ] **Later:** Facebook and Instagram sync and Facebook live detection
@@ -167,6 +173,15 @@ Highest impact for the effort first.
   again if the ASX licence comes through.
 
 ## Ideas for Rob to approve
+
+- [ ] **Drop Facebook and Instagram videos from Learn?** (2026-11-05). Today
+  an admin can paste a Facebook or Instagram video link at `/admin/learn`, and
+  add Facebook and Instagram live streams by hand. Neither platform syncs
+  (that needs Rob's Page connected to a Meta app), neither gives a title or
+  cover, and Rob's videos are mostly on YouTube and TikTok anyway. Removing
+  them would simplify the paste form, the platform filter and the live stream
+  form, and take `www.facebook.com` and `www.instagram.com` out of the CSP's
+  `frame-src`. For Rob to decide whether he posts anything only there.
 
 - [ ] **Learn: public or behind sign-in?** (2026-10-31). Today anyone can
   read `/learn`: videos, topics, live streams and Ask Rob questions with their

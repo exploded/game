@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -92,9 +93,18 @@ func (s *Service) AddPasted(ctx context.Context, p Pasted) (int64, error) {
 	title := strings.TrimSpace(p.Title)
 	var cover string
 	if title == "" || p.Platform == "tiktok" {
+		// TikTok's oEmbed stopped giving a title or cover (seen 2026-11-05),
+		// so a pasted TikTok needs a typed title and gets its cover only once
+		// the TikTok sync lists it.
 		t, c, err := oEmbed(ctx, p.Platform, p.URL)
-		if err != nil && title == "" {
-			return 0, errors.New("couldn't look up the video's title; type one in")
+		if err != nil {
+			slog.Warn("oembed lookup", "platform", p.Platform, "video", p.ID, "error", err)
+			if title == "" {
+				return 0, errors.New("couldn't look up the video's title; type one in")
+			}
+		}
+		if err == nil && c == "" && p.Platform == "tiktok" {
+			slog.Info("oembed gave no cover", "platform", p.Platform, "video", p.ID)
 		}
 		if title == "" {
 			title = t
@@ -127,7 +137,9 @@ func (s *Service) AddPasted(ctx context.Context, p Pasted) (int64, error) {
 	}
 	if cover != "" && thumbURL == "" {
 		// TikTok's cover links expire, so keep a copy.
-		_ = s.cacheThumb(ctx, id, cover)
+		if err := s.cacheThumb(ctx, id, cover); err != nil {
+			slog.Warn("cache pasted cover", "platform", p.Platform, "video", p.ID, "error", err)
+		}
 	}
 	return id, nil
 }
