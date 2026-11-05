@@ -88,7 +88,27 @@ reminders need an account.
   at the time: `liveRoom.status` is 2 while live, with `startTime` and
   `title`. TikTok blocked a home IP (403) after about 30 requests in 5
   minutes, so keep polling light.
-- [ ] **Watch Rob's first booked TikTok stream** start and end by itself.
+- [x] **Watch Rob's first booked TikTok stream** start and end by itself
+  (2026-11-05).
+- [x] **Live page tidied** (2026-11-05). TikTok keeps no recording of a live
+  stream for viewers, so the "Watch on TikTok" link on a past TikTok stream
+  led to an empty page. Past streams now list only those with a recording
+  (as video cards) and those Rob answered questions in. A stream page says
+  when there's no recording and shows its length. A TikTok stream starts at
+  TikTok's own start time and ends at the last check that found Rob on air
+  (it used to end 5 minutes late). Admins can attach a recording to a
+  finished stream.
+- [ ] **For Rob: save your TikTok live streams** (2026-11-05). TikTok doesn't
+  keep a live stream for viewers, so the site can't show one afterwards.
+  After each stream, Rob saves the replay (TikTok lets the host download it
+  for 90 days) and posts it to TikTok or YouTube as an ordinary video. Once
+  the TikTok app is approved and connected, the sync adds it to the site by
+  itself (YouTube already does). Then, on the stream's page on the site, an
+  admin pastes the video's link under **Admin: run this stream → Recording**,
+  which puts the stream back on the Live page with a player. Rob also has to
+  link each question he answered in the stream to that video by hand, on the
+  question's page (Answer with a video, from the time he answers it), because
+  the times recorded during the stream may not match the saved video.
 - [x] **Stock pages show Rob's videos** about that stock, and the dashboard
   shows new videos and the next stream.
 - [x] **Go live:** `YOUTUBE_API_KEY` and `ANTHROPIC_API_KEY` are in the server

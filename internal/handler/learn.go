@@ -247,19 +247,38 @@ func (h *Handler) LearnThumb(w http.ResponseWriter, r *http.Request) {
 	w.Write(t.Data)
 }
 
-// LearnLive is the Live tab: streams on now, coming up and past.
+// LearnLive is the Live tab: streams on now, coming up and past. Past
+// streams are the recorded ones, as video cards, then any with no recording
+// that Rob answered questions in.
 func (h *Handler) LearnLive(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	now, _ := h.q.ListLiveNow(ctx)
 	upcoming, _ := h.q.ListUpcomingLive(ctx)
 	past, _ := h.q.ListPastLive(ctx, 24)
+	var recorded, unrecorded []db.ListPastLiveRow
+	for _, e := range past {
+		if e.Recorded {
+			recorded = append(recorded, e)
+		} else {
+			unrecorded = append(unrecorded, e)
+		}
+	}
 	h.render(w, r, "learn/live", "", learnPage(r, "live", PageData{
 		Title: "Live with Rob",
 		Extra: map[string]any{
-			"Now": now, "Upcoming": upcoming, "Past": past,
+			"Now": now, "Upcoming": upcoming, "Recorded": recorded, "Unrecorded": unrecorded,
 			"Reminders": h.reminders(r),
 		},
 	}))
+}
+
+// streamTitle is a stream's title as shown. A stream the TikTok check added
+// is called "Rob is live on TikTok", which reads wrong once it's over.
+func streamTitle(title, status string) string {
+	if title == media.TikTokLiveTitle && status != "live" {
+		return "Live on TikTok"
+	}
+	return title
 }
 
 // reminders is the set of streams the viewer asked to be reminded about.
@@ -312,7 +331,7 @@ func (h *Handler) LearnLiveEvent(w http.ResponseWriter, r *http.Request) {
 			extra["Video"] = v
 		}
 	}
-	h.render(w, r, "learn/event", "", learnPage(r, "live", PageData{Title: e.Title, Item: e, Extra: extra}))
+	h.render(w, r, "learn/event", "", learnPage(r, "live", PageData{Title: streamTitle(e.Title, e.Status), Item: e, Extra: extra}))
 }
 
 // LearnLiveQueue is the queue on its own, which the stream page polls.

@@ -8,7 +8,7 @@
 <a href="/learn/live/{{.ID}}" class="live-card live-card-on">
     <span class="live-pill"><span class="live-dot"></span> LIVE</span>
     <span class="live-card-title">{{.Title}}</span>
-    <span class="text-muted">On {{platform .Platform}} now. Watch here and vote on the questions.</span>
+    <span class="text-muted">{{if .EmbedUrl}}On {{platform .Platform}} now. Watch here and vote on the questions.{{else}}On {{platform .Platform}} now. Watch it there, and vote on the questions here.{{end}}</span>
 </a>
 {{end}}
 
@@ -40,7 +40,11 @@
         </div>
     </div>
     {{else}}
-    <p class="text-muted">No streams booked right now. Rob streams on YouTube and TikTok; <a href="/settings">turn on Live streams email</a> and we'll tell you when the next one is booked.</p>
+    <p class="text-muted">No streams booked right now. Rob often goes live on TikTok in the morning without booking. When he does, it shows at the top of this page. For booked streams, <a href="/settings">turn on Live streams email</a> and we'll tell you when the next one is booked.</p>
+    <p class="btn-group" style="margin-top:12px;flex-wrap:wrap">
+        <a href="https://www.tiktok.com/@rob_goudie" class="btn btn-sm btn-secondary" target="_blank" rel="noopener">Follow Rob on TikTok</a>
+        <a href="https://www.youtube.com/@ConsortiumPW" class="btn btn-sm btn-secondary" target="_blank" rel="noopener">Subscribe on YouTube</a>
+    </p>
     {{end}}
 </section>
 
@@ -49,17 +53,35 @@
     <p style="margin-bottom:12px">Rob takes the most-voted questions on air. <a href="/learn/questions?show=open">See what people are asking</a> and vote for the ones you want answered.</p>
 </section>
 
-{{with index .Extra "Past"}}
+{{$rec := index .Extra "Recorded"}}{{$unrec := index .Extra "Unrecorded"}}
+{{if or $rec $unrec}}
 <section class="learn-section">
     <h2 class="learn-h2">Past streams</h2>
-    <div class="vlist">
+    {{with $rec}}
+    <div class="vgrid">
         {{range .}}
-        <a href="/learn/live/{{.ID}}" class="event-past">
-            <span class="event-title">{{.Title}}</span>
-            <span class="text-muted">{{day .StartedAt}} &middot; {{platform .Platform}}</span>
+        <a href="/learn/live/{{.ID}}" class="vcard{{if .Vertical}} vcard-tall{{end}}">
+            <span class="vthumb">
+                <img src="{{thumb .ThumbUrl .RecVideoID}}" alt="" loading="lazy" decoding="async">
+                {{with duration .DurationSeconds}}<span class="vbadge">{{.}}</span>{{end}}
+                {{if ne .Platform "youtube"}}<span class="vplatform vplatform-{{.Platform}}">{{platform .Platform}}</span>{{end}}
+            </span>
+            <span class="vtitle">{{streamTitle .Title .Status}}</span>
+            <span class="vmeta">{{day .StartedAt}}{{with .Answered}} &middot; {{.}} question{{if ne . 1}}s{{end}} answered{{end}}</span>
         </a>
         {{end}}
     </div>
+    {{end}}
+    {{with $unrec}}
+    <div class="vlist"{{if $rec}} style="margin-top:16px"{{end}}>
+        {{range .}}
+        <a href="/learn/live/{{.ID}}" class="event-past">
+            <span class="event-title">{{streamTitle .Title .Status}}</span>
+            <span class="text-muted">{{day .StartedAt}} &middot; {{platform .Platform}} &middot; {{.Answered}} question{{if ne .Answered 1}}s{{end}} answered, no recording</span>
+        </a>
+        {{end}}
+    </div>
+    {{end}}
 </section>
 {{end}}
 

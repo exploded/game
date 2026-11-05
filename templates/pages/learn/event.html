@@ -2,27 +2,35 @@
 
 {{define "content"}}
 {{template "learntabs" .}}
-{{$e := .Item}}
+{{$e := .Item}}{{$v := index .Extra "Video"}}{{$title := streamTitle $e.Title $e.Status}}
 
 <div class="watch">
     <div class="watch-main">
         {{if eq $e.Status "live"}}<span class="live-pill"><span class="live-dot"></span> LIVE on {{platform $e.Platform}}</span>
         {{else if eq $e.Status "upcoming"}}<span class="live-pill live-pill-soon">{{with $e.ScheduledAt.String}}{{when .}} &middot; {{until .}}{{else}}Coming up{{end}}</span>
         {{else if eq $e.Status "cancelled"}}<span class="live-pill live-pill-off">Cancelled</span>
-        {{else}}<span class="live-pill live-pill-off">Recorded {{day $e.StartedAt}}</span>{{end}}
+        {{else}}<span class="live-pill live-pill-off">{{if $v}}Recorded{{else}}Streamed{{end}} {{day $e.StartedAt}}{{with streamLength $e.StartedAt $e.EndedAt}} &middot; {{.}}{{end}}</span>{{end}}
 
-        <h1 class="watch-title">{{$e.Title}}</h1>
+        <h1 class="watch-title">{{$title}}</h1>
 
-        {{if and $e.EmbedUrl (ne $e.Status "cancelled")}}
-            {{with index .Extra "Video"}}
-            {{template "player" (dict "Embed" $e.EmbedUrl "Thumb" (thumb .ThumbUrl .ID) "Title" $e.Title "Vertical" false)}}
-            {{else}}
-            {{template "player" (dict "Embed" $e.EmbedUrl "Thumb" "" "Title" $e.Title "Vertical" false)}}
-            {{end}}
+        {{if ne $e.Status "cancelled"}}
+            {{with $v}}
+            {{template "player" (dict "Embed" .EmbedUrl "Thumb" (thumb .ThumbUrl .ID) "Title" $title "Vertical" .Vertical)}}
+            {{else}}{{if $e.EmbedUrl}}
+            {{template "player" (dict "Embed" $e.EmbedUrl "Thumb" "" "Title" $title "Vertical" false)}}
+            {{end}}{{end}}
+        {{end}}
+
+        {{if and (eq $e.Status "ended") (not $v)}}
+        <p class="text-muted" style="margin:12px 0">{{if eq $e.Platform "tiktok"}}TikTok doesn't keep live streams for viewers, so there's no recording of this one.{{else}}There's no recording of this stream.{{end}}{{if index .Extra "Answered"}} The questions Rob answered are below.{{end}}</p>
         {{end}}
 
         <div class="watch-actions">
-            <a href="{{$e.Url}}" class="btn btn-primary" target="_blank" rel="noopener">{{if eq $e.Status "ended"}}Watch on {{platform $e.Platform}}{{else}}Open in {{platform $e.Platform}}{{end}}</a>
+            {{if eq $e.Status "ended"}}
+            {{with $v}}<a href="{{.Url}}" class="btn btn-primary" target="_blank" rel="noopener">Watch on {{platform .Platform}}</a>{{end}}
+            {{else if ne $e.Status "cancelled"}}
+            <a href="{{$e.Url}}" class="btn btn-primary" target="_blank" rel="noopener">Open in {{platform $e.Platform}}</a>
+            {{end}}
             {{if eq $e.Status "upcoming"}}
                 {{template "remind" .}}
                 {{if $e.ScheduledAt.Valid}}<a href="/learn/live/{{$e.ID}}/calendar.ics" class="btn btn-secondary">Add to calendar</a>{{end}}
@@ -52,11 +60,21 @@
         <details class="settings-card admin-box">
             <summary><strong>Admin: run this stream</strong></summary>
             <div class="btn-group" style="flex-wrap:wrap;margin:12px 0">
-                {{if ne $e.Status "live"}}<form method="POST" action="/admin/learn/live/{{$e.ID}}/start"><button class="btn btn-primary">Go live now</button></form>{{end}}
+                {{if eq $e.Status "upcoming"}}<form method="POST" action="/admin/learn/live/{{$e.ID}}/start"><button class="btn btn-primary">Go live now</button></form>{{end}}
                 {{if eq $e.Status "live"}}<form method="POST" action="/admin/learn/live/{{$e.ID}}/end" data-confirm="End the stream? Voters on answered questions get their email."><button class="btn btn-primary">End stream</button></form>{{end}}
                 {{if eq $e.Status "upcoming"}}<form method="POST" action="/admin/learn/live/{{$e.ID}}/cancel" data-confirm="Cancel this stream?" data-confirm-ok="Cancel stream"><button class="btn btn-secondary">Cancel</button></form>{{end}}
                 <form method="POST" action="/admin/learn/live/{{$e.ID}}/delete" data-confirm="Delete this stream?"><button class="btn btn-danger">Delete</button></form>
             </div>
+            {{if and (eq $e.Source "admin") (eq $e.Status "ended")}}
+            <form method="POST" action="/admin/learn/live/{{$e.ID}}/recording" class="settings-card" style="margin-bottom:12px">
+                <div class="form-group">
+                    <label for="rec-url">Recording</label>
+                    <input type="url" id="rec-url" name="url" placeholder="https://www.tiktok.com/@rob_goudie/video/…" value="{{with $v}}{{.Url}}{{end}}">
+                </div>
+                <p class="text-muted" style="margin-bottom:12px">TikTok doesn't keep live streams for viewers. If Rob saved this one and posted it to TikTok or YouTube, paste the video's link here and the stream goes back on the Live page with a player. Leave it empty to take the recording off. Then point each question he answered at the video, from its own page.</p>
+                <button type="submit" class="btn btn-primary">Save recording</button>
+            </form>
+            {{end}}
             {{if eq $e.Source "admin"}}
             <form method="POST" action="/admin/learn/live/{{$e.ID}}/save">
                 {{template "liveform" $e}}

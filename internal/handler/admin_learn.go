@@ -433,6 +433,14 @@ func (h *Handler) AdminLearnLiveAction(w http.ResponseWriter, r *http.Request) {
 			ScheduledAt: scheduled, ID: e.ID,
 		})
 		msg = "Stream saved."
+	case "recording":
+		var bad string
+		msg, bad = h.setRecording(r, e)
+		if bad != "" {
+			setFlashCookie(w, bad, "error")
+			http.Redirect(w, r, back, http.StatusSeeOther)
+			return
+		}
 	case "start":
 		err = h.q.GoLive(ctx, e.ID)
 		msg = "You're live. Reminders are going out."
@@ -455,6 +463,57 @@ func (h *Handler) AdminLearnLiveAction(w http.ResponseWriter, r *http.Request) {
 	}
 	setFlashCookie(w, msg, "success")
 	http.Redirect(w, r, back, http.StatusSeeOther)
+}
+
+// setRecording attaches the video at the pasted link to an ended stream
+// added by hand (YouTube's streams get theirs from the sync), adding it to
+// the library if it isn't there yet. An empty link takes the recording off.
+// It returns the message for a success, or for a refusal in bad.
+func (h *Handler) setRecording(r *http.Request, e db.LiveEvent) (msg, bad string) {
+	ctx := r.Context()
+	if e.Source != "admin" || e.Status != "ended" {
+		return "", "Only a finished stream added on this site can have a recording attached."
+	}
+	link := strings.TrimSpace(r.FormValue("url"))
+	if link == "" {
+		if err := h.q.SetLiveRecording(ctx, db.SetLiveRecordingParams{ID: e.ID}); err != nil {
+			return "", "Couldn't take the recording off: " + err.Error() + "."
+		}
+		return "Recording taken off.", ""
+	}
+	link = media.ExpandShortLink(ctx, link)
+	v, ok := parseVideo(link)
+	if !ok || (v.Platform != "youtube" && v.Platform != "tiktok") {
+		return "", "Paste a YouTube or TikTok video link."
+	}
+	var videoID int64
+	if got, err := h.q.GetVideoByExternalID(ctx, db.GetVideoByExternalIDParams{Platform: v.Platform, ExternalID: v.ID}); err == nil {
+		videoID = got.ID
+	} else {
+		published := time.Now()
+		if t := parseUTC(e.StartedAt.String); !t.IsZero() {
+			published = t
+		}
+		p := media.Pasted{
+			Platform: v.Platform, ID: v.ID, URL: link, Embed: v.Embed, Vertical: v.Vertical, Published: published,
+		}
+		if v.Platform == "tiktok" {
+			// TikTok gives no title for a pasted video; YouTube's is looked up.
+			p.Title = streamTitle(e.Title, e.Status) + ", " + published.In(displayLoc).Format("2 Jan 2006")
+		}
+		id, err := h.media.AddPasted(ctx, p)
+		if err != nil {
+			return "", "Couldn't add the video: " + err.Error() + "."
+		}
+		videoID = id
+	}
+	if err := h.q.SetLiveRecording(ctx, db.SetLiveRecordingParams{VideoID: nint64(videoID), ID: e.ID}); err != nil {
+		if strings.Contains(err.Error(), "UNIQUE") {
+			return "", "That video is already the recording of another stream."
+		}
+		return "", "Couldn't attach the recording: " + err.Error() + "."
+	}
+	return "Recording attached. Point each question Rob answered at it from the question's page.", ""
 }
 
 // TikTok connection. The callback URL must be registered with the TikTok

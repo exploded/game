@@ -1515,6 +1515,21 @@ func (q *Queries) EndLive(ctx context.Context, id int64) error {
 	return err
 }
 
+const endTikTokLive = `-- name: EndTikTokLive :exec
+UPDATE live_events SET status = 'ended',
+    ended_at = COALESCE(ended_at,
+        (SELECT MAX(c.checked_at) FROM tiktok_live_checks c WHERE c.event_id = live_events.id AND c.result = 'live'),
+        datetime('now'))
+WHERE live_events.id = ?1
+`
+
+// Ends a TikTok stream at the last check that found it on air, not when the
+// checks off air ran out 5 minutes later.
+func (q *Queries) EndTikTokLive(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, endTikTokLive, id)
+	return err
+}
+
 const expireOldLimitOrders = `-- name: ExpireOldLimitOrders :many
 UPDATE limit_orders SET status = 'expired'
 WHERE status = 'open' AND expires_at IS NOT NULL AND expires_at < ?1
@@ -2641,6 +2656,22 @@ UPDATE live_events SET status = 'live', started_at = COALESCE(started_at, dateti
 
 func (q *Queries) GoLive(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, goLive, id)
+	return err
+}
+
+const goLiveAt = `-- name: GoLiveAt :exec
+UPDATE live_events SET status = 'live', started_at = COALESCE(started_at, ?1) WHERE id = ?2
+`
+
+type GoLiveAtParams struct {
+	StartedAt sql.NullString
+	ID        int64
+}
+
+// Starts a stream the TikTok check found on air, from when TikTok says it
+// began.
+func (q *Queries) GoLiveAt(ctx context.Context, arg GoLiveAtParams) error {
+	_, err := q.db.ExecContext(ctx, goLiveAt, arg.StartedAt, arg.ID)
 	return err
 }
 
@@ -5318,36 +5349,59 @@ func (q *Queries) ListParticipantsByGame(ctx context.Context, gameID int64) ([]L
 }
 
 const listPastLive = `-- name: ListPastLive :many
-SELECT id, platform, url, embed_url, video_id, title, description, scheduled_at, started_at, ended_at, status, source, announced, start_notified, created_at FROM live_events WHERE status = 'ended'
-ORDER BY COALESCE(started_at, scheduled_at) DESC
+SELECT e.id, e.title, e.status, e.platform, e.started_at, e.ended_at,
+       v.id IS NOT NULL AS recorded,
+       COALESCE(v.id, 0) AS rec_video_id, COALESCE(v.thumb_url, '') AS thumb_url,
+       COALESCE(v.duration_seconds, 0) AS duration_seconds, COALESCE(v.vertical, 0) AS vertical,
+       (SELECT COUNT(*) FROM questions q WHERE q.live_event_id = e.id AND q.hidden = 0) AS answered
+FROM live_events e
+LEFT JOIN videos v ON v.id = e.video_id AND v.hidden = 0
+WHERE e.status = 'ended'
+  AND (v.id IS NOT NULL OR EXISTS (SELECT 1 FROM questions q WHERE q.live_event_id = e.id AND q.hidden = 0))
+ORDER BY COALESCE(e.started_at, e.scheduled_at) DESC
 LIMIT ?
 `
 
-func (q *Queries) ListPastLive(ctx context.Context, limit int64) ([]LiveEvent, error) {
+type ListPastLiveRow struct {
+	ID              int64
+	Title           string
+	Status          string
+	Platform        string
+	StartedAt       sql.NullString
+	EndedAt         sql.NullString
+	Recorded        bool
+	RecVideoID      int64
+	ThumbUrl        string
+	DurationSeconds int64
+	Vertical        int64
+	Answered        int64
+}
+
+// Ended streams worth listing: those with a recording to watch, and those
+// Rob answered questions in. TikTok keeps no recording people can watch, so
+// a TikTok stream has one only once an admin attaches the copy Rob saved.
+func (q *Queries) ListPastLive(ctx context.Context, limit int64) ([]ListPastLiveRow, error) {
 	rows, err := q.db.QueryContext(ctx, listPastLive, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []LiveEvent
+	var items []ListPastLiveRow
 	for rows.Next() {
-		var i LiveEvent
+		var i ListPastLiveRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.Platform,
-			&i.Url,
-			&i.EmbedUrl,
-			&i.VideoID,
 			&i.Title,
-			&i.Description,
-			&i.ScheduledAt,
+			&i.Status,
+			&i.Platform,
 			&i.StartedAt,
 			&i.EndedAt,
-			&i.Status,
-			&i.Source,
-			&i.Announced,
-			&i.StartNotified,
-			&i.CreatedAt,
+			&i.Recorded,
+			&i.RecVideoID,
+			&i.ThumbUrl,
+			&i.DurationSeconds,
+			&i.Vertical,
+			&i.Answered,
 		); err != nil {
 			return nil, err
 		}
@@ -7808,6 +7862,22 @@ type SetLastGameParams struct {
 
 func (q *Queries) SetLastGame(ctx context.Context, arg SetLastGameParams) error {
 	_, err := q.db.ExecContext(ctx, setLastGame, arg.LastGameID, arg.ID)
+	return err
+}
+
+const setLiveRecording = `-- name: SetLiveRecording :exec
+UPDATE live_events SET video_id = ? WHERE id = ?
+`
+
+type SetLiveRecordingParams struct {
+	VideoID sql.NullInt64
+	ID      int64
+}
+
+// Attaches a stream's recording (a video in the library), or takes it off
+// with NULL.
+func (q *Queries) SetLiveRecording(ctx context.Context, arg SetLiveRecordingParams) error {
+	_, err := q.db.ExecContext(ctx, setLiveRecording, arg.VideoID, arg.ID)
 	return err
 }
 

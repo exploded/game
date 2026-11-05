@@ -1585,8 +1585,27 @@ WHERE id = ?;
 -- name: GoLive :exec
 UPDATE live_events SET status = 'live', started_at = COALESCE(started_at, datetime('now')) WHERE id = ?;
 
+-- Starts a stream the TikTok check found on air, from when TikTok says it
+-- began.
+-- name: GoLiveAt :exec
+UPDATE live_events SET status = 'live', started_at = COALESCE(started_at, sqlc.arg(started_at)) WHERE id = sqlc.arg(id);
+
 -- name: EndLive :exec
 UPDATE live_events SET status = 'ended', ended_at = COALESCE(ended_at, datetime('now')) WHERE id = ?;
+
+-- Ends a TikTok stream at the last check that found it on air, not when the
+-- checks off air ran out 5 minutes later.
+-- name: EndTikTokLive :exec
+UPDATE live_events SET status = 'ended',
+    ended_at = COALESCE(ended_at,
+        (SELECT MAX(c.checked_at) FROM tiktok_live_checks c WHERE c.event_id = live_events.id AND c.result = 'live'),
+        datetime('now'))
+WHERE live_events.id = sqlc.arg(id);
+
+-- Attaches a stream's recording (a video in the library), or takes it off
+-- with NULL.
+-- name: SetLiveRecording :exec
+UPDATE live_events SET video_id = ? WHERE id = ?;
 
 -- name: CancelLive :exec
 UPDATE live_events SET status = 'cancelled' WHERE id = ?;
@@ -1608,9 +1627,20 @@ WHERE status = 'upcoming' AND (scheduled_at IS NULL OR scheduled_at > datetime('
 ORDER BY scheduled_at
 LIMIT 20;
 
+-- Ended streams worth listing: those with a recording to watch, and those
+-- Rob answered questions in. TikTok keeps no recording people can watch, so
+-- a TikTok stream has one only once an admin attaches the copy Rob saved.
 -- name: ListPastLive :many
-SELECT * FROM live_events WHERE status = 'ended'
-ORDER BY COALESCE(started_at, scheduled_at) DESC
+SELECT e.id, e.title, e.status, e.platform, e.started_at, e.ended_at,
+       v.id IS NOT NULL AS recorded,
+       COALESCE(v.id, 0) AS rec_video_id, COALESCE(v.thumb_url, '') AS thumb_url,
+       COALESCE(v.duration_seconds, 0) AS duration_seconds, COALESCE(v.vertical, 0) AS vertical,
+       (SELECT COUNT(*) FROM questions q WHERE q.live_event_id = e.id AND q.hidden = 0) AS answered
+FROM live_events e
+LEFT JOIN videos v ON v.id = e.video_id AND v.hidden = 0
+WHERE e.status = 'ended'
+  AND (v.id IS NOT NULL OR EXISTS (SELECT 1 FROM questions q WHERE q.live_event_id = e.id AND q.hidden = 0))
+ORDER BY COALESCE(e.started_at, e.scheduled_at) DESC
 LIMIT ?;
 
 -- name: ListAllLiveEvents :many

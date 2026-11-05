@@ -320,7 +320,10 @@ func (h *Handler) QuestionOnAir(w http.ResponseWriter, r *http.Request) {
 		// A little before now: Rob reads the question out before tapping.
 		at = max(int64(time.Since(started).Seconds())-60, 0)
 	}
-	answer := "Rob answered this live on " + media.PlatformName(e.Platform) + " (" + e.Title + ")."
+	answer := "Rob answered this live on " + media.PlatformName(e.Platform) + "."
+	if e.Title != media.TikTokLiveTitle {
+		answer = "Rob answered this live on " + media.PlatformName(e.Platform) + " (" + e.Title + ")."
+	}
 	if err := h.q.AnswerOnAir(r.Context(), db.AnswerOnAirParams{
 		LiveEventID: nint64(e.ID), AnswerSeconds: at, Answer: answer,
 		AnsweredBy: nint64(user.ID), ID: q.ID,

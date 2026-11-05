@@ -263,6 +263,13 @@ var onceMigrations = []struct{ name, stmt string }{
 	// Not in schema.sql, which runs first and would fail on an older
 	// database holding the same URL twice.
 	{"idx-stock-news-url", "CREATE UNIQUE INDEX IF NOT EXISTS idx_stock_news_url ON stock_news(stock_id, url)"},
+	// Until 5 November 2026 a TikTok stream ended 5 minutes after Rob did,
+	// when the checks off air ran out. End earlier ones at the last check
+	// that found them on air, so their length is right.
+	{"tiktok-live-ended-at", `UPDATE live_events SET ended_at = (
+			SELECT MAX(c.checked_at) FROM tiktok_live_checks c WHERE c.event_id = live_events.id AND c.result = 'live')
+		WHERE platform = 'tiktok' AND status = 'ended'
+			AND EXISTS (SELECT 1 FROM tiktok_live_checks c WHERE c.event_id = live_events.id AND c.result = 'live')`},
 }
 
 // droppedColumns are columns taken out of schema.sql. Older databases still

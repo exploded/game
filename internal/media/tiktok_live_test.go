@@ -21,6 +21,7 @@ type fakeTikTokLive struct {
 	t        *testing.T
 	status   int    // the room's status: 2 live, 4 off air
 	title    string // the stream's title
+	start    int64  // the stream's start time (Unix seconds), 0 for none
 	reply    string // sent as is instead, when set
 	code     int    // the HTTP status, when not 200
 	requests int
@@ -53,7 +54,7 @@ func (f *fakeTikTokLive) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(f.reply))
 		return
 	}
-	fmt.Fprintf(w, `{"data":{"user":{"uniqueId":"rob_goudie","status":%d},"liveRoom":{"title":%q,"status":%d}},"message":"","statusCode":0}`, f.status, f.title, f.status)
+	fmt.Fprintf(w, `{"data":{"user":{"uniqueId":"rob_goudie","status":%d},"liveRoom":{"title":%q,"status":%d,"startTime":%d}},"message":"","statusCode":0}`, f.status, f.title, f.status, f.start)
 }
 
 func liveStatuses(t *testing.T, d *sql.DB) string {
@@ -173,7 +174,9 @@ func TestTikTokLiveCheckBooked(t *testing.T) {
 
 func TestTikTokLiveCheckAllDay(t *testing.T) {
 	d, q, m := openDB(t)
-	tt := &fakeTikTokLive{t: t, status: 4, title: "  Budget\nQ&A "}
+	// Rob went live 3 minutes before the check found him.
+	began := time.Now().Add(-3 * time.Minute).Truncate(time.Second)
+	tt := &fakeTikTokLive{t: t, status: 4, title: "  Budget\nQ&A ", start: began.Unix()}
 	srv := httptest.NewServer(tt)
 	defer srv.Close()
 	s := media.NewTestService(q, m, nil, nil, nil)
@@ -218,6 +221,17 @@ func TestTikTokLiveCheckAllDay(t *testing.T) {
 	}
 	if n := tt.count(); n != 7 {
 		t.Errorf("%d checks, want 7", n)
+	}
+	// It started when TikTok says it did, and ended at the last check that
+	// found it on air, not when the checks off air ran out.
+	var started, ended, lastLive string
+	d.QueryRow("SELECT started_at, ended_at FROM live_events WHERE id = 1").Scan(&started, &ended)
+	d.QueryRow("SELECT MAX(checked_at) FROM tiktok_live_checks WHERE result = 'live' AND event_id = 1").Scan(&lastLive)
+	if want := began.UTC().Format(time.DateTime); started != want {
+		t.Errorf("started_at = %s, want %s", started, want)
+	}
+	if ended == "" || ended != lastLive {
+		t.Errorf("ended_at = %q, want the last live check's %q", ended, lastLive)
 	}
 
 	// TikTok refuses a check: the all-day checks stop for the day.

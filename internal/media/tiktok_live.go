@@ -51,10 +51,15 @@ const tiktokRoomLive = 2
 // his stream is ended, so a dropped connection doesn't end it.
 const tiktokEndAfter = 5
 
+// TikTokLiveTitle is the title of a stream the check adds when Rob didn't
+// give it one. The site shows "Live on TikTok" once it's over.
+const TikTokLiveTitle = "Rob is live on TikTok"
+
 // tiktokRoom is what TikTok says about an account's live room.
 type tiktokRoom struct {
-	live  bool
-	title string // what Rob called the stream, often ""
+	live    bool
+	title   string    // what Rob called the stream, often ""
+	started time.Time // when the stream began, zero if TikTok didn't say
 }
 
 // room asks TikTok whether user (rob_goudie) is live now. status is the
@@ -83,8 +88,9 @@ func (t *tiktokLive) room(ctx context.Context, user string) (room tiktokRoom, st
 		Message    string `json:"message"`
 		Data       struct {
 			LiveRoom struct {
-				Status int    `json:"status"`
-				Title  string `json:"title"`
+				Status    int    `json:"status"`
+				Title     string `json:"title"`
+				StartTime int64  `json:"startTime"` // Unix seconds
 			} `json:"liveRoom"`
 		} `json:"data"`
 	}
@@ -97,10 +103,14 @@ func (t *tiktokLive) room(ctx context.Context, user string) (room tiktokRoom, st
 	if out.Data.LiveRoom.Status == 0 {
 		return room, resp.StatusCode, errors.New("TikTok's reply has no live status")
 	}
-	return tiktokRoom{
+	room = tiktokRoom{
 		live:  out.Data.LiveRoom.Status == tiktokRoomLive,
 		title: strings.Join(strings.Fields(out.Data.LiveRoom.Title), " "),
-	}, resp.StatusCode, nil
+	}
+	if room.live && out.Data.LiveRoom.StartTime > 0 {
+		room.started = time.Unix(out.Data.LiveRoom.StartTime, 0)
+	}
+	return room, resp.StatusCode, nil
 }
 
 // tiktokUser is the account in a TikTok link (rob_goudie in
@@ -192,10 +202,21 @@ func (s *Service) checkTikTokAccount(ctx context.Context, user string, events []
 	return s.tiktokOffAir(ctx, user, events, note)
 }
 
+// startedAt is when the stream in room began: TikTok's start time, which
+// can be up to 5 minutes before the all-day check found it, or now if TikTok
+// gave none that makes sense.
+func (room tiktokRoom) startedAt(now time.Time) time.Time {
+	if room.started.IsZero() || room.started.After(now) || now.Sub(room.started) > 12*time.Hour {
+		return now
+	}
+	return room.started
+}
+
 // tiktokOnAir handles finding user live: a stream already on is noted as
 // seen, otherwise the booked one nearest to now starts (its reminders go out
 // on this minute's notifyLive), otherwise one is added.
 func (s *Service) tiktokOnAir(ctx context.Context, user string, events []db.LiveEvent, room tiktokRoom, note func(int64, string) error) error {
+	started := nullTime(room.startedAt(time.Now()))
 	var next *db.LiveEvent
 	for i, e := range events {
 		if e.Status == "live" {
@@ -206,7 +227,7 @@ func (s *Service) tiktokOnAir(ctx context.Context, user string, events []db.Live
 		}
 	}
 	if next != nil {
-		if err := s.q.GoLive(ctx, next.ID); err != nil {
+		if err := s.q.GoLiveAt(ctx, db.GoLiveAtParams{StartedAt: started, ID: next.ID}); err != nil {
 			return err
 		}
 		slog.Info("tiktok stream started by itself", "event", next.ID)
@@ -217,14 +238,14 @@ func (s *Service) tiktokOnAir(ctx context.Context, user string, events []db.Live
 	// Nobody could ask for a reminder, so no email goes out.
 	title := room.title
 	if title == "" {
-		title = "Rob is live on TikTok"
+		title = TikTokLiveTitle
 	}
 	if r := []rune(title); len(r) > 150 {
 		title = string(r[:150])
 	}
 	id, err := s.q.CreateLiveEvent(ctx, db.CreateLiveEventParams{
 		Platform: "tiktok", Url: "https://www.tiktok.com/@" + user + "/live", Title: title,
-		ScheduledAt: nullTime(time.Now()), Status: "upcoming",
+		ScheduledAt: started, Status: "upcoming",
 	})
 	if err != nil {
 		return err
@@ -232,7 +253,7 @@ func (s *Service) tiktokOnAir(ctx context.Context, user string, events []db.Live
 	if err := s.q.MarkLiveAnnounced(ctx, id); err != nil {
 		return err
 	}
-	if err := s.q.GoLive(ctx, id); err != nil {
+	if err := s.q.GoLiveAt(ctx, db.GoLiveAtParams{StartedAt: started, ID: id}); err != nil {
 		return err
 	}
 	slog.Info("tiktok stream added by itself", "event", id, "title", title)
@@ -261,7 +282,7 @@ func (s *Service) tiktokOffAir(ctx context.Context, user string, events []db.Liv
 		if streak < tiktokEndAfter {
 			continue
 		}
-		if err := s.q.EndLive(ctx, e.ID); err != nil {
+		if err := s.q.EndTikTokLive(ctx, e.ID); err != nil {
 			return err
 		}
 		slog.Info("tiktok stream ended by itself", "event", e.ID)

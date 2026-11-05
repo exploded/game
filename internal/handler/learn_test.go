@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"maps"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"testing"
@@ -19,6 +20,13 @@ import (
 // a few videos, streams and a question. X-User picks who's signed in: 1 is
 // Rob (admin), 2 is Alice, and none is a visitor.
 func learnServer(t *testing.T) http.Handler {
+	t.Helper()
+	srv, _ := learnServerDB(t)
+	return srv
+}
+
+// learnServerDB is learnServer with its database.
+func learnServerDB(t *testing.T) (http.Handler, *sql.DB) {
 	t.Helper()
 	d := openTestDB(t)
 	if _, err := d.Exec(`
@@ -91,7 +99,7 @@ Line two.', 'https://i.ytimg.com/vi/a/mqdefault.jpg', '2026-10-01 00:00:00', 725
 		r.Post("/learn/live", h.AdminLearnLiveCreate)
 		r.Post("/learn/live/{eid}/{action}", h.AdminLearnLiveAction)
 	})
-	return r
+	return r, d
 }
 
 func TestLearnPagesRender(t *testing.T) {
@@ -205,6 +213,80 @@ func TestStreamReminderAndAdminActions(t *testing.T) {
 	as(srv, "1", "POST", "/admin/learn/videos/3", map[string][]string{"topic": {"1"}, "hidden": {"1"}}, false)
 	if w := as(srv, "", "GET", "/learn/v/3", nil, false); w.Code != http.StatusNotFound {
 		t.Errorf("a hidden video for a visitor: %d, want 404", w.Code)
+	}
+}
+
+// TikTok keeps no recording of a live stream for viewers, so the Live page
+// lists a past stream only if it has a recording or answered questions, and
+// an admin can attach the copy Rob saved.
+func TestPastStreams(t *testing.T) {
+	srv, d := learnServerDB(t)
+	if _, err := d.Exec(`
+		INSERT INTO live_events (id, platform, url, title, started_at, ended_at, status, source) VALUES
+			(4, 'tiktok', 'https://www.tiktok.com/@rob_goudie/live', 'Rob is live on TikTok', '2026-11-05 07:40:00', '2026-11-05 08:08:00', 'ended', 'admin'),
+			(5, 'tiktok', 'https://www.tiktok.com/@rob_goudie/live', 'Rob is live on TikTok', '2026-11-04 08:00:00', '2026-11-04 08:21:00', 'ended', 'admin'),
+			(6, 'tiktok', 'https://www.tiktok.com/@rob_goudie/live', 'Morning chat', '2026-11-02 08:00:00', '2026-11-02 08:20:00', 'ended', 'admin');
+		INSERT INTO questions (id, user_id, title, answer, live_event_id) VALUES (2, 2, 'What about ETFs?', 'Rob answered this live on TikTok.', 5);
+	`); err != nil {
+		t.Fatal(err)
+	}
+	page := func(path string) string { return as(srv, "1", "GET", path, nil, false).Body.String() }
+	recording := func(eid, link string) {
+		t.Helper()
+		as(srv, "1", "POST", "/admin/learn/live/"+eid+"/recording", url.Values{"url": {link}}, false)
+	}
+
+	live := page("/learn/live")
+	for _, s := range []string{`href="/learn/live/3" class="vcard`, `href="/learn/live/5" class="event-past"`, "1 question answered, no recording", "Live on TikTok"} {
+		if !strings.Contains(live, s) {
+			t.Errorf("live page: no %q", s)
+		}
+	}
+	for _, s := range []string{`/learn/live/4"`, `/learn/live/6"`, "Rob is live on TikTok"} {
+		if strings.Contains(live, s) {
+			t.Errorf("live page: has %q", s)
+		}
+	}
+
+	stream := page("/learn/live/4")
+	for _, s := range []string{"Streamed 5 Nov 2026 &middot; 28 min", "keep live streams for viewers, so there", "Save recording"} {
+		if !strings.Contains(stream, s) {
+			t.Errorf("stream with no recording: no %q", s)
+		}
+	}
+	for _, s := range []string{"Watch on TikTok", "Go live now", "data-play"} {
+		if strings.Contains(stream, s) {
+			t.Errorf("stream with no recording: has %q", s)
+		}
+	}
+
+	// Rob saved it and posted it: the stream gets a player and is listed.
+	recording("4", "https://www.tiktok.com/@rob_goudie/video/7301")
+	stream = page("/learn/live/4")
+	for _, s := range []string{"Recorded 5 Nov 2026", `data-play="https://www.tiktok.com/player/v1/7301"`, `href="https://www.tiktok.com/@rob_goudie/video/7301"`, "Watch on TikTok"} {
+		if !strings.Contains(stream, s) {
+			t.Errorf("stream with a recording: no %q", s)
+		}
+	}
+	if !strings.Contains(page("/learn/live"), `href="/learn/live/4" class="vcard vcard-tall"`) {
+		t.Error("a recorded TikTok stream isn't listed as a card")
+	}
+
+	// A video can be the recording of one stream only, and YouTube's
+	// streams get theirs from the sync.
+	recording("6", "https://www.tiktok.com/@rob_goudie/video/7301")
+	recording("3", "https://www.tiktok.com/@rob_goudie/video/7301")
+	var six, three sql.NullInt64
+	d.QueryRow("SELECT video_id FROM live_events WHERE id = 6").Scan(&six)
+	d.QueryRow("SELECT video_id FROM live_events WHERE id = 3").Scan(&three)
+	if six.Valid || three.Int64 != 3 {
+		t.Errorf("video_id: stream 6 %v, stream 3 %v", six, three)
+	}
+
+	// An empty link takes it off again.
+	recording("4", "")
+	if strings.Contains(page("/learn/live"), `/learn/live/4"`) {
+		t.Error("taking the recording off left the stream listed")
 	}
 }
 

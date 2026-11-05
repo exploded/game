@@ -27,7 +27,7 @@
     </p>
     {{end}}
     {{range paragraphs .Answer}}<p style="margin-bottom:12px">{{.}}</p>{{end}}
-    {{with index $.Extra "Event"}}{{if not $.Item.AnswerVideoID.Valid}}<p><a href="/learn/live/{{.ID}}">About the stream</a> &middot; <a href="{{.Url}}" target="_blank" rel="noopener">Watch on {{platform .Platform}}</a></p>{{end}}{{end}}
+    {{with index $.Extra "Event"}}{{if not $.Item.AnswerVideoID.Valid}}<p><a href="/learn/live/{{.ID}}">About the stream</a>{{if and (eq .Status "ended") .VideoID.Valid}} &middot; <a href="/learn/v/{{.VideoID.Int64}}">Watch the recording</a>{{end}}</p>{{end}}{{end}}
 </div>
 {{else}}
 <p class="text-muted" style="margin:16px 0">Not answered yet. The more votes it gets, the sooner Rob answers it.</p>

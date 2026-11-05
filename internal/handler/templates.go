@@ -205,6 +205,25 @@ func LoadTemplates(fsys fs.FS, static *Static) (PageTemplates, error) {
 			}
 			return "any minute"
 		},
+		"streamTitle": streamTitle,
+		// streamLength is how long a stream ran, from two stored UTC times:
+		// "28 min" or "1 hr 5 min", or "" if either is missing.
+		"streamLength": func(started, ended any) string {
+			s, e := sqlTimeArg(started), sqlTimeArg(ended)
+			if s.IsZero() || e.IsZero() || !e.After(s) {
+				return ""
+			}
+			m := int(e.Sub(s).Round(time.Minute).Minutes())
+			switch {
+			case m < 1:
+				return "1 min"
+			case m < 60:
+				return fmt.Sprintf("%d min", m)
+			case m%60 == 0:
+				return fmt.Sprintf("%d hr", m/60)
+			}
+			return fmt.Sprintf("%d hr %d min", m/60, m%60)
+		},
 		// localInput turns a stored UTC time into a datetime-local value.
 		"localInput": func(v any) string {
 			t := sqlTimeArg(v)
