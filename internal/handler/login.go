@@ -289,6 +289,7 @@ func (h *Handler) finishLogin(w http.ResponseWriter, r *http.Request, req db.Log
 	}
 	invite := takeInvite(w, r)
 	if isNew {
+		h.giveRandomAvatar(ctx, user.ID)
 		if invite != "" {
 			h.acceptInvite(ctx, invite, user)
 		}

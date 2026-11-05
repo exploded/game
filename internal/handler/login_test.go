@@ -89,6 +89,7 @@ func requestLogin(t *testing.T, srv http.Handler, d *sql.DB, email string) (*htt
 
 func TestSignInWithCodeCreatesAccount(t *testing.T) {
 	srv, d, q := loginServer(t)
+	SeedAvatars(context.Background(), q)
 	req, code, _ := requestLogin(t, srv, d, " New.Player@Example.com ")
 
 	w := post(srv, "/login/code", url.Values{"code": {code[:3] + " " + code[3:]}}, req)
@@ -104,6 +105,10 @@ func TestSignInWithCodeCreatesAccount(t *testing.T) {
 	}
 	if user.Name != "new.player" || len(user.EmailToken) != 32 {
 		t.Errorf("user = %q with token %q", user.Name, user.EmailToken)
+	}
+	var category string
+	if err := d.QueryRow("SELECT a.category FROM users u JOIN avatars a ON a.id = u.avatar_id WHERE u.id = ?", user.ID).Scan(&category); err != nil || category != "free" {
+		t.Errorf("new user's avatar: category %q, error %v; want a free avatar", category, err)
 	}
 	var welcome int
 	d.QueryRow("SELECT COUNT(*) FROM email_outbox WHERE template = 'welcome'").Scan(&welcome)
