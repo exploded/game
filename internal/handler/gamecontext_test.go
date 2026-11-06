@@ -2,9 +2,11 @@ package handler
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -418,28 +420,80 @@ func TestRulesPage(t *testing.T) {
 	}
 }
 
-func TestRankPlayer(t *testing.T) {
-	board := []db.ListParticipantsByGameRow{
-		{ID: 1, PortfolioValue: 300, UserName: "Ann"},
-		{ID: 2, PortfolioValue: 200, UserName: "Ben"},
-		{ID: 3, PortfolioValue: 100, UserName: "Cat"},
+// TestStanding: places come from counts, equal values share a place (also
+// across a page of Ranks), players with no trade aren't ranked, blocked
+// players aren't counted, and the triggers keep traded and uses_ai.
+func TestStanding(t *testing.T) {
+	d := openTestDB(t)
+	if _, err := d.Exec(`
+		INSERT INTO users (id, email, name, email_token) VALUES
+			(1, 'a@x', 'Ann', 't1'), (2, 'b@x', 'Ben', 't2'), (3, 'c@x', 'Cat', 't3'),
+			(4, 'd@x', 'Dan', 't4'), (5, 'e@x', 'Eve', 't5'), (6, 'f@x', 'Fay', 't6');
+		INSERT INTO games (id, created_by, name, status, start_date, end_date) VALUES (1, 1, 'Cup', 'active', '2026-11-01', '2026-11-30');
+		INSERT INTO participants (id, game_id, user_id, cash_balance, portfolio_value) VALUES
+			(1, 1, 1, 0, 300), (2, 1, 2, 0, 200), (3, 1, 3, 0, 200), (4, 1, 4, 0, 100), (5, 1, 5, 0, 400), (6, 1, 6, 0, 250);
+		INSERT INTO stocks (id, symbol, name, market, currency) VALUES (1, 'ACME', 'Acme', 'sp500', 'USD');
+		INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total, converted_total, source) VALUES
+			(1, 1, 'buy', 1, 1, 1, 1, ''), (2, 1, 'buy', 1, 1, 1, 1, ''), (3, 1, 'buy', 1, 1, 1, 1, ''),
+			(4, 1, 'buy', 1, 1, 1, 1, 'mcp'), (6, 1, 'buy', 1, 1, 1, 1, '');
+		INSERT INTO limit_orders (participant_id, stock_id, type, quantity, limit_price, source) VALUES
+			(2, 1, 'buy', 1, 1, 'api'), (1, 1, 'buy', 1, 1, '');
+		UPDATE users SET blocked_at = datetime('now') WHERE id = 6;
+	`); err != nil {
+		t.Fatal(err)
 	}
-	for _, tc := range []struct {
-		p      db.Participant
-		traded bool
-		want   standing
-	}{
-		{db.Participant{ID: 1, PortfolioValue: 300}, true, standing{Rank: 1, Of: 3}},
-		{db.Participant{ID: 3, PortfolioValue: 100}, true, standing{Rank: 3, Of: 3, Ahead: "Ben", Gap: 100}},
-		// Blocked players aren't on the board but still get a spot.
-		{db.Participant{ID: 9, PortfolioValue: 250}, true, standing{Rank: 2, Of: 4, Ahead: "Ann", Gap: 50}},
-		// A player with no trade isn't ranked, even sitting on more than the leader.
-		{db.Participant{ID: 8, PortfolioValue: 400}, false, standing{Of: 3, Unranked: true}},
-	} {
-		if got := rankPlayer(tc.p, board, tc.traded); got != tc.want {
-			t.Errorf("rankPlayer(%d) = %+v, want %+v", tc.p.ID, got, tc.want)
+	q := db.New(d)
+	h := New(q, d, loadTestTemplates(t), false, time.UTC)
+	ctx := t.Context()
+	part := func(id int64) db.Participant {
+		t.Helper()
+		p, err := q.GetParticipant(ctx, id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+
+	// The triggers: a trade puts a player on the board, and a trade or an
+	// order from their AI gives them the robot.
+	for id, want := range map[int64][2]int64{1: {1, 0}, 2: {1, 1}, 3: {1, 0}, 4: {1, 1}, 5: {0, 0}, 6: {1, 0}} {
+		if p := part(id); p.Traded != want[0] || p.UsesAi != want[1] {
+			t.Errorf("participant %d: traded %d, uses_ai %d; want %d, %d", id, p.Traded, p.UsesAi, want[0], want[1])
 		}
 	}
+
+	for _, tc := range []struct {
+		id   int64
+		want standing
+	}{
+		{1, standing{Rank: 1, Of: 4}},
+		{2, standing{Rank: 2, Of: 4, Ahead: "Ann", Gap: 100}},
+		{3, standing{Rank: 2, Of: 4, Ahead: "Ann", Gap: 100}}, // tied with Ben
+		{4, standing{Rank: 4, Of: 4, Ahead: "Cat", Gap: 100}},
+		// No trade: not ranked, even sitting on more than the leader.
+		{5, standing{Of: 4, Unranked: true}},
+	} {
+		if got := h.standingIn(ctx, part(tc.id)); got != tc.want {
+			t.Errorf("standingIn(%d) = %+v, want %+v", tc.id, got, tc.want)
+		}
+	}
+
+	// Pages of two: Ben and Cat share 2nd across the page break, and blocked
+	// Fay (250) and unranked Eve are left out.
+	var got []string
+	for _, off := range []int{0, 2} {
+		rows, err := h.leaderboardPage(ctx, 1, 2, off)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, r := range rows {
+			got = append(got, fmt.Sprintf("%d %s", r.Rank, r.UserName))
+		}
+	}
+	if want := []string{"1 Ann", "2 Ben", "2 Cat", "4 Dan"}; !slices.Equal(got, want) {
+		t.Errorf("leaderboard pages = %q, want %q", got, want)
+	}
+
 	for rank, want := range map[int]string{1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 11: "11th", 12: "12th", 13: "13th", 21: "21st", 112: "112th"} {
 		if got := (standing{Rank: rank}).Place(); got != want {
 			t.Errorf("Place(%d) = %q, want %q", rank, got, want)
@@ -707,5 +761,47 @@ func TestTicketLimitOrderPlacesOrderNotTrade(t *testing.T) {
 	}
 	if p.CashBalance != 100000000 {
 		t.Errorf("cash = %d; a limit order must not spend cash until it fills", p.CashBalance)
+	}
+}
+
+// TestLeaderboardPages: Ranks shows 100 a page. Alice is last of 102, so the
+// first page adds her row after a gap, and the second page lists her in it.
+func TestLeaderboardPages(t *testing.T) {
+	srv, _, d := gameServerDB(t)
+	if _, err := d.Exec(`
+		WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 101)
+		INSERT INTO users (id, email, name, email_token) SELECT 100 + i, 'p' || i || '@x', 'Player ' || i, 'tok' || i FROM n;
+		INSERT INTO participants (game_id, user_id, cash_balance, portfolio_value)
+			SELECT 1, id, 0, 200000000 - id FROM users WHERE id > 100;
+		INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total, converted_total)
+			SELECT id, 1, 'buy', 1, 1, 1, 1 FROM participants WHERE game_id = 1;
+	`); err != nil {
+		t.Fatal(err)
+	}
+
+	first := getPage(t, srv, "/games/1/leaderboard", "")
+	if n := strings.Count(first, "<td>Player "); n != 100 {
+		t.Errorf("first page lists %d other players, want 100", n)
+	}
+	for _, want := range []string{
+		`class="leaderboard-gap"`, `<td>102</td>`, `<td>Alice</td>`, // her own row, after the gap
+		`1&ndash;100 of 102`, `href="?page=2"`,
+	} {
+		if !strings.Contains(first, want) {
+			t.Errorf("first page is missing %q", want)
+		}
+	}
+	if strings.Contains(first, "&larr; Higher") {
+		t.Error("the first page links to a higher one")
+	}
+
+	second := getPage(t, srv, "/games/1/leaderboard?page=2", "")
+	for _, want := range []string{`<td>101</td>`, `<td>102</td>`, `101&ndash;102 of 102`, `href="?page=1"`} {
+		if !strings.Contains(second, want) {
+			t.Errorf("second page is missing %q", want)
+		}
+	}
+	if strings.Contains(second, "leaderboard-gap") || strings.Contains(second, "Lower &rarr;") {
+		t.Error("the second page repeats Alice's row or links further on")
 	}
 }

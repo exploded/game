@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	game "github.com/exploded/game"
 	_ "modernc.org/sqlite"
 )
 
@@ -115,6 +116,8 @@ var addedColumns = []struct{ table, column, ddl string }{
 	{"limit_orders", "source", "TEXT NOT NULL DEFAULT ''"},
 	{"activity_feed", "source", "TEXT NOT NULL DEFAULT ''"},
 	{"stock_news", "shown", "INTEGER NOT NULL DEFAULT 0"},
+	{"participants", "traded", "INTEGER NOT NULL DEFAULT 0"},
+	{"participants", "uses_ai", "INTEGER NOT NULL DEFAULT 0"},
 }
 
 // onceMigrations run exactly once per database, in order. Each is recorded in
@@ -279,6 +282,23 @@ var onceMigrations = []struct{ name, stmt string }{
 			SELECT MAX(c.checked_at) FROM tiktok_live_checks c WHERE c.event_id = live_events.id AND c.result = 'live')
 		WHERE platform = 'tiktok' AND status = 'ended'
 			AND EXISTS (SELECT 1 FROM tiktok_live_checks c WHERE c.event_id = live_events.id AND c.result = 'live')`},
+
+	// The leaderboard (docs/capacity.md). Until 6 November 2026 every view
+	// looked through each player's trades and orders to see who had traded
+	// and who used an AI: 130 ms at 10,000 players. participants.traded and
+	// uses_ai keep the answer, set by triggers in schema.sql from here on.
+	// This fills them in for the trades and orders already stored. The
+	// indexes aren't in schema.sql, which runs before addedColumns adds the
+	// columns.
+	{"participants-traded-flags", `UPDATE participants SET
+			traded = EXISTS (SELECT 1 FROM transactions t WHERE t.participant_id = participants.id),
+			uses_ai = EXISTS (SELECT 1 FROM transactions t WHERE t.participant_id = participants.id AND t.source != '')
+				OR EXISTS (SELECT 1 FROM limit_orders o WHERE o.participant_id = participants.id AND o.source != '')`},
+	// A game's ranked players, best first, with user_id so the counts that
+	// leave out blocked players need only the index.
+	{"idx-participants-ranked", "CREATE INDEX IF NOT EXISTS idx_participants_ranked ON participants(game_id, traded, portfolio_value DESC, user_id)"},
+	// The few blocked users, which the leaderboard leaves out.
+	{"idx-users-blocked", "CREATE INDEX IF NOT EXISTS idx_users_blocked ON users(id) WHERE blocked_at IS NOT NULL"},
 }
 
 // droppedColumns are columns taken out of schema.sql. Older databases still
@@ -351,6 +371,11 @@ func runMigrations(db *sql.DB) error {
 			return fmt.Errorf("adding %s.%s: %w", c.table, c.column, err)
 		}
 		slog.Info("added column", "table", c.table, "column", c.column)
+	}
+	// After addedColumns: a trigger naming a column that isn't there yet
+	// stops SQLite dropping any column (sql/triggers.sql).
+	if _, err := db.Exec(game.Triggers); err != nil {
+		return fmt.Errorf("creating triggers: %w", err)
 	}
 	// After addedColumns, so the old users table has every column it copies.
 	if err := rebuildUsersTable(db); err != nil {

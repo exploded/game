@@ -33,13 +33,12 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		extra["GameID"] = g.ID // Game Home opens it, even if the figures below fail
 		p, err := h.q.GetParticipantByGameAndUser(ctx, db.GetParticipantByGameAndUserParams{GameID: g.ID, UserID: user.ID})
 		if err == nil {
-			board, _ := h.q.ListParticipantsByGame(ctx, g.ID)
 			extra["Game"] = homeGame{
 				Game:     g,
 				P:        p,
 				Value:    bigMoney(p.PortfolioValue / 100),
 				Total:    change{p.PortfolioValue - g.StartingBalance, g.StartingBalance},
-				Standing: h.standingIn(ctx, p, board),
+				Standing: h.standingIn(ctx, p),
 				DaysLeft: daysLeft(g, time.Now().In(h.loc)),
 			}
 		}

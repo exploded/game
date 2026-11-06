@@ -40,6 +40,9 @@ func monthlyDB(t *testing.T) (*sql.DB, *db.Queries) {
 	if _, err := d.Exec(game.Schema); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := d.Exec(game.Triggers); err != nil {
+		t.Fatal(err)
+	}
 	return d, db.New(d)
 }
 

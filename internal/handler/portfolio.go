@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"math"
 	"net/http"
 	"slices"
@@ -160,40 +161,23 @@ func (s standing) Place() string {
 	return strconv.Itoa(s.Rank) + suffix
 }
 
-// standingIn is where p sits on the game's leaderboard. A player missing
-// from it has either made no trade yet, and is unranked, or is blocked.
-func (h *Handler) standingIn(ctx context.Context, p db.Participant, board []db.ListParticipantsByGameRow) standing {
-	traded := slices.ContainsFunc(board, func(o db.ListParticipantsByGameRow) bool { return o.ID == p.ID })
-	if !traded {
-		n, err := h.q.CountTransactions(ctx, p.ID)
-		traded = err != nil || n > 0 // on an error, give them a spot as before
+// standingIn is where p sits on its game's leaderboard, from counts rather
+// than the whole board (docs/capacity.md). A player with no trade isn't
+// ranked, even sitting on more than the leader. Equal values share a place.
+// Blocked players aren't on the board, but they can't sign in to look.
+func (h *Handler) standingIn(ctx context.Context, p db.Participant) standing {
+	c, err := h.q.CountRanked(ctx, db.CountRankedParams{GameID: p.GameID, Value: p.PortfolioValue})
+	if err != nil {
+		slog.Error("count ranked players", "game", p.GameID, "error", err)
 	}
-	return rankPlayer(p, board, traded)
-}
-
-// rankPlayer places p among the players on the leaderboard, which is sorted
-// by value, best first. A player with no trade isn't ranked. One who traded
-// but is missing from the board (blocked) is counted in, so they still see
-// their spot.
-func rankPlayer(p db.Participant, board []db.ListParticipantsByGameRow, traded bool) standing {
-	if !traded {
-		return standing{Of: len(board), Unranked: true}
+	if p.Traded == 0 {
+		return standing{Of: int(c.Ranked), Unranked: true}
 	}
-	s := standing{Rank: 1, Of: len(board)}
-	listed := false
-	for _, o := range board {
-		if o.ID == p.ID {
-			listed = true
-			continue
+	s := standing{Rank: int(c.Above) + 1, Of: int(c.Ranked)}
+	if s.Rank > 1 {
+		if a, err := h.q.GetPlayerAhead(ctx, db.GetPlayerAheadParams{GameID: p.GameID, Value: p.PortfolioValue}); err == nil {
+			s.Ahead, s.Gap = a.UserName, a.PortfolioValue-p.PortfolioValue
 		}
-		if o.PortfolioValue > p.PortfolioValue {
-			s.Rank++
-			// The board is sorted, so the last one above is the closest.
-			s.Ahead, s.Gap = o.UserName, o.PortfolioValue-p.PortfolioValue
-		}
-	}
-	if !listed {
-		s.Of++
 	}
 	return s
 }
@@ -207,7 +191,6 @@ type portfolioFigures struct {
 	Session   string  // the newest bar's date: the session Today covers
 	Total     change  // against the starting balance
 	Standing  standing
-	Board     []db.ListParticipantsByGameRow
 	Interest  int64
 	Dividends int64                       // received, less what shorts paid
 	Orders    []db.ListOpenLimitOrdersRow // waiting to fill
@@ -216,7 +199,6 @@ type portfolioFigures struct {
 // portfolioFigures works out a player's holdings, moves and rank.
 func (h *Handler) portfolioFigures(ctx context.Context, game db.Game, participant db.Participant) portfolioFigures {
 	holdings, _ := h.q.ListHoldings(ctx, participant.ID)
-	board, _ := h.q.ListParticipantsByGame(ctx, game.ID)
 
 	var rate int64 = 1000000
 	if er, err := h.q.GetLatestExchangeRate(ctx); err == nil {
@@ -297,8 +279,7 @@ func (h *Handler) portfolioFigures(ctx context.Context, game db.Game, participan
 		Today:     today,
 		Session:   session,
 		Total:     change{participant.PortfolioValue - game.StartingBalance, game.StartingBalance},
-		Standing:  h.standingIn(ctx, participant, board),
-		Board:     board,
+		Standing:  h.standingIn(ctx, participant),
 		Interest:  interest,
 		Dividends: dividends,
 		Orders:    orders,

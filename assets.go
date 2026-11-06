@@ -21,6 +21,11 @@ var staticFS embed.FS
 //go:embed sql/schema.sql
 var Schema string
 
+// Triggers are run after Schema and the added columns (see sql/triggers.sql).
+//
+//go:embed sql/triggers.sql
+var Triggers string
+
 // Templates returns the templates directory as the root of an fs.FS.
 func Templates() fs.FS {
 	sub, err := fs.Sub(templatesFS, "templates")

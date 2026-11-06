@@ -762,6 +762,7 @@ dialog.confirm form { padding: 20px; }
 
 /* Leaderboard */
 .leaderboard-table { font-size: 13px; }
+.leaderboard-table .leaderboard-gap td { text-align: center; color: var(--color-text-muted); padding-top: 2px; padding-bottom: 2px; }
 
 /* Pagination */
 .pagination { display: flex; align-items: center; gap: 12px; margin-top: 20px; justify-content: center; }

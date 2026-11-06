@@ -338,6 +338,8 @@ type Participant struct {
 	CashBalance    int64
 	PortfolioValue int64
 	JoinedAt       string
+	Traded         int64
+	UsesAi         int64
 }
 
 type PortfolioSnapshot struct {

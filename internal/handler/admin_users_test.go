@@ -178,8 +178,11 @@ func TestBlockedUserIsHidden(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if board, _ := q.ListParticipantsByGame(ctx, 1); len(board) != 1 || board[0].UserID != 3 {
+	if board, _ := q.ListLeaderboard(ctx, db.ListLeaderboardParams{GameID: 1, Lim: 100}); len(board) != 1 || board[0].UserID != 3 {
 		t.Errorf("standings: %d players, want only Cat", len(board))
+	}
+	if c, _ := q.CountRanked(ctx, db.CountRankedParams{GameID: 1}); c.Ranked != 1 {
+		t.Errorf("ranked count %d, want 1: a blocked player is counted", c.Ranked)
 	}
 	lobby, _ := q.ListLobbyMessages(ctx, db.ListLobbyMessagesParams{ShowPosted: 1, Limit: 10})
 	n, _ := q.CountLobbyMessages(ctx, db.CountLobbyMessagesParams{ShowPosted: 1})
@@ -191,8 +194,11 @@ func TestBlockedUserIsHidden(t *testing.T) {
 	if err := q.UnblockUser(ctx, 2); err != nil {
 		t.Fatal(err)
 	}
-	if board, _ := q.ListParticipantsByGame(ctx, 1); len(board) != 2 {
+	if board, _ := q.ListLeaderboard(ctx, db.ListLeaderboardParams{GameID: 1, Lim: 100}); len(board) != 2 {
 		t.Errorf("after unblocking, %d on the leaderboard, want 2", len(board))
+	}
+	if c, _ := q.CountRanked(ctx, db.CountRankedParams{GameID: 1}); c.Ranked != 2 {
+		t.Errorf("after unblocking, ranked count %d, want 2", c.Ranked)
 	}
 	if n, _ := q.CountLobbyMessages(ctx, db.CountLobbyMessagesParams{ShowPosted: 1}); n != 2 {
 		t.Errorf("after unblocking, %d lobby messages, want 2", n)

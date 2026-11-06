@@ -146,6 +146,8 @@ CREATE TABLE IF NOT EXISTS participants (
     cash_balance    INTEGER NOT NULL,
     portfolio_value INTEGER NOT NULL DEFAULT 0,
     joined_at       TEXT    NOT NULL DEFAULT (datetime('now')),
+    traded          INTEGER NOT NULL DEFAULT 0, -- 1 after their first trade: on the leaderboard. Set by a trigger (db.go)
+    uses_ai         INTEGER NOT NULL DEFAULT 0, -- 1 once a trade or order came from their AI (api, mcp). Set by triggers (db.go)
     UNIQUE(game_id, user_id)
 );
 CREATE INDEX IF NOT EXISTS idx_participants_game  ON participants(game_id);
@@ -297,6 +299,7 @@ CREATE TABLE IF NOT EXISTS limit_orders (
 );
 CREATE INDEX IF NOT EXISTS idx_limit_orders_participant ON limit_orders(participant_id, status);
 CREATE INDEX IF NOT EXISTS idx_limit_orders_stock ON limit_orders(stock_id, status);
+-- participants.traded and uses_ai are kept by triggers in sql/triggers.sql.
 
 --------------------------------------------------------------------------------
 -- Watchlist (Feature 2): one per player, kept from game to game.

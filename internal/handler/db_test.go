@@ -588,3 +588,47 @@ func TestDedupeStockNewsHeadlines(t *testing.T) {
 		t.Errorf("rows left %s, want [2 4 5]", got)
 	}
 }
+
+// TestTradedFlagsBackfilled: a database from before 6 November 2026 has trades
+// but no traded or uses_ai flags. Opening it fills them in from the trades
+// and orders already stored, so nobody drops off the leaderboard.
+func TestTradedFlagsBackfilled(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "old.db")
+	raw, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// schema.sql alone has the columns but no triggers, as an old database
+	// has neither.
+	if _, err := raw.Exec(game.Schema); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := raw.Exec(`
+		INSERT INTO users (id, email, name, email_token) VALUES (1, 'a@x', 'Ann', 't1'), (2, 'b@x', 'Ben', 't2'), (3, 'c@x', 'Cat', 't3');
+		INSERT INTO games (id, created_by, name, start_date, end_date) VALUES (1, 1, 'Cup', '2026-11-01', '2026-11-30');
+		INSERT INTO participants (id, game_id, user_id, cash_balance) VALUES (1, 1, 1, 0), (2, 1, 2, 0), (3, 1, 3, 0);
+		INSERT INTO stocks (id, symbol, name, market) VALUES (1, 'ACME', 'Acme', 'sp500');
+		INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total, converted_total, source) VALUES
+			(1, 1, 'buy', 1, 1, 1, 1, ''), (2, 1, 'buy', 1, 1, 1, 1, 'mcp');
+		INSERT INTO limit_orders (participant_id, stock_id, type, quantity, limit_price, source) VALUES (3, 1, 'buy', 1, 1, 'api');
+	`); err != nil {
+		t.Fatal(err)
+	}
+	var before int
+	raw.QueryRow(`SELECT COUNT(*) FROM participants WHERE traded = 1 OR uses_ai = 1`).Scan(&before)
+	raw.Close()
+	if before != 0 {
+		t.Fatalf("%d flags set before opening; the test needs a database without triggers", before)
+	}
+
+	d := openTestDBAt(t, path)
+	for id, want := range map[int][2]int{1: {1, 0}, 2: {1, 1}, 3: {0, 1}} {
+		var traded, ai int
+		if err := d.QueryRow(`SELECT traded, uses_ai FROM participants WHERE id = ?`, id).Scan(&traded, &ai); err != nil {
+			t.Fatal(err)
+		}
+		if traded != want[0] || ai != want[1] {
+			t.Errorf("participant %d: traded %d, uses_ai %d; want %d, %d", id, traded, ai, want[0], want[1])
+		}
+	}
+}

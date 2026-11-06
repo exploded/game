@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -51,8 +52,9 @@ func jobsCmd(args []string) error {
 	var players, holdings, ranked int
 	rawDB.QueryRow(`SELECT COUNT(*) FROM participants WHERE game_id = ?`, g.ID).Scan(&players)
 	rawDB.QueryRow(`SELECT COUNT(*) FROM holdings h JOIN participants p ON p.id = h.participant_id WHERE p.game_id = ?`, g.ID).Scan(&holdings)
-	board, _ := q.ListParticipantsByGame(ctx, g.ID)
-	ranked = len(board)
+	if c, err := q.CountRanked(ctx, db.CountRankedParams{GameID: g.ID}); err == nil {
+		ranked = int(c.Ranked)
+	}
 	fmt.Printf("game %d: %d players, %d ranked, %d holdings, database %s\n\n", g.ID, players, ranked, holdings, fileSize(*dbPath))
 	fmt.Printf("%-34s %5s %10s %10s\n", "job", "runs", "median", "max")
 
@@ -70,10 +72,23 @@ func jobsCmd(args []string) error {
 		fmt.Printf("%-34s %5d %10s %10s\n", name, runs, round(d[len(d)/2]), round(d[len(d)-1]))
 	}
 
-	// Per request: the leaderboard query (dashboard, game home, leaderboard)
-	// and a stock's whole history (every stock page).
-	timeIt("leaderboard query (per page)", 5, func() error {
-		_, err := q.ListParticipantsByGame(ctx, g.ID)
+	// Per request: a player's place (dashboard, game home, Ranks, API), a page
+	// of Ranks, and a stock's whole history (every stock page). The place is
+	// timed for a player in the middle of the board.
+	var mid int64
+	rawDB.QueryRow(`SELECT portfolio_value FROM participants WHERE game_id = ? AND traded = 1 ORDER BY portfolio_value DESC LIMIT 1 OFFSET ?`, g.ID, ranked/2).Scan(&mid)
+	timeIt("player's place (per page)", 5, func() error {
+		if _, err := q.CountRanked(ctx, db.CountRankedParams{GameID: g.ID, Value: mid}); err != nil {
+			return err
+		}
+		_, err := q.GetPlayerAhead(ctx, db.GetPlayerAheadParams{GameID: g.ID, Value: mid})
+		if errors.Is(err, sql.ErrNoRows) {
+			err = nil
+		}
+		return err
+	})
+	timeIt("leaderboard top 100 (Ranks)", 5, func() error {
+		_, err := q.ListLeaderboard(ctx, db.ListLeaderboardParams{GameID: g.ID, Lim: 100})
 		return err
 	})
 	var aapl int64

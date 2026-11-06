@@ -25,6 +25,9 @@ func ordersDB(t *testing.T, priceDate, side string, quantity int64) (*db.Queries
 	if _, err := d.Exec(game.Schema); err != nil {
 		t.Fatalf("schema: %v", err)
 	}
+	if _, err := d.Exec(game.Triggers); err != nil {
+		t.Fatalf("triggers: %v", err)
+	}
 	for _, stmt := range []string{
 		`INSERT INTO users (id, email, name, email_token) VALUES (1, 'a@x', 'Alice', 't1')`,
 		`INSERT INTO games (id, created_by, name, status, base_currency, start_date, end_date, allow_short)

@@ -427,6 +427,35 @@ func (q *Queries) CountParticipants(ctx context.Context, gameID int64) (int64, e
 	return count, err
 }
 
+const countRanked = `-- name: CountRanked :one
+SELECT
+    (SELECT COUNT(*) FROM participants o
+     WHERE o.game_id = ?1 AND o.traded = 1
+       AND o.user_id NOT IN (SELECT b.id FROM users b WHERE b.blocked_at IS NOT NULL)) AS ranked,
+    (SELECT COUNT(*) FROM participants o
+     WHERE o.game_id = ?1 AND o.traded = 1 AND o.portfolio_value > ?2
+       AND o.user_id NOT IN (SELECT b.id FROM users b WHERE b.blocked_at IS NOT NULL)) AS above
+`
+
+type CountRankedParams struct {
+	GameID int64
+	Value  int64
+}
+
+type CountRankedRow struct {
+	Ranked int64
+	Above  int64
+}
+
+// How many players are on the leaderboard, and how many of them are worth
+// more than value. A place is above + 1, so equal values share it.
+func (q *Queries) CountRanked(ctx context.Context, arg CountRankedParams) (CountRankedRow, error) {
+	row := q.db.QueryRowContext(ctx, countRanked, arg.GameID, arg.Value)
+	var i CountRankedRow
+	err := row.Scan(&i.Ranked, &i.Above)
+	return i, err
+}
+
 const countRecentLobbyPosts = `-- name: CountRecentLobbyPosts :one
 SELECT CAST(COALESCE(SUM(created_at > datetime('now', '-1 minute')), 0) AS INTEGER) AS last_minute,
     COUNT(*) AS last_day
@@ -532,17 +561,6 @@ WHERE vt.topic_id = ? AND v.hidden = 0 AND v.live_status = ''
 
 func (q *Queries) CountTopicVideos(ctx context.Context, topicID int64) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countTopicVideos, topicID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countTransactions = `-- name: CountTransactions :one
-SELECT COUNT(*) FROM transactions WHERE participant_id = ?
-`
-
-func (q *Queries) CountTransactions(ctx context.Context, participantID int64) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countTransactions, participantID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -2167,7 +2185,7 @@ func (q *Queries) GetOAuthToken(ctx context.Context, provider string) (OauthToke
 }
 
 const getParticipant = `-- name: GetParticipant :one
-SELECT id, game_id, user_id, cash_balance, portfolio_value, joined_at FROM participants WHERE id = ?
+SELECT id, game_id, user_id, cash_balance, portfolio_value, joined_at, traded, uses_ai FROM participants WHERE id = ?
 `
 
 func (q *Queries) GetParticipant(ctx context.Context, id int64) (Participant, error) {
@@ -2180,12 +2198,14 @@ func (q *Queries) GetParticipant(ctx context.Context, id int64) (Participant, er
 		&i.CashBalance,
 		&i.PortfolioValue,
 		&i.JoinedAt,
+		&i.Traded,
+		&i.UsesAi,
 	)
 	return i, err
 }
 
 const getParticipantByGameAndUser = `-- name: GetParticipantByGameAndUser :one
-SELECT id, game_id, user_id, cash_balance, portfolio_value, joined_at FROM participants WHERE game_id = ? AND user_id = ?
+SELECT id, game_id, user_id, cash_balance, portfolio_value, joined_at, traded, uses_ai FROM participants WHERE game_id = ? AND user_id = ?
 `
 
 type GetParticipantByGameAndUserParams struct {
@@ -2203,7 +2223,37 @@ func (q *Queries) GetParticipantByGameAndUser(ctx context.Context, arg GetPartic
 		&i.CashBalance,
 		&i.PortfolioValue,
 		&i.JoinedAt,
+		&i.Traded,
+		&i.UsesAi,
 	)
+	return i, err
+}
+
+const getPlayerAhead = `-- name: GetPlayerAhead :one
+SELECT u.name AS user_name, p.portfolio_value
+FROM participants p
+JOIN users u ON u.id = p.user_id
+WHERE p.game_id = ?1 AND p.traded = 1 AND u.blocked_at IS NULL
+  AND p.portfolio_value > ?2
+ORDER BY p.portfolio_value, p.id DESC
+LIMIT 1
+`
+
+type GetPlayerAheadParams struct {
+	GameID int64
+	Value  int64
+}
+
+type GetPlayerAheadRow struct {
+	UserName       string
+	PortfolioValue int64
+}
+
+// The ranked player just above value: the one to catch.
+func (q *Queries) GetPlayerAhead(ctx context.Context, arg GetPlayerAheadParams) (GetPlayerAheadRow, error) {
+	row := q.db.QueryRowContext(ctx, getPlayerAhead, arg.GameID, arg.Value)
+	var i GetPlayerAheadRow
+	err := row.Scan(&i.UserName, &i.PortfolioValue)
 	return i, err
 }
 
@@ -3010,7 +3060,7 @@ const joinGame = `-- name: JoinGame :one
 
 INSERT INTO participants (game_id, user_id, cash_balance, portfolio_value)
 VALUES (?, ?, ?, ?)
-RETURNING id, game_id, user_id, cash_balance, portfolio_value, joined_at
+RETURNING id, game_id, user_id, cash_balance, portfolio_value, joined_at, traded, uses_ai
 `
 
 type JoinGameParams struct {
@@ -3038,6 +3088,8 @@ func (q *Queries) JoinGame(ctx context.Context, arg JoinGameParams) (Participant
 		&i.CashBalance,
 		&i.PortfolioValue,
 		&i.JoinedAt,
+		&i.Traded,
+		&i.UsesAi,
 	)
 	return i, err
 }
@@ -3220,7 +3272,7 @@ func (q *Queries) ListActiveGamesStartedSince(ctx context.Context, startDate str
 
 const listActiveParticipants = `-- name: ListActiveParticipants :many
 
-SELECT p.id, p.game_id, p.user_id, p.cash_balance, p.portfolio_value, p.joined_at, g.base_currency
+SELECT p.id, p.game_id, p.user_id, p.cash_balance, p.portfolio_value, p.joined_at, p.traded, p.uses_ai, g.base_currency
 FROM participants p
 JOIN games g ON g.id = p.game_id
 WHERE g.status = 'active'
@@ -3233,6 +3285,8 @@ type ListActiveParticipantsRow struct {
 	CashBalance    int64
 	PortfolioValue int64
 	JoinedAt       string
+	Traded         int64
+	UsesAi         int64
 	BaseCurrency   string
 }
 
@@ -3255,6 +3309,8 @@ func (q *Queries) ListActiveParticipants(ctx context.Context) ([]ListActiveParti
 			&i.CashBalance,
 			&i.PortfolioValue,
 			&i.JoinedAt,
+			&i.Traded,
+			&i.UsesAi,
 			&i.BaseCurrency,
 		); err != nil {
 			return nil, err
@@ -4126,8 +4182,7 @@ func (q *Queries) ListGameHolderCounts(ctx context.Context, gameID int64) ([]Lis
 }
 
 const listGamePlayers = `-- name: ListGamePlayers :many
-SELECT p.id, p.user_id, p.portfolio_value, u.name AS user_name,
-       CAST(EXISTS (SELECT 1 FROM transactions t WHERE t.participant_id = p.id) AS INTEGER) AS traded
+SELECT p.id, p.user_id, p.portfolio_value, u.name AS user_name, p.traded
 FROM participants p
 JOIN users u ON u.id = p.user_id
 WHERE p.game_id = ? AND u.blocked_at IS NULL
@@ -4143,7 +4198,7 @@ type ListGamePlayersRow struct {
 }
 
 // Every player in a game, for its emails: traded says whether they're on
-// the leaderboard (ListParticipantsByGame).
+// the leaderboard.
 func (q *Queries) ListGamePlayers(ctx context.Context, gameID int64) ([]ListGamePlayersRow, error) {
 	rows, err := q.db.QueryContext(ctx, listGamePlayers, gameID)
 	if err != nil {
@@ -4613,6 +4668,75 @@ func (q *Queries) ListLatestVideos(ctx context.Context, arg ListLatestVideosPara
 			&i.HideStocks,
 			&i.ClassifiedAt,
 			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listLeaderboard = `-- name: ListLeaderboard :many
+
+SELECT p.id, p.game_id, p.user_id, p.cash_balance, p.portfolio_value, p.joined_at, p.traded, p.uses_ai, u.name AS user_name
+FROM participants p
+JOIN users u ON u.id = p.user_id
+WHERE p.game_id = ?1 AND p.traded = 1 AND u.blocked_at IS NULL
+ORDER BY p.portfolio_value DESC, p.id
+LIMIT ?3 OFFSET ?2
+`
+
+type ListLeaderboardParams struct {
+	GameID int64
+	Off    int64
+	Lim    int64
+}
+
+type ListLeaderboardRow struct {
+	ID             int64
+	GameID         int64
+	UserID         int64
+	CashBalance    int64
+	PortfolioValue int64
+	JoinedAt       string
+	Traded         int64
+	UsesAi         int64
+	UserName       string
+}
+
+// The leaderboard holds players who have made at least one trade
+// (participants.traded). Everyone is joined to this month's game on sign-in,
+// so without the test the board would fill with untouched $1,000,000
+// portfolios, and cash earning interest would climb above players who are
+// trading. Blocked players are left out, as their lobby messages are. Pages
+// read a slice and count the rest: loading the whole board took 130 ms at
+// 10,000 players (docs/capacity.md).
+// A page of the leaderboard, best first.
+func (q *Queries) ListLeaderboard(ctx context.Context, arg ListLeaderboardParams) ([]ListLeaderboardRow, error) {
+	rows, err := q.db.QueryContext(ctx, listLeaderboard, arg.GameID, arg.Off, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListLeaderboardRow
+	for rows.Next() {
+		var i ListLeaderboardRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.GameID,
+			&i.UserID,
+			&i.CashBalance,
+			&i.PortfolioValue,
+			&i.JoinedAt,
+			&i.Traded,
+			&i.UsesAi,
+			&i.UserName,
 		); err != nil {
 			return nil, err
 		}
@@ -5329,67 +5453,6 @@ func (q *Queries) ListParticipantTrades(ctx context.Context, participantID int64
 			&i.CreatedAt,
 			&i.Source,
 			&i.Currency,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listParticipantsByGame = `-- name: ListParticipantsByGame :many
-SELECT p.id, p.game_id, p.user_id, p.cash_balance, p.portfolio_value, p.joined_at, u.name AS user_name,
-       CAST(EXISTS (SELECT 1 FROM transactions t WHERE t.participant_id = p.id AND t.source != '')
-         OR EXISTS (SELECT 1 FROM limit_orders lo WHERE lo.participant_id = p.id AND lo.source != '') AS INTEGER) AS uses_ai
-FROM participants p
-JOIN users u ON u.id = p.user_id
-WHERE p.game_id = ? AND u.blocked_at IS NULL
-  AND EXISTS (SELECT 1 FROM transactions t WHERE t.participant_id = p.id)
-ORDER BY p.portfolio_value DESC
-`
-
-type ListParticipantsByGameRow struct {
-	ID             int64
-	GameID         int64
-	UserID         int64
-	CashBalance    int64
-	PortfolioValue int64
-	JoinedAt       string
-	UserName       string
-	UsesAi         int64
-}
-
-// Blocked players are left out of standings, as their messages are from
-// ListLobbyMessages. uses_ai is 1 for a player who has traded through the
-// API or MCP in this game.
-// The leaderboard: players who have made at least one trade. Everyone is
-// joined to this month's game on sign-in, so without the test the board
-// would fill with untouched $1,000,000 portfolios, and cash earning interest
-// would climb above players who are trading.
-func (q *Queries) ListParticipantsByGame(ctx context.Context, gameID int64) ([]ListParticipantsByGameRow, error) {
-	rows, err := q.db.QueryContext(ctx, listParticipantsByGame, gameID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListParticipantsByGameRow
-	for rows.Next() {
-		var i ListParticipantsByGameRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.GameID,
-			&i.UserID,
-			&i.CashBalance,
-			&i.PortfolioValue,
-			&i.JoinedAt,
-			&i.UserName,
-			&i.UsesAi,
 		); err != nil {
 			return nil, err
 		}

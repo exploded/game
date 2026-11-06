@@ -41,24 +41,31 @@ func GrantAchievement(ctx context.Context, q *db.Queries, userID int64, key stri
 // a trade, so the players who joined and never traded can't win on interest
 // alone. Players with the same value share a place, as on the leaderboard.
 func AwardPlaces(ctx context.Context, q *db.Queries, game db.Game) {
-	board, err := q.ListParticipantsByGame(ctx, game.ID) // best first
-	if err != nil {
-		slog.Error("award places: list players", "game", game.ID, "error", err)
-		return
-	}
-	rank := 0
+	const page = 50
+	rank, i := 0, 0
 	var last int64
-	for i, p := range board {
-		if i == 0 || p.PortfolioValue != last {
-			rank = i + 1
+	for off := int64(0); ; off += page {
+		board, err := q.ListLeaderboard(ctx, db.ListLeaderboardParams{GameID: game.ID, Lim: page, Off: off}) // best first
+		if err != nil {
+			slog.Error("award places: list players", "game", game.ID, "error", err)
+			return
 		}
-		last = p.PortfolioValue
-		if rank > 3 {
-			break
+		for _, p := range board {
+			if i == 0 || p.PortfolioValue != last {
+				rank = i + 1
+			}
+			i++
+			last = p.PortfolioValue
+			if rank > 3 {
+				return
+			}
+			if rank == 1 {
+				GrantAchievement(ctx, q, p.UserID, "first_place")
+			}
+			GrantAchievement(ctx, q, p.UserID, "top_three")
 		}
-		if rank == 1 {
-			GrantAchievement(ctx, q, p.UserID, "first_place")
+		if len(board) < page {
+			return // the end of the board
 		}
-		GrantAchievement(ctx, q, p.UserID, "top_three")
 	}
 }

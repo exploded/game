@@ -270,28 +270,48 @@ SELECT * FROM participants WHERE id = ?;
 -- name: GetParticipantByGameAndUser :one
 SELECT * FROM participants WHERE game_id = ? AND user_id = ?;
 
--- Blocked players are left out of standings, as their messages are from
--- ListLobbyMessages. uses_ai is 1 for a player who has traded through the
--- API or MCP in this game.
--- name: ListParticipantsByGame :many
--- The leaderboard: players who have made at least one trade. Everyone is
--- joined to this month's game on sign-in, so without the test the board
--- would fill with untouched $1,000,000 portfolios, and cash earning interest
--- would climb above players who are trading.
-SELECT p.*, u.name AS user_name,
-       CAST(EXISTS (SELECT 1 FROM transactions t WHERE t.participant_id = p.id AND t.source != '')
-         OR EXISTS (SELECT 1 FROM limit_orders lo WHERE lo.participant_id = p.id AND lo.source != '') AS INTEGER) AS uses_ai
+-- The leaderboard holds players who have made at least one trade
+-- (participants.traded). Everyone is joined to this month's game on sign-in,
+-- so without the test the board would fill with untouched $1,000,000
+-- portfolios, and cash earning interest would climb above players who are
+-- trading. Blocked players are left out, as their lobby messages are. Pages
+-- read a slice and count the rest: loading the whole board took 130 ms at
+-- 10,000 players (docs/capacity.md).
+
+-- name: ListLeaderboard :many
+-- A page of the leaderboard, best first.
+SELECT p.*, u.name AS user_name
 FROM participants p
 JOIN users u ON u.id = p.user_id
-WHERE p.game_id = ? AND u.blocked_at IS NULL
-  AND EXISTS (SELECT 1 FROM transactions t WHERE t.participant_id = p.id)
-ORDER BY p.portfolio_value DESC;
+WHERE p.game_id = sqlc.arg(game_id) AND p.traded = 1 AND u.blocked_at IS NULL
+ORDER BY p.portfolio_value DESC, p.id
+LIMIT sqlc.arg(lim) OFFSET sqlc.arg(off);
+
+-- name: CountRanked :one
+-- How many players are on the leaderboard, and how many of them are worth
+-- more than value. A place is above + 1, so equal values share it.
+SELECT
+    (SELECT COUNT(*) FROM participants o
+     WHERE o.game_id = sqlc.arg(game_id) AND o.traded = 1
+       AND o.user_id NOT IN (SELECT b.id FROM users b WHERE b.blocked_at IS NOT NULL)) AS ranked,
+    (SELECT COUNT(*) FROM participants o
+     WHERE o.game_id = sqlc.arg(game_id) AND o.traded = 1 AND o.portfolio_value > sqlc.arg(value)
+       AND o.user_id NOT IN (SELECT b.id FROM users b WHERE b.blocked_at IS NOT NULL)) AS above;
+
+-- name: GetPlayerAhead :one
+-- The ranked player just above value: the one to catch.
+SELECT u.name AS user_name, p.portfolio_value
+FROM participants p
+JOIN users u ON u.id = p.user_id
+WHERE p.game_id = sqlc.arg(game_id) AND p.traded = 1 AND u.blocked_at IS NULL
+  AND p.portfolio_value > sqlc.arg(value)
+ORDER BY p.portfolio_value, p.id DESC
+LIMIT 1;
 
 -- name: ListGamePlayers :many
 -- Every player in a game, for its emails: traded says whether they're on
--- the leaderboard (ListParticipantsByGame).
-SELECT p.id, p.user_id, p.portfolio_value, u.name AS user_name,
-       CAST(EXISTS (SELECT 1 FROM transactions t WHERE t.participant_id = p.id) AS INTEGER) AS traded
+-- the leaderboard.
+SELECT p.id, p.user_id, p.portfolio_value, u.name AS user_name, p.traded
 FROM participants p
 JOIN users u ON u.id = p.user_id
 WHERE p.game_id = ? AND u.blocked_at IS NULL
@@ -632,9 +652,6 @@ FROM transactions t
 JOIN stocks s ON s.id = t.stock_id
 WHERE t.participant_id = ?
 ORDER BY t.id;
-
--- name: CountTransactions :one
-SELECT COUNT(*) FROM transactions WHERE participant_id = ?;
 
 -- name: CountUserTransactions :one
 -- A player's trades in every game.

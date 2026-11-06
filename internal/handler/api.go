@@ -679,8 +679,7 @@ type apiStanding struct {
 }
 
 func (h *Handler) apiLeaderboard(ctx context.Context, game db.Game, p db.Participant, user *db.User) apiLeaderboard {
-	board, _ := h.q.ListParticipantsByGame(ctx, game.ID)
-	st := h.standingIn(ctx, p, board)
+	st := h.standingIn(ctx, p)
 	standingOf := func(rank int, name string, value int64, ai bool) apiStanding {
 		return apiStanding{
 			Rank: rank, Name: name, Value: moneyOf(value, game.BaseCurrency),
@@ -688,22 +687,11 @@ func (h *Handler) apiLeaderboard(ctx context.Context, game db.Game, p db.Partici
 		}
 	}
 	out := apiLeaderboard{Game: game.Name, Players: st.Of, Ranked: !st.Unranked, Top: []apiStanding{}}
-	rank := 0
-	for i, b := range board {
-		// Equal values share a place.
-		if i == 0 || b.PortfolioValue != board[i-1].PortfolioValue {
-			rank = i + 1
-		}
-		if b.ID == p.ID {
-			out.You = standingOf(rank, b.UserName, b.PortfolioValue, b.UsesAi != 0)
-		}
-		if i < 20 {
-			out.Top = append(out.Top, standingOf(rank, b.UserName, b.PortfolioValue, b.UsesAi != 0))
-		}
+	top, _ := h.leaderboardPage(ctx, game.ID, 20, 0) // equal values share a place
+	for _, b := range top {
+		out.Top = append(out.Top, standingOf(b.Rank, b.UserName, b.PortfolioValue, b.UsesAi != 0))
 	}
-	if out.You.Rank == 0 {
-		out.You = standingOf(st.Rank, user.Name, p.PortfolioValue, false) // rank 0 if unranked
-	}
+	out.You = standingOf(st.Rank, user.Name, p.PortfolioValue, p.UsesAi != 0 && !st.Unranked) // rank 0 if unranked
 	return out
 }
 

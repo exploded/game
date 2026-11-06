@@ -6,21 +6,21 @@ the limits that protect the server, and how to measure again. Measured on
 
 ## Summary
 
-- **Up to about 3,000 players, the current server is fine.** At 1,000
-  players a Linode the same as production served about 75 requests a second
-  before pages slowed, about 1,500 players on the site at once. At 3,000 it's
-  about 40 a second, about 800 at once.
-- **At 10,000 players it falls over.** The same Linode managed about 10
-  requests a second, about 200 players at once, when the busiest time would
-  bring 500–1,000.
+- **Since the fixes of 6 November 2026, 10,000 players fit.** At 10,000
+  players the site served about 120 requests a second before pages slowed,
+  about 2,400 players on the site at once, against the 500–1,000 the busiest
+  time would bring. Before the fixes it managed about 10 (about 200 at once)
+  and fell over. See [Fixes made](#fixes-made).
+- **Before the fixes**, a Linode the same as production served about 75
+  requests a second at 1,000 players and about 10 at 10,000; the PC matched
+  it, and the measurements below are mostly from before the fixes.
 - **The limit is the database connection, not the server.** The app does all
   its database work through one SQLite connection. In every test it used no
   more than 1.3 of its 2 CPUs, and memory stayed low until requests piled up.
   More CPU or RAM wouldn't help much.
-- **What grows with players** is the leaderboard query (on the home page, the
-  game's home page and Ranks) and revaluing every portfolio every 2 minutes
-  during the US session. Both are fixable. The list is under
-  [Fixes, for later](#fixes-for-later).
+- **What still grows with players** is revaluing every portfolio every 2
+  minutes during the US session: 7.7 seconds at 10,000 players. It's the
+  next fix, under [Fixes, for later](#fixes-for-later).
 - **Not affected by players:** Twelve Data credits (per stock), the news
   filter, disk space and backups.
 - **New limits** keep an overload from taking down the site or the other apps
@@ -155,10 +155,10 @@ the knee. The single database connection is the bottleneck.
 
 ## What breaks first
 
-1. **The leaderboard query** (`ListParticipantsByGame`, `sql/queries.sql`).
-   It returns every ranked player, with an `EXISTS` over each player's trades
+1. **The leaderboard query** (fixed; see [Fixes made](#fixes-made)). It
+   returned every ranked player, with an `EXISTS` over each player's trades
    and orders, on every dashboard, game home and Ranks view. At 10,000
-   players that's 158 ms of the connection per view, and those pages are
+   players that was 158 ms of the connection per view, and those pages are
    28% of requests.
 2. **Revaluation** (`market.RevaluePortfolios`). A price lookup and an
    UPDATE for every holding, then 3 statements for every player, each its
@@ -263,23 +263,32 @@ Made on 6 November 2026, after the measurements above:
   for the batch being sent, about 5 seconds, not behind a game email to
   every player.
 
+- **Leaderboard query.** Every dashboard, game home, Ranks and API view
+  loaded the whole board, looking through each player's trades and orders
+  to see who had traded and who used an AI: 128–158 ms at 10,000 players.
+  Now `participants.traded` and `uses_ai`, kept by triggers
+  (`sql/triggers.sql`), answer that; a player's place is a count
+  (`CountRanked`, `GetPlayerAhead`: 2 ms at 10,000), and Ranks shows 100 a
+  page (`ListLeaderboard`: 1 ms) with the player's own row added when it's
+  on another page. At 10,000 players the PC served 80 requests a second
+  with a p95 of 61 ms and no errors, where before it couldn't manage 10.
+  The knee moved from under 10 to about 120 requests a second (p95 192 ms);
+  at 140 the throttle turned 6% away and the rest stayed under 0.7 s. That
+  run had the Learn and stocks list fixes too, but they don't depend on the
+  player count.
+
 ## Fixes, for later
 
 In order of payoff.
 
-1. **Leaderboard query.** Work out the player's rank with a `COUNT` of
-   ranked players above them, keep a `traded` flag (or a first-trade time)
-   on `participants` instead of the `EXISTS` over trades, and page the
-   leaderboard. This takes the dashboard, game home and Ranks back to their
-   1,000-player cost, and the 10,000-player knee back towards 1,000's.
-2. **Revaluation.** Look each stock's price up once (about 520) instead of
+1. **Revaluation.** Look each stock's price up once (about 520) instead of
    once per holding, write in transactions of a few hundred players, and
    skip holdings whose price hasn't changed. Expect seconds to become well
    under a second at 10,000 players.
-3. **Stock page.** Each view reads the stock's whole history, up to 5,000
+2. **Stock page.** Each view reads the stock's whole history, up to 5,000
    rows (10 ms), and the candles read it again. Cache the line data per
    stock for the day.
-4. **Queries that scan whole tables**, which are fine at these sizes but grow
+3. **Queries that scan whole tables**, which are fine at these sizes but grow
    with time: `ExpireOldLimitOrders`, `DeleteOldEmails` and
    `CountLobbyMessages`. Revisit them past about 100,000 rows.
 
