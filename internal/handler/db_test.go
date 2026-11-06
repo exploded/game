@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -544,5 +545,46 @@ func TestActivityFeedStockIDBackfill(t *testing.T) {
 		if got != want {
 			t.Errorf("row %d: stock_id %v, want %v", id, got, want)
 		}
+	}
+}
+
+// TestDedupeStockNewsHeadlines: a headline a site sent twice for a stock is
+// kept once, the shown copy first; other stocks and sites keep theirs.
+func TestDedupeStockNewsHeadlines(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "test.db")
+	d, err := OpenDB(path, game.Schema)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, q := range []string{
+		"DELETE FROM schema_migrations WHERE name = 'dedupe-stock-news-headlines'",
+		"INSERT INTO stocks (symbol, name, market, currency) VALUES ('CAH', 'Cardinal Health', 'sp500', 'USD')",
+		"INSERT INTO stocks (symbol, name, market, currency) VALUES ('MCK', 'McKesson', 'sp500', 'USD')",
+		"INSERT INTO stock_news (stock_id, headline, source, url, published_at, shown) VALUES (1, 'CAH call', 'fool.com', 'a', 0, 0)",
+		"INSERT INTO stock_news (stock_id, headline, source, url, published_at, shown) VALUES (1, 'CAH Call', 'fool.com', 'a?source=x', 0, 1)",
+		"INSERT INTO stock_news (stock_id, headline, source, url, published_at, shown) VALUES (1, 'CAH call', 'fool.com', 'a?source=y', 0, 1)",
+		"INSERT INTO stock_news (stock_id, headline, source, url, published_at, shown) VALUES (1, 'CAH call', 'cnbc.com', 'b', 0, 1)",
+		"INSERT INTO stock_news (stock_id, headline, source, url, published_at, shown) VALUES (2, 'CAH call', 'fool.com', 'a', 0, 1)",
+	} {
+		if _, err := d.Exec(q); err != nil {
+			t.Fatalf("%s: %v", q, err)
+		}
+	}
+	d.Close()
+
+	d = openTestDBAt(t, path)
+	rows, err := d.Query("SELECT id FROM stock_news ORDER BY id")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	var ids []int
+	for rows.Next() {
+		var id int
+		rows.Scan(&id)
+		ids = append(ids, id)
+	}
+	if got := fmt.Sprint(ids); got != "[2 4 5]" {
+		t.Errorf("rows left %s, want [2 4 5]", got)
 	}
 }

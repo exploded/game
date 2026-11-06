@@ -202,3 +202,44 @@ func TestPruneStockNews(t *testing.T) {
 			n1, oldest, n2, tickertickKeepRows, tickertickKeepRows+10)
 	}
 }
+
+func TestCanonicalNewsURL(t *testing.T) {
+	for in, want := range map[string]string{
+		"https://www.fool.com/earnings/call-transcripts/2026/11/05/cardinal-health-cah-q1-2027-earnings-call-transcript/?source=iedfolrf0000001": "https://www.fool.com/earnings/call-transcripts/2026/11/05/cardinal-health-cah-q1-2027-earnings-call-transcript/",
+		"https://example.com/a?utm_source=x&utm_medium=y&id=7#top":                                                                               "https://example.com/a?id=7",
+		"https://example.com/a?id=7": "https://example.com/a?id=7",
+		"https://example.com/a":      "https://example.com/a",
+		"not a url":                  "not a url",
+	} {
+		if got := canonicalNewsURL(in); got != want {
+			t.Errorf("canonicalNewsURL(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+// TestNewStoriesRepeats: a story is a repeat when its URL matches without
+// tracking tags, or its site already sent the headline, in this batch or
+// stored.
+func TestNewStoriesRepeats(t *testing.T) {
+	const transcript = "https://www.fool.com/earnings/call-transcripts/2026/11/05/cardinal-health-cah-q1-2027-earnings-call-transcript/"
+	stories := []tickertickStory{
+		{Title: "Cardinal Health (CAH) Q1 2027 Earnings Call Transcript", URL: transcript, Site: "fool.com"},
+		{Title: "Cardinal Health (CAH) Q1 2027 Earnings Call Transcript", URL: transcript + "?source=iedfolrf0000001", Site: "fool.com"},
+		{Title: "Cardinal  Health (CAH) q1 2027 earnings call transcript", URL: "https://www.fool.com/other/", Site: "fool.com"},
+		{Title: "Cardinal Health (CAH) Q1 2027 Earnings Call Transcript", URL: "https://www.cnbc.com/cah", Site: "cnbc.com"},
+		{Title: "Old story", URL: "https://www.cnbc.com/old?utm_source=feed", Site: "cnbc.com"},
+		{Title: "Old headline, new link", URL: "https://www.cnbc.com/new", Site: "cnbc.com"},
+	}
+	known := []db.ListStockNewsKeysRow{
+		{Url: "https://www.cnbc.com/old", Source: "cnbc.com", Headline: "Old story, first headline"},
+		{Url: "https://www.cnbc.com/elsewhere", Source: "cnbc.com", Headline: "Old headline, new link"},
+	}
+	var got []string
+	for _, st := range newStories(stories, known) {
+		got = append(got, st.Site+" "+st.URL)
+	}
+	want := "[fool.com " + transcript + " cnbc.com https://www.cnbc.com/cah]"
+	if fmt.Sprint(got) != want {
+		t.Errorf("newStories = %s, want %s", got, want)
+	}
+}

@@ -544,8 +544,9 @@ VALUES (?, ?, ?, ?, ?, ?, ?);
 SELECT * FROM stock_news WHERE stock_id = ? AND shown = 1
 ORDER BY published_at DESC LIMIT ?;
 
--- name: ListStockNewsURLs :many
-SELECT url FROM stock_news WHERE stock_id = ?;
+-- name: ListStockNewsKeys :many
+-- What a new story is checked against, so it isn't stored twice.
+SELECT url, source, headline FROM stock_news WHERE stock_id = ?;
 
 -- name: PruneStockNews :exec
 -- Keeps a stock's newest stories, shown or not.

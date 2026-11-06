@@ -6135,23 +6135,30 @@ func (q *Queries) ListStockNews(ctx context.Context, arg ListStockNewsParams) ([
 	return items, nil
 }
 
-const listStockNewsURLs = `-- name: ListStockNewsURLs :many
-SELECT url FROM stock_news WHERE stock_id = ?
+const listStockNewsKeys = `-- name: ListStockNewsKeys :many
+SELECT url, source, headline FROM stock_news WHERE stock_id = ?
 `
 
-func (q *Queries) ListStockNewsURLs(ctx context.Context, stockID int64) ([]string, error) {
-	rows, err := q.db.QueryContext(ctx, listStockNewsURLs, stockID)
+type ListStockNewsKeysRow struct {
+	Url      string
+	Source   string
+	Headline string
+}
+
+// What a new story is checked against, so it isn't stored twice.
+func (q *Queries) ListStockNewsKeys(ctx context.Context, stockID int64) ([]ListStockNewsKeysRow, error) {
+	rows, err := q.db.QueryContext(ctx, listStockNewsKeys, stockID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []string
+	var items []ListStockNewsKeysRow
 	for rows.Next() {
-		var url string
-		if err := rows.Scan(&url); err != nil {
+		var i ListStockNewsKeysRow
+		if err := rows.Scan(&i.Url, &i.Source, &i.Headline); err != nil {
 			return nil, err
 		}
-		items = append(items, url)
+		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

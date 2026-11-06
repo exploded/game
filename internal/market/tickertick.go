@@ -158,9 +158,9 @@ func (f *Fetcher) FetchTickerTickNews(ctx context.Context, q *db.Queries, market
 			continue
 		}
 
-		known, err := q.ListStockNewsURLs(ctx, s.ID)
+		known, err := q.ListStockNewsKeys(ctx, s.ID)
 		if err != nil {
-			slog.Error("tickertick news urls", "symbol", s.Symbol, "error", err)
+			slog.Error("tickertick news keys", "symbol", s.Symbol, "error", err)
 			errCount++
 			continue
 		}
@@ -246,23 +246,66 @@ func (f *Fetcher) FetchTickerTickNews(ctx context.Context, q *db.Queries, market
 }
 
 // newStories returns the stories from newsSites that aren't in known, each
-// once, with their summaries cleaned.
-func newStories(stories []tickertickStory, known []string) []tickertickStory {
-	seen := make(map[string]bool, len(known)+len(stories))
-	for _, u := range known {
-		seen[u] = true
+// once, with tracking tags taken off their URLs and their summaries cleaned.
+// A story is a repeat if its URL matches without tracking tags, or its site
+// has already sent the same headline: fool.com sent one CAH transcript twice
+// on 5 November 2026, the second with ?source=iedfolrf0000001.
+func newStories(stories []tickertickStory, known []db.ListStockNewsKeysRow) []tickertickStory {
+	seen := make(map[string]bool, 2*(len(known)+len(stories)))
+	for _, k := range known {
+		seen[canonicalNewsURL(k.Url)] = true
+		seen[headlineKey(k.Source, k.Headline)] = true
 	}
 	var fresh []tickertickStory
 	for _, st := range stories {
-		if st.Title == "" || st.URL == "" || seen[st.URL] || !newsSiteAllowed(st.Site) {
+		if st.Title == "" || st.URL == "" || !newsSiteAllowed(st.Site) {
 			continue
 		}
-		seen[st.URL] = true
+		st.URL = canonicalNewsURL(st.URL)
 		st.Title = strings.Join(strings.Fields(st.Title), " ")
+		hk := headlineKey(st.Site, st.Title)
+		if seen[st.URL] || seen[hk] {
+			continue
+		}
+		seen[st.URL], seen[hk] = true, true
 		st.Description = cleanSummary(st.Description)
 		fresh = append(fresh, st)
 	}
 	return fresh
+}
+
+// headlineKey identifies a headline from a site, ignoring case and spacing.
+func headlineKey(site, headline string) string {
+	return "h:" + strings.ToLower(strings.TrimSpace(site)) + "|" +
+		strings.ToLower(strings.Join(strings.Fields(headline), " "))
+}
+
+// trackingParams are query parameters that say where a reader came from, not
+// which story it is.
+var trackingParams = map[string]bool{
+	"source": true, "src": true, "ref": true, "referrer": true, "cmpid": true,
+	"ncid": true, "fbclid": true, "gclid": true, "mc_cid": true, "mc_eid": true,
+	"guccounter": true, "guce_referrer": true, "guce_referrer_sig": true,
+}
+
+// canonicalNewsURL drops the fragment and tracking parameters (utm_* and
+// trackingParams) from a story's URL. A URL it can't parse is returned as is.
+func canonicalNewsURL(raw string) string {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || u.Host == "" {
+		return raw
+	}
+	u.Fragment, u.RawFragment = "", ""
+	if u.RawQuery != "" {
+		q := u.Query()
+		for k := range q {
+			if trackingParams[strings.ToLower(k)] || strings.HasPrefix(strings.ToLower(k), "utm_") {
+				q.Del(k)
+			}
+		}
+		u.RawQuery = q.Encode()
+	}
+	return u.String()
 }
 
 var (

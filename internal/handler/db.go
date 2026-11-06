@@ -263,6 +263,15 @@ var onceMigrations = []struct{ name, stmt string }{
 	// Not in schema.sql, which runs first and would fail on an older
 	// database holding the same URL twice.
 	{"idx-stock-news-url", "CREATE UNIQUE INDEX IF NOT EXISTS idx_stock_news_url ON stock_news(stock_id, url)"},
+	// Until 6 November 2026 a story was stored again if its URL differed only
+	// by a tracking tag (fool.com's ?source=...), so CAH showed one
+	// transcript twice. Keep one of each headline per site, the shown one
+	// first.
+	{"dedupe-stock-news-headlines", `DELETE FROM stock_news WHERE EXISTS (
+			SELECT 1 FROM stock_news o WHERE o.stock_id = stock_news.stock_id
+				AND lower(o.source) = lower(stock_news.source)
+				AND lower(o.headline) = lower(stock_news.headline)
+				AND (o.shown > stock_news.shown OR (o.shown = stock_news.shown AND o.id < stock_news.id)))`},
 	// Until 5 November 2026 a TikTok stream ended 5 minutes after Rob did,
 	// when the checks off air ran out. End earlier ones at the last check
 	// that found them on air, so their length is right.
