@@ -207,9 +207,11 @@ func TestCanonicalNewsURL(t *testing.T) {
 	for in, want := range map[string]string{
 		"https://www.fool.com/earnings/call-transcripts/2026/11/05/cardinal-health-cah-q1-2027-earnings-call-transcript/?source=iedfolrf0000001": "https://www.fool.com/earnings/call-transcripts/2026/11/05/cardinal-health-cah-q1-2027-earnings-call-transcript/",
 		"https://example.com/a?utm_source=x&utm_medium=y&id=7#top":                                                                               "https://example.com/a?id=7",
-		"https://example.com/a?id=7": "https://example.com/a?id=7",
-		"https://example.com/a":      "https://example.com/a",
-		"not a url":                  "not a url",
+		"https://example.com/a?id=7":                               "https://example.com/a?id=7",
+		"https://www.barchart.com/story/news/8623450/x?.tsrc=rss":  "https://www.barchart.com/story/news/8623450/x",
+		"http://www.businesswire.com/news/home/1/en/X/?feedref=Jj": "http://www.businesswire.com/news/home/1/en/X/",
+		"https://example.com/a":                                    "https://example.com/a",
+		"not a url":                                                "not a url",
 	} {
 		if got := canonicalNewsURL(in); got != want {
 			t.Errorf("canonicalNewsURL(%q) = %q, want %q", in, got, want)

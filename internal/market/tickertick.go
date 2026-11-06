@@ -283,6 +283,10 @@ func headlineKey(site, headline string) string {
 // trackingParams are query parameters that say where a reader came from, not
 // which story it is.
 var trackingParams = map[string]bool{
+	// The most common on stored stories (6 November 2026): .tsrc=rss on
+	// fool.com, barchart.com and Yahoo, source on fool.com, feedref on
+	// businesswire.com, at_medium and at_campaign.
+	".tsrc": true, "tsrc": true, "feedref": true, "at_medium": true, "at_campaign": true,
 	"source": true, "src": true, "ref": true, "referrer": true, "cmpid": true,
 	"ncid": true, "fbclid": true, "gclid": true, "mc_cid": true, "mc_eid": true,
 	"guccounter": true, "guce_referrer": true, "guce_referrer_sig": true,
