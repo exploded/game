@@ -6,6 +6,10 @@
     {{template "ranktabs" dict "Game" .Item.ID "Tab" "leaderboard"}}
 </div>
 
+{{if .Extra.Unranked}}
+<p class="text-muted">{{if eq .Item.Status "active"}}You&rsquo;ll appear here after your first trade. <a href="/games/{{.Item.ID}}/stocks">Find a stock</a>{{else}}You made no trades in this game, so you weren&rsquo;t ranked.{{end}}</p>
+{{end}}
+
 {{if .Items}}
 <table class="leaderboard-table fit-sm">
     <thead>
@@ -34,6 +38,6 @@
     </tbody>
 </table>
 {{else}}
-<p class="text-muted">No public participants yet.</p>
+<p class="text-muted">Nobody has traded yet. Players appear here after their first trade.</p>
 {{end}}
 {{end}}

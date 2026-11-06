@@ -21,7 +21,7 @@ page. */}}
         {{template "home-icon-game"}}
         <span class="home-tile-title">Game Home</span>
         <span class="home-tile-text">View your portfolio, make trades, see stocks and check your rank.</span>
-        {{with $game}}<span class="home-tile-live"><strong>{{.Value}}</strong>{{if gt .Standing.Of 1}} &middot; {{.Standing.Place}} of {{.Standing.Of}}{{end}}</span>{{end}}
+        {{with $game}}<span class="home-tile-live"><strong>{{.Value}}</strong>{{if .Standing.Unranked}} &middot; not ranked yet{{else if gt .Standing.Of 1}} &middot; {{.Standing.Place}} of {{.Standing.Of}}{{end}}</span>{{end}}
         {{template "home-go"}}
     </a>
 

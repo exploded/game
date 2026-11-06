@@ -96,11 +96,12 @@ func emailNotifications(ctx context.Context, q *db.Queries, m *mail.Mailer) {
 // standing is one player's place in a game.
 type standing struct {
 	Name    string
-	Rank    int
+	Ranked  bool   // has traded, so is on the leaderboard
+	Rank    int    // 0 when not ranked
 	Place   string // "2nd"
 	Value   string
 	Return  string
-	Players int
+	Players int // players on the leaderboard
 }
 
 // gameEmail is the data for the game_* templates.
@@ -110,6 +111,7 @@ type gameEmail struct {
 	EndDate  string // "Fri 31 Oct"
 	Starting string // starting cash
 	Tomorrow bool   // the last ending-soon email
+	InGame   int    // every player, ranked or not
 	You      standing
 	Top      []standing // the top 3
 }
@@ -148,7 +150,8 @@ func gameEmails(ctx context.Context, q *db.Queries, m *mail.Mailer, local time.T
 	}
 }
 
-// sendGameEmail claims kind for the game, then emails every player.
+// sendGameEmail claims kind for the game, then emails every player. Only
+// players who have traded are ranked, so the results go only to them.
 func sendGameEmail(ctx context.Context, q *db.Queries, m *mail.Mailer, g db.Game, kind, template string) {
 	claimed, err := q.ClaimGameEmail(ctx, db.ClaimGameEmailParams{GameID: g.ID, Kind: kind})
 	if err != nil || claimed == 0 {
@@ -157,20 +160,33 @@ func sendGameEmail(ctx context.Context, q *db.Queries, m *mail.Mailer, g db.Game
 		}
 		return
 	}
-	players, err := q.ListParticipantsByGame(ctx, g.ID)
+	players, err := q.ListGamePlayers(ctx, g.ID)
 	if err != nil {
 		slog.Error("list participants", "game", g.ID, "error", err)
 		return
 	}
+	ranked := 0
+	for _, p := range players {
+		if p.Traded != 0 {
+			ranked++
+		}
+	}
 	standings := make([]standing, len(players))
+	var top []standing
+	rank := 0
 	for i, p := range players {
 		standings[i] = standing{
 			Name:    p.UserName,
-			Rank:    i + 1,
-			Place:   ordinal(i + 1),
 			Value:   money(p.PortfolioValue),
 			Return:  returnPct(p.PortfolioValue, g.StartingBalance),
-			Players: len(players),
+			Players: ranked,
+		}
+		if p.Traded != 0 {
+			rank++
+			standings[i].Ranked, standings[i].Rank, standings[i].Place = true, rank, ordinal(rank)
+			if len(top) < 3 {
+				top = append(top, standings[i])
+			}
 		}
 	}
 	data := gameEmail{
@@ -179,9 +195,13 @@ func sendGameEmail(ctx context.Context, q *db.Queries, m *mail.Mailer, g db.Game
 		EndDate:  shortDate(g.EndDate),
 		Starting: money(g.StartingBalance),
 		Tomorrow: kind == "ending_1",
-		Top:      standings[:min(3, len(standings))],
+		InGame:   len(players),
+		Top:      top,
 	}
 	for i, p := range players {
+		if template == "game_results" && p.Traded == 0 {
+			continue
+		}
 		data.You = standings[i]
 		if _, err := m.ToUser(ctx, p.UserID, mail.Games, template, data); err != nil {
 			slog.Error("queue game email", "game", g.ID, "user", p.UserID, "error", err)

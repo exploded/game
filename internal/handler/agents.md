@@ -66,6 +66,10 @@ example "Insufficient funds"), `429` too many requests.
 | GET | `/history?limit=50` | Trades, interest, dividends and bonuses, newest first |
 | GET | `/leaderboard` | The top 20 and where the player stands |
 
+Only players who have made a trade are on the leaderboard. Until the player's
+first trade, `ranked` is `false` and `rank` is `0` in both `/portfolio` and
+`/leaderboard`, and `players` counts only those who have traded.
+
 Filters for `/stocks`: `picks` (Rob's Picks, the default), `watch` (the
 player's watchlist), `all`, `mag7`,
 `tech`, `up` (today's gainers), `down` (losers), `big` (biggest), `active`

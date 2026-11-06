@@ -83,6 +83,7 @@ func gameServerDB(t *testing.T) (http.Handler, *db.Queries, *sql.DB) {
 		r.Get("/rules", h.GameRules)
 		r.Get("/history", h.TransactionHistory)
 		r.Get("/activity", h.ActivityFeed)
+		r.Get("/leaderboard", h.Leaderboard)
 		r.Get("/stocks", h.StocksBrowse)
 		r.Get("/stocks/{sid}", h.StockDetail)
 		r.Post("/trade/{sid}", h.TradeExecute)
@@ -107,7 +108,7 @@ func getPage(t *testing.T, srv http.Handler, path, user string) string {
 // TestGameHomeIsPortfolio checks a player's game page leads with their
 // holdings: today's and total moves for each stock, and their rank.
 func TestGameHomeIsPortfolio(t *testing.T) {
-	srv, q := gameServer(t)
+	srv, q, d := gameServerDB(t)
 	setMarketNow(t, nyTime(t, "2026-10-28 17:00"))
 	p, _ := q.GetParticipantByGameAndUser(t.Context(), db.GetParticipantByGameAndUserParams{GameID: 1, UserID: 1})
 	// 10 ACME bought at $9.00, closed at $10.00 then $10.50.
@@ -120,6 +121,25 @@ func TestGameHomeIsPortfolio(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := q.UpsertPrice(t.Context(), db.UpsertPriceParams{StockID: 1, Date: "2026-10-27", Open: 1000, High: 1000, Low: 1000, Close: 1000}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Bob hasn't traded yet, so Alice is alone on the board and Bob is unranked.
+	if body := getPage(t, srv, "/games/1", "2"); !strings.Contains(body, "Not ranked yet") ||
+		!strings.Contains(body, "join the leaderboard after your first trade") {
+		t.Error("an untraded player's home page doesn't say they're not ranked yet")
+	}
+	board := getPage(t, srv, "/games/1/leaderboard", "2")
+	if strings.Contains(board, "<td>Bob") {
+		t.Error("the leaderboard lists a player who hasn't traded")
+	}
+	if !strings.Contains(board, "appear here after your first trade") {
+		t.Error("the leaderboard doesn't tell an untraded player why they're missing")
+	}
+
+	// Both have traded, before the session the test looks at.
+	if _, err := d.Exec(`INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total, converted_total, created_at)
+		SELECT id, 1, 'buy', 10, 900, 9000, 9000, '2026-10-01 15:00:00' FROM participants WHERE game_id = 1`); err != nil {
 		t.Fatal(err)
 	}
 
@@ -404,15 +424,18 @@ func TestRankPlayer(t *testing.T) {
 		{ID: 3, PortfolioValue: 100, UserName: "Cat"},
 	}
 	for _, tc := range []struct {
-		p    db.Participant
-		want standing
+		p      db.Participant
+		traded bool
+		want   standing
 	}{
-		{db.Participant{ID: 1, PortfolioValue: 300}, standing{Rank: 1, Of: 3}},
-		{db.Participant{ID: 3, PortfolioValue: 100}, standing{Rank: 3, Of: 3, Ahead: "Ben", Gap: 100}},
-		// Private players aren't on the board but still get a spot.
-		{db.Participant{ID: 9, PortfolioValue: 250}, standing{Rank: 2, Of: 4, Ahead: "Ann", Gap: 50}},
+		{db.Participant{ID: 1, PortfolioValue: 300}, true, standing{Rank: 1, Of: 3}},
+		{db.Participant{ID: 3, PortfolioValue: 100}, true, standing{Rank: 3, Of: 3, Ahead: "Ben", Gap: 100}},
+		// Blocked players aren't on the board but still get a spot.
+		{db.Participant{ID: 9, PortfolioValue: 250}, true, standing{Rank: 2, Of: 4, Ahead: "Ann", Gap: 50}},
+		// A player with no trade isn't ranked, even sitting on more than the leader.
+		{db.Participant{ID: 8, PortfolioValue: 400}, false, standing{Of: 3, Unranked: true}},
 	} {
-		if got := rankPlayer(tc.p, board); got != tc.want {
+		if got := rankPlayer(tc.p, board, tc.traded); got != tc.want {
 			t.Errorf("rankPlayer(%d) = %+v, want %+v", tc.p.ID, got, tc.want)
 		}
 	}

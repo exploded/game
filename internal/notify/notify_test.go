@@ -65,12 +65,25 @@ func outbox(t *testing.T, d *sql.DB) []queued {
 	return out
 }
 
-// seedGame inserts a game Alice leads (+10%) and Bob trails (-5%).
+// seedGame inserts a game Alice leads (+10%) and Bob trails (-5%). Both
+// have traded, so both are ranked.
 func seedGame(t *testing.T, d *sql.DB, status, start, end string) {
 	t.Helper()
 	exec(t, d,
 		`INSERT INTO games (id, created_by, name, status, base_currency, start_date, end_date) VALUES (1, 1, 'Spring Cup', '`+status+`', 'USD', '`+start+`', '`+end+`')`,
-		`INSERT INTO participants (game_id, user_id, cash_balance, portfolio_value) VALUES (1, 1, 0, 110000000), (1, 2, 0, 95000000)`,
+		`INSERT INTO participants (id, game_id, user_id, cash_balance, portfolio_value) VALUES (1, 1, 1, 0, 110000000), (2, 1, 2, 0, 95000000)`,
+		`INSERT INTO stocks (id, symbol, name, market, currency) VALUES (1, 'ACME', 'Acme', 'sp500', 'USD')`,
+		`INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total, converted_total) VALUES (1, 1, 'buy', 1, 1, 1, 1), (2, 1, 'buy', 1, 1, 1, 1)`,
+	)
+}
+
+// addCat joins Cat to the game with more than Alice but no trade, so she
+// isn't ranked.
+func addCat(t *testing.T, d *sql.DB) {
+	t.Helper()
+	exec(t, d,
+		`INSERT INTO users (id, email, name, email_token) VALUES (3, 'c@x.com', 'Cat', 't3')`,
+		`INSERT INTO participants (id, game_id, user_id, cash_balance, portfolio_value) VALUES (3, 1, 3, 120000000, 120000000)`,
 	)
 }
 
@@ -113,6 +126,7 @@ func TestNotificationsAreBatchedByCategory(t *testing.T) {
 func TestGameStartedOnceAfter8am(t *testing.T) {
 	d, q, m := setup(t)
 	seedGame(t, d, "active", "2026-10-29", "2026-11-30")
+	addCat(t, d)
 
 	notify.Run(context.Background(), q, m, now.Add(-3*time.Hour), loc)
 	if got := outbox(t, d); len(got) != 0 {
@@ -121,10 +135,12 @@ func TestGameStartedOnceAfter8am(t *testing.T) {
 	notify.Run(context.Background(), q, m, now, loc)
 	notify.Run(context.Background(), q, m, now.Add(time.Minute), loc)
 	got := outbox(t, d)
-	if len(got) != 2 {
-		t.Fatalf("queued %d emails, want one each for Alice and Bob", len(got))
+	// Cat hasn't traded, but the start goes to everyone.
+	if len(got) != 3 {
+		t.Fatalf("queued %d emails, want one each for Alice, Bob and Cat", len(got))
 	}
-	if got[0].subject != "Spring Cup has started" || !strings.Contains(got[0].text, "Mon 30 Nov") {
+	if got[0].subject != "Spring Cup has started" || !strings.Contains(got[0].text, "Mon 30 Nov") ||
+		!strings.Contains(got[0].text, "3 players are in") {
 		t.Errorf("started email = %+v", got[0])
 	}
 }
@@ -132,19 +148,32 @@ func TestGameStartedOnceAfter8am(t *testing.T) {
 func TestGameEndingTomorrow(t *testing.T) {
 	d, q, m := setup(t)
 	seedGame(t, d, "active", "2026-10-01", "2026-10-30")
+	addCat(t, d)
 	notify.Run(context.Background(), q, m, now, loc)
 	got := outbox(t, d)
-	if len(got) != 2 {
-		t.Fatalf("queued %d emails, want 2", len(got))
+	if len(got) != 3 {
+		t.Fatalf("queued %d emails, want 3", len(got))
 	}
-	if got[1].subject != "Spring Cup ends tomorrow" || !strings.Contains(got[1].text, "You're 2nd of 2") {
-		t.Errorf("Bob's ending email = %+v", got[1])
+	// Cat has the most but no trade: she's told to trade, and Alice still leads.
+	byTo := map[string]string{}
+	for _, e := range got {
+		byTo[e.to] = e.text
+	}
+	if !strings.Contains(byTo["a@x.com"], "You're 1st of 2") {
+		t.Errorf("Alice's ending email = %q", byTo["a@x.com"])
+	}
+	if got[1].subject != "Spring Cup ends tomorrow" || !strings.Contains(byTo["b@x.com"], "You're 2nd of 2") {
+		t.Errorf("Bob's ending email = %q", byTo["b@x.com"])
+	}
+	if !strings.Contains(byTo["c@x.com"], "You haven't made a trade yet") || strings.Contains(byTo["c@x.com"], "of 2") {
+		t.Errorf("Cat's ending email = %q", byTo["c@x.com"])
 	}
 }
 
 func TestResultsSkipOptedOutAndOldGames(t *testing.T) {
 	d, q, m := setup(t)
 	seedGame(t, d, "finished", "2026-10-01", "2026-10-28")
+	addCat(t, d) // never traded: no results, and not in the top 3
 	exec(t, d,
 		`INSERT INTO games (id, created_by, name, status, base_currency, start_date, end_date) VALUES (2, 1, 'Old Cup', 'finished', 'USD', '2026-01-01', '2026-02-01')`,
 		`INSERT INTO participants (game_id, user_id, cash_balance, portfolio_value) VALUES (2, 1, 0, 1)`,

@@ -37,24 +37,20 @@ func GrantAchievement(ctx context.Context, q *db.Queries, userID int64, key stri
 }
 
 // AwardPlaces gives Champion to whoever finished game first and Podium
-// Finish to everyone in the top 3. Only players who made a trade are placed,
-// so the players who joined and never traded can't win on interest alone.
-// Players with the same value share a place, as on the leaderboard.
+// Finish to everyone in the top 3. The leaderboard holds only players who made
+// a trade, so the players who joined and never traded can't win on interest
+// alone. Players with the same value share a place, as on the leaderboard.
 func AwardPlaces(ctx context.Context, q *db.Queries, game db.Game) {
 	board, err := q.ListParticipantsByGame(ctx, game.ID) // best first
 	if err != nil {
 		slog.Error("award places: list players", "game", game.ID, "error", err)
 		return
 	}
-	placed, rank := 0, 0
+	rank := 0
 	var last int64
-	for _, p := range board {
-		if n, err := q.CountTransactions(ctx, p.ID); err != nil || n == 0 {
-			continue
-		}
-		placed++
-		if placed == 1 || p.PortfolioValue != last {
-			rank = placed
+	for i, p := range board {
+		if i == 0 || p.PortfolioValue != last {
+			rank = i + 1
 		}
 		last = p.PortfolioValue
 		if rank > 3 {

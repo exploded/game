@@ -25,9 +25,11 @@ func (h *Handler) Leaderboard(w http.ResponseWriter, r *http.Request) {
 	participants, _ := h.q.ListParticipantsByGame(r.Context(), game.ID)
 
 	// Check if current user is in the game.
-	myParticipant, _ := h.q.GetParticipantByGameAndUser(r.Context(), db.GetParticipantByGameAndUserParams{
+	myParticipant, err := h.q.GetParticipantByGameAndUser(r.Context(), db.GetParticipantByGameAndUserParams{
 		GameID: gameID, UserID: user.ID,
 	})
+	// A player with no trade isn't on the board: tell them why.
+	unranked := err == nil && h.standingIn(r.Context(), myParticipant, participants).Unranked
 
 	h.render(w, r, "leaderboard/index", "", PageData{
 		Title: "Leaderboard - " + game.Name,
@@ -35,6 +37,7 @@ func (h *Handler) Leaderboard(w http.ResponseWriter, r *http.Request) {
 		Items: participants,
 		Extra: map[string]any{
 			"MyParticipant": myParticipant,
+			"Unranked":      unranked,
 		},
 	})
 }

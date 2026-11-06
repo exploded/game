@@ -4122,6 +4122,54 @@ func (q *Queries) ListGameHolderCounts(ctx context.Context, gameID int64) ([]Lis
 	return items, nil
 }
 
+const listGamePlayers = `-- name: ListGamePlayers :many
+SELECT p.id, p.user_id, p.portfolio_value, u.name AS user_name,
+       CAST(EXISTS (SELECT 1 FROM transactions t WHERE t.participant_id = p.id) AS INTEGER) AS traded
+FROM participants p
+JOIN users u ON u.id = p.user_id
+WHERE p.game_id = ? AND u.blocked_at IS NULL
+ORDER BY p.portfolio_value DESC
+`
+
+type ListGamePlayersRow struct {
+	ID             int64
+	UserID         int64
+	PortfolioValue int64
+	UserName       string
+	Traded         int64
+}
+
+// Every player in a game, for its emails: traded says whether they're on
+// the leaderboard (ListParticipantsByGame).
+func (q *Queries) ListGamePlayers(ctx context.Context, gameID int64) ([]ListGamePlayersRow, error) {
+	rows, err := q.db.QueryContext(ctx, listGamePlayers, gameID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListGamePlayersRow
+	for rows.Next() {
+		var i ListGamePlayersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.PortfolioValue,
+			&i.UserName,
+			&i.Traded,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listGamesWithPlayers = `-- name: ListGamesWithPlayers :many
 SELECT g.id, g.created_by, g.name, g.description, g.status, g.markets, g.starting_balance, g.base_currency, g.max_participants, g.start_date, g.end_date, g.allow_short, g.trade_fee, g.fx_fee, g.referral_bonus_pct, g.credit_interest_rate, g.limit_orders, g.after_hours_trading, g.ai_trading, g.quarter, g.created_at, g.updated_at, (SELECT COUNT(*) FROM participants p WHERE p.game_id = g.id) AS players
 FROM games g
@@ -5299,6 +5347,7 @@ SELECT p.id, p.game_id, p.user_id, p.cash_balance, p.portfolio_value, p.joined_a
 FROM participants p
 JOIN users u ON u.id = p.user_id
 WHERE p.game_id = ? AND u.blocked_at IS NULL
+  AND EXISTS (SELECT 1 FROM transactions t WHERE t.participant_id = p.id)
 ORDER BY p.portfolio_value DESC
 `
 
@@ -5316,6 +5365,10 @@ type ListParticipantsByGameRow struct {
 // Blocked players are left out of standings, as their messages are from
 // ListLobbyMessages. uses_ai is 1 for a player who has traded through the
 // API or MCP in this game.
+// The leaderboard: players who have made at least one trade. Everyone is
+// joined to this month's game on sign-in, so without the test the board
+// would fill with untouched $1,000,000 portfolios, and cash earning interest
+// would climb above players who are trading.
 func (q *Queries) ListParticipantsByGame(ctx context.Context, gameID int64) ([]ListParticipantsByGameRow, error) {
 	rows, err := q.db.QueryContext(ctx, listParticipantsByGame, gameID)
 	if err != nil {

@@ -271,9 +271,24 @@ SELECT * FROM participants WHERE game_id = ? AND user_id = ?;
 -- ListLobbyMessages. uses_ai is 1 for a player who has traded through the
 -- API or MCP in this game.
 -- name: ListParticipantsByGame :many
+-- The leaderboard: players who have made at least one trade. Everyone is
+-- joined to this month's game on sign-in, so without the test the board
+-- would fill with untouched $1,000,000 portfolios, and cash earning interest
+-- would climb above players who are trading.
 SELECT p.*, u.name AS user_name,
        CAST(EXISTS (SELECT 1 FROM transactions t WHERE t.participant_id = p.id AND t.source != '')
          OR EXISTS (SELECT 1 FROM limit_orders lo WHERE lo.participant_id = p.id AND lo.source != '') AS INTEGER) AS uses_ai
+FROM participants p
+JOIN users u ON u.id = p.user_id
+WHERE p.game_id = ? AND u.blocked_at IS NULL
+  AND EXISTS (SELECT 1 FROM transactions t WHERE t.participant_id = p.id)
+ORDER BY p.portfolio_value DESC;
+
+-- name: ListGamePlayers :many
+-- Every player in a game, for its emails: traded says whether they're on
+-- the leaderboard (ListParticipantsByGame).
+SELECT p.id, p.user_id, p.portfolio_value, u.name AS user_name,
+       CAST(EXISTS (SELECT 1 FROM transactions t WHERE t.participant_id = p.id) AS INTEGER) AS traded
 FROM participants p
 JOIN users u ON u.id = p.user_id
 WHERE p.game_id = ? AND u.blocked_at IS NULL

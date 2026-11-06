@@ -79,12 +79,14 @@ worked out but aren't written yet.
 | # | Email | Trigger | Status |
 |---|---|---|---|
 | G1 | Game started | A game you joined moves from pending to active | Built |
-| G2 | Game ending soon | 3 days and 1 day before a game you're in ends | Built |
-| G3 | Final results | A game you're in finishes: your rank, return and the top 3 | Built |
+| G2 | Game ending soon | 3 days and 1 day before a game you're in ends: your place, or a nudge to make a first trade if you haven't | Built |
+| G3 | Final results | A game you traded in finishes: your rank, return and the top 3 | Built |
 | G4 | Next round ready | A recurring game you created starts its next round | Removed: recurring games were replaced by one game a month |
 | G5 | Referral bonus | A friend you invited signs up, and you get the game's referral bonus | Built |
 
 - G2 and G3 matter most to Rob: they bring people back before a game ends.
+- Only players with a trade are ranked (since 6 November 2026), so G1 and G2
+  go to every player (`ListGamePlayers`) and G3 only to players who traded.
 - G1 to G3 go out after 8 am in `TIMEZONE`, once per game (the `game_emails`
   table records each). Games that started or finished before this shipped
   don't get them.

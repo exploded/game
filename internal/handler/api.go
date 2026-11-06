@@ -163,7 +163,8 @@ type apiPortfolio struct {
 	Today        *move        `json:"today,omitempty"`
 	TodaySession string       `json:"today_session,omitempty"` // the session today's move is for, when it isn't today's
 	SinceStart   move         `json:"since_start"`
-	Rank         int          `json:"rank"`
+	Rank         int          `json:"rank"`   // 0 until the player's first trade
+	Ranked       bool         `json:"ranked"` // on the leaderboard: needs a trade
 	Players      int          `json:"players"`
 	NextUp       string       `json:"next_player_up,omitempty"`
 	BehindBy     *money       `json:"behind_by,omitempty"`
@@ -195,6 +196,7 @@ func (h *Handler) apiPortfolio(ctx context.Context, game db.Game, p db.Participa
 		TodaySession: sessionDay(pf.Session, marketNow()),
 		SinceStart:   moveOf(pf.Total, cur),
 		Rank:         pf.Standing.Rank,
+		Ranked:       !pf.Standing.Unranked,
 		Players:      pf.Standing.Of,
 		NextUp:       pf.Standing.Ahead,
 		Interest:     moneyOf(pf.Interest, cur),
@@ -662,7 +664,8 @@ func (h *Handler) apiHistory(ctx context.Context, game db.Game, p db.Participant
 
 type apiLeaderboard struct {
 	Game    string        `json:"game"`
-	Players int           `json:"players"`
+	Players int           `json:"players"` // players who have traded: only they are ranked
+	Ranked  bool          `json:"ranked"`  // whether the player is: false (and you.rank 0) until their first trade
 	You     apiStanding   `json:"you"`
 	Top     []apiStanding `json:"top"`
 }
@@ -677,14 +680,14 @@ type apiStanding struct {
 
 func (h *Handler) apiLeaderboard(ctx context.Context, game db.Game, p db.Participant, user *db.User) apiLeaderboard {
 	board, _ := h.q.ListParticipantsByGame(ctx, game.ID)
-	st := rankPlayer(p, board)
+	st := h.standingIn(ctx, p, board)
 	standingOf := func(rank int, name string, value int64, ai bool) apiStanding {
 		return apiStanding{
 			Rank: rank, Name: name, Value: moneyOf(value, game.BaseCurrency),
 			Return: change{value - game.StartingBalance, game.StartingBalance}.Pct(), UsesAI: ai,
 		}
 	}
-	out := apiLeaderboard{Game: game.Name, Players: st.Of, Top: []apiStanding{}}
+	out := apiLeaderboard{Game: game.Name, Players: st.Of, Ranked: !st.Unranked, Top: []apiStanding{}}
 	rank := 0
 	for i, b := range board {
 		// Equal values share a place.
@@ -699,7 +702,7 @@ func (h *Handler) apiLeaderboard(ctx context.Context, game db.Game, p db.Partici
 		}
 	}
 	if out.You.Rank == 0 {
-		out.You = standingOf(st.Rank, user.Name, p.PortfolioValue, false)
+		out.You = standingOf(st.Rank, user.Name, p.PortfolioValue, false) // rank 0 if unranked
 	}
 	return out
 }

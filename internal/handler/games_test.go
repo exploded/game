@@ -128,7 +128,7 @@ func TestAdminChangesGameSettings(t *testing.T) {
 
 // TestDashboardJoinsCurrentGame: a player who has never joined anything
 // is put in this month's game, and the home page's Game Home tile opens it
-// with their value and place.
+// with their value. They haven't traded, so they have no place yet.
 func TestDashboardJoinsCurrentGame(t *testing.T) {
 	srv, d := monthServer(t)
 	var body string
@@ -146,7 +146,7 @@ func TestDashboardJoinsCurrentGame(t *testing.T) {
 		`<a href="/games/1" class="home-tile home-tile-game">`,
 		`<a href="/learn/questions" class="home-tile home-tile-ask">`,
 		`<a href="/learn" class="home-tile home-tile-learn">`,
-		`<strong>$1.00M</strong> &middot; 1st of 2`,
+		`<strong>$1.00M</strong> &middot; not ranked yet`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("home page is missing %q", want)

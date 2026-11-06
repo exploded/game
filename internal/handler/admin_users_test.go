@@ -164,6 +164,10 @@ func TestBlockedUserIsHidden(t *testing.T) {
 	ctx := t.Context()
 	for _, stmt := range []string{
 		`INSERT INTO participants (game_id, user_id, cash_balance, portfolio_value) VALUES (1, 3, 100000000, 90000000)`,
+		// Only players who have traded are on the leaderboard.
+		`INSERT INTO stocks (symbol, name, market, currency) VALUES ('ZZTEST', 'Test', 'sp500', 'USD')`,
+		`INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total, converted_total)
+			SELECT p.id, (SELECT id FROM stocks WHERE symbol = 'ZZTEST'), 'buy', 1, 1, 1, 1 FROM participants p WHERE p.game_id = 1`,
 		`INSERT INTO lobby_messages (user_id, message) VALUES (2, 'from Bob'), (3, 'from Cat')`,
 	} {
 		if _, err := d.Exec(stmt); err != nil {

@@ -39,7 +39,7 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 				P:        p,
 				Value:    bigMoney(p.PortfolioValue / 100),
 				Total:    change{p.PortfolioValue - g.StartingBalance, g.StartingBalance},
-				Standing: rankPlayer(p, board),
+				Standing: h.standingIn(ctx, p, board),
 				DaysLeft: daysLeft(g, time.Now().In(h.loc)),
 			}
 		}

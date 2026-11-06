@@ -180,8 +180,9 @@ five groups, recent news, and any of Rob's videos that mention it.
 
 ### Other game pages
 
-- **Ranks** has two halves: **Players**, every player in the game ranked by
-  portfolio value, and **Activity**, everything happening in the game, newest
+- **Ranks** has two halves: **Players**, every player who has made a trade,
+  ranked by portfolio value (a player with no trade is told they'll appear
+  after their first, and their home page says "Not ranked yet"), and **Activity**, everything happening in the game, newest
   first: every player's trades (with the company's name, linked to its page),
   who joined, and referral bonuses earned.
 - **My history**: the player's own trades, interest, dividends and referral bonuses, with

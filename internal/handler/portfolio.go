@@ -141,6 +141,7 @@ type standing struct {
 	Rank, Of int
 	Ahead    string // the player one place up, "" when you're first
 	Gap      int64  // how far behind them you are
+	Unranked bool   // no trade yet, so not on the leaderboard: Rank is 0
 }
 
 // Place is the rank as an ordinal: "1st", "2nd", "13th".
@@ -159,10 +160,25 @@ func (s standing) Place() string {
 	return strconv.Itoa(s.Rank) + suffix
 }
 
+// standingIn is where p sits on the game's leaderboard. A player missing
+// from it has either made no trade yet, and is unranked, or is blocked.
+func (h *Handler) standingIn(ctx context.Context, p db.Participant, board []db.ListParticipantsByGameRow) standing {
+	traded := slices.ContainsFunc(board, func(o db.ListParticipantsByGameRow) bool { return o.ID == p.ID })
+	if !traded {
+		n, err := h.q.CountTransactions(ctx, p.ID)
+		traded = err != nil || n > 0 // on an error, give them a spot as before
+	}
+	return rankPlayer(p, board, traded)
+}
+
 // rankPlayer places p among the players on the leaderboard, which is sorted
-// by value, best first. A player missing from it (blocked) is counted in too,
-// so they still see their spot.
-func rankPlayer(p db.Participant, board []db.ListParticipantsByGameRow) standing {
+// by value, best first. A player with no trade isn't ranked. One who traded
+// but is missing from the board (blocked) is counted in, so they still see
+// their spot.
+func rankPlayer(p db.Participant, board []db.ListParticipantsByGameRow, traded bool) standing {
+	if !traded {
+		return standing{Of: len(board), Unranked: true}
+	}
 	s := standing{Rank: 1, Of: len(board)}
 	listed := false
 	for _, o := range board {
@@ -281,7 +297,7 @@ func (h *Handler) portfolioFigures(ctx context.Context, game db.Game, participan
 		Today:     today,
 		Session:   session,
 		Total:     change{participant.PortfolioValue - game.StartingBalance, game.StartingBalance},
-		Standing:  rankPlayer(participant, board),
+		Standing:  h.standingIn(ctx, participant, board),
 		Board:     board,
 		Interest:  interest,
 		Dividends: dividends,

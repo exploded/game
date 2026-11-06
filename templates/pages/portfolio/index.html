@@ -18,7 +18,9 @@ card, as the trading apps lead with. */}}
 <div class="portfolio-hero">
     <div class="hero-top">
         <span class="stat-label">{{if .Extra.Over}}Final value{{else}}Total value{{end}}</span>
-        {{with .Extra.Standing}}{{if gt .Of 1}}
+        {{with .Extra.Standing}}{{if .Unranked}}
+        <a href="/games/{{$.Item.ID}}/leaderboard" class="hero-rank">{{if $.Extra.Over}}Not ranked{{else}}Not ranked yet{{end}} &rsaquo;</a>
+        {{else if gt .Of 1}}
         <a href="/games/{{$.Item.ID}}/leaderboard" class="hero-rank"><span class="rank-place">{{.Place}}</span> of {{.Of}} &rsaquo;</a>
         {{end}}{{end}}
     </div>
@@ -30,7 +32,7 @@ card, as the trading apps lead with. */}}
         {{with .Extra.Today}}{{if .Amount}}<span><span class="pill {{.Class}}">{{.Text}} ({{.Pct}})</span> <span class="text-muted">{{with $.Extra.SessionDay}}on {{.}}{{else}}today{{end}}</span></span>{{end}}{{end}}
         {{with .Extra.Total}}<span><span class="pill {{.Class}}">{{.Text}} ({{.Pct}})</span> <span class="text-muted">since the start</span></span>{{end}}
     </div>
-    {{with .Extra.Standing}}{{if gt .Of 1}}<p class="hero-gap text-muted">{{if .Ahead}}{{cents .Gap}} behind {{.Ahead}}{{else}}You're in the lead{{end}}</p>{{end}}{{end}}
+    {{with .Extra.Standing}}{{if .Unranked}}{{if not $.Extra.Over}}<p class="hero-gap text-muted">You&rsquo;ll join the leaderboard after your first trade.</p>{{end}}{{else if gt .Of 1}}<p class="hero-gap text-muted">{{if .Ahead}}{{cents .Gap}} behind {{.Ahead}}{{else}}You're in the lead{{end}}</p>{{end}}{{end}}
     {{if .Extra.Snapshots}}<div class="perf-chart"><canvas id="portfolio-chart" role="img" aria-label="Your portfolio's value each day this month"></canvas></div>{{end}}
     <div class="hero-split">
         <div><span class="stat-label">Cash</span><span class="mono">{{cents $pt.CashBalance}}</span></div>
