@@ -83,6 +83,19 @@ ProtectHome=true
 WantedBy=multi-user.target
 EOF
 
+# Capacity limits, as deploy-game writes them on every deploy. Why these
+# values: docs/capacity.md.
+mkdir -p /etc/systemd/system/$SERVICE.service.d
+cat > /etc/systemd/system/$SERVICE.service.d/limits.conf <<'LIMITS'
+# Written by /usr/local/bin/deploy-game (scripts/deploy-game in the repo).
+# Why these values: docs/capacity.md.
+[Service]
+MemoryHigh=512M
+MemoryMax=768M
+CPUQuota=150%
+Environment=GOMEMLIMIT=400MiB
+LIMITS
+
 systemctl daemon-reload
 systemctl enable "$SERVICE"
 

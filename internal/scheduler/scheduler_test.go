@@ -39,3 +39,15 @@ func TestDailyFetchDue(t *testing.T) {
 		}
 	}
 }
+
+// The load-test hook revalues without new prices, so production must never
+// turn it on, whatever its .env says.
+func TestEnableLoadTestRevalueRefusedInProduction(t *testing.T) {
+	t.Cleanup(func() { loadTestRevalue.Store(false) })
+	if EnableLoadTestRevalue(true) || loadTestRevalue.Load() {
+		t.Fatal("load-test revaluation turned on in production")
+	}
+	if !EnableLoadTestRevalue(false) || !loadTestRevalue.Load() {
+		t.Fatal("load-test revaluation didn't turn on outside production")
+	}
+}

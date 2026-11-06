@@ -42,6 +42,22 @@ rm -rf "$DEPLOY_DIR/sql" "$DEPLOY_DIR/templates" "$DEPLOY_DIR/static"
 
 chown -R "$SERVICE_USER:$SERVICE_GROUP" "$DEPLOY_DIR"
 
+# Capacity limits: the game shares this box with the other apps, so it may
+# not take all the memory or both CPUs. Written on every deploy, so a change
+# here ships with the code. Why these values: docs/capacity.md.
+echo "[deploy] Writing capacity limits..."
+mkdir -p /etc/systemd/system/game.service.d
+cat > /etc/systemd/system/game.service.d/limits.conf <<'LIMITS'
+# Written by /usr/local/bin/deploy-game (scripts/deploy-game in the repo).
+# Why these values: docs/capacity.md.
+[Service]
+MemoryHigh=512M
+MemoryMax=768M
+CPUQuota=150%
+Environment=GOMEMLIMIT=400MiB
+LIMITS
+systemctl daemon-reload
+
 # Provisioning can't enable the unit before the binary exists, so do it here.
 echo "[deploy] Enabling service on boot..."
 systemctl enable game

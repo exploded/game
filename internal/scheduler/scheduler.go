@@ -42,6 +42,22 @@ const quoteEveryMinutes = 2
 // limit-order processing and portfolio revaluation on the next tick.
 func SignalPricesChanged() { pricesChanged.Store(true) }
 
+// loadTestRevalue makes every quote interval revalue, as in the US session.
+var loadTestRevalue atomic.Bool
+
+// EnableLoadTestRevalue makes the scheduler process orders and revalue
+// portfolios every quoteEveryMinutes, as it does in the US session, without
+// fetching quotes. It's for load tests (cmd/loadtest, docs/capacity.md) on
+// an offline copy, which never fetches quotes and so would never revalue.
+// It changes no prices. It refuses in production and reports whether it's on.
+func EnableLoadTestRevalue(production bool) bool {
+	if production {
+		return false
+	}
+	loadTestRevalue.Store(true)
+	return true
+}
+
 // Start launches the background scheduler that runs every minute.
 // loc is the timezone used for game date comparisons (start/end dates).
 // med runs the Learn jobs (video sync, topics, live stream emails).
@@ -117,6 +133,9 @@ func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, 
 	}
 
 	// 3-4. Process limit orders and revalue portfolios only when prices changed.
+	if loadTestRevalue.Load() && now.Minute()%quoteEveryMinutes == 0 {
+		SignalPricesChanged()
+	}
 	if pricesChanged.Swap(false) {
 		slog.Info("prices changed, processing orders and revaluing portfolios")
 		market.ProcessLimitOrders(ctx, q)

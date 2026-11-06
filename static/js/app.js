@@ -31,6 +31,7 @@ function showToast(msg, type) {
 document.body.addEventListener("htmx:response:error", function(e) {
     const status = e.detail.ctx.response.status;
     showToast(status === 429 ? "Slow down - too many requests"
+            : status === 503 ? "The site is busy - please try again in a minute"
             : status === 403 ? "Session expired - please reload the page"
             : status >= 500 ? "Server error - please try again"
             : "Request failed", "error");

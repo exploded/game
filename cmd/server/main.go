@@ -28,6 +28,17 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
+// Capacity limits, set from load tests (docs/capacity.md). Every request
+// waits for the one SQLite connection, so working on more than a few at once
+// only lengthens the queue. Past the backlog, or after waiting backlogWait
+// for a place, a request gets a quick 503 instead of a page that never loads.
+const (
+	maxInFlight     = 8                // requests worked on at once
+	maxBacklog      = 64               // more may wait for a place...
+	backlogWait     = 3 * time.Second  // ...for this long
+	requestDeadline = 50 * time.Second // a request gives up its place; under WriteTimeout
+)
+
 func main() {
 	loadEnv(".env")
 
@@ -164,6 +175,17 @@ func main() {
 		slog.Warn("database backup isn't configured; set BACKUP_S3_BUCKET, BACKUP_AWS_ACCESS_KEY_ID and BACKUP_AWS_SECRET_ACCESS_KEY")
 	}
 
+	// Load tests (cmd/loadtest, docs/capacity.md) run an offline copy that
+	// never fetches quotes, so it would never revalue. This makes it revalue
+	// as often as the US session does. Never in production.
+	if os.Getenv("LOADTEST_REVALUE") == "1" {
+		if scheduler.EnableLoadTestRevalue(production) {
+			slog.Warn("load test: revaluing portfolios every quote interval")
+		} else {
+			slog.Error("LOADTEST_REVALUE is ignored in production")
+		}
+	}
+
 	// Start background scheduler.
 	go scheduler.Start(ctx, queries, rawDB, loc, mailer, med, bk, news)
 
@@ -185,6 +207,7 @@ func main() {
 	r.Use(handler.RequestLogger)
 	r.Use(middleware.Compress(5))
 	r.Use(handler.SecurityHeaders)
+	r.Use(handler.NewThrottle(maxInFlight, maxBacklog, backlogWait, requestDeadline).Middleware)
 	r.Use(handler.MaxBodySize(1 << 20)) // 1 MB max request body
 
 	// Rate limiters for public/chat endpoints.
