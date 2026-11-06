@@ -3805,10 +3805,13 @@ func (q *Queries) ListContactMessages(ctx context.Context, arg ListContactMessag
 const listDueEmails = `-- name: ListDueEmails :many
 SELECT id, user_id, to_email, category, template, subject, text_body, html_body, reply_to, unsubscribe_url, status, attempts, last_error, send_after, sent_at, created_at FROM email_outbox
 WHERE status = 'pending' AND send_after <= datetime('now')
-ORDER BY id
+ORDER BY category = 'account' DESC, id
 LIMIT ?
 `
 
+// Account email goes first: a sign-in link and code expire in 15 minutes,
+// and a game email to 10,000 players takes 17 minutes to send. The rest go
+// oldest first.
 func (q *Queries) ListDueEmails(ctx context.Context, limit int64) ([]EmailOutbox, error) {
 	rows, err := q.db.QueryContext(ctx, listDueEmails, limit)
 	if err != nil {
@@ -6550,10 +6553,12 @@ func (q *Queries) ListTopicVideos(ctx context.Context, arg ListTopicVideosParams
 }
 
 const listTopics = `-- name: ListTopics :many
-SELECT t.id, t.slug, t.name, t.description, t.sort_order,
-       (SELECT COUNT(*) FROM video_topics vt JOIN videos v ON v.id = vt.video_id
-        WHERE vt.topic_id = t.id AND v.hidden = 0 AND v.live_status = '') AS videos
+SELECT t.id, t.slug, t.name, t.description, t.sort_order, CAST(COALESCE(c.n, 0) AS INTEGER) AS videos
 FROM topics t
+LEFT JOIN (SELECT vt.topic_id, COUNT(*) AS n
+           FROM video_topics vt JOIN videos v ON v.id = vt.video_id
+           WHERE v.hidden = 0 AND v.live_status = ''
+           GROUP BY vt.topic_id) c ON c.topic_id = t.id
 ORDER BY t.sort_order, t.name
 `
 
@@ -6566,6 +6571,9 @@ type ListTopicsRow struct {
 	Videos      int64
 }
 
+// Every Learn page runs this. The counts come from one pass over the
+// videos: a count per topic made SQLite walk every visible video for each
+// topic (52 ms with 1,700 videos, against 8 ms).
 func (q *Queries) ListTopics(ctx context.Context) ([]ListTopicsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listTopics)
 	if err != nil {

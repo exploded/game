@@ -332,3 +332,37 @@ func TestLivePrefill(t *testing.T) {
 		}
 	}
 }
+
+// ListTopics counts each topic's videos that show: not hidden ones or live
+// streams, 0 for a topic with none, in the topics' own order. It counts in
+// one pass since 6 November 2026 (docs/capacity.md).
+func TestListTopicsCounts(t *testing.T) {
+	d := openTestDB(t)
+	if _, err := d.Exec(`
+		INSERT INTO videos (id, platform, external_id, url, embed_url, title, published_at, hidden, live_status) VALUES
+			(1, 'youtube', 'a', 'u', 'e', 'Shown', '2026-10-01 00:00:00', 0, ''),
+			(2, 'youtube', 'b', 'u', 'e', 'Also shown', '2026-10-02 00:00:00', 0, ''),
+			(3, 'youtube', 'c', 'u', 'e', 'Hidden', '2026-10-03 00:00:00', 1, ''),
+			(4, 'youtube', 'd', 'u', 'e', 'On air', '2026-10-04 00:00:00', 0, 'live');
+		INSERT INTO video_topics (video_id, topic_id) SELECT v.id, t.id FROM videos v, topics t WHERE t.slug = 'super';
+		INSERT INTO video_topics (video_id, topic_id) SELECT 1, id FROM topics WHERE slug = 'tax';
+	`); err != nil {
+		t.Fatal(err)
+	}
+	topics, err := db.New(d).ListTopics(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(topics) < 3 {
+		t.Fatalf("got %d topics; the seeded ones are missing", len(topics))
+	}
+	for i, tp := range topics {
+		want := map[string]int64{"super": 2, "tax": 1}[tp.Slug]
+		if tp.Videos != want {
+			t.Errorf("%s: %d videos, want %d", tp.Slug, tp.Videos, want)
+		}
+		if i > 0 && tp.SortOrder < topics[i-1].SortOrder {
+			t.Errorf("%s comes after %s, out of sort order", tp.Slug, topics[i-1].Slug)
+		}
+	}
+}

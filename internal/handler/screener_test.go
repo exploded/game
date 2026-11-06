@@ -393,3 +393,65 @@ func TestAdminPicks(t *testing.T) {
 		t.Error("the pick is still there")
 	}
 }
+
+// A stale list comes back at once while one rebuild runs in the background,
+// so no player waits for it; after clear (Rob's Picks changed) the next
+// request builds the rows afresh.
+func TestScreenRowsServeStaleWhileRebuilding(t *testing.T) {
+	d := openTestDB(t)
+	if _, err := d.Exec(`INSERT INTO stocks (id, symbol, name, market, currency) VALUES (1, 'ACME', 'Acme Corp', 'sp500', 'USD');
+		INSERT INTO stock_prices (stock_id, date, open, high, low, close) VALUES (1, '2026-10-28', 1000, 1000, 1000, 1000)`); err != nil {
+		t.Fatal(err)
+	}
+	q := db.New(d)
+	h := New(q, d, loadTestTemplates(t), false, time.UTC)
+	ctx := t.Context()
+	price := func() int64 {
+		t.Helper()
+		rows, err := h.screenRows(ctx, "sp500")
+		if err != nil || len(rows) != 1 {
+			t.Fatalf("screenRows: %v, %d rows", err, len(rows))
+		}
+		return rows[0].Price
+	}
+	addClose := func(date string, close int64) {
+		t.Helper()
+		if _, err := d.Exec(`INSERT INTO stock_prices (stock_id, date, open, high, low, close) VALUES (1, ?, ?, ?, ?, ?)`, date, close, close, close, close); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if got := price(); got != 1000 {
+		t.Fatalf("first build: price %d, want 1000", got)
+	}
+
+	// A new close, and the cached rows go stale.
+	addClose("2026-10-29", 2000)
+	h.screener.mu.Lock()
+	h.screener.at["sp500"] = time.Now().Add(-2 * screenTTL)
+	h.screener.mu.Unlock()
+	if got := price(); got != 1000 {
+		t.Errorf("stale rows: price %d, want the cached 1000 straight away", got)
+	}
+	for start := time.Now(); ; time.Sleep(10 * time.Millisecond) {
+		h.screener.mu.Lock()
+		fresh, building := h.screener.rows["sp500"][0].Price == 2000, h.screener.building["sp500"]
+		h.screener.mu.Unlock()
+		if fresh && !building {
+			break
+		}
+		if time.Since(start) > 5*time.Second {
+			t.Fatal("the background rebuild never stored the new price")
+		}
+	}
+	if got := price(); got != 2000 {
+		t.Errorf("after the rebuild: price %d, want 2000", got)
+	}
+
+	// Rob's Picks changed: the next request doesn't get the old rows.
+	addClose("2026-10-30", 3000)
+	h.screener.clear()
+	if got := price(); got != 3000 {
+		t.Errorf("after clear: price %d, want a fresh 3000", got)
+	}
+}

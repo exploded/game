@@ -163,10 +163,11 @@ the knee. The single database connection is the bottleneck.
 2. **Revaluation** (`market.RevaluePortfolios`). A price lookup and an
    UPDATE for every holding, then 3 statements for every player, each its
    own commit: about 190,000 statements every 2 minutes at 10,000 players.
-3. **Sign-in emails behind bulk email.** The outbox sends 10 a second,
-   oldest first. A game email to 3,000 players takes 5 minutes to send, and
-   to 10,000 players about 17 minutes. A sign-in link queued behind it can
-   arrive after it expires (15 minutes).
+3. **Sign-in emails behind bulk email** (fixed; see
+   [Fixes made](#fixes-made)). The outbox sends 10 a second. A game email to
+   3,000 players takes 5 minutes to send, and to 10,000 players about 17
+   minutes. Until 6 November 2026 the outbox sent oldest first, so a sign-in
+   link queued behind one could arrive after it expired (15 minutes).
 
 ## Limits
 
@@ -243,9 +244,28 @@ ssh linode-claude 'systemctl show game -p MemoryHigh -p MemoryMax -p CPUQuotaPer
 - **Backups:** the snapshot took 2–3 seconds at every size and runs on its
   own connection.
 
+## Fixes made
+
+Made on 6 November 2026, after the measurements above:
+
+- **Learn pages.** `ListTopics`, on every Learn page, counted each topic's
+  videos separately, so SQLite walked every visible video once per topic
+  (52 ms with 1,700 videos). It now counts them in one pass (8 ms). On the
+  same data, `/learn` went from 82 to 23 ms, `/learn/questions` from 72 to
+  9 ms, and a topic page from 76 to 15 ms.
+- **Stocks list cache.** Once the cached rows were a minute old, the next
+  request rebuilt them while holding the lock (about 100 ms in production;
+  since 4 November its slowest 10% took 90 ms and up). Now that request gets
+  the old rows and starts the rebuild in the background (`screenRows`). Only
+  the first view after a restart, or after Rob's Picks change, waits.
+- **Sign-in email first.** The outbox sends `account` email (sign-in links
+  and codes) before anything else (`ListDueEmails`), so a link waits at most
+  for the batch being sent, about 5 seconds, not behind a game email to
+  every player.
+
 ## Fixes, for later
 
-In order of payoff. None has been made.
+In order of payoff.
 
 1. **Leaderboard query.** Work out the player's rank with a `COUNT` of
    ranked players above them, keep a `traded` flag (or a first-trade time)
@@ -256,22 +276,10 @@ In order of payoff. None has been made.
    once per holding, write in transactions of a few hundred players, and
    skip holdings whose price hasn't changed. Expect seconds to become well
    under a second at 10,000 players.
-3. **Sign-in email first.** Send `account` email ahead of bulk email in the
-   outbox query, so links don't wait behind a game email.
-4. **Learn pages**, the slowest pages today (70–90 ms in production) and the
-   ones crawlers hit most. `ListTopics`, on every Learn page, takes 47 ms
-   because SQLite walks every visible video for each topic. Forcing the join
-   order (`video_topics vt CROSS JOIN videos v`) took it to 10 ms with the
-   same counts; caching the counts (they change only on a sync) would take
-   it to nothing.
-5. **Stocks list cache.** In production the list is usually 5 ms, but its
-   slowest 10% take 900 ms: once a minute one request rebuilds the cache
-   while holding the lock, and the others wait. Rebuild in the background,
-   or keep serving the old list while one request rebuilds it.
-6. **Stock page.** Each view reads the stock's whole history, up to 5,000
+3. **Stock page.** Each view reads the stock's whole history, up to 5,000
    rows (10 ms), and the candles read it again. Cache the line data per
    stock for the day.
-7. **Queries that scan whole tables**, which are fine at these sizes but grow
+4. **Queries that scan whole tables**, which are fine at these sizes but grow
    with time: `ExpireOldLimitOrders`, `DeleteOldEmails` and
    `CountLobbyMessages`. Revisit them past about 100,000 rows.
 

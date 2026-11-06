@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"slices"
 	"sort"
 	"strings"
@@ -83,18 +84,28 @@ const sparkDays = 30
 const screenTTL = time.Minute
 
 // screenCache holds each market's rows, so tapping chips doesn't reread
-// every stock's prices.
+// every stock's prices. Once the rows are a minute old, the next request
+// still gets them and starts a rebuild in the background: a rebuild takes
+// about 100 ms in production, and until 6 November 2026 it held the lock,
+// so whoever came next waited for it. Only a request that finds no rows (the
+// first after a restart, or after clear) waits for a build.
 type screenCache struct {
-	mu   sync.Mutex
-	at   map[string]time.Time
-	rows map[string][]screenRow
+	mu       sync.Mutex // guards the fields below
+	at       map[string]time.Time
+	rows     map[string][]screenRow
+	building map[string]bool // a background rebuild is running
+	gen      int             // bumped by clear, so a build begun before it isn't kept
+
+	build sync.Mutex // one build at a time
 }
 
-// clear drops the cached rows, after Rob's Picks change.
+// clear drops the cached rows, after Rob's Picks change, so the next
+// request builds them afresh.
 func (c *screenCache) clear() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.at, c.rows = nil, nil
+	c.gen++
 }
 
 // screenRows returns every stock in the market with its price, move and
@@ -102,10 +113,45 @@ func (c *screenCache) clear() {
 func (h *Handler) screenRows(ctx context.Context, mkt string) ([]screenRow, error) {
 	c := &h.screener
 	c.mu.Lock()
-	defer c.mu.Unlock()
-	if at, ok := c.at[mkt]; ok && time.Since(at) < screenTTL {
-		return c.rows[mkt], nil
+	rows, ok := c.rows[mkt]
+	if ok && time.Since(c.at[mkt]) >= screenTTL && !c.building[mkt] {
+		if c.building == nil {
+			c.building = map[string]bool{}
+		}
+		c.building[mkt] = true
+		go func() {
+			// Not the request's context: it ends when the page is sent.
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			if _, err := h.buildScreenRows(ctx, mkt); err != nil {
+				slog.Warn("rebuild stocks list", "market", mkt, "error", err)
+			}
+			c.mu.Lock()
+			delete(c.building, mkt)
+			c.mu.Unlock()
+		}()
 	}
+	c.mu.Unlock()
+	if ok {
+		return rows, nil
+	}
+	return h.buildScreenRows(ctx, mkt)
+}
+
+// buildScreenRows reads the market's rows and caches them. A build that
+// waited for another and finds fresh rows returns those instead.
+func (h *Handler) buildScreenRows(ctx context.Context, mkt string) ([]screenRow, error) {
+	c := &h.screener
+	c.build.Lock()
+	defer c.build.Unlock()
+	c.mu.Lock()
+	if at, ok := c.at[mkt]; ok && time.Since(at) < screenTTL {
+		rows := c.rows[mkt]
+		c.mu.Unlock()
+		return rows, nil
+	}
+	gen := c.gen
+	c.mu.Unlock()
 
 	stocks, err := h.q.ListScreenerStocks(ctx, db.ListScreenerStocksParams{Market: mkt, Column2: mkt})
 	if err != nil {
@@ -125,10 +171,14 @@ func (h *Handler) screenRows(ctx context.Context, mkt string) ([]screenRow, erro
 		rows[i] = newScreenRow(s, byStock[s.ID])
 	}
 
-	if c.at == nil {
-		c.at, c.rows = map[string]time.Time{}, map[string][]screenRow{}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.gen == gen { // not cleared while building
+		if c.at == nil {
+			c.at, c.rows = map[string]time.Time{}, map[string][]screenRow{}
+		}
+		c.at[mkt], c.rows[mkt] = time.Now(), rows
 	}
-	c.at[mkt], c.rows[mkt] = time.Now(), rows
 	return rows, nil
 }
 

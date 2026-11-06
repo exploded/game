@@ -151,9 +151,12 @@ INSERT INTO email_outbox (user_id, to_email, category, template, subject, text_b
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: ListDueEmails :many
+-- Account email goes first: a sign-in link and code expire in 15 minutes,
+-- and a game email to 10,000 players takes 17 minutes to send. The rest go
+-- oldest first.
 SELECT * FROM email_outbox
 WHERE status = 'pending' AND send_after <= datetime('now')
-ORDER BY id
+ORDER BY category = 'account' DESC, id
 LIMIT ?;
 
 -- name: MarkEmailSent :exec
@@ -1454,10 +1457,15 @@ ORDER BY shared DESC, v.published_at DESC
 LIMIT 8;
 
 -- name: ListTopics :many
-SELECT t.*,
-       (SELECT COUNT(*) FROM video_topics vt JOIN videos v ON v.id = vt.video_id
-        WHERE vt.topic_id = t.id AND v.hidden = 0 AND v.live_status = '') AS videos
+-- Every Learn page runs this. The counts come from one pass over the
+-- videos: a count per topic made SQLite walk every visible video for each
+-- topic (52 ms with 1,700 videos, against 8 ms).
+SELECT t.*, CAST(COALESCE(c.n, 0) AS INTEGER) AS videos
 FROM topics t
+LEFT JOIN (SELECT vt.topic_id, COUNT(*) AS n
+           FROM video_topics vt JOIN videos v ON v.id = vt.video_id
+           WHERE v.hidden = 0 AND v.live_status = ''
+           GROUP BY vt.topic_id) c ON c.topic_id = t.id
 ORDER BY t.sort_order, t.name;
 
 -- name: GetTopicBySlug :one

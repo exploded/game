@@ -8,7 +8,9 @@ email goes through Amazon SES.
 - **Outbox.** Code never calls SES directly. It writes the message to the
   `email_outbox` table, and a background worker (`internal/mail`) sends it.
   A failed send retries with back-off, so an SES outage doesn't lose mail or
-  slow down a request. Sign-in emails wake the worker straight away.
+  slow down a request. Sign-in emails wake the worker straight away, and
+  account email goes ahead of everything else queued (`ListDueEmails`), so
+  a sign-in link never waits behind a game email to every player.
 - **Sender.** `MAIL_FROM` (`The Wealth Lab <hello@thewealthlab.au>`).
   `thewealthlab.au` is an SES identity. Every email sets `Reply-To` to
   `MAIL_REPLY_TO` (`info@consortiumpw.com.au`) so replies reach Consortium.

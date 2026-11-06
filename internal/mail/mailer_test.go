@@ -164,3 +164,28 @@ func TestFailedSendRetriesLater(t *testing.T) {
 		t.Errorf("sent %d emails after SES recovered, want 1", len(f.sent))
 	}
 }
+
+// A sign-in email goes ahead of bulk email already queued, or a game email
+// to every player would hold up links that expire in 15 minutes.
+func TestAccountEmailGoesFirst(t *testing.T) {
+	m, q, _ := newMailer(t)
+	ctx := context.Background()
+	for range 3 {
+		if _, err := m.ToUser(ctx, 1, mail.Games, "welcome", nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := m.ToAddress(ctx, "new@x.com", "login", map[string]any{"Token": "abc", "Code": "123456", "Minutes": 15}); err != nil {
+		t.Fatal(err)
+	}
+	due, err := q.ListDueEmails(ctx, 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(due) != 3 || due[0].Template != "login" {
+		t.Fatalf("first due: %d emails, first %q; want the login first", len(due), due[0].Template)
+	}
+	if due[1].Category != "games" || due[1].ID > due[2].ID {
+		t.Errorf("bulk email after it isn't oldest first: ids %d, %d", due[1].ID, due[2].ID)
+	}
+}
