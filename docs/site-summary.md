@@ -156,7 +156,9 @@ ratio over 1 and revenue up on a year earlier. Banks and insurers don't get one,
 because those measures don't suit them. The figures come from Twelve Data and
 are updated weekly.
 
-Each share has its own page with a long-term price chart, then the player's own
+Each share has its own page with a long-term price chart (a simple line on a
+phone, which shows the date and price under a finger dragged across it, and
+candles on a computer), then the player's own
 position in it, eight key figures (market value, P/E, 52-week high and low,
 average volume, beta, industry and health score), a short company description
 that opens in full when tapped, the rest of the company's figures folded into

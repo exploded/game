@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -109,15 +110,9 @@ func (h *Handler) StockDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Show all available price history: daily for the last two years, weekly
-	// before that.
-	now := time.Now().UTC()
-	prices, _ := h.q.ListPriceHistory(r.Context(), db.ListPriceHistoryParams{
-		StockID: stock.ID,
-		Date:    "2000-01-01",
-		Date_2:  now.Format("2006-01-02"),
-	})
-	prices = chartBars(prices, now.AddDate(-2, 0, 0).Format("2006-01-02"))
+	// The line chart's data goes in the page; the candles on wider screens
+	// fetch theirs from StockBars.
+	line := lineSeries(h.priceHistory(r.Context(), stock.ID))
 
 	profile, _ := h.q.GetStockProfile(r.Context(), stock.ID)
 	profile.Logo = logoURL(profile.Logo)
@@ -138,6 +133,7 @@ func (h *Handler) StockDetail(w http.ResponseWriter, r *http.Request) {
 	extra["RobVideos"] = robVideos
 	extra["Pick"] = pick
 	extra["Health"], extra["HasHealth"] = profileHealth(stock, profile)
+	extra["Line"] = line
 	if t, _ := extra["Trade"].(*tradeContext); t != nil && t.Holding.Quantity != 0 {
 		latest, _ := extra["LatestPrice"].(db.StockPrice)
 		extra["Position"] = newPosition(t.Holding, latest.Close, stock.Currency, game.BaseCurrency, t.ExchangeRate)
@@ -145,9 +141,43 @@ func (h *Handler) StockDetail(w http.ResponseWriter, r *http.Request) {
 	h.render(w, r, "stocks/detail", "", PageData{
 		Title: stock.Symbol + " - " + stock.Name,
 		Item:  stock,
-		Items: prices,
 		Extra: extra,
 	})
+}
+
+// priceHistory is a stock's whole stored daily history, oldest first.
+func (h *Handler) priceHistory(ctx context.Context, stockID int64) []db.StockPrice {
+	prices, _ := h.q.ListPriceHistory(ctx, db.ListPriceHistoryParams{
+		StockID: stockID,
+		Date:    "2000-01-01",
+		Date_2:  time.Now().UTC().Format("2006-01-02"),
+	})
+	return prices
+}
+
+// StockBars is the candle chart's data for wider screens, as JSON: daily
+// bars for the last two years and weekly before that (chartBars). Phones
+// draw a line from data in the page and never ask for it.
+func (h *Handler) StockBars(w http.ResponseWriter, r *http.Request) {
+	stockID, err := strconv.ParseInt(r.PathValue("sid"), 10, 64)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if _, err := h.q.GetStock(r.Context(), stockID); err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	cutoff := time.Now().UTC().AddDate(-2, 0, 0).Format("2006-01-02")
+	prices := chartBars(h.priceHistory(r.Context(), stockID), cutoff)
+	bars := make([]candleBar, len(prices))
+	for i, p := range prices {
+		bars[i] = candleBar{T: p.Date, O: p.Open, H: p.High, L: p.Low, C: p.Close, V: p.Volume}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	// The bars change once a day, and the page moves today's bar itself.
+	w.Header().Set("Cache-Control", "private, max-age=300")
+	json.NewEncoder(w).Encode(bars)
 }
 
 // ticketData is what the order ticket (stocks/_ticket.html) needs. The

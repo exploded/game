@@ -20,7 +20,7 @@ app.js goes back through history when it can. */}}
 
 <div class="stock-layout">
     <div class="stock-main">
-        {{if .Items}}
+        {{if .Extra.Line}}
         {{template "price-stats" .}}
         <div class="chips chart-ranges" role="group" aria-label="Chart range">
             <button type="button" class="chip" data-range="1">1M</button>
@@ -29,7 +29,12 @@ app.js goes back through history when it can. */}}
             <button type="button" class="chip" data-range="60">5Y</button>
             <button type="button" class="chip" data-range="0">All</button>
         </div>
-        <div class="chart-container" id="chart-container"></div>
+        {{/* stockchart.js: a line on phones (data below), candles from /bars
+        on wider screens. The change over the range sits above both. */}}
+        <div class="chart-change" id="chart-change" aria-live="polite"><span class="chart-move"></span> <span class="chart-span"></span></div>
+        <div class="chart-container" id="chart-container"
+             data-bars="/games/{{.Extra.Game.ID}}/stocks/{{.Item.ID}}/bars"
+             data-lib="{{asset "js/lightweight-charts-4.2.3.standalone.production.js"}}"></div>
         {{else}}
         <p class="text-muted">No price data available for this stock yet. Prices are fetched daily after market close.</p>
         {{end}}
@@ -197,161 +202,9 @@ open them, and they took a phone's whole screen many times over. */}}
 {{end}}
 
 
-{{if .Items}}
-<script src="{{asset "js/lightweight-charts-4.2.3.standalone.production.js"}}"></script>
-<script nonce="{{.Nonce}}">
-(function() {
-    const raw = [
-        {{range .Items}}
-        {time:"{{.Date}}",o:{{.Open}},h:{{.High}},l:{{.Low}},c:{{.Close}},v:{{.Volume}}},
-        {{end}}
-    ];
-
-    if (!raw.length) return;
-
-    // The bars are daily for the last two years and weekly before that
-    // (chartBars in chartbars.go). The chart spaces bars evenly, not by date,
-    // so ranges over two years use weekly bars throughout, or the last two
-    // years would fill most of the width.
-    function weekOf(date) {
-        const d = new Date(date + 'T00:00:00Z');
-        d.setUTCDate(d.getUTCDate() - (d.getUTCDay() + 6) % 7);
-        return d.toISOString().slice(0, 10);
-    }
-    const weeks = [];
-    for (const d of raw) {
-        const w = weeks[weeks.length - 1];
-        if (!w || weekOf(w.time) !== weekOf(d.time)) { weeks.push({...d}); continue; }
-        w.h = Math.max(w.h, d.h);
-        w.l = Math.min(w.l, d.l);
-        w.c = d.c;
-        w.v += d.v;
-    }
-
-    // Convert cents to dollars for OHLC.
-    const candles = rows => rows.map(d => ({
-        time: d.time,
-        open: d.o / 100,
-        high: d.h / 100,
-        low: d.l / 100,
-        close: d.c / 100,
-    }));
-
-    const volumes = rows => rows.map(d => ({
-        time: d.time,
-        value: d.v,
-        color: d.c >= d.o ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)',
-    }));
-
-    // Create chart.
-    const container = document.getElementById('chart-container');
-    const chart = LightweightCharts.createChart(container, {
-        width: container.clientWidth,
-        height: container.clientHeight,
-        layout: {
-            background: { color: '#1a1d27' },
-            textColor: '#9ca3af',
-            fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-        },
-        grid: {
-            vertLines: { color: '#2a2d3a' },
-            horzLines: { color: '#2a2d3a' },
-        },
-        crosshair: {
-            mode: LightweightCharts.CrosshairMode.Normal,
-            vertLine: { labelBackgroundColor: '#3b82f6' },
-            horzLine: { labelBackgroundColor: '#3b82f6' },
-        },
-        rightPriceScale: {
-            borderColor: '#2a2d3a',
-            scaleMargins: { top: 0.05, bottom: 0.25 },
-        },
-        timeScale: {
-            borderColor: '#2a2d3a',
-            timeVisible: false,
-            fixLeftEdge: true,
-            fixRightEdge: true,
-        },
-    });
-
-    // Candlestick series.
-    const candleSeries = chart.addCandlestickSeries({
-        // The price axis leaves room under the lowest price for the volume
-        // bars, which on a long chart runs below $0. A price is never
-        // negative, so those labels stay blank.
-        priceFormat: { type: 'custom', minMove: 0.01, formatter: p => p < 0 ? '' : p.toFixed(2) },
-        upColor: '#22c55e',
-        downColor: '#ef4444',
-        borderUpColor: '#22c55e',
-        borderDownColor: '#ef4444',
-        wickUpColor: '#22c55e',
-        wickDownColor: '#ef4444',
-    });
-
-    // Volume histogram.
-    const volumeSeries = chart.addHistogramSeries({
-        priceFormat: { type: 'volume' },
-        priceScaleId: 'volume',
-    });
-    chart.priceScale('volume').applyOptions({
-        scaleMargins: { top: 0.8, bottom: 0 },
-    });
-
-    // Range buttons: months back from the last bar, 0 for all of it. A range
-    // longer than the history is hidden. The chart opens on a year.
-    const last = raw[raw.length - 1].time;
-    function monthsBack(n) {
-        const d = new Date(last + 'T00:00:00Z');
-        d.setUTCMonth(d.getUTCMonth() - n);
-        return d.toISOString().slice(0, 10);
-    }
-    const buttons = [...document.querySelectorAll('.chart-ranges [data-range]')];
-    let rows = null;
-    function showRange(months) {
-        const want = months === 0 || months > 24 ? weeks : raw;
-        if (want !== rows) {
-            rows = want;
-            candleSeries.setData(candles(rows));
-            volumeSeries.setData(volumes(rows));
-        }
-        if (months) chart.timeScale().setVisibleRange({from: monthsBack(months), to: last});
-        else chart.timeScale().fitContent();
-        for (const b of buttons) {
-            const on = +b.dataset.range === months;
-            b.classList.toggle('chip-on', on);
-            b.setAttribute('aria-pressed', on);
-        }
-    }
-    for (const b of buttons) {
-        const months = +b.dataset.range;
-        if (months && monthsBack(months) < raw[0].time) b.hidden = true;
-        b.addEventListener('click', () => showRange(months));
-    }
-    showRange(monthsBack(12) < raw[0].time ? 0 : 12);
-
-    // The price header refreshes itself while the market is open (see
-    // _price_stats.html); move today's candle to match. On weekly bars,
-    // today joins this week's bar.
-    document.body.addEventListener('htmx:after:swap', function() {
-        const d = document.getElementById('price-stats')?.dataset;
-        if (!d || !d.date || d.date < last) return;
-        const o = parseInt(d.o, 10), h = parseInt(d.h, 10), l = parseInt(d.l, 10), c = parseInt(d.c, 10);
-        let bar = {time: d.date, open: o / 100, high: h / 100, low: l / 100, close: c / 100};
-        const w = weeks[weeks.length - 1];
-        if (rows === weeks && weekOf(w.time) === weekOf(d.date)) {
-            bar = {time: w.time, open: w.o / 100, high: Math.max(w.h, h) / 100, low: Math.min(w.l, l) / 100, close: c / 100};
-        }
-        candleSeries.update(bar);
-        document.dispatchEvent(new CustomEvent('price:update', {detail: {close: c}}));
-    });
-
-    // Responsive.
-    const ro = new ResizeObserver(() => {
-        chart.applyOptions({ width: container.clientWidth });
-    });
-    ro.observe(container);
-})();
-</script>
+{{if .Extra.Line}}
+<script type="application/json" id="chart-line" nonce="{{.Nonce}}">{{.Extra.Line}}</script>
+<script src="{{asset "js/stockchart.js"}}"></script>
 <p class="text-muted" style="font-size:0.75rem; margin-top:0.5rem;">{{if .Extra.News}}News by TickerTick. {{end}}Prices may be delayed.</p>
 {{end}}
 

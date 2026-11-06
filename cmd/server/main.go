@@ -332,6 +332,7 @@ func main() {
 			r.Get("/stocks", h.StocksBrowse)
 			r.Get("/stocks/{sid}", h.StockDetail)
 			r.Get("/stocks/{sid}/price", h.StockPrice)
+			r.Get("/stocks/{sid}/bars", h.StockBars)
 			r.Get("/search", h.StockSearch)
 			r.Post("/trade/{sid}", h.TradeExecute)
 
