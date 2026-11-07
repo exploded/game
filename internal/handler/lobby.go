@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"fmt"
-	"html"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -121,24 +119,31 @@ func (h *Handler) LobbySend(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	_, _ = h.q.CreateLobbyMessage(r.Context(), db.CreateLobbyMessageParams{
+	m, err := h.q.CreateLobbyMessage(r.Context(), db.CreateLobbyMessageParams{
 		UserID:  user.ID,
 		Message: msg,
 	})
+	if err != nil {
+		h.serverError(w, "save lobby message", err)
+		return
+	}
 
 	if isHTMX(r) {
-		escaped := html.EscapeString(msg)
+		// The message as the page lists it (lobby/_message.html), which htmx
+		// adds to the top of the list.
 		avatarPath, _ := h.q.GetUserAvatarPath(r.Context(), user.ID)
-		avatarHTML := avatarImg(user.Name, avatarPath)
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(fmt.Sprintf(`<div class="chat-message" hx-swap-oob="afterbegin target:#messages-list strip:false">
-	<div class="chat-meta">
-		%s
-		<strong>%s</strong>
-		<span class="text-muted">just now</span>
-	</div>
-	<p>%s</p>
-</div>`, avatarHTML, html.EscapeString(user.Name), escaped)))
+		h.render(w, r, "lobby/index", "new-chat-message", PageData{
+			User:      user,
+			CSRFToken: auth.CSRFTokenFromContext(r.Context()),
+			Item: db.ListLobbyMessagesRow{
+				ID:         m.ID,
+				UserID:     m.UserID,
+				Message:    m.Message,
+				CreatedAt:  m.CreatedAt,
+				UserName:   user.Name,
+				AvatarPath: avatarPath,
+			},
+		})
 		return
 	}
 	http.Redirect(w, r, "/lobby", http.StatusSeeOther)
@@ -203,14 +208,4 @@ func lobbyBack(r *http.Request) string {
 		return "/lobby?blocked=1"
 	}
 	return "/lobby"
-}
-
-// avatarImg returns HTML for a user's avatar image.
-func avatarImg(name, avatarPath string) string {
-	src := "/static/avatars/default.svg"
-	if avatarPath != "" {
-		src = avatarPath
-	}
-	return fmt.Sprintf(`<img src="%s" alt="%s" class="avatar-sm">`,
-		html.EscapeString(src), html.EscapeString(name))
 }

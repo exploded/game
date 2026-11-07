@@ -161,6 +161,72 @@ func TestLobbyModeration(t *testing.T) {
 	}
 }
 
+// TestLobbyPostReturnsTheListsMessage checks that the message LobbySend
+// returns after a post is drawn as the page lists it (lobby/_message.html):
+// escaped, and for an admin with a Delete button that passes the CSRF check,
+// though app.js adds the token only to forms there at page load.
+func TestLobbyPostReturnsTheListsMessage(t *testing.T) {
+	as, _, _ := lobbyServer(t)
+	srv := auth.CSRFProtect([]byte("test secret"))(as(1))
+	session := &http.Cookie{Name: "session", Value: "s1"}
+	send := func(method, path string, form url.Values, header map[string]string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(method, path, strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		for k, v := range header {
+			req.Header.Set(k, v)
+		}
+		req.AddCookie(session)
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, req)
+		return w
+	}
+
+	// The page carries the token that htmx sends.
+	_, rest, _ := strings.Cut(send("GET", "/lobby", nil, nil).Body.String(), `name="csrf-token" content="`)
+	token, _, _ := strings.Cut(rest, `"`)
+	if token == "" {
+		t.Fatal("no CSRF token on the lobby page")
+	}
+
+	w := send("POST", "/lobby", url.Values{"message": {"<b>hi</b> all"}}, map[string]string{"HX-Request": "true", "X-CSRF-Token": token})
+	body := w.Body.String()
+	for _, want := range []string{`class="chat-message"`, `hx-swap-oob="afterbegin target:#messages-list strip:false"`,
+		"&lt;b&gt;hi&lt;/b&gt; all", "just now", `action="/admin/lobby/1/delete"`, `name="_csrf" value="` + token + `"`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the posted message has no %q:\n%s", want, body)
+		}
+	}
+	if strings.Contains(body, "<b>") {
+		t.Errorf("the posted message isn't escaped:\n%s", body)
+	}
+
+	// Its Delete button works without reloading the page.
+	if w := send("POST", "/admin/lobby/1/delete", url.Values{"_csrf": {token}}, nil); w.Code != http.StatusSeeOther {
+		t.Errorf("Delete on the posted message = %d, want 303\n%s", w.Code, w.Body.String())
+	}
+}
+
+// TestLobbyShowsLocalTimes checks that a message shows when it was sent in
+// the site's time zone, not as the stored UTC time.
+func TestLobbyShowsLocalTimes(t *testing.T) {
+	as, d, _, _ := lobbyServerDB(t) // New sets displayLoc, so change it after
+	syd, err := time.LoadLocation("Australia/Sydney")
+	if err != nil {
+		t.Fatal(err)
+	}
+	old := displayLoc
+	displayLoc = syd
+	t.Cleanup(func() { displayLoc = old })
+
+	if _, err := d.Exec(`INSERT INTO lobby_messages (user_id, message, created_at) VALUES (2, 'morning all', '2026-11-07 03:12:45')`); err != nil {
+		t.Fatal(err)
+	}
+	body := lobbyGet(t, as(2), "/lobby")
+	if !strings.Contains(body, "Sat 7 Nov, 2:12 pm AEDT") || strings.Contains(body, "03:12") {
+		t.Errorf("the lobby doesn't show the message's time in Sydney:\n%s", body)
+	}
+}
+
 func TestLobbyRateLimit(t *testing.T) {
 	as, d, q, mod := lobbyServerDB(t)
 	bob := as(2)

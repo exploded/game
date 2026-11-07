@@ -192,6 +192,44 @@ Highest impact for the effort first.
 - [x] **Update the ASX wording.** No page mentions ASX now. Update the wording
   again if the ASX licence comes through.
 
+## Capacity (2026-11-06)
+
+How many players the site can take, measured with `cmd/loadtest`. The
+numbers, limits and how to measure again are in `docs/capacity.md`.
+
+- [x] **Load test and report.** Measured on the PC and on a temporary
+  Linode 4 GB the same as production. The limit is the one SQLite
+  connection, not CPU or memory.
+- [x] **Limits** (860b880, b4d6904). The app works on 8 requests at once and
+  answers the rest with a quick "busy" page, and the `game` service has
+  memory and CPU caps so it can't starve the other apps. The server's deploy
+  script had never updated itself from the repo; fixed.
+- [x] **Learn pages 4–8 times faster, the stocks list rebuilt in the
+  background, sign-in email sent first** (fa7f4fe).
+- [x] **Leaderboard from counts, 100 a page** (9e42f6b). At 10,000 players
+  the site went from under 10 requests a second to about 120.
+- [ ] **"Players' favourites" chip.** It counts every holding in the game on
+  each view: about 70 ms at 10,000 players, the only page cost that still
+  grows with players. Cache the counts for a minute, as the stocks list is.
+  Small.
+- [ ] **Stock page chart.** Each view reads the stock's whole price history
+  (10 ms), and the candles read it again. It's the most-viewed page, so cache
+  each stock's chart data until the next price update. Small to medium.
+- [ ] **Revaluation.** 7.7 seconds every 2 minutes in the US session at
+  10,000 players (about 6% of the database's time, overnight in Sydney). Look
+  up each stock's price once, write in batches and skip unchanged holdings.
+  Before about 30,000 players, or sooner if overseas or AI players grow
+  during US hours. Medium; it handles money, so it needs care.
+- [ ] **Queries that read whole tables** (`ExpireOldLimitOrders`,
+  `DeleteOldEmails`, `CountLobbyMessages`): fine now, revisit past about
+  100,000 rows.
+- [ ] **Snapshot dates** are UTC, but the month chart picks them by the
+  game's Sydney dates, so a revaluation in the first 11 hours of the 1st is
+  left off the chart. Cosmetic.
+- [ ] **Watch for "server busy" warnings in monitor:** they're the sign that
+  load is starting to bite. Re-run the load test after changing anything
+  every page uses.
+
 ## Promotion
 
 - [ ] **Get listed on Finder** (2026-11-05). Ask Finder to add the share game

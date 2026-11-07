@@ -1,0 +1,43 @@
+{{/* chat-message is one lobby message: each one in the page's list, and the
+     one LobbySend returns after a post ("New"), which htmx adds to the top of
+     the list. Takes a dict: "M" (a db.ListLobbyMessagesRow), "Admin",
+     "BlockedOnly", "CSRF" and "New". The forms carry the CSRF token
+     themselves, because app.js adds it only to forms there at page load. */}}
+{{define "chat-message"}}
+{{- $m := .M -}}
+<div class="chat-message{{if $m.BlockedReason}} chat-blocked{{end}}"{{if .New}} hx-swap-oob="afterbegin target:#messages-list strip:false"{{end}}>
+    <div class="chat-meta">
+        <img src="{{or $m.AvatarPath "/static/avatars/default.svg"}}" alt="{{$m.UserName}}" class="avatar-sm">
+        <strong>{{$m.UserName}}</strong>
+        <span class="text-muted">{{if .New}}just now{{else}}{{when $m.CreatedAt}}{{end}}</span>
+        {{if $m.BlockedReason}}<span class="badge badge-cancelled">Blocked</span>{{end}}
+        {{if .Admin}}
+        <form method="POST" action="/admin/lobby/{{$m.ID}}/delete" style="display:inline;margin-left:auto">
+            <input type="hidden" name="_csrf" value="{{.CSRF}}">
+            {{if .BlockedOnly}}<input type="hidden" name="blocked" value="1">{{end}}
+            <button type="submit" class="btn btn-sm btn-danger" data-confirm="Delete this message from {{$m.UserName}}?" data-confirm-ok="Delete message">Delete</button>
+        </form>
+        {{end}}
+    </div>
+    <p>{{$m.Message}}</p>
+    {{if $m.BlockedReason}}
+    <p class="chat-reason">Moderation: {{$m.BlockedReason}}</p>
+    <div class="chat-actions">
+        <form method="POST" action="/admin/lobby/{{$m.ID}}/unblock">
+            <input type="hidden" name="_csrf" value="{{.CSRF}}">
+            {{if .BlockedOnly}}<input type="hidden" name="blocked" value="1">{{end}}
+            <button type="submit" class="btn btn-sm btn-primary">Unblock</button>
+        </form>
+        <form method="POST" action="/admin/lobby/{{$m.ID}}/block-user">
+            <input type="hidden" name="_csrf" value="{{.CSRF}}">
+            {{if .BlockedOnly}}<input type="hidden" name="blocked" value="1">{{end}}
+            <button type="submit" class="btn btn-sm btn-danger" data-confirm="Block {{$m.UserName}}? They're signed out, can't sign in, and their messages leave the lobby." data-confirm-ok="Block user">Block user</button>
+        </form>
+    </div>
+    {{end}}
+</div>
+{{end}}
+
+{{/* new-chat-message is LobbySend's answer to a post: .Item is the message,
+     sent by .User. */}}
+{{define "new-chat-message"}}{{template "chat-message" (dict "M" .Item "Admin" (and .User .User.IsAdmin) "CSRF" .CSRFToken "New" true)}}{{end}}

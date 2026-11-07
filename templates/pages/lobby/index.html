@@ -34,38 +34,7 @@
     <div id="messages-list" class="messages-list" style="min-height:200px">
         {{if .Items}}
         {{range .Items}}
-        <div class="chat-message{{if .BlockedReason}} chat-blocked{{end}}">
-            <div class="chat-meta">
-                {{if .AvatarPath}}
-                <img src="{{.AvatarPath}}" alt="{{.UserName}}" class="avatar-sm">
-                {{else}}
-                <img src="/static/avatars/default.svg" alt="{{.UserName}}" class="avatar-sm">
-                {{end}}
-                <strong>{{.UserName}}</strong>
-                <span class="text-muted">{{.CreatedAt}}</span>
-                {{if .BlockedReason}}<span class="badge badge-cancelled">Blocked</span>{{end}}
-                {{if and $.User $.User.IsAdmin}}
-                <form method="POST" action="/admin/lobby/{{.ID}}/delete" style="display:inline;margin-left:auto">
-                    {{if $.Extra.BlockedOnly}}<input type="hidden" name="blocked" value="1">{{end}}
-                    <button type="submit" class="btn btn-sm btn-danger" data-confirm="Delete this message from {{.UserName}}?" data-confirm-ok="Delete message">Delete</button>
-                </form>
-                {{end}}
-            </div>
-            <p>{{.Message}}</p>
-            {{if .BlockedReason}}
-            <p class="chat-reason">Moderation: {{.BlockedReason}}</p>
-            <div class="chat-actions">
-                <form method="POST" action="/admin/lobby/{{.ID}}/unblock">
-                    {{if $.Extra.BlockedOnly}}<input type="hidden" name="blocked" value="1">{{end}}
-                    <button type="submit" class="btn btn-sm btn-primary">Unblock</button>
-                </form>
-                <form method="POST" action="/admin/lobby/{{.ID}}/block-user">
-                    {{if $.Extra.BlockedOnly}}<input type="hidden" name="blocked" value="1">{{end}}
-                    <button type="submit" class="btn btn-sm btn-danger" data-confirm="Block {{.UserName}}? They're signed out, can't sign in, and their messages leave the lobby." data-confirm-ok="Block user">Block user</button>
-                </form>
-            </div>
-            {{end}}
-        </div>
+        {{template "chat-message" (dict "M" . "Admin" (and $.User $.User.IsAdmin) "BlockedOnly" $.Extra.BlockedOnly "CSRF" $.CSRFToken)}}
         {{end}}
         {{else if .Extra.BlockedOnly}}
         <p class="text-muted" style="padding:1rem">No blocked messages to review.</p>
