@@ -43,7 +43,7 @@ func ExpandShortLink(ctx context.Context, raw string) string {
 	if err != nil {
 		return raw
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; TheWealthLab)")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; TheInvestorProject)")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return raw

@@ -110,7 +110,7 @@ func jobsCmd(args []string) error {
 	timeIt("pay interest (one transaction)", 1, func() error { return market.CreditInterest(ctx, q, rawDB, tomorrow) })
 
 	// A game email to every player, queued as notify.sendGameEmail does.
-	mailer, err := mail.New(q, mail.Log{}, mail.Config{BaseURL: "https://thewealthlab.au"})
+	mailer, err := mail.New(q, mail.Log{}, mail.Config{BaseURL: "https://investorproject.au"})
 	if err != nil {
 		return err
 	}

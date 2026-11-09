@@ -38,7 +38,7 @@ func (h *Handler) LLMsTxt(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Cache-Control", "public, max-age=3600")
 	site := siteURL(r)
-	fmt.Fprintf(w, `# The Wealth Lab
+	fmt.Fprintf(w, `# The Investor Project
 
 > A monthly share game with play money: $1,000,000 to invest in US-listed stocks, biggest portfolio wins. Players can let their own AI check their portfolio and trade for them.
 

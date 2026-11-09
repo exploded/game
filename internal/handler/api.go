@@ -31,7 +31,7 @@ func publicURL() string {
 	if base := strings.TrimRight(os.Getenv("BASE_URL"), "/"); base != "" {
 		return base
 	}
-	return "https://thewealthlab.au"
+	return "https://investorproject.au"
 }
 
 // money is an amount in cents, with its text: {"cents": 123456, "text":
@@ -139,7 +139,7 @@ func (h *Handler) apiGameInfo(ctx context.Context, user *db.User, game db.Game) 
 		USMarket:          usMarket(),
 		RulesURL:          fmt.Sprintf("%s/games/%d/rules", publicURL(), game.ID),
 		Notes: []string{
-			"The Wealth Lab is a practice share game with play money. Nothing here is financial advice.",
+			"The Investor Project is a practice share game with play money. Nothing here is financial advice.",
 			"The biggest portfolio (cash plus holdings) when the game ends wins.",
 			"Prices are delayed. While the US market is open they're refreshed every few minutes.",
 			"Stock splits are applied for you. Dividends are paid in cash on the ex-dividend date to whoever held the stock at that day's open; a short pays the dividend instead.",

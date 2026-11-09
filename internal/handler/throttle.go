@@ -91,9 +91,9 @@ func (t *Throttle) Middleware(next http.Handler) http.Handler {
 // template, so it costs nothing to send.
 const busyPage = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Busy - The Wealth Lab</title></head>
+<title>Busy - The Investor Project</title></head>
 <body style="font-family: system-ui, sans-serif; max-width: 32rem; margin: 15vh auto; padding: 0 16px; text-align: center; color: #1f2937; background: #fff">
-<h1 style="font-size: 1.5rem">The Wealth Lab is busy</h1>
+<h1 style="font-size: 1.5rem">The Investor Project is busy</h1>
 <p>Lots of players are on at once. Please try again in a minute.</p>
 <p><a href="/dashboard">Try again</a></p>
 </body></html>

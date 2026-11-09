@@ -26,7 +26,7 @@ OOB is set when the order ticket redraws it after a trade (_ticket.html). */}}
     <span><span class="game-bar-label">Cash</span> <span class="mono">{{cents .P.CashBalance}}</span></span>
     <span class="hide-sm"><span class="game-bar-label">Value</span> <span class="mono">{{cents .P.PortfolioValue}}</span></span>
     {{$pl := subtract .P.PortfolioValue .Game.StartingBalance}}
-    <span class="hide-sm"><span class="game-bar-label">P&amp;L</span> <span class="mono {{if gt $pl 0}}text-green{{else if lt $pl 0}}text-red{{end}}">{{cents $pl}}</span></span>
+    <span class="hide-sm game-bar-pl"><span class="game-bar-label">P&amp;L</span> <span class="mono {{if gt $pl 0}}text-green{{else if lt $pl 0}}text-red{{end}}">{{cents $pl}}</span></span>
 </a>
 {{end}}
 

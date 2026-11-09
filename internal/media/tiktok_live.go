@@ -73,7 +73,7 @@ func (t *tiktokLive) room(ctx context.Context, user string) (room tiktokRoom, st
 		return room, 0, err
 	}
 	// With no user agent TikTok sends back nothing.
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; TheWealthLab)")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; TheInvestorProject)")
 	req.Header.Set("Accept-Language", "en-AU,en;q=0.9")
 	resp, err := t.http.Do(req)
 	if err != nil {

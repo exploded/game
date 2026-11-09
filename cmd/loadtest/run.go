@@ -95,7 +95,7 @@ func runCmd(args []string) error {
 	out := fs.String("out", "", "also write every step's numbers here as JSON")
 	fs.Parse(args)
 
-	if u, err := url.Parse(*base); err != nil || strings.Contains(u.Host, "thewealthlab.au") {
+	if u, err := url.Parse(*base); err != nil || strings.Contains(u.Host, "investorproject.au") || strings.Contains(u.Host, "thewealthlab.au") {
 		return fmt.Errorf("-base %q: run against a test server, never production", *base)
 	}
 	var p Players

@@ -38,7 +38,7 @@ func Paragraphs(text string) []template.HTML {
 		}
 		escaped := html.EscapeString(para)
 		linked := urlRE.ReplaceAllStringFunc(escaped, func(u string) string {
-			return `<a href="` + u + `" style="color:#007994;" rel="nofollow noopener">` + u + `</a>`
+			return `<a href="` + u + `" style="color:#002664;" rel="nofollow noopener">` + u + `</a>`
 		})
 		out = append(out, template.HTML(strings.ReplaceAll(linked, "\n", "<br>")))
 	}

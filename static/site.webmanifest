@@ -1,6 +1,6 @@
 {
-  "name": "The Wealth Lab",
-  "short_name": "Wealth Lab",
+  "name": "The Investor Project",
+  "short_name": "Investor Project",
   "icons": [
     {
       "src": "/static/android-chrome-192x192.png",
@@ -13,7 +13,7 @@
       "type": "image/png"
     }
   ],
-  "theme_color": "#1a1a2e",
-  "background_color": "#1a1a2e",
+  "theme_color": "#0A0E17",
+  "background_color": "#0A0E17",
   "display": "standalone"
 }

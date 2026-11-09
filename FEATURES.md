@@ -1,6 +1,6 @@
-# The Wealth Lab features
+# The Investor Project features
 
-The Wealth Lab is Rob Goudie's investing community, run by Consortium Private
+The Investor Project is Rob Goudie's investing community, run by Consortium Private
 Wealth. It has a monthly share game, where players invest pretend money in real
 shares, and Learn, where Rob teaches through videos, live streams, questions
 and courses.

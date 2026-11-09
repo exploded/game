@@ -42,7 +42,7 @@ func TestThrottleRefusesOverTheCap(t *testing.T) {
 	if time.Since(begin) > 200*time.Millisecond {
 		t.Errorf("refusal took %s; with no backlog it should be at once", time.Since(begin))
 	}
-	if body := w.Body.String(); !strings.Contains(body, "The Wealth Lab is busy") || strings.Contains(body, "<script") {
+	if body := w.Body.String(); !strings.Contains(body, "The Investor Project is busy") || strings.Contains(body, "<script") {
 		t.Errorf("busy page: %q", body)
 	}
 

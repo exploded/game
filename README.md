@@ -1,4 +1,4 @@
-# The Wealth Lab
+# The Investor Project
 
 A fantasy stock market game at https://thewealthlab.au. Players join a game, get $1,000,000 of virtual cash, and trade real S&P 500 stocks at live prices during the US session (closing prices outside it). The leaderboard ranks players by portfolio value.
 
@@ -38,7 +38,7 @@ All settings come from `.env` (or the environment, which takes priority):
 | `BASE_URL` | Public URL, used for links in emails |
 | `SES_ACCESS_KEY_ID`, `SES_SECRET_ACCESS_KEY` | IAM user with `ses:SendRawEmail`. Without them, dev prints emails to the console and production keeps them queued. |
 | `SES_REGION` | Default `ap-southeast-2` |
-| `MAIL_FROM` | Sender, such as `The Wealth Lab <hello@thewealthlab.au>`. Must be an SES identity. |
+| `MAIL_FROM` | Sender, such as `The Investor Project <hello@thewealthlab.au>`. Must be an SES identity. |
 | `MAIL_REPLY_TO` | Reply-To on every email, such as `info@consortiumpw.com.au`, so replies reach Consortium |
 | `NEWS_SENDER` | Sender name and postal address for the newsletter footer. Newsletters can't be sent without it (Spam Act). |
 | `ADMIN_EMAIL` | Comma-separated emails that get the admin pages |

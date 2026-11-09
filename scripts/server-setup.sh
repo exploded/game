@@ -23,11 +23,11 @@ fi
 # Create .env file if it doesn't exist.
 if [ ! -f "$APP_DIR/.env" ]; then
     cat > "$APP_DIR/.env" <<'ENVEOF'
-BASE_URL=https://thewealthlab.au
+BASE_URL=https://investorproject.au
 SES_ACCESS_KEY_ID=
 SES_SECRET_ACCESS_KEY=
 SES_REGION=ap-southeast-2
-MAIL_FROM=The Wealth Lab <hello@thewealthlab.au>
+MAIL_FROM=The Investor Project <hello@investorproject.au>
 MAIL_REPLY_TO=info@consortiumpw.com.au
 NEWS_SENDER=
 ADMIN_EMAIL=
@@ -60,7 +60,7 @@ chmod +x /usr/local/bin/deploy-game
 # Create systemd service.
 cat > /etc/systemd/system/$SERVICE.service <<EOF
 [Unit]
-Description=StockGame Fantasy Market
+Description=The Investor Project
 After=network.target
 
 [Service]
@@ -114,12 +114,18 @@ echo ""
 echo "[note] Add this block to /etc/caddy/Caddyfile, then run: sudo systemctl reload caddy"
 cat <<'CADDY'
 
-thewealthlab.au {
+investorproject.au {
 	import access_log
 	reverse_proxy 127.0.0.1:8888 {
 		header_up X-Forwarded-For {client_ip}
 		import go_proxy
 	}
+}
+
+# The old name (until 9 November 2026), and www. 308 keeps the method, so old
+# sign-in, invite and API links still land.
+thewealthlab.au, www.investorproject.au {
+	redir https://investorproject.au{uri} 308
 }
 
 CADDY
@@ -131,4 +137,4 @@ echo "  1. Edit $APP_DIR/.env with your credentials (copy MONITOR_API_KEY from a
 echo "  2. Add the Caddy block above, then: sudo systemctl reload caddy"
 echo "  3. Make sure the GitHub repo has the DEPLOY_HOST, DEPLOY_USER, DEPLOY_PORT (2222)"
 echo "     and DEPLOY_SSH_KEY Actions secrets, then push to master to deploy"
-echo "  4. Point the monitor uptime check at https://thewealthlab.au/health"
+echo "  4. Point the monitor uptime check at https://investorproject.au/health"

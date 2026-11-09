@@ -1,5 +1,5 @@
 /* ============================================================
-   The Wealth Lab — FTX-inspired dark trading terminal theme
+   The Investor Project — FTX-inspired dark trading terminal theme
    Font: Inter | 13px base | 8px spacing grid
    ============================================================ */
 
@@ -122,6 +122,17 @@ html { scrollbar-gutter: stable; }
 a.game-bar-stats, a.game-bar-stats:hover { color: var(--color-text); }
 a.game-bar-stats:hover .game-bar-label { color: var(--color-text); }
 .game-bar-label { color: var(--color-text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 4px; }
+/* Tablets: the name, five links and three seven-figure amounts don't fit in
+   one row, and the bar scrolled sideways (worst on an iPad in portrait, 768
+   to 834 px). Keep the logo but drop the name, stack each label over its
+   amount as a phone does, and drop P&L below 1024 px. */
+@media (min-width: 769px) and (max-width: 1199px) {
+    .topbar:has(.game-bar-stats) .brand-name { display: none; }
+    .topbar:has(.game-bar-stats) .topbar-links { gap: 16px; }
+    .game-bar-stats > span { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25; }
+    .game-bar-label { margin: 0; font-size: 10px; }
+}
+@media (min-width: 769px) and (max-width: 1023px) { .game-bar-stats > .game-bar-pl { display: none; } }
 
 /* On a page of a game other than this month's: which game, and the way back. */
 .game-strip { background: var(--color-surface); border-bottom: 1px solid var(--color-border); font-size: 13px; }

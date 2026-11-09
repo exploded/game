@@ -16,13 +16,13 @@ import (
 // stateless, answering each POST with JSON, so nothing streams through the
 // compression middleware or Caddy.
 
-const mcpInstructions = `The Wealth Lab is a monthly share game with play money: each player starts the month with $1,000,000 to invest in US-listed stocks, and the biggest portfolio at the end of the month wins. These tools act for one player in this month's game.
+const mcpInstructions = `The Investor Project is a monthly share game with play money: each player starts the month with $1,000,000 to invest in US-listed stocks, and the biggest portfolio at the end of the month wins. These tools act for one player in this month's game.
 
 - Before place_order, call preview_order and show the player what it will cost, then place it only once they agree. Skip the confirmation only when the player has told you to trade without asking.
 - Find symbols with find_stocks. Amounts are given in cents with formatted text beside them; quantities are whole shares.
 - Prices are delayed. While the US market is closed, a market order either fills at the last close or waits for the open, as get_game says.
 - The player's AI can place a set number of orders a day (get_game gives ai_orders_left_today). Previews, cancels and refused orders don't count. Once none are left, tell the player rather than retrying.
-- This is a game, and nothing here is financial advice. Don't present your own suggestions as advice from The Wealth Lab.`
+- This is a game, and nothing here is financial advice. Don't present your own suggestions as advice from The Investor Project.`
 
 // mcpSchemas keeps the tools' JSON schemas, which a new server per request
 // would otherwise work out every time.
@@ -91,8 +91,8 @@ func (h *Handler) mcpServer(r *http.Request) *mcp.Server {
 	user := auth.UserFromContext(r.Context())
 	tok := auth.TokenFromContext(r.Context())
 	s := mcp.NewServer(&mcp.Implementation{
-		Name:       "the-wealth-lab",
-		Title:      "The Wealth Lab",
+		Name:       "the-investor-project",
+		Title:      "The Investor Project",
 		Version:    "1.0.0",
 		WebsiteURL: publicURL(),
 	}, &mcp.ServerOptions{Instructions: mcpInstructions, SchemaCache: mcpSchemas})

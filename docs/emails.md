@@ -1,6 +1,6 @@
 # Email plan
 
-Every email The Wealth Lab sends, why it sends it, and who can turn it off. All
+Every email The Investor Project sends, why it sends it, and who can turn it off. All
 email goes through Amazon SES.
 
 ## How sending works
@@ -11,7 +11,7 @@ email goes through Amazon SES.
   slow down a request. Sign-in emails wake the worker straight away, and
   account email goes ahead of everything else queued (`ListDueEmails`), so
   a sign-in link never waits behind a game email to every player.
-- **Sender.** `MAIL_FROM` (`The Wealth Lab <hello@thewealthlab.au>`).
+- **Sender.** `MAIL_FROM` (`The Investor Project <hello@thewealthlab.au>`).
   `thewealthlab.au` is an SES identity. Every email sets `Reply-To` to
   `MAIL_REPLY_TO` (`info@consortiumpw.com.au`) so replies reach Consortium.
   Mail sent straight to an `@thewealthlab.au` address goes to Fastmail.

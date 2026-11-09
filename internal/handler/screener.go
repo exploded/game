@@ -323,7 +323,7 @@ func biggerCap(a, b screenRow) bool { return a.MarketCap > b.MarketCap }
 
 // screenFilters are the chips, in order: lists, then tests of a company's
 // financials (from firstFinFilter). Financial labels say what the test is,
-// not what to make of it: The Wealth Lab mustn't read as advice.
+// not what to make of it: The Investor Project mustn't read as advice.
 var screenFilters = []screenFilter{
 	{
 		// Rows are marked with the player's watchlist first (screen).

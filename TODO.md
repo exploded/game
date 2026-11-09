@@ -40,7 +40,7 @@ Built on 2026-10-29, merged into `master` and deployed on 2026-10-30.
 - [x] **Newsletter details from Rob (2026-10-30)** are in the server `.env`:
   `NEWS_SENDER="Consortium Private Wealth, 24A Darlot Street, Horsham VIC 3400"`
   and `MAIL_REPLY_TO=info@consortiumpw.com.au` (was `NEWS_REPLY_TO`), and
-  `MAIL_FROM=The Wealth Lab <hello@thewealthlab.au>`.
+  `MAIL_FROM=The Investor Project <hello@thewealthlab.au>`.
 - [x] **Landing page team photo.** On the sign-in page: beside the form on a
   wide screen, under it on a phone (`static/img/team.jpg`, 2026-10-30).
 - [ ] **Weekly summary and "we miss you" emails** (D1 and N2 in
@@ -270,7 +270,7 @@ numbers, limits and how to measure again are in `docs/capacity.md`.
   so the link goes to a public page, `/share/{token}` (random per player per
   game, and the player can turn it off). The page shows the player's first
   name, the month, their rank and return since the start in percent, and a
-  **Play The Wealth Lab** button to sign up. A 1200 × 630 preview image drawn
+  **Play The Investor Project** button to sign up. A 1200 × 630 preview image drawn
   in Go makes the post show as a card. About a day's work. For Rob to decide:
   - **No dollar amounts**, so a post doesn't read like "$1,120,000" of real
     money. Optionally the symbols of the three biggest holdings, no amounts.

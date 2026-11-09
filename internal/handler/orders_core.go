@@ -76,7 +76,7 @@ func (h *Handler) PlaceOrder(ctx context.Context, o Order) (OrderResult, error) 
 		return OrderResult{}, refuse("Game is not active")
 	}
 	if o.Source != "" && game.AiTrading == 0 {
-		return OrderResult{}, refuse("AI trading is turned off in this game. Trade on thewealthlab.au instead.")
+		return OrderResult{}, refuse("AI trading is turned off in this game. Trade on investorproject.au instead.")
 	}
 	stock, err := h.q.GetStock(ctx, o.StockID)
 	if err != nil {

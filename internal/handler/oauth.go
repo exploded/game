@@ -49,7 +49,7 @@ func ResourceMetadataURL(r *http.Request) string {
 func (h *Handler) OAuthProtectedResource(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"resource":                 mcpResource(r),
-		"resource_name":            "The Wealth Lab",
+		"resource_name":            "The Investor Project",
 		"authorization_servers":    []string{siteURL(r)},
 		"scopes_supported":         oauthScopes,
 		"bearer_methods_supported": []string{"header"},
@@ -200,7 +200,7 @@ type authRequest struct {
 func (h *Handler) parseAuthRequest(r *http.Request, v url.Values) (ar authRequest, redirect, errCode, errDesc string) {
 	client, err := h.q.GetOAuthClient(r.Context(), v.Get("client_id"))
 	if err != nil {
-		return ar, "", "", "This app isn't registered with The Wealth Lab. Try connecting again from the app."
+		return ar, "", "", "This app isn't registered with The Investor Project. Try connecting again from the app."
 	}
 	var registered []string
 	_ = json.Unmarshal([]byte(client.RedirectUris), &registered)

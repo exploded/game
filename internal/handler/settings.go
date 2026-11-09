@@ -95,7 +95,7 @@ func (h *Handler) ExportPersonalData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="wealth-lab-data-%d.json"`, user.ID))
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="investor-project-data-%d.json"`, user.ID))
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	enc.Encode(data)

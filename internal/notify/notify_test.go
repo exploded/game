@@ -105,7 +105,7 @@ func TestNotificationsAreBatchedByCategory(t *testing.T) {
 		t.Fatalf("queued %d emails, want 2 (one per user): %+v", len(got), got)
 	}
 	alice := got[0]
-	if alice.to != "a@x.com" || alice.subject != "2 updates from The Wealth Lab" ||
+	if alice.to != "a@x.com" || alice.subject != "2 updates from The Investor Project" ||
 		!strings.Contains(alice.text, "AAPL") || !strings.Contains(alice.text, "MSFT") ||
 		!strings.Contains(alice.text, "https://game.example/games/1") {
 		t.Errorf("Alice's email = %+v", alice)

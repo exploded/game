@@ -1,13 +1,13 @@
-# The Wealth Lab API for AI agents
+# The Investor Project API for AI agents
 
-The Wealth Lab ({{.Site}}) is a monthly share game with play money. Each
+The Investor Project ({{.Site}}) is a monthly share game with play money. Each
 player starts the month with $1,000,000 to invest in US-listed stocks: the
 S&P 500, plus some Australian and overseas companies and Bitcoin funds
 listed in the US. The biggest portfolio (cash plus holdings) at the end of
 the month wins. This API lets you act for one player in this month's game.
 
 This is a game, and nothing here is financial advice. Don't present your own
-suggestions as advice from The Wealth Lab.
+suggestions as advice from The Investor Project.
 
 ## Rules for agents
 
@@ -36,10 +36,10 @@ suggestions as advice from The Wealth Lab.
 Send the player's API key in a header on every request:
 
 ```
-Authorization: Bearer $WEALTHLAB_API_KEY
+Authorization: Bearer $INVESTOR_PROJECT_API_KEY
 ```
 
-Read the key from the `WEALTHLAB_API_KEY` environment variable. Never put it
+Read the key from the `INVESTOR_PROJECT_API_KEY` environment variable. Never put it
 in a URL, a file you share, or your reply. Players make keys at
 {{.Site}}/settings/api. A read-only key can use everything except placing
 and cancelling orders (a `403`).
@@ -82,7 +82,7 @@ score 4 or 5). The response's `filters` list has each one's label.
 
 ```
 POST /api/v1/orders
-Authorization: Bearer $WEALTHLAB_API_KEY
+Authorization: Bearer $INVESTOR_PROJECT_API_KEY
 Content-Type: application/json
 Idempotency-Key: 6f1c2b0e-8a7d-4f0e-9a51-0c2d9a7e3b11
 

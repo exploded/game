@@ -563,7 +563,7 @@ func TestOAuthConnect(t *testing.T) {
 		t.Errorf("signed out: %d to %q", w.Code, w.Header().Get("Location"))
 	}
 	w = callAPI(srv, "GET", "/oauth/authorize?"+query, "", "", "X-User", "1")
-	if w.Code != 200 || !strings.Contains(w.Body.String(), "Connect Claude to The Wealth Lab?") || !strings.Contains(w.Body.String(), "claude.ai") {
+	if w.Code != 200 || !strings.Contains(w.Body.String(), "Connect Claude to The Investor Project?") || !strings.Contains(w.Body.String(), "claude.ai") {
 		t.Fatalf("consent page: %d", w.Code)
 	}
 	if csp := w.Header().Get("Content-Security-Policy"); csp != "" && !strings.Contains(csp, "form-action 'self' https://claude.ai") {

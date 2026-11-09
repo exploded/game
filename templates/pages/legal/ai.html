@@ -7,7 +7,7 @@
 
 <div class="legal-content">
     <p>You can let your own AI assistant check your portfolio and trade for you in this month's game: Claude, ChatGPT, or an agent you run yourself. Ask it once (&ldquo;buy 20 Nvidia&rdquo;) or give it a standing job (&ldquo;every weekday morning, check my portfolio&rdquo;).</p>
-    <p><strong>Your AI chooses the trades, not The Wealth Lab.</strong> It's still a game with play money, and nothing your AI or The Wealth Lab tells you is financial advice. Trades your AI places count like any others, and players who use one get a &#129302; beside their name on the leaderboard.</p>
+    <p><strong>Your AI chooses the trades, not The Investor Project.</strong> It's still a game with play money, and nothing your AI or The Investor Project tells you is financial advice. Trades your AI places count like any others, and players who use one get a &#129302; beside their name on the leaderboard.</p>
     <p>{{if .User}}<a href="/settings/api" class="btn btn-primary btn-sm">Connect your AI</a>{{else}}<a href="/login?next=%2Fsettings%2Fapi" class="btn btn-primary btn-sm">Sign in to connect your AI</a>{{end}}</p>
 
     <div class="faq-section">
@@ -15,12 +15,12 @@
 
         <details class="faq-item" open>
             <summary>Claude or ChatGPT app</summary>
-            <p>Add The Wealth Lab as a connector, once. There's nothing to paste into the chat.</p>
+            <p>Add The Investor Project as a connector, once. There's nothing to paste into the chat.</p>
             <ol class="ai-steps">
                 <li><strong>Claude:</strong> Settings &rarr; Connectors &rarr; Add custom connector.</li>
                 <li><strong>ChatGPT:</strong> Settings &rarr; Apps &amp; Connectors &rarr; Create. ChatGPT may ask you to turn on developer mode first.</li>
                 <li>Paste <code>{{.Extra.MCPURL}}</code> as the address.</li>
-                <li>Sign in to The Wealth Lab when asked, and choose whether it can trade or only look.</li>
+                <li>Sign in to The Investor Project when asked, and choose whether it can trade or only look.</li>
             </ol>
             <p>Connectors, and how they're named in settings, depend on your plan and change from time to time. Check Claude's or ChatGPT's help if the steps don't match.</p>
         </details>
@@ -28,7 +28,7 @@
         <details class="faq-item">
             <summary>Claude Code, Codex or your own agent</summary>
             <p>Make an API key on <a href="/settings/api">Connect your AI</a>. The page shows a prompt to paste into your agent, which points it at <a href="/agents.md">{{.Extra.Site}}/agents.md</a>: the instructions it needs. Keep the key in an environment variable rather than pasting it into a chat.</p>
-            <p>Claude Code can also add The Wealth Lab as a connector with the key. The page shows the command.</p>
+            <p>Claude Code can also add The Investor Project as a connector with the key. The page shows the command.</p>
         </details>
 
         <details class="faq-item">
@@ -43,7 +43,7 @@
         <details class="faq-item" open>
             <summary>Once</summary>
             <ul class="ai-steps">
-                <li>&ldquo;What's in my Wealth Lab portfolio, and how did it do today?&rdquo;</li>
+                <li>&ldquo;What's in my Investor Project portfolio, and how did it do today?&rdquo;</li>
                 <li>&ldquo;Buy about $10,000 of the cheapest Mag 7 stock. Show me first.&rdquo;</li>
                 <li>&ldquo;Sell all my Tesla.&rdquo;</li>
                 <li>&ldquo;Put in a limit order to buy 50 AMD if it drops to $140.&rdquo;</li>
@@ -57,8 +57,8 @@
             <summary>On a schedule</summary>
             <p>Most AI apps can run a task on a schedule, such as Claude's scheduled tasks or a cron job for your own agent. For example:</p>
             <ul class="ai-steps">
-                <li>&ldquo;Every weekday at 9 am, check my Wealth Lab portfolio and tell me what moved.&rdquo;</li>
-                <li>&ldquo;Every Monday, sell anything in my Wealth Lab portfolio that's down more than 10% since I bought it. Don't ask me first.&rdquo;</li>
+                <li>&ldquo;Every weekday at 9 am, check my Investor Project portfolio and tell me what moved.&rdquo;</li>
+                <li>&ldquo;Every Monday, sell anything in my Investor Project portfolio that's down more than 10% since I bought it. Don't ask me first.&rdquo;</li>
             </ul>
             <p>A scheduled task can trade without asking only if you tell it to, and only with a connection that's allowed to trade.</p>
         </details>

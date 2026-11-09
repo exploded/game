@@ -5,9 +5,9 @@ game's cash, the bell and the account menu. .Nav is set by render
 {{define "nav"}}
 <header class="topbar">
     <div class="container topbar-inner">
-        <a href="{{with .Nav}}{{.Home}}{{else}}/{{end}}" class="brand" aria-label="The Wealth Lab: home">
+        <a href="{{with .Nav}}{{.Home}}{{else}}/{{end}}" class="brand" aria-label="The Investor Project: home">
             <img src="{{asset "favicon.svg"}}" alt="" width="26" height="26" class="brand-mark">
-            <span class="brand-name">The Wealth Lab</span>
+            <span class="brand-name">The Investor Project</span>
         </a>
         {{with .Nav}}
         <nav class="topbar-links" aria-label="Main">{{template "nav-sections" .}}</nav>

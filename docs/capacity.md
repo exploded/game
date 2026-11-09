@@ -176,7 +176,7 @@ the knee. The single database connection is the bottleneck.
 `handler.Throttle` (`internal/handler/throttle.go`) works on at most **8
 requests at once**. Up to **64 more wait**, each for up to **3 seconds**.
 Past that, a request gets a 503 with `Retry-After: 30` straight away: a page
-load shows a small "The Wealth Lab is busy" page, and an htmx request shows a
+load shows a small "The Investor Project is busy" page, and an htmx request shows a
 toast. Each request that gets a place has a **50-second deadline**, under the
 server's 60-second `WriteTimeout`, so one stuck waiting for the database
 gives up its place. Refusals log a warning at most once a minute, so they

@@ -29,7 +29,7 @@ func NewNews() *News {
 // and the start of the summary say what a story is about.
 const newsSummaryChars = 300
 
-const newsSystem = "You choose news stories for a company's page on The Wealth Lab, an Australian site " +
+const newsSystem = "You choose news stories for a company's page on The Investor Project, an Australian site " +
 	"run by Consortium Private Wealth, a licensed financial adviser. Players of a fantasy share game " +
 	"read the page to learn what's happening at the company.\n\n" +
 	"Keep a story only if the company is a main subject of it and a shareholder would want to know " +

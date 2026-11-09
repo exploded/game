@@ -72,7 +72,7 @@ func (h *Handler) homeExtra(ctx context.Context, extra map[string]any) map[strin
 }
 
 // Home is the site root. A signed-in user goes to the dashboard; anyone else
-// gets the sign-in page here, so the address stays thewealthlab.au.
+// gets the sign-in page here, so the address stays the bare domain.
 func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 	if auth.UserFromContext(r.Context()) != nil {
 		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
@@ -214,7 +214,7 @@ func (h *Handler) LoginCode(w http.ResponseWriter, r *http.Request) {
 		}
 		h.render(w, r, "auth/check", "", PageData{
 			Title:  "Check your email",
-			Errors: map[string]string{"code": "That code isn't right. Check the newest email from The Wealth Lab."},
+			Errors: map[string]string{"code": "That code isn't right. Check the newest email from The Investor Project."},
 			Extra:  map[string]any{"Email": req.Email},
 		})
 		return
@@ -322,7 +322,7 @@ func (h *Handler) WelcomeSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	adult := r.FormValue("adult") != ""
 	if !adult {
-		errs["adult"] = "You must be 18 or older to use The Wealth Lab."
+		errs["adult"] = "You must be 18 or older to use The Investor Project."
 	}
 	if len(errs) > 0 {
 		h.render(w, r, "auth/welcome", "", PageData{

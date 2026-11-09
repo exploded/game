@@ -1,0 +1,38 @@
+[
+  {
+    "file": "favicon-16x16.png",
+    "size": 16,
+    "svg": "tile-small-rounded.svg",
+    "x": 0
+  },
+  {
+    "file": "favicon-32x32.png",
+    "size": 32,
+    "svg": "tile-small-rounded.svg",
+    "x": 24
+  },
+  {
+    "file": "favicon-48x48.png",
+    "size": 48,
+    "svg": "tile-rounded.svg",
+    "x": 64
+  },
+  {
+    "file": "apple-touch-icon.png",
+    "size": 180,
+    "svg": "tile-square.svg",
+    "x": 120
+  },
+  {
+    "file": "android-chrome-192x192.png",
+    "size": 192,
+    "svg": "tile-square.svg",
+    "x": 308
+  },
+  {
+    "file": "android-chrome-512x512.png",
+    "size": 512,
+    "svg": "tile-square.svg",
+    "x": 508
+  }
+]

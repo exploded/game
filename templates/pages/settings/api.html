@@ -6,7 +6,7 @@
     <a href="/settings" class="btn btn-sm">&larr; Settings</a>
 </div>
 
-<p style="margin-bottom:16px">Let Claude, ChatGPT or your own AI agent check your portfolio and trade for you in this month's game. Your AI chooses the trades, not The Wealth Lab. <a href="/ai">How it works and example prompts</a></p>
+<p style="margin-bottom:16px">Let Claude, ChatGPT or your own AI agent check your portfolio and trade for you in this month's game. Your AI chooses the trades, not The Investor Project. <a href="/ai">How it works and example prompts</a></p>
 
 {{with .Extra.NewKey}}
 <div class="settings-card key-new">
@@ -16,28 +16,28 @@
 
     <p><strong>Save it where your agent can read it</strong>, rather than pasting it into a chat.</p>
     <p class="text-muted">Windows (PowerShell), then open a new terminal:</p>
-    <div class="copy-box"><pre id="key-setx">setx WEALTHLAB_API_KEY "{{.}}"</pre><button type="button" class="btn btn-sm" data-copy="key-setx">Copy</button></div>
+    <div class="copy-box"><pre id="key-setx">setx INVESTOR_PROJECT_API_KEY "{{.}}"</pre><button type="button" class="btn btn-sm" data-copy="key-setx">Copy</button></div>
     <p class="text-muted">Mac or Linux (add it to ~/.zshrc or ~/.bashrc to keep it):</p>
-    <div class="copy-box"><pre id="key-export">export WEALTHLAB_API_KEY="{{.}}"</pre><button type="button" class="btn btn-sm" data-copy="key-export">Copy</button></div>
+    <div class="copy-box"><pre id="key-export">export INVESTOR_PROJECT_API_KEY="{{.}}"</pre><button type="button" class="btn btn-sm" data-copy="key-export">Copy</button></div>
 
     <p><strong>Then paste this into your agent:</strong></p>
-    <div class="copy-box"><pre id="agent-prompt">Read {{$.Extra.Site}}/agents.md and use The Wealth Lab API to manage my share game portfolio. My API key is in the WEALTHLAB_API_KEY environment variable.</pre><button type="button" class="btn btn-sm" data-copy="agent-prompt">Copy</button></div>
+    <div class="copy-box"><pre id="agent-prompt">Read {{$.Extra.Site}}/agents.md and use The Investor Project API to manage my share game portfolio. My API key is in the INVESTOR_PROJECT_API_KEY environment variable.</pre><button type="button" class="btn btn-sm" data-copy="agent-prompt">Copy</button></div>
 
     <p><strong>Or add it to Claude Code</strong> as a connector, in a terminal:</p>
-    <div class="copy-box"><pre id="claude-code">claude mcp add --transport http wealthlab {{$.Extra.MCPURL}} --header "Authorization: Bearer {{.}}"</pre><button type="button" class="btn btn-sm" data-copy="claude-code">Copy</button></div>
+    <div class="copy-box"><pre id="claude-code">claude mcp add --transport http investor-project {{$.Extra.MCPURL}} --header "Authorization: Bearer {{.}}"</pre><button type="button" class="btn btn-sm" data-copy="claude-code">Copy</button></div>
 </div>
 {{end}}
 
 <div class="settings-card">
     <h2>Claude or ChatGPT app</h2>
-    <p>Nothing to paste into the chat. Add The Wealth Lab as a connector once:</p>
+    <p>Nothing to paste into the chat. Add The Investor Project as a connector once:</p>
     <ol class="ai-steps">
         <li><strong>Claude:</strong> Settings &rarr; Connectors &rarr; Add custom connector.</li>
         <li><strong>ChatGPT:</strong> Settings &rarr; Apps &amp; Connectors &rarr; Create (developer mode).</li>
-        <li>Paste this address, then sign in to The Wealth Lab when asked:</li>
+        <li>Paste this address, then sign in to The Investor Project when asked:</li>
     </ol>
     <div class="copy-box"><pre id="mcp-url">{{.Extra.MCPURL}}</pre><button type="button" class="btn btn-sm" data-copy="mcp-url">Copy</button></div>
-    <p class="text-muted">Then ask it things like &ldquo;What's in my Wealth Lab portfolio?&rdquo; or &ldquo;Buy 20 Nvidia&rdquo;. It shows you each order before placing it.</p>
+    <p class="text-muted">Then ask it things like &ldquo;What's in my Investor Project portfolio?&rdquo; or &ldquo;Buy 20 Nvidia&rdquo;. It shows you each order before placing it.</p>
 </div>
 
 <div class="settings-card">

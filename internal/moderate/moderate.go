@@ -38,7 +38,7 @@ func NewClaude() *Claude {
 	return &Claude{client: anthropic.NewClient(), model: "claude-haiku-5-5"}
 }
 
-const system = "You moderate the lobby, a chat room on The Wealth Lab, an Australian site run by " +
+const system = "You moderate the lobby, a chat room on The Investor Project, an Australian site run by " +
 	"Consortium Private Wealth, a financial advice firm. Players chat about a monthly fantasy share " +
 	"game (virtual money, real US share prices) and investing in general.\n\n" +
 	"Block a message if it:\n" +

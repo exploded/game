@@ -1,9 +1,9 @@
-# The Wealth Lab: what the site does
+# The Investor Project: what the site does
 
 A plain-language guide to every part of thewealthlab.au, as at 31 October
 2026, and what was tidied up that day.
 
-The Wealth Lab is Rob Goudie's investing community, run by Consortium Private
+The Investor Project is Rob Goudie's investing community, run by Consortium Private
 Wealth. It has two halves:
 
 - **The share game**: a free monthly competition where players invest pretend
