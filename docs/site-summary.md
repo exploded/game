@@ -276,7 +276,8 @@ has four tabs, which also show on the course pages:
 - **Courses**: Rob's ten video courses recorded in February 2026 (estate
   planning, a first home deposit, paying off a home loan, investing for
   children, investor psychology, shares or property, super, common mistakes,
-  compounding and share market basics). Anyone can see what's in a course;
+  compounding and share market basics), plus How to Invest for the Long Term,
+  his ten-part investment presentation. Anyone can see what's in a course;
   watching a lesson needs a free account. Members tick off lessons as they go,
   see their progress, and carry on where they left off. The videos stay in
   Consortium's Vimeo account and play on the site.
@@ -417,8 +418,8 @@ folded into others:
   them), and that a short pays them.
 - **Anne to say which "Building Your First Home Deposit" folder is current**:
   Vimeo has two, from December 2025 and February 2026.
-- **Rob to say whether the "Investment Presentation" belongs on the site.** It's
-  in his course sheet, but it looks like Consortium's sales presentation.
+- **Rob to check the wording of How to Invest for the Long Term**, written
+  from his investment presentation page.
 - **Rob to delete two unused YouTube live streams.** YouTube still lists them
   as upcoming, though neither ever ran: "Investor Motivation Live Stream" (set
   up 8 January 2026 with no start time,

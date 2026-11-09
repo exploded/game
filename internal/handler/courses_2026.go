@@ -224,6 +224,33 @@ In this course, you''ll learn about:
 By the end of this course, you''ll have a better understanding of how share markets work and why successful investing is often more about patience, discipline and behaviour than trying to predict what the market will do next.',
 		'market', 10)`
 
+// importInvestmentCourse adds Rob's ten-part investment presentation
+// (recorded September 2025, on consortiumpw.com.au/investment-presentation)
+// as an eleventh course, a draft with its Vimeo folder. Its summary is
+// written from that page and the videos' titles, without the page's reviews,
+// booking button and newsletter box.
+const importInvestmentCourse = `INSERT OR IGNORE INTO courses (slug, title, summary, art, sort_order, vimeo_folder) VALUES
+	('how-to-invest-for-the-long-term', 'How to Invest for the Long Term',
+		'Investing is about creating choices for your life, both now and in retirement. In this ten-part series, Rob Goudie (CFP, SMSF Specialist, with more than 27 years advising investors, business owners and SMSF trustees) cuts through the noise on the big questions every investor faces: how much risk to take, where long-term returns come from, and how to stay calm when markets fall.
+
+Rob explains why the real danger in retirement is running out of money, why the growing profits of businesses have driven returns over time, and why your mindset matters more than your cash when markets crash. He also compares small and large companies, direct shares and managed funds, and shares and property, and looks at dividends, negative gearing and super.
+
+In this course, you''ll learn about:
+
+☑️ Why investing creates choices for your future
+☑️ Financial risks and asset allocation
+☑️ Why businesses and shares have outperformed over time
+☑️ Investor psychology and market volatility
+☑️ Small companies and large companies
+☑️ Dividends, yields and investing globally
+☑️ Investing directly or through managed funds
+☑️ Negative gearing and superannuation
+☑️ How property is valued
+☑️ Projections, peace of mind and the key points to remember
+
+Investing is about creating freedom through knowledge, and the confidence to protect your future.',
+		'compass', 11, 'https://vimeo.com/user/8765158/folder/26617132')`
+
 // courses2026VimeoFolders records each course's Vimeo folder (Consortium's
 // account). First Home Deposit uses the February 2026 folder; an older one
 // from December 2025 is also on Vimeo.

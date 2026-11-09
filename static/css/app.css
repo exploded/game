@@ -1851,6 +1851,7 @@ dialog.confirm form { padding: 20px; }
 /* Course cards: the cover, then title, length and progress. */
 .course-tile-generic { --tile: #00B4C9; }
 .course-tile-market { --tile: #10B981; }
+.course-tile-compass { --tile: #F97316; }
 .course-tile-snowball { --tile: #14B8A6; }
 .course-tile-warning { --tile: #F59E0B; }
 .course-tile-brain { --tile: #A78BFA; }

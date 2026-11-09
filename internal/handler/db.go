@@ -427,6 +427,8 @@ var seedMigrations = []struct{ name, stmt string }{
 	{"import-2026-courses", import2026Courses},
 	// Each 2026 course's Vimeo folder, so Fill from Vimeo opens filled in.
 	{"courses-2026-vimeo-folders", courses2026VimeoFolders},
+	// Rob's investment presentation, as an eleventh course.
+	{"import-investment-course", importInvestmentCourse},
 }
 
 // RunSeedMigrations applies seedMigrations. Call it after market.SeedStocks.

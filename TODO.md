@@ -41,14 +41,16 @@ Built on 2026-10-29, merged into `master` and deployed on 2026-10-30.
   course folder's videos to embed only on investorproject.au (and
   consortiumpw.com.au if they're used there too). Do it after a lesson has
   played on prod; localhost won't play them afterwards.
-- [ ] **Fill and publish the ten courses** on prod: put `VIMEO_TOKEN` in the
+- [ ] **Fill and publish the eleven courses** on prod: put `VIMEO_TOKEN` in the
   server `.env`, use Fill from Vimeo on each, play a lesson of each on a
   phone, publish (no email, or one), then unpublish the 7 old CPW courses
   (the 2018 super ones quote 9.5% super; it's 12% now).
 - [ ] **From Anne:** which "Building Your First Home Deposit" Vimeo folder is
   current (December 2025, 7 videos, or February 2026, 6)?
-- [ ] **From Rob:** does the "Investment Presentation" in his sheet belong on
-  the site? It looks like Consortium's sales presentation, so it's left out.
+- [x] **Rob's investment presentation** (2026-11-09): James confirmed it
+  belongs. Seeded as the draft "How to Invest for the Long Term" (folder
+  26617132, 10 parts, 67 min), with a summary written from
+  consortiumpw.com.au/investment-presentation. Rob to check the wording.
 - [x] **Review the whole game for improvements.** Findings are in the next
   section.
 - [x] **Go live.** SES keys and `MAIL_FROM` are in the server `.env`, and

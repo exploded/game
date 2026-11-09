@@ -375,8 +375,9 @@ func TestFillCourseFromVimeo(t *testing.T) {
 	}
 }
 
-// TestCourses2026Imported checks Rob's ten 2026 courses arrive as drafts,
-// each with a cover and a "what you'll learn" list, once.
+// TestCourses2026Imported checks Rob's 2026 courses and his investment
+// presentation arrive as drafts, each with a cover, a "what you'll learn"
+// list and its Vimeo folder, once.
 func TestCourses2026Imported(t *testing.T) {
 	d := openTestDB(t)
 	for range 2 {
@@ -405,7 +406,7 @@ func TestCourses2026Imported(t *testing.T) {
 			t.Errorf("%s: published %d, art %q, %d intro paragraphs, %d list items", slug, published, art, len(o.Intro), len(o.Learn))
 		}
 	}
-	if n != 10 {
-		t.Errorf("%d courses with covers, want 10", n)
+	if n != 11 {
+		t.Errorf("%d courses with covers, want 11", n)
 	}
 }

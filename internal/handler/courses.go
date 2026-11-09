@@ -225,6 +225,7 @@ func courseOutline(summary string) outline {
 // (course-art in partials/_learnart.html). "" is the generic one.
 var courseArts = []struct{ Key, Name string }{
 	{"", "Generic (play button)"},
+	{"compass", "How to invest (compass)"},
 	{"market", "Share market (candles)"},
 	{"snowball", "Compounding (growing bars)"},
 	{"warning", "Mistakes (warning sign)"},
