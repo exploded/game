@@ -15,6 +15,11 @@ func RequestLogger(next http.Handler) http.Handler {
 		start := time.Now()
 		sw := &statusWriter{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(sw, r)
+		// Every open tab checks /live/banner once a minute; logging each
+		// check would bury the requests worth reading.
+		if r.URL.Path == "/live/banner" && sw.status < 400 {
+			return
+		}
 		slog.Info("request",
 			"method", r.Method,
 			"path", r.URL.Path,

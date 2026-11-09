@@ -13,6 +13,19 @@
 
         {{if .User}}
         {{template "player" (dict "Embed" .Item.EmbedUrl "Thumb" $thumb "Title" .Item.Title "Art" $c.Art)}}
+        {{/* Shown over the player when the video ends (app.js), in place of
+             Vimeo's "More from ..." end screen, which lists other videos. */}}
+        <template id="lesson-end">
+            <div class="lesson-locked-text lesson-end">
+                {{with index .Extra "Next"}}<strong>Up next: {{.Title}}</strong>{{else}}<strong>That's the last lesson</strong>{{end}}
+                <span class="lesson-end-actions">
+                    {{if not .Item.Completed}}<button type="submit" form="lesson-done" class="btn btn-primary">{{if index .Extra "Next"}}Mark done, next lesson{{else}}Mark done and finish{{end}}</button>
+                    {{else}}{{with index .Extra "Next"}}<a href="/learn/courses/{{$c.Slug}}/{{.ID}}?play=1" class="btn btn-primary">Next lesson &rarr;</a>
+                    {{else}}<a href="/learn/courses/{{$c.Slug}}" class="btn btn-primary">Back to the course</a>{{end}}{{end}}
+                    <button type="button" class="btn btn-secondary" data-lesson-replay>Watch again</button>
+                </span>
+            </div>
+        </template>
         {{else}}
         <div class="player lesson-locked">
             {{with $thumb}}<img src="{{.}}" alt="">{{else}}{{with $c.Art}}<span class="player-art course-tile-{{.}}">{{template "course-art" .}}</span>{{end}}{{end}}
@@ -29,7 +42,7 @@
         <div class="lesson-nav">
             <div>{{with index .Extra "Prev"}}<a href="/learn/courses/{{$c.Slug}}/{{.ID}}?play=1" class="btn btn-sm btn-secondary" title="{{.Title}}">&larr; Previous</a>{{end}}</div>
             {{if .User}}
-            <form method="POST" action="/learn/courses/{{$c.Slug}}/{{.Item.ID}}/complete">
+            <form method="POST" action="/learn/courses/{{$c.Slug}}/{{.Item.ID}}/complete" id="lesson-done">
                 {{if .Item.Completed}}
                 <input type="hidden" name="done" value="0">
                 <button type="submit" class="btn btn-sm btn-secondary">&#10003; Done (undo)</button>

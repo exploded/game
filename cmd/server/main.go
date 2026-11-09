@@ -230,6 +230,11 @@ func main() {
 	// Health check for the uptime monitor, outside the auth groups.
 	r.Get("/health", h.Health)
 
+	// The "Rob is live" banner, which every open page checks once a minute
+	// (app.js). Public and outside the session groups, so a check costs no
+	// session lookup.
+	r.Get("/live/banner", h.LiveBanner)
+
 	// For search engines.
 	r.Get("/robots.txt", h.Robots)
 	r.Get("/sitemap.xml", h.Sitemap)

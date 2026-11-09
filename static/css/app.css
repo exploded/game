@@ -1980,6 +1980,8 @@ span.lesson-thumb { display: block; overflow: hidden; }
 }
 .lesson-locked-text strong { font-size: 18px; }
 .lesson-locked-text span { color: #C9CCD6; max-width: 26em; }
+.lesson-end { background: rgba(10, 14, 23, 0.94); }
+.lesson-end-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 
 @media (min-width: 768px) {
     .course-row { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); overflow: visible; }

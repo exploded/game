@@ -1,0 +1,9 @@
+{{/* The site-wide "Rob is live" banner. . is the stream on air (a
+db.LiveEvent). base.html draws it with the page, and /live/banner
+(livebanner.go) sends it on its own so app.js can show or hide it without a
+reload. */}}
+{{define "live-banner"}}<a href="/learn/live/{{.ID}}" class="live-banner">
+    <span class="live-dot" aria-hidden="true"></span>
+    <span class="live-banner-text"><strong>Rob is live</strong> on {{platform .Platform}}: {{.Title}}</span>
+    <span class="live-banner-cta">Watch &rarr;</span>
+</a>{{end}}

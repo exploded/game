@@ -31,6 +31,7 @@ type Handler struct {
 	moderator  moderate.Checker // checks lobby messages; nil without ANTHROPIC_API_KEY
 	vimeo      *vimeo.Client    // fills courses from Vimeo folders; nil without VIMEO_TOKEN
 	screener   screenCache      // the stocks page's rows (screener.go)
+	liveCache  liveBannerCache  // /live/banner's answer (livebanner.go)
 
 	apiLimiter *RateLimiter // each player's API and MCP requests a minute; nil for no limit
 }

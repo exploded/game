@@ -276,6 +276,44 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 
+// data-live-poll on #live-slot (base.html): show or hide the "Rob is live"
+// banner without a reload. The page asks once a minute, plus up to 10
+// seconds' jitter so tabs opened together (after a deploy, an email) spread
+// out, and only while the tab is on screen: a hidden tab stops asking, and
+// asks straight away when it comes back if a minute has gone by. The server
+// answers from memory, and an unchanged banner is a 304 with no body.
+// Failures (a 503 when the site is busy, no signal) back off to 10 minutes.
+document.addEventListener("DOMContentLoaded", function() {
+    const slot = document.querySelector("[data-live-poll]");
+    if (!slot) return;
+    const url = slot.getAttribute("data-live-poll");
+    const every = 60000;
+    let etag = "", last = Date.now(), wait = every, timer = 0;
+    function schedule() {
+        clearTimeout(timer);
+        if (!document.hidden) timer = setTimeout(check, wait + Math.random() * 10000);
+    }
+    function check() {
+        last = Date.now();
+        fetch(url, { headers: etag ? { "If-None-Match": etag } : {}, credentials: "omit" })
+            .then(function(res) {
+                if (res.status === 304) { wait = every; return; }
+                if (!res.ok) throw new Error("live banner: " + res.status);
+                etag = res.headers.get("ETag") || "";
+                wait = every;
+                return res.text().then(function(html) { slot.innerHTML = html; });
+            })
+            .catch(function() { wait = Math.min(wait * 2, 600000); })
+            .finally(schedule);
+    }
+    document.addEventListener("visibilitychange", function() {
+        if (document.hidden) clearTimeout(timer);
+        else if (Date.now() - last >= every) check();
+        else schedule();
+    });
+    schedule();
+});
+
 // data-play on a video's button: swap in the player only when it's tapped,
 // so a page of videos doesn't load a dozen third-party players up front.
 document.addEventListener("click", function(e) {
@@ -299,12 +337,68 @@ document.addEventListener("DOMContentLoaded", function() {
 function startPlayer(btn) {
     const src = new URL(btn.getAttribute("data-play"));
     src.searchParams.set("autoplay", "1");
+    // On a lesson, the page's own end card (#lesson-end) replaces the video
+    // when it ends, so Vimeo's "More from ..." screen doesn't offer videos
+    // outside the course. YouTube only reports its state with enablejsapi.
+    const end = btn.closest(".lesson-main") ? document.getElementById("lesson-end") : null;
+    if (end && src.hostname === "www.youtube-nocookie.com") {
+        src.searchParams.set("enablejsapi", "1");
+        src.searchParams.set("origin", location.origin);
+    }
+    const frame = playerFrame(src.toString(), btn.getAttribute("data-title"));
+    btn.replaceWith(frame);
+    if (end) showCardAtEnd(frame, end);
+}
+
+function playerFrame(src, title) {
     const frame = document.createElement("iframe");
-    frame.src = src.toString();
-    frame.title = btn.getAttribute("data-title") || "Video";
+    frame.src = src;
+    frame.title = title || "Video";
     frame.allow = "accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen";
     frame.referrerPolicy = "strict-origin-when-cross-origin";
-    btn.replaceWith(frame);
+    return frame;
+}
+
+// showCardAtEnd listens to the player's postMessage events (Vimeo's
+// "ended", YouTube's state 0) and swaps the frame for the end card.
+function showCardAtEnd(frame, end) {
+    const src = frame.src, title = frame.title;
+    const origin = new URL(src).origin;
+    const vimeo = origin === "https://player.vimeo.com";
+    function send(msg) {
+        if (frame.contentWindow) frame.contentWindow.postMessage(msg, origin);
+    }
+    function subscribe() {
+        if (vimeo) {
+            send({method: "addEventListener", value: "ended"});
+        } else {
+            send(JSON.stringify({event: "listening", id: 1, channel: "widget"}));
+            send(JSON.stringify({event: "command", func: "addEventListener", args: ["onStateChange"], id: 1, channel: "widget"}));
+        }
+    }
+    function onMessage(e) {
+        if (e.source !== frame.contentWindow || e.origin !== origin) return;
+        let d = e.data;
+        if (typeof d === "string") {
+            try { d = JSON.parse(d); } catch (_) { return; }
+        }
+        if (!d) return;
+        if (d.event === "ready") subscribe();
+        const ended = d.event === "ended" ||
+            (d.event === "onStateChange" && d.info === 0) ||
+            (d.event === "infoDelivery" && d.info && d.info.playerState === 0);
+        if (!ended) return;
+        window.removeEventListener("message", onMessage);
+        const card = end.content.firstElementChild.cloneNode(true);
+        card.querySelector("[data-lesson-replay]").addEventListener("click", function() {
+            const again = playerFrame(src, title);
+            card.replaceWith(again);
+            showCardAtEnd(again, end);
+        });
+        frame.replaceWith(card);
+    }
+    window.addEventListener("message", onMessage);
+    frame.addEventListener("load", subscribe);
 }
 
 // data-intro-play: the big play button over the site tour (the home and
