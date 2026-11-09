@@ -27,7 +27,7 @@
         {{range paragraphs .Item.Description}}<p class="lesson-desc">{{.}}</p>{{end}}
 
         <div class="lesson-nav">
-            <div>{{with index .Extra "Prev"}}<a href="/learn/courses/{{$c.Slug}}/{{.ID}}" class="btn btn-sm btn-secondary" title="{{.Title}}">&larr; Previous</a>{{end}}</div>
+            <div>{{with index .Extra "Prev"}}<a href="/learn/courses/{{$c.Slug}}/{{.ID}}?play=1" class="btn btn-sm btn-secondary" title="{{.Title}}">&larr; Previous</a>{{end}}</div>
             {{if .User}}
             <form method="POST" action="/learn/courses/{{$c.Slug}}/{{.Item.ID}}/complete">
                 {{if .Item.Completed}}
@@ -38,14 +38,14 @@
                 {{end}}
             </form>
             {{end}}
-            <div>{{with index .Extra "Next"}}<a href="/learn/courses/{{$c.Slug}}/{{.ID}}" class="btn btn-sm btn-secondary" title="{{.Title}}">Next &rarr;</a>{{end}}</div>
+            <div>{{with index .Extra "Next"}}<a href="/learn/courses/{{$c.Slug}}/{{.ID}}?play=1" class="btn btn-sm btn-secondary" title="{{.Title}}">Next &rarr;</a>{{end}}</div>
         </div>
     </div>
 
     <aside class="lesson-side">
         <h2 class="learn-h2">{{$c.Title}}</h2>
         {{range $i, $l := .Items}}
-        <a href="/learn/courses/{{$c.Slug}}/{{$l.ID}}" class="lesson-row lesson-row-sm{{if $l.Completed}} lesson-done{{end}}"{{if eq $l.ID $.Item.ID}} aria-current="page"{{end}}>
+        <a href="/learn/courses/{{$c.Slug}}/{{$l.ID}}?play=1" class="lesson-row lesson-row-sm{{if $l.Completed}} lesson-done{{end}}"{{if eq $l.ID $.Item.ID}} aria-current="page"{{end}}>
             <span class="lesson-num" aria-hidden="true">{{if $l.Completed}}&#10003;{{else}}{{add $i 1}}{{end}}</span>
             <span class="lesson-text">
                 <span class="lesson-title">{{$l.Title}}</span>

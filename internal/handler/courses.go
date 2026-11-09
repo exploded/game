@@ -148,7 +148,7 @@ func (h *Handler) LessonComplete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if i+1 < len(lessons) {
-		http.Redirect(w, r, coursePath(c.Slug, lessons[i+1].ID), http.StatusSeeOther)
+		http.Redirect(w, r, coursePath(c.Slug, lessons[i+1].ID)+"?play=1", http.StatusSeeOther)
 		return
 	}
 	setFlashCookie(w, "You've finished "+c.Title+". Nice work.", "success")

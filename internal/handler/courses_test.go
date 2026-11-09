@@ -147,8 +147,8 @@ func TestCourseLifecycle(t *testing.T) {
 		t.Errorf("lesson page has no player:\n%s", lesson)
 	}
 	w = as(srv, "2", "POST", "/learn/courses/investing-101-the-basics/1/complete", nil, false)
-	if w.Header().Get("Location") != "/learn/courses/investing-101-the-basics/2" {
-		t.Errorf("completing lesson 1 went to %q, want lesson 2", w.Header().Get("Location"))
+	if w.Header().Get("Location") != "/learn/courses/investing-101-the-basics/2?play=1" {
+		t.Errorf("completing lesson 1 went to %q, want lesson 2, playing", w.Header().Get("Location"))
 	}
 	if page := as(srv, "2", "GET", "/learn/courses/investing-101-the-basics", nil, false).Body.String(); !strings.Contains(page, "1 of 2 done") || !strings.Contains(page, "Carry on: lesson 2") {
 		t.Errorf("course page doesn't show progress:\n%s", page)

@@ -280,7 +280,23 @@ document.addEventListener("DOMContentLoaded", function() {
 // so a page of videos doesn't load a dozen third-party players up front.
 document.addEventListener("click", function(e) {
     const btn = e.target.closest("[data-play]");
-    if (!btn) return;
+    if (btn) startPlayer(btn);
+});
+
+// ?play=1 on a lesson's URL: the player got here by clicking through the
+// course (Next, Previous, Mark done, the lesson list), so start the video
+// straight away. A lesson opened from a shared link or a search result
+// waits for a tap. The flag comes off the URL so a reload doesn't replay.
+document.addEventListener("DOMContentLoaded", function() {
+    const url = new URL(location.href);
+    if (url.searchParams.get("play") !== "1") return;
+    url.searchParams.delete("play");
+    history.replaceState(history.state, "", url.pathname + url.search + url.hash);
+    const btn = document.querySelector(".lesson-main [data-play]");
+    if (btn) startPlayer(btn);
+});
+
+function startPlayer(btn) {
     const src = new URL(btn.getAttribute("data-play"));
     src.searchParams.set("autoplay", "1");
     const frame = document.createElement("iframe");
@@ -289,7 +305,7 @@ document.addEventListener("click", function(e) {
     frame.allow = "accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen";
     frame.referrerPolicy = "strict-origin-when-cross-origin";
     btn.replaceWith(frame);
-});
+}
 
 // data-intro-play: the big play button over the site tour (the home and
 // sign-in pages). It starts the video; once playing, the video's own controls

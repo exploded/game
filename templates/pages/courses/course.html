@@ -18,7 +18,7 @@
             {{if not .User}}
             <a href="{{index .Extra "SignIn"}}" class="btn btn-primary">Sign in free to watch</a>
             {{else if $resume}}
-            <a href="/learn/courses/{{.Item.Slug}}/{{$resume.ID}}" class="btn btn-primary">{{if index .Extra "Done"}}Carry on: lesson {{index .Extra "ResumeNumber"}}{{else}}Start the course{{end}}</a>
+            <a href="/learn/courses/{{.Item.Slug}}/{{$resume.ID}}?play=1" class="btn btn-primary">{{if index .Extra "Done"}}Carry on: lesson {{index .Extra "ResumeNumber"}}{{else}}Start the course{{end}}</a>
             {{else}}
             <span class="course-finished">&#10003; You've finished this course</span>
             {{end}}
@@ -44,7 +44,7 @@
     <div class="course-lessons">
         <h2 class="learn-h2">Lessons</h2>
         {{range $i, $l := .Items}}
-        <a href="/learn/courses/{{$.Item.Slug}}/{{$l.ID}}" class="lesson-row{{if $l.Completed}} lesson-done{{end}}">
+        <a href="/learn/courses/{{$.Item.Slug}}/{{$l.ID}}?play=1" class="lesson-row{{if $l.Completed}} lesson-done{{end}}">
             <span class="lesson-num" aria-hidden="true">{{if $l.Completed}}&#10003;{{else}}{{add $i 1}}{{end}}</span>
             {{with lessonThumb $l.ID (and (eq $.Item.VimeoThumbs 1) $l.HasThumb)}}<img class="lesson-thumb" src="{{.}}" alt="" loading="lazy" decoding="async">{{else}}<span class="lesson-thumb course-tile-{{or $.Item.Art "generic"}}">{{template "course-art" $.Item.Art}}</span>{{end}}
             <span class="lesson-text">
