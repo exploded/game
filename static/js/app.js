@@ -327,16 +327,29 @@ document.addEventListener("click", function(e) {
 // waits for a tap. The flag comes off the URL so a reload doesn't replay.
 document.addEventListener("DOMContentLoaded", function() {
     const url = new URL(location.href);
-    if (url.searchParams.get("play") !== "1") return;
-    url.searchParams.delete("play");
-    history.replaceState(history.state, "", url.pathname + url.search + url.hash);
-    const btn = document.querySelector(".lesson-main [data-play]");
-    if (btn) startPlayer(btn);
+    if (url.searchParams.get("play") === "1") {
+        url.searchParams.delete("play");
+        history.replaceState(history.state, "", url.pathname + url.search + url.hash);
+        const btn = document.querySelector(".lesson-main [data-play]");
+        if (btn && !appleTouch) startPlayer(btn);
+    }
+    // iPhones and iPads play sound only after a tap inside the player's own
+    // frame: a tap on our button, or autoplay after Next, starts the video
+    // muted. So there, load each player (one a page) straight away, without
+    // autoplay, and the player's own play button starts it with sound.
+    if (appleTouch) document.querySelectorAll("[data-play]").forEach(function(btn) {
+        startPlayer(btn, false);
+    });
 });
 
-function startPlayer(btn) {
+// appleTouch is true on iPhones and iPads (iPadOS reports itself as a Mac,
+// but Macs have no touch screen).
+const appleTouch = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+function startPlayer(btn, autoplay) {
     const src = new URL(btn.getAttribute("data-play"));
-    src.searchParams.set("autoplay", "1");
+    if (autoplay !== false) src.searchParams.set("autoplay", "1");
     // On a lesson, the page's own end card (#lesson-end) replaces the video
     // when it ends, so Vimeo's "More from ..." screen doesn't offer videos
     // outside the course. YouTube only reports its state with enablejsapi.
