@@ -1403,14 +1403,9 @@ dialog.confirm form { padding: 20px; }
 
 .learn-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
 .learn-brand { font-size: 20px; font-weight: 700; color: var(--color-text); }
-.learn-tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.learn-tabs { overflow-x: auto; scrollbar-width: none; }
 .learn-tabs::-webkit-scrollbar { display: none; }
-.learn-tabs a {
-    display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
-    padding: 8px 14px; border-radius: 999px; color: var(--color-text-muted); font-weight: 500;
-}
-.learn-tabs a:hover { color: var(--color-text); background: var(--color-surface-2); }
-.learn-tabs a.active { color: #fff; background: var(--color-surface-3); }
+.learn-tabs a { display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
 
 .learn-search { display: flex; gap: 8px; margin-bottom: 12px; }
 .learn-search input, .learn-search select {
@@ -1821,6 +1816,188 @@ dialog.confirm form { padding: 20px; }
     .home-point span:last-child { font-size: 11.5px; }
     .home-quote { font-size: 18px; }
 }
+/* Learn's front page, courses and topics (partials/_learnart.html), in the
+   home page's style: inline SVG graphics, tiles tinted from --tile. */
+.learn-hero {
+    position: relative; overflow: hidden; margin-bottom: 20px; padding: 34px 28px 28px; border-radius: 16px;
+    background: linear-gradient(160deg, #10203A 0%, var(--color-surface) 70%); border: 1px solid var(--color-border);
+}
+.learn-hero::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(55% 90% at 85% 15%, rgba(47, 123, 234, 0.28), transparent 70%);
+}
+.learn-hero-art {
+    position: absolute; right: 0; top: 0; width: 58%; height: 100%; pointer-events: none;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 35%);
+    mask-image: linear-gradient(to right, transparent 0, #000 35%);
+}
+.learn-hero-art .home-hero-line { fill: none; stroke: #02C77A; stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; filter: drop-shadow(0 0 6px rgba(2, 199, 122, 0.8)); }
+.learn-hero-art .home-hero-head { fill: #02C77A; filter: drop-shadow(0 0 6px rgba(2, 199, 122, 0.8)); }
+.learn-book .page { fill: rgba(47, 123, 234, 0.14); stroke: #5B9BF0; stroke-width: 2; stroke-linejoin: round; }
+.learn-book .spine { stroke: #5B9BF0; stroke-width: 2; }
+.learn-book .text { fill: none; stroke: #5B9BF0; stroke-width: 2; stroke-linecap: round; opacity: 0.45; }
+.learn-hero-text { position: relative; max-width: 560px; text-shadow: 0 2px 12px rgba(10, 14, 23, 0.9); }
+.learn-hero h1 { font-size: 40px; line-height: 1.1; font-weight: 700; letter-spacing: -0.02em; margin: 10px 0 12px; }
+.learn-hero .home-sub { font-size: 16px; margin-bottom: 18px; }
+.learn-hero-search { margin: 0; max-width: 460px; }
+.learn-hero-search input { background: rgba(10, 14, 23, 0.7); }
+.learn-lede { color: var(--color-text-muted); margin: -4px 0 12px; max-width: 46em; }
+.learn-intro { margin-bottom: 18px; }
+.learn-intro .learn-h1 { margin-bottom: 6px; }
+.learn-intro p { color: var(--color-text-muted); max-width: 46em; }
+.learn-ask .btn { margin-top: 4px; }
+.learn-brand[aria-current] { color: var(--color-text); }
+
+/* Course cards: the cover, then title, length and progress. */
+.course-tile-generic { --tile: #00B4C9; }
+.course-tile-market { --tile: #10B981; }
+.course-tile-snowball { --tile: #14B8A6; }
+.course-tile-warning { --tile: #F59E0B; }
+.course-tile-brain { --tile: #A78BFA; }
+.course-tile-scales { --tile: #2F7BEA; }
+.course-tile-nestegg { --tile: #D9A064; }
+.course-tile-home { --tile: #38BDF8; }
+.course-tile-loan { --tile: #FB7185; }
+.course-tile-family { --tile: #84CC16; }
+.course-tile-estate { --tile: #7C5CF0; }
+.course-art {
+    position: relative; display: grid; place-items: center; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 12px;
+    background: linear-gradient(160deg, color-mix(in srgb, var(--tile, #00B4C9) 42%, var(--color-surface)) 0%, color-mix(in srgb, var(--tile, #00B4C9) 10%, var(--color-surface)) 100%);
+    color: color-mix(in srgb, var(--tile, #00B4C9) 65%, #fff);
+}
+.course-art-bg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.course-art-bg path { fill: none; stroke: currentColor; stroke-width: 1.5; opacity: 0.25; stroke-linejoin: round; }
+.course-art-icon { position: relative; width: 38%; max-width: 72px; height: auto; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.35)); }
+.course-art-icon .solid { fill: currentColor; stroke: none; }
+.course-row { display: grid; grid-auto-flow: column; grid-auto-columns: 72%; gap: 12px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.course-row::-webkit-scrollbar { display: none; }
+.course-row > * { scroll-snap-align: start; }
+.course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.course-card {
+    display: flex; flex-direction: column; gap: 10px; padding: 10px; border-radius: 14px; color: var(--color-text);
+    background: var(--color-surface); border: 1px solid color-mix(in srgb, var(--tile) 30%, var(--color-border));
+    transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.course-card:hover { color: var(--color-text); border-color: var(--tile); transform: translateY(-2px); box-shadow: 0 0 24px color-mix(in srgb, var(--tile) 22%, transparent); }
+.course-card:focus-visible { outline: 2px solid var(--tile); outline-offset: 2px; }
+.course-card-body { display: flex; flex-direction: column; gap: 4px; padding: 0 4px 4px; }
+.course-card-title { font-size: 15px; font-weight: 600; line-height: 1.3; }
+.course-card-meta, .course-card-done { font-size: 12px; color: var(--color-text-muted); }
+.course-progress { display: block; height: 6px; border-radius: 3px; background: var(--color-surface-3); overflow: hidden; margin-top: 4px; }
+.course-progress > span { display: block; height: 100%; border-radius: 3px; background: var(--color-green); }
+
+/* Topic tiles: icon, name and video count. */
+.topic-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.topic-tile {
+    --tile: #00B4C9;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px; border-radius: 12px; color: var(--color-text);
+    background: linear-gradient(160deg, color-mix(in srgb, var(--tile) 16%, var(--color-surface)) 0%, var(--color-surface) 100%);
+    border: 1px solid color-mix(in srgb, var(--tile) 28%, var(--color-border));
+    transition: border-color 0.15s, transform 0.15s;
+}
+.topic-tile:hover { color: var(--color-text); border-color: var(--tile); transform: translateY(-1px); }
+.topic-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; margin-bottom: 4px; background: color-mix(in srgb, var(--tile) 18%, transparent); color: color-mix(in srgb, var(--tile) 70%, #fff); }
+.topic-icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.topic-tile-name { font-weight: 600; font-size: 14px; }
+.topic-tile-count { font-size: 12px; color: var(--color-text-muted); }
+.topic-retirement { --tile: #F59E0B; }
+.topic-super { --tile: #D9A064; }
+.topic-investing { --tile: #84CC16; }
+.topic-shares { --tile: #10B981; }
+.topic-property { --tile: #38BDF8; }
+.topic-first-home { --tile: #FB7185; }
+.topic-saving { --tile: #14B8A6; }
+.topic-debt { --tile: #F97316; }
+.topic-estate { --tile: #7C5CF0; }
+.topic-tax { --tile: #A78BFA; }
+.topic-insurance { --tile: #2F7BEA; }
+.topic-markets { --tile: #22D3EE; }
+.topic-aged-care { --tile: #F472B6; }
+
+/* A course's page: the cover and title, what it covers, then the lessons. */
+.course-hero {
+    position: relative; display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 24px; align-items: center;
+    margin-bottom: 24px; padding: 18px; border-radius: 16px;
+    background: linear-gradient(160deg, color-mix(in srgb, var(--tile) 18%, var(--color-surface)) 0%, var(--color-surface) 80%);
+    border: 1px solid color-mix(in srgb, var(--tile) 35%, var(--color-border));
+}
+.course-hero h1 { font-size: 28px; line-height: 1.15; margin: 6px 0 6px; letter-spacing: -0.01em; }
+.course-back { font-size: 13px; color: var(--color-text-muted); }
+.course-back:hover { color: var(--color-text); }
+.course-hero-meta { color: var(--color-text-muted); margin-bottom: 14px; }
+.course-hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.course-progress-wide { width: 160px; margin: 0; }
+.course-finished { color: var(--color-success); font-weight: 600; }
+.course-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+.course-about p { margin-bottom: 12px; line-height: 1.65; color: #D5D8E0; }
+.course-about .learn-h2 { margin-top: 20px; }
+.course-learn { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.course-learn li { position: relative; padding-left: 28px; line-height: 1.5; }
+/* A tick in a green circle, drawn in CSS: the CSP's img-src has no data: URLs. */
+.course-learn li::before { content: ""; position: absolute; left: 0; top: 2px; width: 18px; height: 18px; border-radius: 50%; background: rgba(2, 199, 122, 0.15); }
+.course-learn li::after {
+    content: ""; position: absolute; left: 6.5px; top: 5.5px; width: 5px; height: 9px;
+    border: solid var(--color-green); border-width: 0 2.2px 2.2px 0; transform: rotate(45deg);
+}
+.course-lessons { display: flex; flex-direction: column; gap: 8px; }
+.lesson-row {
+    display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; color: var(--color-text);
+    background: var(--color-surface); border: 1px solid var(--color-border);
+}
+.lesson-row:hover { color: var(--color-text); border-color: var(--color-primary); }
+.lesson-row[aria-current] { border-color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface)); }
+.lesson-num {
+    flex-shrink: 0; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
+    background: var(--color-surface-2); font-weight: 600; font-size: 13px; font-variant-numeric: tabular-nums;
+}
+.lesson-done .lesson-num { background: var(--color-success); color: #fff; }
+.lesson-thumb { flex-shrink: 0; width: 96px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px; background: var(--color-surface-2); }
+.lesson-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.lesson-title { font-weight: 500; line-height: 1.35; }
+.lesson-meta { font-size: 12px; color: var(--color-text-muted); }
+.lesson-row-sm { padding: 8px 10px; gap: 10px; }
+.lesson-row-sm .lesson-num { width: 26px; height: 26px; font-size: 12px; }
+
+/* A lesson: the player and its buttons, with the course's lessons beside it
+   on wide screens. A visitor gets a sign-in panel where the player goes. */
+.lesson-page { display: grid; grid-template-columns: 1fr; gap: 24px; }
+.lesson-main { min-width: 0; }
+.lesson-h1 { font-size: 22px; line-height: 1.25; margin: 6px 0 4px; }
+.lesson-main > .lesson-meta { margin-bottom: 12px; }
+.lesson-side { display: flex; flex-direction: column; gap: 6px; }
+.lesson-desc { margin-bottom: 12px; line-height: 1.6; }
+.lesson-nav { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; margin-top: 16px; }
+.lesson-locked > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.35; filter: blur(2px); }
+.lesson-locked-text {
+    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; padding: 16px; text-align: center; background: radial-gradient(circle, rgba(10, 14, 23, 0.55), rgba(10, 14, 23, 0.85));
+}
+.lesson-locked-text strong { font-size: 18px; }
+.lesson-locked-text span { color: #C9CCD6; max-width: 26em; }
+
+@media (min-width: 768px) {
+    .course-row { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); overflow: visible; }
+}
+@media (min-width: 900px) {
+    .lesson-page { grid-template-columns: minmax(0, 1fr) 320px; }
+}
+@media (max-width: 767px) {
+    .learn-hero { padding: 22px 16px 18px; border-radius: 12px; }
+    .learn-hero-art { width: 85%; height: 60%; opacity: 0.5; }
+    .learn-hero h1 { font-size: clamp(26px, 7.6vw, 34px); }
+    .learn-hero .home-sub { font-size: 15px; }
+    .learn-hero-search input { height: 44px; font-size: 16px; }
+    .topic-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .topic-tile { padding: 12px; }
+    .course-hero { grid-template-columns: 1fr; gap: 14px; padding: 12px; }
+    .course-hero .course-art { aspect-ratio: 3 / 1; }
+    .course-hero h1 { font-size: 22px; }
+    .course-body { grid-template-columns: 1fr; gap: 16px; }
+    .lesson-thumb { width: 76px; }
+    .lesson-h1 { font-size: 19px; }
+    .lesson-nav .btn-primary { order: -1; width: 100%; }
+}
+
 /* The sign-in pages take the home page's headline and chart into the hero
    (auth/_hero.html), and the sign-in page has the tiles, video and points
    under the form (auth/login.html). */

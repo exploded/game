@@ -1323,7 +1323,7 @@ SELECT user_id FROM question_votes WHERE question_id = sqlc.arg(id);
 -- =============================================================================
 
 -- name: ListPublishedCourses :many
-SELECT c.id, c.slug, c.title, c.summary,
+SELECT c.id, c.slug, c.title, c.summary, c.art,
        (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id) AS lessons,
        (SELECT COALESCE(SUM(l.minutes), 0) FROM lessons l WHERE l.course_id = c.id) AS minutes,
        (SELECT COUNT(*) FROM lessons l JOIN lesson_progress p ON p.lesson_id = l.id
@@ -1348,7 +1348,7 @@ INSERT INTO courses (slug, title, summary) VALUES (?, ?, ?)
 RETURNING id;
 
 -- name: UpdateCourse :exec
-UPDATE courses SET title = ?, summary = ?, sort_order = ? WHERE id = ?;
+UPDATE courses SET title = ?, summary = ?, sort_order = ?, art = ? WHERE id = ?;
 
 -- name: SetCoursePublished :exec
 UPDATE courses SET published = sqlc.arg(published),
@@ -1360,7 +1360,8 @@ DELETE FROM courses WHERE id = ?;
 
 -- name: ListLessons :many
 SELECT l.*,
-       EXISTS (SELECT 1 FROM lesson_progress p WHERE p.lesson_id = l.id AND p.user_id = sqlc.arg(viewer)) AS completed
+       EXISTS (SELECT 1 FROM lesson_progress p WHERE p.lesson_id = l.id AND p.user_id = sqlc.arg(viewer)) AS completed,
+       EXISTS (SELECT 1 FROM lesson_thumbs t WHERE t.lesson_id = l.id) AS has_thumb
 FROM lessons l
 WHERE l.course_id = sqlc.arg(course_id)
 ORDER BY l.sort_order, l.id;
@@ -1368,10 +1369,21 @@ ORDER BY l.sort_order, l.id;
 -- name: GetLesson :one
 SELECT * FROM lessons WHERE id = ?;
 
--- name: CreateLesson :exec
+-- name: CreateLesson :one
 INSERT INTO lessons (course_id, title, description, video_url, embed_url, minutes, sort_order)
 VALUES (sqlc.arg(course_id), sqlc.arg(title), sqlc.arg(description), sqlc.arg(video_url), sqlc.arg(embed_url), sqlc.arg(minutes),
-        (SELECT COALESCE(MAX(l.sort_order), 0) + 1 FROM lessons l WHERE l.course_id = sqlc.arg(course_id)));
+        (SELECT COALESCE(MAX(l.sort_order), 0) + 1 FROM lessons l WHERE l.course_id = sqlc.arg(course_id)))
+RETURNING id;
+
+-- name: CountCourseLessonsWithVideo :one
+SELECT COUNT(*) FROM lessons WHERE course_id = ? AND video_url = ?;
+
+-- name: SaveLessonThumb :exec
+INSERT INTO lesson_thumbs (lesson_id, content_type, data) VALUES (?, ?, ?)
+ON CONFLICT (lesson_id) DO UPDATE SET content_type = excluded.content_type, data = excluded.data;
+
+-- name: GetLessonThumb :one
+SELECT content_type, data FROM lesson_thumbs WHERE lesson_id = ?;
 
 -- name: UpdateLesson :exec
 UPDATE lessons SET title = ?, description = ?, video_url = ?, embed_url = ?, minutes = ?, sort_order = ?

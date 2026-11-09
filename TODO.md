@@ -29,10 +29,26 @@ Built on 2026-10-29, merged into `master` and deployed on 2026-10-30.
   (94 lessons) are copied in by the `import-cpw-courses` and `import-cpw-lessons`
   seed migrations (`courses_cpw.go`), published with no email. Courses have no
   thumbnail image.
-- [ ] **From Rob:** are the 2018 super courses (Beginners Guide to Super, How
-  Super Works) still right? How Super Works says employers pay 9.5% super;
-  it's 12% now, and the videos may quote old caps and rules too. He can
-  unpublish or edit them at `/admin/courses`.
+- [x] **Rob's 2026 courses** (2026-11-09). The ten courses from Anne and Rob's
+  sheet are seeded as drafts (`courses_2026.go`), with covers and "What you'll
+  learn" lists. Courses moved to `/learn/courses` and went public (lessons
+  still need an account), and Learn got a front page with graphics.
+- [x] **Vimeo token and plan check** (2026-11-09). Consortium's Vimeo is on
+  the paid **Plus** plan, so the courses stay on Vimeo (no Bunny). James's
+  token is in his user env (`VIMEO_TOKEN`). All 11 course folders' videos are
+  unlisted with embedding allowed, so they play on the site as they are.
+- [ ] **Optional: lock the course videos to our domain.** On Vimeo, set each
+  course folder's videos to embed only on investorproject.au (and
+  consortiumpw.com.au if they're used there too). Do it after a lesson has
+  played on prod; localhost won't play them afterwards.
+- [ ] **Fill and publish the ten courses** on prod: put `VIMEO_TOKEN` in the
+  server `.env`, use Fill from Vimeo on each, play a lesson of each on a
+  phone, publish (no email, or one), then unpublish the 7 old CPW courses
+  (the 2018 super ones quote 9.5% super; it's 12% now).
+- [ ] **From Anne:** which "Building Your First Home Deposit" Vimeo folder is
+  current (December 2025, 7 videos, or February 2026, 6)?
+- [ ] **From Rob:** does the "Investment Presentation" in his sheet belong on
+  the site? It looks like Consortium's sales presentation, so it's left out.
 - [x] **Review the whole game for improvements.** Findings are in the next
   section.
 - [x] **Go live.** SES keys and `MAIL_FROM` are in the server `.env`, and
@@ -252,8 +268,8 @@ numbers, limits and how to measure again are in `docs/capacity.md`.
   read `/learn`: videos, topics, live streams and Ask Rob questions with their
   answers. Asking, voting and reminders need an account. The sitemap lists the
   topics, the latest videos and every answered question, so Google can find
-  them. Courses (`/courses`, the 94 CPW lessons) need sign-in. For Rob to
-  decide:
+  them. Courses are public too since 2026-11-09 (outlines and lesson titles;
+  playing a lesson needs an account). For Rob to decide:
   - **Keep it public (as now).** Search engines can index it, so people
     searching for super, retirement or home-buying questions can land on the
     site. Answered questions help most, because they're Rob's own words; the
@@ -261,8 +277,6 @@ numbers, limits and how to measure again are in `docs/capacity.md`.
   - **Put it behind sign-in.** Everyone who watches has an account and can be
     emailed, but Google sees only the sign-in page, and a shared video link
     asks for sign-in first.
-  - **Courses public too?** Only if CPW is happy for its eLearning to be
-    indexed here as well as on consortiumpw.com.au.
 
 - [ ] **Share your result on social media** (2026-10-31). A Share button on
   the game's home page: the phone's own share sheet on a phone, and Copy link,

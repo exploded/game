@@ -2,22 +2,7 @@
 
 {{define "content"}}
 {{template "learntabs" .}}
-
-<form method="GET" action="/learn" class="learn-search" role="search">
-    <input type="search" name="q" value="{{index .Extra "Query"}}" placeholder="Search Rob's videos" aria-label="Search Rob's videos">
-    <button type="submit" class="btn btn-primary">Search</button>
-</form>
-
-<div class="chips" aria-label="Topics">
-    {{range index .Extra "Topics"}}{{if .Videos}}<a href="/learn/topics/{{.Slug}}" class="chip">{{.Name}}</a>{{end}}{{end}}
-</div>
-
-{{with index .Extra "Query"}}
-<section class="learn-section">
-    <h2 class="learn-h2">Videos matching &ldquo;{{.}}&rdquo;</h2>
-    {{with index $.Extra "Results"}}{{template "videogrid" .}}{{else}}<p class="text-muted">Nothing matches that. Try fewer words, or <a href="/learn/questions">ask Rob</a>.</p>{{end}}
-</section>
-{{else}}
+{{template "learn-hero" .}}
 
 {{with $.LiveNow}}
 <a href="/learn/live/{{.ID}}" class="live-card live-card-on">
@@ -33,41 +18,53 @@
 </a>
 {{end}}{{end}}
 
-{{with index $.Extra "Featured"}}
+{{with index $.Extra "Courses"}}
 <section class="learn-section">
-    <h2 class="learn-h2">Start here</h2>
-    {{template "videorow" .}}
+    <div class="learn-section-head">
+        <h2 class="learn-h2">Courses</h2>
+        <a href="/learn/courses" class="learn-more">All {{len .}} &rarr;</a>
+    </div>
+    <p class="learn-lede">Short video courses from Rob. Watch the lessons in order, and tick them off as you go.</p>
+    <div class="course-row">{{range .}}{{template "course-card" .}}{{end}}</div>
+</section>
+{{end}}
+
+<section class="learn-section learn-ask">
+    <div class="learn-section-head">
+        <h2 class="learn-h2">Ask Rob</h2>
+        <a href="/learn/questions" class="learn-more">All questions &rarr;</a>
+    </div>
+    <p class="learn-lede">Ask anything about money and investing. Vote for the questions you want answered, and Rob takes the top ones on his live streams.</p>
+    {{range index $.Extra "Questions"}}
+    <div class="settings-card q-card">
+        {{template "vote" (dict "Q" . "User" $.User "SignIn" (index $.Extra "SignIn"))}}
+        <div style="min-width:0">
+            <a href="/learn/questions/{{.ID}}" class="q-title">{{.Title}}</a>
+            <p class="text-muted q-meta">{{.Votes}} vote{{if ne .Votes 1}}s{{end}}{{if .Answer}} &middot; <span style="color:var(--color-success)">{{if .HasVideo}}Answered in a video{{else}}Answered{{end}}</span>{{end}}</p>
+        </div>
+    </div>
+    {{end}}
+    <a href="/learn/questions#ask" class="btn btn-primary">Ask a question</a>
+</section>
+
+{{with index $.Extra "Topics"}}
+<section class="learn-section">
+    <div class="learn-section-head">
+        <h2 class="learn-h2">Videos by topic</h2>
+        <a href="/learn/videos" class="learn-more">All videos &rarr;</a>
+    </div>
+    {{template "topic-tiles" .}}
 </section>
 {{end}}
 
 {{with index $.Extra "Latest"}}
 <section class="learn-section">
-    <h2 class="learn-h2">Latest</h2>
+    <div class="learn-section-head">
+        <h2 class="learn-h2">Latest videos</h2>
+        <a href="/learn/videos" class="learn-more">More &rarr;</a>
+    </div>
     {{template "videorow" .}}
 </section>
-{{end}}
-
-{{with index $.Extra "Shorts"}}
-<section class="learn-section">
-    <h2 class="learn-h2">Shorts</h2>
-    <div class="vrow vrow-shorts">{{range .}}{{template "videocard" .}}{{end}}</div>
-</section>
-{{end}}
-
-{{range index $.Extra "Rows"}}
-<section class="learn-section">
-    <div class="learn-section-head">
-        <h2 class="learn-h2">{{.Topic.Name}}</h2>
-        <a href="/learn/topics/{{.Topic.Slug}}" class="learn-more">All {{.Topic.Videos}} &rarr;</a>
-    </div>
-    {{template "videorow" .Videos}}
-</section>
-{{end}}
-
-{{if not (or (index $.Extra "Latest") (index $.Extra "Shorts"))}}
-<div class="empty-state">
-    <p>Rob's videos will appear here soon.</p>
-</div>
 {{end}}
 
 <section class="learn-section">
@@ -76,7 +73,6 @@
         {{range index $.Extra "Socials"}}<a href="{{.URL}}" class="social social-{{.Class}}" target="_blank" rel="noopener">{{.Name}}</a>{{end}}
     </div>
 </section>
-{{end}}
 
 {{template "disclaimer" .}}
 {{end}}

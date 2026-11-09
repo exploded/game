@@ -255,14 +255,16 @@ they can check them (see Admin tools). Admins can also delete any message.
 
 ## Learn
 
-Learn is open to everyone, signed in or not. It has four tabs, which also show
-on the course pages. The Learn section opens Ask Rob.
+Learn is open to everyone, signed in or not. Its front page (`/learn`) has a
+headline over an open-book drawing, then Rob's courses as picture cards, the
+top questions, the video topics as tiles with icons, and the latest videos. It
+has four tabs, which also show on the course pages:
 
 - **Ask Rob**: members post questions and vote for the ones they want answered.
   Rob answers in writing, with a video, or live on air, and the asker and
   everyone who voted get the answer by email. During a live stream, the stream
   page shows the most-voted questions.
-- **Watch**: Rob's YouTube videos (and TikTok, once TikTok approves the
+- **Videos**: Rob's YouTube videos (and TikTok, once TikTok approves the
   connection), sorted into topics such as retirement, superannuation and buying
   a home. Visitors can search, browse by topic, and watch without leaving the
   site. A video lists the shares Rob mentions in it ("Mentioned in this
@@ -271,9 +273,13 @@ on the course pages. The Learn section opens Ask Rob.
 - **Live**: Rob's upcoming and current live streams. A "Rob is live" banner
   shows across the whole site while he's on air. Visitors can add a stream to
   their calendar, and members can ask for a reminder email.
-- **Courses**: Rob's video courses (7 courses, 94 lessons, copied from the
-  Consortium Private Wealth website). Members tick off lessons as they go and
-  see their progress. Courses need an account.
+- **Courses**: Rob's ten video courses recorded in February 2026 (estate
+  planning, a first home deposit, paying off a home loan, investing for
+  children, investor psychology, shares or property, super, common mistakes,
+  compounding and share market basics). Anyone can see what's in a course;
+  watching a lesson needs a free account. Members tick off lessons as they go,
+  see their progress, and carry on where they left off. The videos stay in
+  Consortium's Vimeo account and play on the site.
 
 Every Learn page ends with the licensee's general advice warning.
 
@@ -409,8 +415,10 @@ folded into others:
 - **Rob to check the Terms change**: section 7 says again that dividends are
   credited to players (from 2 November 2026, when the game started paying
   them), and that a short pays them.
-- **Rob to check the two 2018 super courses** (Beginners Guide to Super and How
-  Super Works). They quote 9.5% employer super, which is now 12%.
+- **Anne to say which "Building Your First Home Deposit" folder is current**:
+  Vimeo has two, from December 2025 and February 2026.
+- **Rob to say whether the "Investment Presentation" belongs on the site.** It's
+  in his course sheet, but it looks like Consortium's sales presentation.
 - **Rob to delete two unused YouTube live streams.** YouTube still lists them
   as upcoming, though neither ever ran: "Investor Motivation Live Stream" (set
   up 8 January 2026 with no start time,

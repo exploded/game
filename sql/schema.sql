@@ -607,13 +607,15 @@ CREATE TABLE IF NOT EXISTS question_votes (
 
 --------------------------------------------------------------------------------
 -- Courses: pre-recorded video lessons. Videos are hosted on YouTube, Vimeo or
--- Bunny Stream and embedded; the server never serves video.
+-- Bunny Stream and embedded; the server never serves video. Courses are
+-- public at /learn/courses; playing a lesson needs an account.
 --------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS courses (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
-    slug         TEXT    NOT NULL UNIQUE,               -- the URL: /courses/{slug}
+    slug         TEXT    NOT NULL UNIQUE,               -- the URL: /learn/courses/{slug}
     title        TEXT    NOT NULL,
     summary      TEXT    NOT NULL DEFAULT '',
+    art          TEXT    NOT NULL DEFAULT '',           -- cover illustration key (_learnart.html); '' = the generic one
     published    INTEGER NOT NULL DEFAULT 0,            -- 0 = draft, only admins see it
     published_at TEXT,                                  -- first publish; set once
     sort_order   INTEGER NOT NULL DEFAULT 0,
@@ -632,6 +634,14 @@ CREATE TABLE IF NOT EXISTS lessons (
     created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_lessons_course ON lessons(course_id, sort_order);
+
+-- Lesson thumbnails, copied in when a course is filled from Vimeo and
+-- served from /learn/lesson-thumb/{id}, so img-src needs no video host.
+CREATE TABLE IF NOT EXISTS lesson_thumbs (
+    lesson_id    INTEGER PRIMARY KEY REFERENCES lessons(id) ON DELETE CASCADE,
+    content_type TEXT    NOT NULL,
+    data         BLOB    NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS lesson_progress (
     user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

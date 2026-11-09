@@ -3,29 +3,58 @@
 {{define "content"}}
 {{template "learntabs" .}}
 {{$c := index .Extra "Course"}}
-<div class="page-header">
-    <h1 style="font-size:18px">{{.Item.Title}}</h1>
-    <a href="/courses/{{$c.Slug}}" class="btn btn-sm">&larr; {{$c.Title}}</a>
-</div>
-<p class="text-muted" style="margin-bottom:12px;font-size:12px">Lesson {{index .Extra "Number"}} of {{index .Extra "Count"}}{{if .Item.Minutes}} &middot; {{.Item.Minutes}} min{{end}}</p>
+{{$thumb := lessonThumb .Item.ID .Item.HasThumb}}
 
-<div style="position:relative;padding-top:56.25%;background:#000;border-radius:var(--radius);overflow:hidden;margin-bottom:16px">
-    <iframe src="{{.Item.EmbedUrl}}" title="{{.Item.Title}}" style="position:absolute;inset:0;width:100%;height:100%;border:0"
-        allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
-</div>
+<div class="lesson-page">
+    <div class="lesson-main">
+        <a href="/learn/courses/{{$c.Slug}}" class="course-back">&larr; {{$c.Title}}</a>
+        <h1 class="lesson-h1">{{.Item.Title}}</h1>
+        <p class="lesson-meta">Lesson {{index .Extra "Number"}} of {{index .Extra "Count"}}{{if .Item.Minutes}} &middot; {{.Item.Minutes}} min{{end}}</p>
 
-{{range paragraphs .Item.Description}}<p style="margin-bottom:12px">{{.}}</p>{{end}}
-
-<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;margin-top:24px">
-    <div>{{with index .Extra "Prev"}}<a href="/courses/{{$c.Slug}}/{{.ID}}" class="btn btn-sm btn-secondary">&larr; {{.Title}}</a>{{end}}</div>
-    <form method="POST" action="/courses/{{$c.Slug}}/{{.Item.ID}}/complete">
-        {{if .Item.Completed}}
-        <input type="hidden" name="done" value="0">
-        <button type="submit" class="btn btn-sm btn-secondary">&#10003; Done (undo)</button>
+        {{if .User}}
+        {{template "player" (dict "Embed" .Item.EmbedUrl "Thumb" $thumb "Title" .Item.Title)}}
         {{else}}
-        <button type="submit" class="btn btn-primary">{{if index .Extra "Next"}}Mark done and go to the next lesson{{else}}Mark done and finish the course{{end}}</button>
+        <div class="player lesson-locked">
+            {{with $thumb}}<img src="{{.}}" alt="">{{end}}
+            <div class="lesson-locked-text">
+                <strong>Sign in to watch</strong>
+                <span>It's free. Enter your email and we'll send you a sign-in link.</span>
+                <a href="{{index .Extra "SignIn"}}" class="btn btn-primary">Sign in free</a>
+            </div>
+        </div>
         {{end}}
-    </form>
-    <div>{{with index .Extra "Next"}}<a href="/courses/{{$c.Slug}}/{{.ID}}" class="btn btn-sm btn-secondary">{{.Title}} &rarr;</a>{{end}}</div>
+
+        {{range paragraphs .Item.Description}}<p class="lesson-desc">{{.}}</p>{{end}}
+
+        <div class="lesson-nav">
+            <div>{{with index .Extra "Prev"}}<a href="/learn/courses/{{$c.Slug}}/{{.ID}}" class="btn btn-sm btn-secondary" title="{{.Title}}">&larr; Previous</a>{{end}}</div>
+            {{if .User}}
+            <form method="POST" action="/learn/courses/{{$c.Slug}}/{{.Item.ID}}/complete">
+                {{if .Item.Completed}}
+                <input type="hidden" name="done" value="0">
+                <button type="submit" class="btn btn-sm btn-secondary">&#10003; Done (undo)</button>
+                {{else}}
+                <button type="submit" class="btn btn-primary">{{if index .Extra "Next"}}Mark done, next lesson{{else}}Mark done and finish{{end}}</button>
+                {{end}}
+            </form>
+            {{end}}
+            <div>{{with index .Extra "Next"}}<a href="/learn/courses/{{$c.Slug}}/{{.ID}}" class="btn btn-sm btn-secondary" title="{{.Title}}">Next &rarr;</a>{{end}}</div>
+        </div>
+    </div>
+
+    <aside class="lesson-side">
+        <h2 class="learn-h2">{{$c.Title}}</h2>
+        {{range $i, $l := .Items}}
+        <a href="/learn/courses/{{$c.Slug}}/{{$l.ID}}" class="lesson-row lesson-row-sm{{if $l.Completed}} lesson-done{{end}}"{{if eq $l.ID $.Item.ID}} aria-current="page"{{end}}>
+            <span class="lesson-num" aria-hidden="true">{{if $l.Completed}}&#10003;{{else}}{{add $i 1}}{{end}}</span>
+            <span class="lesson-text">
+                <span class="lesson-title">{{$l.Title}}</span>
+                {{if $l.Minutes}}<span class="lesson-meta">{{$l.Minutes}} min</span>{{end}}
+            </span>
+        </a>
+        {{end}}
+    </aside>
 </div>
+
+{{template "disclaimer" .}}
 {{end}}

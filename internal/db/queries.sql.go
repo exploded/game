@@ -378,6 +378,22 @@ func (q *Queries) CountBlockedLobbyMessages(ctx context.Context) (int64, error) 
 	return count, err
 }
 
+const countCourseLessonsWithVideo = `-- name: CountCourseLessonsWithVideo :one
+SELECT COUNT(*) FROM lessons WHERE course_id = ? AND video_url = ?
+`
+
+type CountCourseLessonsWithVideoParams struct {
+	CourseID int64
+	VideoUrl string
+}
+
+func (q *Queries) CountCourseLessonsWithVideo(ctx context.Context, arg CountCourseLessonsWithVideoParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countCourseLessonsWithVideo, arg.CourseID, arg.VideoUrl)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countInvitesSentInGame = `-- name: CountInvitesSentInGame :one
 SELECT COUNT(*) FROM game_invites
 WHERE game_id = ? AND created_by = ? AND email IS NOT NULL
@@ -899,10 +915,11 @@ func (q *Queries) CreateInvite(ctx context.Context, arg CreateInviteParams) (Gam
 	return i, err
 }
 
-const createLesson = `-- name: CreateLesson :exec
+const createLesson = `-- name: CreateLesson :one
 INSERT INTO lessons (course_id, title, description, video_url, embed_url, minutes, sort_order)
 VALUES (?1, ?2, ?3, ?4, ?5, ?6,
         (SELECT COALESCE(MAX(l.sort_order), 0) + 1 FROM lessons l WHERE l.course_id = ?1))
+RETURNING id
 `
 
 type CreateLessonParams struct {
@@ -914,8 +931,8 @@ type CreateLessonParams struct {
 	Minutes     int64
 }
 
-func (q *Queries) CreateLesson(ctx context.Context, arg CreateLessonParams) error {
-	_, err := q.db.ExecContext(ctx, createLesson,
+func (q *Queries) CreateLesson(ctx context.Context, arg CreateLessonParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, createLesson,
 		arg.CourseID,
 		arg.Title,
 		arg.Description,
@@ -923,7 +940,9 @@ func (q *Queries) CreateLesson(ctx context.Context, arg CreateLessonParams) erro
 		arg.EmbedUrl,
 		arg.Minutes,
 	)
-	return err
+	var id int64
+	err := row.Scan(&id)
+	return id, err
 }
 
 const createLimitOrder = `-- name: CreateLimitOrder :one
@@ -1715,7 +1734,7 @@ func (q *Queries) GetAvatar(ctx context.Context, id int64) (Avatar, error) {
 }
 
 const getCourse = `-- name: GetCourse :one
-SELECT id, slug, title, summary, published, published_at, sort_order, created_at FROM courses WHERE id = ?
+SELECT id, slug, title, summary, art, published, published_at, sort_order, created_at FROM courses WHERE id = ?
 `
 
 func (q *Queries) GetCourse(ctx context.Context, id int64) (Course, error) {
@@ -1726,6 +1745,7 @@ func (q *Queries) GetCourse(ctx context.Context, id int64) (Course, error) {
 		&i.Slug,
 		&i.Title,
 		&i.Summary,
+		&i.Art,
 		&i.Published,
 		&i.PublishedAt,
 		&i.SortOrder,
@@ -1735,7 +1755,7 @@ func (q *Queries) GetCourse(ctx context.Context, id int64) (Course, error) {
 }
 
 const getCourseBySlug = `-- name: GetCourseBySlug :one
-SELECT id, slug, title, summary, published, published_at, sort_order, created_at FROM courses WHERE slug = ?
+SELECT id, slug, title, summary, art, published, published_at, sort_order, created_at FROM courses WHERE slug = ?
 `
 
 func (q *Queries) GetCourseBySlug(ctx context.Context, slug string) (Course, error) {
@@ -1746,6 +1766,7 @@ func (q *Queries) GetCourseBySlug(ctx context.Context, slug string) (Course, err
 		&i.Slug,
 		&i.Title,
 		&i.Summary,
+		&i.Art,
 		&i.Published,
 		&i.PublishedAt,
 		&i.SortOrder,
@@ -2020,6 +2041,22 @@ func (q *Queries) GetLesson(ctx context.Context, id int64) (Lesson, error) {
 		&i.SortOrder,
 		&i.CreatedAt,
 	)
+	return i, err
+}
+
+const getLessonThumb = `-- name: GetLessonThumb :one
+SELECT content_type, data FROM lesson_thumbs WHERE lesson_id = ?
+`
+
+type GetLessonThumbRow struct {
+	ContentType string
+	Data        []byte
+}
+
+func (q *Queries) GetLessonThumb(ctx context.Context, lessonID int64) (GetLessonThumbRow, error) {
+	row := q.db.QueryRowContext(ctx, getLessonThumb, lessonID)
+	var i GetLessonThumbRow
+	err := row.Scan(&i.ContentType, &i.Data)
 	return i, err
 }
 
@@ -3482,7 +3519,7 @@ func (q *Queries) ListAllActiveHoldings(ctx context.Context) ([]ListAllActiveHol
 }
 
 const listAllCourses = `-- name: ListAllCourses :many
-SELECT c.id, c.slug, c.title, c.summary, c.published, c.published_at, c.sort_order, c.created_at, (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id) AS lessons
+SELECT c.id, c.slug, c.title, c.summary, c.art, c.published, c.published_at, c.sort_order, c.created_at, (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id) AS lessons
 FROM courses c
 ORDER BY c.sort_order, c.id
 `
@@ -3492,6 +3529,7 @@ type ListAllCoursesRow struct {
 	Slug        string
 	Title       string
 	Summary     string
+	Art         string
 	Published   int64
 	PublishedAt sql.NullString
 	SortOrder   int64
@@ -3513,6 +3551,7 @@ func (q *Queries) ListAllCourses(ctx context.Context) ([]ListAllCoursesRow, erro
 			&i.Slug,
 			&i.Title,
 			&i.Summary,
+			&i.Art,
 			&i.Published,
 			&i.PublishedAt,
 			&i.SortOrder,
@@ -4753,7 +4792,8 @@ func (q *Queries) ListLeaderboard(ctx context.Context, arg ListLeaderboardParams
 
 const listLessons = `-- name: ListLessons :many
 SELECT l.id, l.course_id, l.title, l.description, l.video_url, l.embed_url, l.minutes, l.sort_order, l.created_at,
-       EXISTS (SELECT 1 FROM lesson_progress p WHERE p.lesson_id = l.id AND p.user_id = ?1) AS completed
+       EXISTS (SELECT 1 FROM lesson_progress p WHERE p.lesson_id = l.id AND p.user_id = ?1) AS completed,
+       EXISTS (SELECT 1 FROM lesson_thumbs t WHERE t.lesson_id = l.id) AS has_thumb
 FROM lessons l
 WHERE l.course_id = ?2
 ORDER BY l.sort_order, l.id
@@ -4775,6 +4815,7 @@ type ListLessonsRow struct {
 	SortOrder   int64
 	CreatedAt   string
 	Completed   bool
+	HasThumb    bool
 }
 
 func (q *Queries) ListLessons(ctx context.Context, arg ListLessonsParams) ([]ListLessonsRow, error) {
@@ -4797,6 +4838,7 @@ func (q *Queries) ListLessons(ctx context.Context, arg ListLessonsParams) ([]Lis
 			&i.SortOrder,
 			&i.CreatedAt,
 			&i.Completed,
+			&i.HasThumb,
 		); err != nil {
 			return nil, err
 		}
@@ -5614,7 +5656,7 @@ func (q *Queries) ListPriceHistory(ctx context.Context, arg ListPriceHistoryPara
 
 const listPublishedCourses = `-- name: ListPublishedCourses :many
 
-SELECT c.id, c.slug, c.title, c.summary,
+SELECT c.id, c.slug, c.title, c.summary, c.art,
        (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id) AS lessons,
        (SELECT COALESCE(SUM(l.minutes), 0) FROM lessons l WHERE l.course_id = c.id) AS minutes,
        (SELECT COUNT(*) FROM lessons l JOIN lesson_progress p ON p.lesson_id = l.id
@@ -5629,6 +5671,7 @@ type ListPublishedCoursesRow struct {
 	Slug      string
 	Title     string
 	Summary   string
+	Art       string
 	Lessons   int64
 	Minutes   interface{}
 	Completed int64
@@ -5651,6 +5694,7 @@ func (q *Queries) ListPublishedCourses(ctx context.Context, viewer int64) ([]Lis
 			&i.Slug,
 			&i.Title,
 			&i.Summary,
+			&i.Art,
 			&i.Lessons,
 			&i.Minutes,
 			&i.Completed,
@@ -7847,6 +7891,22 @@ func (q *Queries) SaveIdempotency(ctx context.Context, arg SaveIdempotencyParams
 	return err
 }
 
+const saveLessonThumb = `-- name: SaveLessonThumb :exec
+INSERT INTO lesson_thumbs (lesson_id, content_type, data) VALUES (?, ?, ?)
+ON CONFLICT (lesson_id) DO UPDATE SET content_type = excluded.content_type, data = excluded.data
+`
+
+type SaveLessonThumbParams struct {
+	LessonID    int64
+	ContentType string
+	Data        []byte
+}
+
+func (q *Queries) SaveLessonThumb(ctx context.Context, arg SaveLessonThumbParams) error {
+	_, err := q.db.ExecContext(ctx, saveLessonThumb, arg.LessonID, arg.ContentType, arg.Data)
+	return err
+}
+
 const saveOAuthToken = `-- name: SaveOAuthToken :exec
 INSERT INTO oauth_tokens (provider, account, access_token, refresh_token, access_expires_at, refresh_expires_at)
 VALUES (?, ?, ?, ?, ?, ?)
@@ -8320,13 +8380,14 @@ func (q *Queries) UpdateCashBalance(ctx context.Context, arg UpdateCashBalancePa
 }
 
 const updateCourse = `-- name: UpdateCourse :exec
-UPDATE courses SET title = ?, summary = ?, sort_order = ? WHERE id = ?
+UPDATE courses SET title = ?, summary = ?, sort_order = ?, art = ? WHERE id = ?
 `
 
 type UpdateCourseParams struct {
 	Title     string
 	Summary   string
 	SortOrder int64
+	Art       string
 	ID        int64
 }
 
@@ -8335,6 +8396,7 @@ func (q *Queries) UpdateCourse(ctx context.Context, arg UpdateCourseParams) erro
 		arg.Title,
 		arg.Summary,
 		arg.SortOrder,
+		arg.Art,
 		arg.ID,
 	)
 	return err

@@ -23,6 +23,7 @@ import (
 	"github.com/exploded/game/internal/media"
 	"github.com/exploded/game/internal/moderate"
 	"github.com/exploded/game/internal/scheduler"
+	"github.com/exploded/game/internal/vimeo"
 	"github.com/exploded/monitor/pkg/logship"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -149,6 +150,10 @@ func main() {
 	// Each part is off until its keys are in .env.
 	med := media.New(queries, mailer, loc)
 	h.SetMedia(med)
+
+	// Admins fill courses from Consortium's Vimeo folders. Off without
+	// VIMEO_TOKEN (a read-only personal access token).
+	h.SetVimeo(vimeo.FromEnv())
 
 	// Lobby messages are checked against the chat rules before they're
 	// posted, and Claude picks the stock news worth showing. Without the key
@@ -300,6 +305,7 @@ func main() {
 		})
 		r.Use(auth.CSRFProtect(csrfSecret))
 		r.Get("/learn", h.LearnHome)
+		r.Get("/learn/videos", h.LearnVideos)
 		r.Get("/learn/topics/{slug}", h.LearnTopic)
 		r.Get("/learn/v/{vid}", h.LearnVideo)
 		r.Get("/learn/thumb/{vid}", h.LearnThumb)
@@ -309,7 +315,15 @@ func main() {
 		r.Get("/learn/live/{eid}/calendar.ics", h.LearnLiveCalendar)
 		r.Get("/learn/questions", h.QuestionsPage)
 		r.Get("/learn/questions/{qid}", h.QuestionPage)
-		r.Get("/learn/courses", h.LearnCourses)
+		// Courses: anyone can see what's in them; playing a lesson needs an
+		// account (LessonPage shows a visitor the sign-in button instead).
+		r.Get("/learn/courses", h.CoursesPage)
+		r.Get("/learn/courses/{slug}", h.CoursePage)
+		r.Get("/learn/courses/{slug}/{lid}", h.LessonPage)
+		r.Get("/learn/lesson-thumb/{lid}", h.LessonThumb)
+		// Courses lived at /courses until 9 November 2026.
+		r.Get("/courses", h.OldCourseURL)
+		r.Get("/courses/*", h.OldCourseURL)
 		// An emailed invite: signed-out visitors get the sign-up form.
 		r.Get("/invite/{code}", h.InviteLanding)
 		// An app asking to connect: the consent page, which sends a
@@ -387,11 +401,8 @@ func main() {
 		r.With(auth.RequireAdmin).Post("/learn/questions/{qid}/hide", h.QuestionHide)
 		r.Post("/learn/live/{eid}/remind", h.LearnLiveRemind)
 
-		// Courses
-		r.Get("/courses", h.CoursesPage)
-		r.Get("/courses/{slug}", h.CoursePage)
-		r.Get("/courses/{slug}/{lid}", h.LessonPage)
-		r.Post("/courses/{slug}/{lid}/complete", h.LessonComplete)
+		// Courses: ticking off a lesson
+		r.Post("/learn/courses/{slug}/{lid}/complete", h.LessonComplete)
 
 		// Lobby Chat
 		r.Get("/lobby", h.LobbyPage)
@@ -447,6 +458,7 @@ func main() {
 			r.Post("/courses/{cid}/publish", h.AdminCoursePublish)
 			r.Post("/courses/{cid}/delete", h.AdminCourseDelete)
 			r.Post("/courses/{cid}/lessons", h.AdminLessonCreate)
+			r.Post("/courses/{cid}/vimeo", h.AdminCourseVimeo)
 			r.Post("/lessons/{lid}", h.AdminLessonUpdate)
 			r.Post("/lessons/{lid}/delete", h.AdminLessonDelete)
 			r.Get("/learn", h.AdminLearn)

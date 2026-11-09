@@ -1,0 +1,105 @@
+{{/* Learn's graphics and shared pieces, on the Learn and course pages. Drawn
+in the home page's style (partials/_home.html): inline SVG coloured from
+CSS, so there's nothing extra to load and the CSP needs nothing new. Each
+course or topic tile sets --tile to its colour. */}}
+
+{{/* The front of Learn: headline over an open book with a rising line, and
+the video search. . is PageData. */}}
+{{define "learn-hero"}}<section class="learn-hero">
+    <svg class="learn-hero-art" viewBox="0 0 400 220" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">
+        <g class="home-candles">
+            <path d="M40 150v40M80 140v45M120 120v50M160 125v45M330 70v45M370 50v45"/>
+            <rect x="35" y="160" width="10" height="20"/><rect x="75" y="150" width="10" height="25"/>
+            <rect x="115" y="130" width="10" height="28"/><rect x="155" y="135" width="10" height="22"/>
+            <rect x="325" y="80" width="10" height="24"/><rect x="365" y="60" width="10" height="24"/>
+        </g>
+        <g class="learn-book">
+            <path class="page" d="M250 74C226 62 196 58 168 64V176C196 170 226 174 250 186Z"/>
+            <path class="page" d="M250 74C274 62 304 58 332 64V176C304 170 274 174 250 186Z"/>
+            <path class="spine" d="M250 74V186"/>
+            <path class="text" d="M182 90C202 87 220 89 238 96M182 108C202 105 220 107 238 114M182 126C202 123 220 125 238 132M182 144C196 142 208 143 220 147"/>
+        </g>
+        <path class="home-hero-line" d="M262 160L280 146L294 152L312 124L326 112"/>
+        <path class="home-hero-head" d="M318 108L336 100L332 120Z"/>
+    </svg>
+    <div class="learn-hero-text">
+        <p class="home-kicker">Courses &middot; Videos &middot; Live Q&amp;A</p>
+        <h1>Get smarter with <span class="home-hl">your money</span></h1>
+        <p class="home-sub">Short courses and hundreds of videos from Rob Goudie, plus live streams where Rob answers your questions. Free for every player.</p>
+        <form method="GET" action="/learn/videos" class="learn-search learn-hero-search" role="search">
+            <input type="search" name="q" placeholder="Search Rob's videos" aria-label="Search Rob's videos">
+            <button type="submit" class="btn btn-primary">Search</button>
+        </form>
+    </div>
+</section>{{end}}
+
+{{/* A course's cover: its illustration on a soft panel. The argument is the
+course's art key (courseArts in courses.go); an unknown or empty key gets
+the play button. */}}
+{{define "course-art"}}<span class="course-art course-art-{{if .}}{{.}}{{else}}generic{{end}}" aria-hidden="true">
+    <svg class="course-art-bg" viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice"><path d="M0 78L22 70L40 74L62 58L80 64L102 46L120 52L142 30L160 24"/></svg>
+    <svg class="course-art-icon" viewBox="0 0 24 24">{{if eq . "market"}}<path d="M6 3v18M12 6v15M18 2v15"/><rect x="4" y="7" width="4" height="8" rx="1"/><rect x="10" y="10" width="4" height="7" rx="1"/><rect x="16" y="5" width="4" height="8" rx="1"/>
+    {{else if eq . "snowball"}}<path d="M4 21v-3M9 21v-6M14 21v-9M19 21V8"/><path d="M3 13C9 13 14 10 20 3"/><path d="M15 3h5v5"/>
+    {{else if eq . "warning"}}<path d="M12 3L2 20.5h20z"/><path d="M12 10v4.5"/><path d="M12 17.6v.1"/>
+    {{else if eq . "brain"}}<path d="M14.5 21v-3h2a2 2 0 002-2v-2.5l2-.8-1.8-3.6A7.5 7.5 0 105.5 14.6V21"/><path d="M10 8.2a2.2 2.2 0 114.2 1c-.5 1-2.2 1.4-2.2 2.8"/><path d="M12 14.4v.1"/>
+    {{else if eq . "scales"}}<path d="M12 3v17M7 20.5h10M4.5 6.5h15"/><path d="M4.5 6.5L1.8 13a2.9 2.9 0 005.4 0z"/><path d="M19.5 6.5L16.8 13a2.9 2.9 0 005.4 0z"/>
+    {{else if eq . "nestegg"}}<path d="M7.2 13c-.3-.8-.4-1.6-.4-2.5 0-3.2 2.2-7 5.2-7s5.2 3.8 5.2 7c0 .9-.1 1.7-.4 2.5"/><path d="M2.5 13h19M3.5 13c1 4.6 4.4 7.5 8.5 7.5s7.5-2.9 8.5-7.5"/><path d="M7 15.5l4 2.5M17 15.5l-4 2.5"/>
+    {{else if eq . "home"}}<path d="M3 11l9-8 9 8"/><path d="M5 9.3V21h14V9.3"/><path d="M10 21v-6h4v6"/>
+    {{else if eq . "loan"}}<path d="M3 11l9-8 9 8"/><path d="M5 9.3V21h14V9.3"/><circle cx="12" cy="13.5" r="2.3"/><path d="M12 15.8V19"/>
+    {{else if eq . "family"}}<path d="M12 21v-9"/><path d="M12 12c0-4.2 3-7.2 8-7.2 0 4.2-3 7.2-8 7.2z"/><path d="M12 14.5c0-3.2-2.5-5.6-7-5.6 0 3.2 2.5 5.6 7 5.6z"/><path d="M7 21h10"/>
+    {{else if eq . "estate"}}<path d="M12 2.5l8 3v6.2c0 5-3.5 8.3-8 9.8-4.5-1.5-8-4.8-8-9.8V5.5z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>
+    {{else}}<circle cx="12" cy="12" r="9.5"/><path class="solid" d="M10 8.3v7.4l6-3.7z"/>{{end}}</svg>
+</span>{{end}}
+
+{{/* One course as a card, for the front of Learn and the courses page. . is
+a ListPublishedCourses row. */}}
+{{define "course-card"}}<a href="/learn/courses/{{.Slug}}" class="course-card course-tile-{{if .Art}}{{.Art}}{{else}}generic{{end}}">
+    {{template "course-art" .Art}}
+    <span class="course-card-body">
+        <span class="course-card-title">{{.Title}}</span>
+        <span class="course-card-meta">{{.Lessons}} lesson{{if ne .Lessons 1}}s{{end}}{{if .Minutes}} &middot; {{.Minutes}} min{{end}}</span>
+        {{if .Completed}}<span class="course-progress" role="img" aria-label="{{.Completed}} of {{.Lessons}} lessons done"><span style="width:{{percent .Completed .Lessons}}%"></span></span>
+        <span class="course-card-done">{{if eq .Completed .Lessons}}Finished{{else}}{{.Completed}} of {{.Lessons}} done{{end}}</span>{{end}}
+    </span>
+</a>{{end}}
+
+{{/* A topic's icon. The argument is the topic's slug; topics added later
+get the play button. */}}
+{{define "topic-icon"}}<span class="topic-icon" aria-hidden="true"><svg viewBox="0 0 24 24">{{if eq . "retirement"}}<circle cx="16.5" cy="7" r="3"/><path d="M2.5 20l6-9.5 4 4.5 2.5-3 6.5 8z"/>
+    {{else if eq . "super"}}<path d="M7.2 13c-.3-.8-.4-1.6-.4-2.5 0-3.2 2.2-7 5.2-7s5.2 3.8 5.2 7c0 .9-.1 1.7-.4 2.5"/><path d="M2.5 13h19M3.5 13c1 4.6 4.4 7.5 8.5 7.5s7.5-2.9 8.5-7.5"/><path d="M7 15.5l4 2.5M17 15.5l-4 2.5"/>
+    {{else if eq . "investing"}}<path d="M12 21v-9"/><path d="M12 12c0-4.2 3-7.2 8-7.2 0 4.2-3 7.2-8 7.2z"/><path d="M12 14.5c0-3.2-2.5-5.6-7-5.6 0 3.2 2.5 5.6 7 5.6z"/>
+    {{else if eq . "shares"}}<path d="M6 3v18M12 6v15M18 2v15"/><rect x="4" y="7" width="4" height="8" rx="1"/><rect x="10" y="10" width="4" height="7" rx="1"/><rect x="16" y="5" width="4" height="8" rx="1"/>
+    {{else if eq . "property"}}<path d="M3 21h18M5 21V8l7-5 7 5v13"/><path d="M9 21v-5h6v5M9 10h.1M15 10h.1"/>
+    {{else if eq . "first-home"}}<circle cx="8" cy="15.5" r="4.2"/><path d="M11 12.5l9-9M16 7.5l2.2 2.2M18.5 5l2 2"/>
+    {{else if eq . "saving"}}<ellipse cx="12" cy="6" rx="7" ry="2.6"/><path d="M5 6v4.5c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6V6M5 10.5V15c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6v-4.5M5 15v3.5c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6V15"/>
+    {{else if eq . "debt"}}<rect x="2" y="5" width="20" height="14" rx="2.5"/><path d="M2 10h20M6 15h4"/>
+    {{else if eq . "estate"}}<path d="M12 2.5l8 3v6.2c0 5-3.5 8.3-8 9.8-4.5-1.5-8-4.8-8-9.8V5.5z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>
+    {{else if eq . "tax"}}<path d="M6 2.5h12v19l-3-2-3 2-3-2-3 2z"/><path d="M9 7.5h6M9 11.5h6M9 15.5h3.5"/>
+    {{else if eq . "insurance"}}<path d="M2 12a10 10 0 0120 0z"/><path d="M12 12v6.5a2 2 0 01-4 0"/>
+    {{else if eq . "markets"}}<circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19M12 2.5c3.2 3 3.2 16 0 19M12 2.5c-3.2 3-3.2 16 0 19"/>
+    {{else if eq . "aged-care"}}<path d="M12 20.5s-8.5-4.8-8.5-10.6A4.7 4.7 0 0112 7a4.7 4.7 0 018.5 2.9c0 5.8-8.5 10.6-8.5 10.6z"/>
+    {{else if eq . "advice"}}<path d="M21 12a8.5 8.5 0 01-12.3 7.6L3 21l1.4-4.9A8.5 8.5 0 1121 12z"/><path d="M8 10.5h8M8 14h5"/>
+    {{else}}<circle cx="12" cy="12" r="9.5"/><path d="M10 8.3v7.4l6-3.7z"/>{{end}}</svg></span>{{end}}
+
+{{/* The topics as tiles with their icons and video counts. . is the
+ListTopics rows. */}}
+{{define "topic-tiles"}}<div class="topic-tiles">
+    {{range .}}{{if .Videos}}<a href="/learn/topics/{{.Slug}}" class="topic-tile topic-{{.Slug}}">
+        {{template "topic-icon" .Slug}}
+        <span class="topic-tile-name">{{.Name}}</span>
+        <span class="topic-tile-count">{{.Videos}} video{{if ne .Videos 1}}s{{end}}</span>
+    </a>{{end}}{{end}}
+</div>{{end}}
+
+{{/* The general advice warning under every Learn page. */}}
+{{define "disclaimer"}}<p class="learn-disclaimer">{{index .Extra "Disclaimer"}}</p>{{end}}
+
+{{/* A player that loads only when tapped, so a page of videos doesn't load a
+dozen third-party players. . is a dict with Embed, Thumb, Title and
+Vertical. */}}
+{{define "player"}}<div class="player{{if .Vertical}} player-tall{{end}}">
+    <button type="button" class="player-start" data-play="{{.Embed}}" data-title="{{.Title}}" aria-label="Play {{.Title}}">
+        {{with .Thumb}}<img src="{{.}}" alt="">{{end}}
+        <span class="player-icon" aria-hidden="true"></span>
+    </button>
+</div>{{end}}

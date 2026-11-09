@@ -217,10 +217,13 @@ page ends with the licensee's general advice warning.
 
 ### Courses
 
-- Rob's video courses, with lessons in order. Courses need an account.
-- Members mark lessons as done and see their progress through each course.
-- Admins build courses as drafts, preview them, then publish. Publishing a
-  course for the first time can email members.
+- Rob's video courses, with lessons in order, each with a cover picture and a
+  "What you'll learn" list. Anyone can see a course; watching needs an account.
+- Members mark lessons as done, see their progress through each course, and
+  carry on from the first lesson they haven't done.
+- Admins build courses as drafts, fill them from a Vimeo folder (or add lessons
+  one link at a time), preview them, then publish. Publishing a course for the
+  first time can email members.
 
 ## Community
 

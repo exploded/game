@@ -43,7 +43,7 @@ game's cash, the bell and the account menu. .Nav is set by render
         </div>
         {{else}}
         <nav class="topbar-public" aria-label="Main">
-            <a href="/learn/questions">Learn</a>
+            <a href="/learn">Learn</a>
             <a href="/login" class="btn btn-sm btn-primary">Sign in</a>
         </nav>
         {{end}}
@@ -73,7 +73,7 @@ the player left. . is the siteNav. */}}
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0z"/><path d="M17 5h3v2a3 3 0 01-3 3M7 5H4v2a3 3 0 003 3"/></svg>
     <span>Ranks</span>
 </a>
-<a href="/learn/questions"{{if eq $tab "learn"}} class="active" aria-current="page"{{end}}>
+<a href="/learn"{{if eq $tab "learn"}} class="active" aria-current="page"{{end}}>
     <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9.5v5l4.5-2.5z"/></svg>
     <span>Learn</span>
 </a>

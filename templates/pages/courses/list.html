@@ -2,22 +2,18 @@
 
 {{define "content"}}
 {{template "learntabs" .}}
-<div class="page-header">
-    <h1>Courses</h1>
+<div class="learn-intro">
+    <h1 class="learn-h1">Courses</h1>
+    <p>Short video courses from Rob Goudie on money, property, super and the share market. Pick any course, watch the lessons in order, and tick them off as you go.{{if not .User}} <a href="{{index .Extra "SignIn"}}">Sign in free</a> to watch.{{end}}</p>
 </div>
 
-<p style="margin-bottom:16px">Short video lessons on investing and how to play. Watch them in any order, and pick up where you left off.</p>
-
-{{range .Items}}
-<a href="/courses/{{.Slug}}" class="settings-card" style="display:block;color:inherit;text-decoration:none">
-    <h2 style="margin-bottom:4px">{{.Title}}</h2>
-    {{with .Summary}}<p style="margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">{{.}}</p>{{end}}
-    <p class="text-muted" style="font-size:12px">
-        {{.Lessons}} lesson{{if ne .Lessons 1}}s{{end}}{{if .Minutes}} &middot; {{.Minutes}} min{{end}}
-        {{if .Completed}}&middot; <span style="color:var(--color-success)">{{.Completed}} of {{.Lessons}} done</span>{{end}}
-    </p>
-</a>
+{{with .Items}}
+<div class="course-grid">
+    {{range .}}{{template "course-card" .}}{{end}}
+</div>
 {{else}}
 <p class="text-muted">The first courses are on their way. Check back soon.</p>
 {{end}}
+
+{{template "disclaimer" .}}
 {{end}}

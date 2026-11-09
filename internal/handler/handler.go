@@ -16,6 +16,7 @@ import (
 	"github.com/exploded/game/internal/mail"
 	"github.com/exploded/game/internal/media"
 	"github.com/exploded/game/internal/moderate"
+	"github.com/exploded/game/internal/vimeo"
 )
 
 // Handler holds shared dependencies for all HTTP handlers.
@@ -28,6 +29,7 @@ type Handler struct {
 	mailer     *mail.Mailer
 	media      *media.Service
 	moderator  moderate.Checker // checks lobby messages; nil without ANTHROPIC_API_KEY
+	vimeo      *vimeo.Client    // fills courses from Vimeo folders; nil without VIMEO_TOKEN
 	screener   screenCache      // the stocks page's rows (screener.go)
 
 	apiLimiter *RateLimiter // each player's API and MCP requests a minute; nil for no limit
@@ -52,6 +54,9 @@ func (h *Handler) SetMedia(m *media.Service) { h.media = m }
 
 // SetModerator has lobby messages checked before they're posted.
 func (h *Handler) SetModerator(m moderate.Checker) { h.moderator = m }
+
+// SetVimeo lets admins fill a course from a Vimeo folder.
+func (h *Handler) SetVimeo(c *vimeo.Client) { h.vimeo = c }
 
 // PageData is the standard data envelope passed to all templates.
 type PageData struct {

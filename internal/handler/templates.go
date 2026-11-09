@@ -241,6 +241,23 @@ func LoadTemplates(fsys fs.FS, static *Static) (PageTemplates, error) {
 			return fmt.Sprintf("/learn/thumb/%d", id)
 		},
 		"embedAt": embedAt,
+		// percent is part as a whole percent of whole, 0 when whole is 0.
+		"percent": func(part, whole int64) int64 {
+			if whole <= 0 {
+				return 0
+			}
+			return part * 100 / whole
+		},
+		// courseOutline splits a course summary into its intro, its "what
+		// you'll learn" list and anything after (courses.go).
+		"courseOutline": courseOutline,
+		// lessonThumb is a lesson's thumbnail, or "" when it has none.
+		"lessonThumb": func(id int64, has bool) string {
+			if !has {
+				return ""
+			}
+			return fmt.Sprintf("/learn/lesson-thumb/%d", id)
+		},
 		"int": func(v any) int {
 			switch val := v.(type) {
 			case int:

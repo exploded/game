@@ -8,7 +8,7 @@
 
 <div class="settings-card">
     <h2>{{if .Item.Published}}Published{{else}}Draft{{end}}</h2>
-    <p style="margin-bottom:12px">Members see it at <a href="/courses/{{.Item.Slug}}">/courses/{{.Item.Slug}}</a>{{if not .Item.Published}} once it&rsquo;s published. You can preview it there now{{end}}.</p>
+    <p style="margin-bottom:12px">Everyone sees it at <a href="/learn/courses/{{.Item.Slug}}">/learn/courses/{{.Item.Slug}}</a>{{if not .Item.Published}} once it&rsquo;s published. You can preview it there now{{end}}. Playing a lesson needs an account.</p>
     <form method="POST" action="/admin/courses/{{.Item.ID}}/publish">
         {{if .Item.Published}}
         <input type="hidden" name="publish" value="0">
@@ -35,7 +35,17 @@
         </div>
         <div class="form-group">
             <label for="summary">Summary</label>
-            <textarea id="summary" name="summary" rows="3">{{.Item.Summary}}</textarea>
+            <textarea id="summary" name="summary" rows="8">{{.Item.Summary}}</textarea>
+            <p class="text-muted" style="font-size:12px;margin-top:4px">Blank lines start new paragraphs. Lines starting with &#9745;&#65039; become the &ldquo;What you&rsquo;ll learn&rdquo; list. The first paragraph goes in the new-course email.</p>
+        </div>
+        <div class="form-group">
+            <label for="cart">Cover picture</label>
+            <div style="display:flex;gap:12px;align-items:center">
+                <span class="course-tile-{{if .Item.Art}}{{.Item.Art}}{{else}}generic{{end}}" style="width:96px;flex-shrink:0">{{template "course-art" .Item.Art}}</span>
+                <select id="cart" name="art">
+                    {{range index .Extra "Arts"}}<option value="{{.Key}}"{{if eq .Key $.Item.Art}} selected{{end}}>{{.Name}}</option>{{end}}
+                </select>
+            </div>
         </div>
         <div class="form-group" style="max-width:200px">
             <label for="corder">Order on the courses page</label>
@@ -61,8 +71,38 @@
 <p class="text-muted" style="margin-bottom:12px">No lessons yet.</p>
 {{end}}
 
+{{if index .Extra "Vimeo"}}
+<div class="settings-card" id="vimeo">
+    <h2>Fill from Vimeo</h2>
+    <p style="margin-bottom:12px">Open the course&rsquo;s folder on vimeo.com and copy the link from the address bar (it looks like <code>https://vimeo.com/user/8765158/folder/26617132</code>). Each video becomes a lesson, with its title, length and thumbnail. Videos already in the course are skipped, so importing again only adds new ones.</p>
+    <form method="GET" action="/admin/courses/{{.Item.ID}}#vimeo" style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="form-group" style="flex:1;min-width:240px;margin:0">
+            <input type="url" name="vimeo" value="{{index .Extra "VimeoLink"}}" placeholder="https://vimeo.com/user/.../folder/..." required aria-label="Vimeo folder link">
+        </div>
+        <button type="submit" class="btn btn-sm">Show videos</button>
+    </form>
+    {{with index .Extra "VimeoError"}}<p style="color:var(--color-danger);margin-top:12px">{{.}}</p>{{end}}
+    {{with index .Extra "VimeoFolder"}}
+    {{with .Folders}}
+    <p style="margin:16px 0 6px"><strong>Folders inside</strong></p>
+    <ul style="margin:0 0 12px 18px">{{range .}}<li><a href="/admin/courses/{{$.Item.ID}}?vimeo={{.URL}}#vimeo">{{.Name}}</a>{{if .Videos}} <span class="text-muted">&middot; {{.Videos}} videos</span>{{end}}</li>{{end}}</ul>
+    {{end}}
+    {{if .Videos}}
+    <p style="margin:16px 0 6px"><strong>{{len .Videos}} video{{if ne (len .Videos) 1}}s{{end}}</strong>, in the order they&rsquo;ll be added:</p>
+    <ol style="margin:0 0 12px 18px">{{range .Videos}}<li>{{.Title}} <span class="text-muted">&middot; {{.Minutes}} min</span>{{with .Warning}}<br><span style="color:var(--color-warning);font-size:12px">{{.}}</span>{{end}}</li>{{end}}</ol>
+    <form method="POST" action="/admin/courses/{{$.Item.ID}}/vimeo">
+        <input type="hidden" name="folder" value="{{.Link}}">
+        <button type="submit" class="btn btn-primary">Add these as lessons</button>
+    </form>
+    {{else}}
+    <p class="text-muted" style="margin-top:12px">No videos in this folder.</p>
+    {{end}}
+    {{end}}
+</div>
+{{end}}
+
 <div class="settings-card">
-    <h2>Add a lesson</h2>
+    <h2>Add a lesson by hand</h2>
     <form method="POST" action="/admin/courses/{{.Item.ID}}/lessons">
         {{template "lesson-fields" dict}}
         <button type="submit" class="btn btn-primary">Add lesson</button>

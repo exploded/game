@@ -87,6 +87,7 @@ type Course struct {
 	Slug        string
 	Title       string
 	Summary     string
+	Art         string
 	Published   int64
 	PublishedAt sql.NullString
 	SortOrder   int64
@@ -226,6 +227,12 @@ type LessonProgress struct {
 	UserID      int64
 	LessonID    int64
 	CompletedAt string
+}
+
+type LessonThumb struct {
+	LessonID    int64
+	ContentType string
+	Data        []byte
 }
 
 type LimitOrder struct {

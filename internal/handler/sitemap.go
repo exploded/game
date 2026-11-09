@@ -18,7 +18,7 @@ import (
 // are listed so AI assistants, which mostly read only pages their search
 // engine has indexed, can find the connector and API instructions.
 var sitemapPages = []string{
-	"/login", "/learn", "/learn/live", "/learn/questions", "/learn/courses",
+	"/login", "/learn", "/learn/videos", "/learn/live", "/learn/questions", "/learn/courses",
 	"/about", "/help", "/contact", "/terms", "/privacy", "/ai", "/agents.md",
 }
 
@@ -37,8 +37,8 @@ type sitemapSet struct {
 	URLs    []sitemapURL `xml:"url"`
 }
 
-// Sitemap lists the public pages, Learn topics with videos, visible videos
-// and answered questions.
+// Sitemap lists the public pages, Learn topics with videos, published
+// courses, visible videos and answered questions.
 func (h *Handler) Sitemap(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	base := siteURL(r)
@@ -59,6 +59,14 @@ func (h *Handler) Sitemap(w http.ResponseWriter, r *http.Request) {
 		if t.Videos > 0 {
 			add("/learn/topics/"+url.PathEscape(t.Slug), "")
 		}
+	}
+	courses, err := h.q.ListPublishedCourses(ctx, 0)
+	if err != nil {
+		h.serverError(w, "sitemap courses", err)
+		return
+	}
+	for _, c := range courses {
+		add(coursePath(c.Slug, 0), "")
 	}
 	for _, vertical := range []int64{0, 1} {
 		videos, err := h.q.ListLatestVideos(ctx, db.ListLatestVideosParams{Vertical: vertical, Lim: sitemapVideos})

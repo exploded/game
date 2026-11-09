@@ -1,0 +1,50 @@
+{{template "base" .}}
+
+{{define "content"}}
+{{template "learntabs" .}}
+
+<form method="GET" action="/learn/videos" class="learn-search" role="search">
+    <input type="search" name="q" value="{{index .Extra "Query"}}" placeholder="Search Rob's videos" aria-label="Search Rob's videos">
+    <button type="submit" class="btn btn-primary">Search</button>
+</form>
+
+{{with index .Extra "Query"}}
+<section class="learn-section">
+    <h2 class="learn-h2">Videos matching &ldquo;{{.}}&rdquo;</h2>
+    {{with index $.Extra "Results"}}{{template "videogrid" .}}{{else}}<p class="text-muted">Nothing matches that. Try fewer words, or <a href="/learn/questions">ask Rob</a>.</p>{{end}}
+</section>
+{{else}}
+
+<section class="learn-section">
+    <h2 class="learn-h2">Topics</h2>
+    {{template "topic-tiles" (index $.Extra "Topics")}}
+</section>
+
+{{with index $.Extra "Featured"}}
+<section class="learn-section">
+    <h2 class="learn-h2">Start here</h2>
+    {{template "videorow" .}}
+</section>
+{{end}}
+
+{{with index $.Extra "Shorts"}}
+<section class="learn-section">
+    <h2 class="learn-h2">Shorts</h2>
+    <div class="vrow vrow-shorts">{{range .}}{{template "videocard" .}}{{end}}</div>
+</section>
+{{end}}
+
+{{with index $.Extra "Latest"}}
+<section class="learn-section">
+    <h2 class="learn-h2">Latest</h2>
+    {{template "videogrid" .}}
+</section>
+{{else}}
+<div class="empty-state">
+    <p>Rob's videos will appear here soon.</p>
+</div>
+{{end}}
+{{end}}
+
+{{template "disclaimer" .}}
+{{end}}

@@ -2,24 +2,61 @@
 
 {{define "content"}}
 {{template "learntabs" .}}
-<div class="page-header">
-    <h1>{{.Item.Title}}</h1>
-    <a href="/courses" class="btn btn-sm">&larr; All courses</a>
-</div>
+{{$o := index .Extra "Outline"}}
+{{$resume := index .Extra "Resume"}}
 
 {{if not .Item.Published}}<div class="flash flash-info" style="margin:0 0 16px">Draft: only admins can see this course.</div>{{end}}
-{{range paragraphs .Item.Summary}}<p style="margin-bottom:12px">{{.}}</p>{{end}}
-<p class="text-muted" style="margin-bottom:16px">{{index .Extra "Done"}} of {{len .Items}} lessons done</p>
 
-{{range $i, $l := .Items}}
-<a href="/courses/{{$.Item.Slug}}/{{$l.ID}}" class="settings-card" style="display:flex;gap:16px;align-items:center;color:inherit;text-decoration:none">
-    <span style="flex-shrink:0;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;{{if $l.Completed}}background:var(--color-success);color:#fff{{else}}background:var(--color-surface-2){{end}}">{{if $l.Completed}}&#10003;{{else}}{{add $i 1}}{{end}}</span>
-    <span style="min-width:0">
-        <strong>{{$l.Title}}</strong>
-        {{if $l.Minutes}}<span class="text-muted" style="font-size:12px"> &middot; {{$l.Minutes}} min</span>{{end}}
-    </span>
-</a>
-{{else}}
-<p class="text-muted">No lessons yet.</p>
-{{end}}
+<section class="course-hero course-tile-{{if .Item.Art}}{{.Item.Art}}{{else}}generic{{end}}">
+    {{template "course-art" .Item.Art}}
+    <div class="course-hero-text">
+        <a href="/learn/courses" class="course-back">&larr; All courses</a>
+        <h1>{{.Item.Title}}</h1>
+        <p class="course-hero-meta">{{len .Items}} lesson{{if ne (len .Items) 1}}s{{end}}{{with index .Extra "Minutes"}} &middot; {{.}} min{{end}}</p>
+        {{if .Items}}
+        <div class="course-hero-actions">
+            {{if not .User}}
+            <a href="{{index .Extra "SignIn"}}" class="btn btn-primary">Sign in free to watch</a>
+            {{else if $resume}}
+            <a href="/learn/courses/{{.Item.Slug}}/{{$resume.ID}}" class="btn btn-primary">{{if index .Extra "Done"}}Carry on: lesson {{index .Extra "ResumeNumber"}}{{else}}Start the course{{end}}</a>
+            {{else}}
+            <span class="course-finished">&#10003; You've finished this course</span>
+            {{end}}
+            {{if and .User (index .Extra "Done")}}
+            <span class="course-progress course-progress-wide" role="img" aria-label="{{index .Extra "Done"}} of {{len .Items}} lessons done"><span style="width:{{index .Extra "Pct"}}%"></span></span>
+            <span class="text-muted">{{index .Extra "Done"}} of {{len .Items}} done</span>
+            {{end}}
+        </div>
+        {{end}}
+    </div>
+</section>
+
+<div class="course-body">
+    <div class="course-about">
+        {{range $o.Intro}}<p>{{.}}</p>{{end}}
+        {{with $o.Learn}}
+        <h2 class="learn-h2">What you'll learn</h2>
+        <ul class="course-learn">{{range .}}<li>{{.}}</li>{{end}}</ul>
+        {{end}}
+        {{range $o.Outro}}<p>{{.}}</p>{{end}}
+    </div>
+
+    <div class="course-lessons">
+        <h2 class="learn-h2">Lessons</h2>
+        {{range $i, $l := .Items}}
+        <a href="/learn/courses/{{$.Item.Slug}}/{{$l.ID}}" class="lesson-row{{if $l.Completed}} lesson-done{{end}}">
+            <span class="lesson-num" aria-hidden="true">{{if $l.Completed}}&#10003;{{else}}{{add $i 1}}{{end}}</span>
+            {{with lessonThumb $l.ID $l.HasThumb}}<img class="lesson-thumb" src="{{.}}" alt="" loading="lazy" decoding="async">{{end}}
+            <span class="lesson-text">
+                <span class="lesson-title">{{$l.Title}}</span>
+                <span class="lesson-meta">{{if $l.Minutes}}{{$l.Minutes}} min{{end}}{{if $l.Completed}}<span class="sr-only">, done</span>{{end}}</span>
+            </span>
+        </a>
+        {{else}}
+        <p class="text-muted">No lessons yet.</p>
+        {{end}}
+    </div>
+</div>
+
+{{template "disclaimer" .}}
 {{end}}

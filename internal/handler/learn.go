@@ -20,7 +20,7 @@ import (
 // Learn is the public hub for Rob's videos, live streams and questions.
 // Anyone can browse; asking, voting and reminders need an account.
 
-// social is one of Rob's accounts, linked from the Watch page.
+// social is one of Rob's accounts, linked from the front of Learn.
 type social struct{ Name, URL, Class string }
 
 var robSocials = []social{
@@ -61,21 +61,54 @@ func viewerID(r *http.Request) int64 {
 	return 0
 }
 
-// topicRow is one topic's row of videos on the Watch page.
-type topicRow struct {
-	Topic  db.ListTopicsRow
-	Videos []db.Video
-}
-
-// LearnHome is the Watch tab: what's live, then rows of videos.
+// LearnHome is the front of Learn: the hero, what's live, Rob's courses,
+// the top questions, topics and the latest videos. A search (?q=, from links
+// made before the Videos page had it) goes to the Videos page.
 func (h *Handler) LearnHome(w http.ResponseWriter, r *http.Request) {
+	if q := r.URL.Query().Get("q"); q != "" {
+		http.Redirect(w, r, "/learn/videos?q="+url.QueryEscape(q), http.StatusMovedPermanently)
+		return
+	}
 	ctx := r.Context()
 	topics, err := h.q.ListTopics(ctx)
 	if err != nil {
 		h.serverError(w, "list topics", err)
 		return
 	}
-	extra := map[string]any{"Topics": topics, "Socials": robSocials}
+	courses, err := h.q.ListPublishedCourses(ctx, viewerID(r))
+	if err != nil {
+		h.serverError(w, "list courses", err)
+		return
+	}
+	latest, err := h.q.ListLatestVideos(ctx, db.ListLatestVideosParams{Vertical: 0, Lim: 8})
+	if err != nil {
+		h.serverError(w, "latest videos", err)
+		return
+	}
+	questions, _ := h.q.ListQuestions(ctx, db.ListQuestionsParams{Viewer: viewerID(r), Show: "all"})
+	if len(questions) > 3 {
+		questions = questions[:3]
+	}
+	extra := map[string]any{
+		"Topics": topics, "Socials": robSocials, "Courses": courses,
+		"Latest": latest, "Questions": questions,
+	}
+	if upcoming, _ := h.q.ListUpcomingLive(ctx); len(upcoming) > 0 {
+		extra["Next"] = upcoming[0]
+	}
+	h.render(w, r, "learn/home", "", learnPage(r, "", PageData{Title: "Learn with Rob", Extra: extra}))
+}
+
+// LearnVideos is the Videos tab: search, topics, then Rob's picks, the
+// latest videos and shorts. Each topic's videos are on its own page.
+func (h *Handler) LearnVideos(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	topics, err := h.q.ListTopics(ctx)
+	if err != nil {
+		h.serverError(w, "list topics", err)
+		return
+	}
+	extra := map[string]any{"Topics": topics}
 
 	if q := strings.TrimSpace(r.URL.Query().Get("q")); q != "" {
 		results, err := h.q.SearchVideos(ctx, q)
@@ -89,38 +122,21 @@ func (h *Handler) LearnHome(w http.ResponseWriter, r *http.Request) {
 		})
 		extra["Query"] = q
 		extra["Results"] = results
-		h.render(w, r, "learn/home", "", learnPage(r, "watch", PageData{Title: "Search: " + q, Extra: extra}))
+		h.render(w, r, "learn/videos", "", learnPage(r, "videos", PageData{Title: "Search: " + q, Extra: extra}))
 		return
 	}
 
-	latest, err := h.q.ListLatestVideos(ctx, db.ListLatestVideosParams{Vertical: 0, Lim: 12})
+	latest, err := h.q.ListLatestVideos(ctx, db.ListLatestVideosParams{Vertical: 0, Lim: 24})
 	if err != nil {
 		h.serverError(w, "latest videos", err)
 		return
 	}
 	shorts, _ := h.q.ListLatestVideos(ctx, db.ListLatestVideosParams{Vertical: 1, Lim: 16})
 	featured, _ := h.q.ListFeaturedVideos(ctx)
-	upcoming, _ := h.q.ListUpcomingLive(ctx)
-	var rows []topicRow
-	for _, t := range topics {
-		if t.Videos == 0 {
-			continue
-		}
-		videos, err := h.q.ListTopicVideos(ctx, db.ListTopicVideosParams{TopicID: t.ID, Lim: 12})
-		if err != nil {
-			h.serverError(w, "topic videos", err)
-			return
-		}
-		rows = append(rows, topicRow{Topic: t, Videos: videos})
-	}
-	if len(upcoming) > 0 {
-		extra["Next"] = upcoming[0]
-	}
 	extra["Latest"] = latest
 	extra["Shorts"] = shorts
 	extra["Featured"] = featured
-	extra["Rows"] = rows
-	h.render(w, r, "learn/home", "", learnPage(r, "watch", PageData{Title: "Learn with Rob", Extra: extra}))
+	h.render(w, r, "learn/videos", "", learnPage(r, "videos", PageData{Title: "Rob's videos", Extra: extra}))
 }
 
 // learnPerPage is how many videos a topic page shows at a time.
@@ -159,7 +175,7 @@ func (h *Handler) LearnTopic(w http.ResponseWriter, r *http.Request) {
 	if int64(page*learnPerPage) < total {
 		extra["Next"] = page + 1
 	}
-	h.render(w, r, "learn/topic", "", learnPage(r, "watch", PageData{Title: t.Name, Items: videos, Extra: extra}))
+	h.render(w, r, "learn/topic", "", learnPage(r, "videos", PageData{Title: t.Name, Items: videos, Extra: extra}))
 }
 
 // learnVideo loads the {vid} video. Hidden videos are for admins only.
@@ -196,7 +212,7 @@ func (h *Handler) LearnVideo(w http.ResponseWriter, r *http.Request) {
 		stocks, _ = h.q.ListVideoStocks(ctx, v.ID)
 	}
 	start, _ := strconv.ParseInt(r.URL.Query().Get("t"), 10, 64)
-	h.render(w, r, "learn/video", "", learnPage(r, "watch", PageData{
+	h.render(w, r, "learn/video", "", learnPage(r, "videos", PageData{
 		Title: v.Title,
 		Item:  v,
 		Extra: map[string]any{
@@ -445,12 +461,6 @@ func localPath(p, fallback string) string {
 		return fallback
 	}
 	return p
-}
-
-// LearnCourses sends the Courses tab to the courses page, which is for
-// members.
-func (h *Handler) LearnCourses(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/courses", http.StatusSeeOther)
 }
 
 // liveNow is the stream for the site-wide "Rob is live" banner, if any.

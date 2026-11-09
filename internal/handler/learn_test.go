@@ -74,6 +74,7 @@ Line two.', 'https://i.ytimg.com/vi/a/mqdefault.jpg', '2026-10-01 00:00:00', 725
 		})
 	})
 	r.Get("/learn", h.LearnHome)
+	r.Get("/learn/videos", h.LearnVideos)
 	r.Get("/learn/topics/{slug}", h.LearnTopic)
 	r.Get("/learn/v/{vid}", h.LearnVideo)
 	r.Get("/learn/thumb/{vid}", h.LearnThumb)
@@ -108,8 +109,9 @@ func TestLearnPagesRender(t *testing.T) {
 		user, path string
 		want       []string
 	}{
-		{"", "/learn", []string{"Learn with Rob", "Salary sacrifice explained", "Super tip", "Superannuation", "LIVE", "general in nature only", "Sign in"}},
-		{"", "/learn?q=retirement", []string{"Retirement income"}},
+		{"", "/learn", []string{"Learn with Rob", "Get smarter with", "Salary sacrifice explained", "Superannuation", "topic-super", "LIVE", "Is super worth it?", "general in nature only", "Sign in"}},
+		{"", "/learn/videos", []string{"Salary sacrifice explained", "Super tip", "Superannuation", `href="/learn/videos" aria-current="page"`}},
+		{"", "/learn/videos?q=retirement", []string{"Retirement income"}},
 		{"2", "/learn", []string{"Rob is live"}},
 		{"", "/learn/topics/super", []string{"Superannuation", "3 videos", "Is super worth it?"}},
 		{"", "/learn/v/1", []string{`data-play="https://www.youtube-nocookie.com/embed/a?rel=0"`, "12:05", "Ask Rob about this", "Retirement income"}},

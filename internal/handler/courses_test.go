@@ -2,7 +2,9 @@ package handler
 
 import (
 	"database/sql"
+	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strconv"
 	"strings"
@@ -12,13 +14,14 @@ import (
 	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/db"
 	"github.com/exploded/game/internal/mail"
+	"github.com/exploded/game/internal/vimeo"
 	"github.com/go-chi/chi/v5"
 )
 
 // courseServer seeds Rob (1, admin), Alice (2) and Bob (3, Community email
 // off), and serves the course routes as main.go does. X-User picks who's
 // signed in.
-func courseServer(t *testing.T) (http.Handler, *sql.DB) {
+func courseServer(t *testing.T, setup ...func(*Handler)) (http.Handler, *sql.DB) {
 	t.Helper()
 	d := openTestDB(t)
 	for _, stmt := range []string{
@@ -37,9 +40,16 @@ func courseServer(t *testing.T) (http.Handler, *sql.DB) {
 		t.Fatal(err)
 	}
 	h.SetMailer(m)
+	for _, f := range setup {
+		f(h)
+	}
 	r := chi.NewRouter()
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get("X-User") == "" {
+				next.ServeHTTP(w, r) // a visitor
+				return
+			}
 			id, _ := strconv.ParseInt(r.Header.Get("X-User"), 10, 64)
 			user, err := q.GetUser(r.Context(), id)
 			if err != nil {
@@ -48,17 +58,22 @@ func courseServer(t *testing.T) (http.Handler, *sql.DB) {
 			next.ServeHTTP(w, r.WithContext(auth.WithUser(r.Context(), &user)))
 		})
 	})
-	r.Get("/courses", h.CoursesPage)
-	r.Get("/courses/{slug}", h.CoursePage)
-	r.Get("/courses/{slug}/{lid}", h.LessonPage)
-	r.Post("/courses/{slug}/{lid}/complete", h.LessonComplete)
+	r.Get("/learn/courses", h.CoursesPage)
+	r.Get("/learn/courses/{slug}", h.CoursePage)
+	r.Get("/learn/courses/{slug}/{lid}", h.LessonPage)
+	r.Get("/learn/lesson-thumb/{lid}", h.LessonThumb)
+	r.Post("/learn/courses/{slug}/{lid}/complete", h.LessonComplete)
+	r.Get("/courses", h.OldCourseURL)
+	r.Get("/courses/*", h.OldCourseURL)
 	r.Route("/admin", func(r chi.Router) {
 		r.Use(auth.RequireAdmin)
 		r.Get("/courses", h.AdminCourses)
 		r.Post("/courses", h.AdminCourseCreate)
 		r.Get("/courses/{cid}", h.AdminCourse)
 		r.Post("/courses/{cid}/publish", h.AdminCoursePublish)
+		r.Post("/courses/{cid}", h.AdminCourseUpdate)
 		r.Post("/courses/{cid}/lessons", h.AdminLessonCreate)
+		r.Post("/courses/{cid}/vimeo", h.AdminCourseVimeo)
 	})
 	return r, d
 }
@@ -94,10 +109,10 @@ func TestCourseLifecycle(t *testing.T) {
 	}
 
 	// A draft is hidden from players but an admin can preview it.
-	if w := as(srv, "2", "GET", "/courses/investing-101-the-basics", nil, false); w.Code != http.StatusNotFound {
+	if w := as(srv, "2", "GET", "/learn/courses/investing-101-the-basics", nil, false); w.Code != http.StatusNotFound {
 		t.Errorf("a player opening a draft: %d, want 404", w.Code)
 	}
-	if w := as(srv, "1", "GET", "/courses/investing-101-the-basics", nil, false); w.Code != http.StatusOK {
+	if w := as(srv, "1", "GET", "/learn/courses/investing-101-the-basics", nil, false); w.Code != http.StatusOK {
 		t.Errorf("an admin previewing a draft: %d", w.Code)
 	}
 
@@ -117,25 +132,25 @@ func TestCourseLifecycle(t *testing.T) {
 	}
 
 	// Alice watches the first lesson and moves on to the second.
-	list := as(srv, "2", "GET", "/courses", nil, false).Body.String()
+	list := as(srv, "2", "GET", "/learn/courses", nil, false).Body.String()
 	if !strings.Contains(list, "Investing 101: The Basics") || !strings.Contains(list, "2 lessons") || !strings.Contains(list, "10 min") {
 		t.Errorf("courses page:\n%s", list)
 	}
-	if !strings.Contains(list, `href="/learn/courses" class="active"`) {
+	if !strings.Contains(list, `href="/learn/courses" aria-current="page"`) {
 		t.Errorf("courses page has no Learn tabs:\n%s", list)
 	}
-	lesson := as(srv, "2", "GET", "/courses/investing-101-the-basics/1", nil, false).Body.String()
+	lesson := as(srv, "2", "GET", "/learn/courses/investing-101-the-basics/1", nil, false).Body.String()
 	if !strings.Contains(lesson, `href="/learn/questions"`) {
 		t.Errorf("lesson page has no Learn tabs:\n%s", lesson)
 	}
-	if !strings.Contains(lesson, `src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0"`) {
+	if !strings.Contains(lesson, `data-play="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0"`) {
 		t.Errorf("lesson page has no player:\n%s", lesson)
 	}
-	w = as(srv, "2", "POST", "/courses/investing-101-the-basics/1/complete", nil, false)
-	if w.Header().Get("Location") != "/courses/investing-101-the-basics/2" {
+	w = as(srv, "2", "POST", "/learn/courses/investing-101-the-basics/1/complete", nil, false)
+	if w.Header().Get("Location") != "/learn/courses/investing-101-the-basics/2" {
 		t.Errorf("completing lesson 1 went to %q, want lesson 2", w.Header().Get("Location"))
 	}
-	if page := as(srv, "2", "GET", "/courses/investing-101-the-basics", nil, false).Body.String(); !strings.Contains(page, "1 of 2 lessons done") {
+	if page := as(srv, "2", "GET", "/learn/courses/investing-101-the-basics", nil, false).Body.String(); !strings.Contains(page, "1 of 2 done") || !strings.Contains(page, "Carry on: lesson 2") {
 		t.Errorf("course page doesn't show progress:\n%s", page)
 	}
 }
@@ -198,5 +213,166 @@ func TestCPWCoursesImported(t *testing.T) {
 	}
 	if len(got) != len(want) {
 		t.Errorf("imported courses %v, want %v", got, want)
+	}
+}
+
+// TestCoursesArePublic checks a visitor can browse a published course and
+// its lessons but gets a sign-in button instead of the player, and that the
+// old /courses addresses move to /learn/courses.
+func TestCoursesArePublic(t *testing.T) {
+	srv, _ := courseServer(t)
+	as(srv, "1", "POST", "/admin/courses", url.Values{"title": {"Shares 101"}}, false)
+	as(srv, "1", "POST", "/admin/courses/1", url.Values{"title": {"Shares 101"}, "art": {"market"},
+		"summary": {"Start here.\n\nIn this course, you'll learn about:\n\n☑️ What a share is\n☑️How prices move"}}, false)
+	as(srv, "1", "POST", "/admin/courses/1/lessons", url.Values{"title": {"What is a share?"}, "video_url": {"https://vimeo.com/76979871/abc123"}, "minutes": {"4"}}, false)
+	if w := as(srv, "", "GET", "/learn/courses/shares-101", nil, false); w.Code != http.StatusNotFound {
+		t.Errorf("a visitor opening a draft: %d, want 404", w.Code)
+	}
+	as(srv, "1", "POST", "/admin/courses/1/publish", url.Values{"publish": {"1"}}, false)
+
+	list := as(srv, "", "GET", "/learn/courses", nil, false).Body.String()
+	for _, want := range []string{"Shares 101", "course-tile-market", "1 lesson", "Sign in free"} {
+		if !strings.Contains(list, want) {
+			t.Errorf("courses page for a visitor: no %q", want)
+		}
+	}
+	course := as(srv, "", "GET", "/learn/courses/shares-101", nil, false).Body.String()
+	for _, want := range []string{"Start here.", "What you'll learn", "<li>What a share is</li>", "<li>How prices move</li>", "Sign in free to watch", "What is a share?"} {
+		if !strings.Contains(course, want) {
+			t.Errorf("course page for a visitor: no %q", want)
+		}
+	}
+	if strings.Contains(course, "learn about:") {
+		t.Error("course page repeats the list's lead-in line")
+	}
+	lesson := as(srv, "", "GET", "/learn/courses/shares-101/1", nil, false).Body.String()
+	if strings.Contains(lesson, "data-play") || strings.Contains(lesson, "player.vimeo.com") || !strings.Contains(lesson, "Sign in to watch") {
+		t.Errorf("lesson page for a visitor shows the player or no sign-in:\n%s", lesson)
+	}
+	if lesson := as(srv, "2", "GET", "/learn/courses/shares-101/1", nil, false).Body.String(); !strings.Contains(lesson, `data-play="https://player.vimeo.com/video/76979871?h=abc123"`) {
+		t.Errorf("lesson page for a player has no player")
+	}
+
+	for old, want := range map[string]string{
+		"/courses":              "/learn/courses",
+		"/courses/shares-101/1": "/learn/courses/shares-101/1",
+	} {
+		w := as(srv, "", "GET", old, nil, false)
+		if w.Code != http.StatusMovedPermanently || w.Header().Get("Location") != want {
+			t.Errorf("%s: %d to %q, want 301 to %q", old, w.Code, w.Header().Get("Location"), want)
+		}
+	}
+}
+
+func TestCourseOutline(t *testing.T) {
+	o := courseOutline("First para.\n\nSecond para.\n\nIn this course, you'll learn about:\n\n☑️One\n☑️ Two\n\nBy the end, you'll know.")
+	if len(o.Intro) != 2 || len(o.Learn) != 2 || o.Learn[0] != "One" || o.Learn[1] != "Two" || len(o.Outro) != 1 {
+		t.Errorf("outline = %+v", o)
+	}
+	// No list: the whole summary is the intro.
+	if o := courseOutline("Just this:\n\nAnd this."); len(o.Intro) != 2 || o.Learn != nil {
+		t.Errorf("plain outline = %+v", o)
+	}
+}
+
+// TestFillCourseFromVimeo imports a Vimeo folder's videos as lessons with
+// thumbnails, and importing again adds nothing.
+func TestFillCourseFromVimeo(t *testing.T) {
+	jpeg := []byte("\xff\xd8\xff\xe0\x00\x10JFIF\x00")
+	var api *httptest.Server
+	api = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/users/8765158/projects/26617132/items":
+			video := func(id, name string, secs int) map[string]any {
+				return map[string]any{"type": "video", "video": map[string]any{
+					"uri": "/videos/" + id, "name": name, "duration": secs, "created_time": "2026-02-06T01:00:00+00:00",
+					"player_embed_url": "https://player.vimeo.com/video/" + id + "?h=ff" + id,
+					"pictures":         map[string]any{"sizes": []any{map[string]any{"width": 640, "link": api.URL + "/thumb/" + id}}},
+					"privacy":          map[string]string{"view": "unlisted", "embed": "public"},
+				}}
+			}
+			json.NewEncoder(w).Encode(map[string]any{"data": []any{video("222", "Lesson 2: How prices move", 250), video("111", "Lesson 1:  What a share is", 61)}})
+		case "/thumb/111", "/thumb/222":
+			w.Write(jpeg)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer api.Close()
+	srv, d := courseServer(t, func(h *Handler) {
+		h.SetVimeo(vimeo.New("tok").WithBase(api.URL).WithHTTP(api.Client()))
+	})
+	as(srv, "1", "POST", "/admin/courses", url.Values{"title": {"Shares 101"}}, false)
+	folder := "https://vimeo.com/user/8765158/folder/26617132"
+
+	page := as(srv, "1", "GET", "/admin/courses/1?vimeo="+url.QueryEscape(folder), nil, false).Body.String()
+	if !strings.Contains(page, "<li>What a share is") || !strings.Contains(page, "Add these as lessons") {
+		t.Errorf("admin page doesn't preview the folder:\n%s", page)
+	}
+	for range 2 {
+		as(srv, "1", "POST", "/admin/courses/1/vimeo", url.Values{"folder": {folder}}, false)
+	}
+	rows, err := d.Query("SELECT l.title, l.embed_url, l.minutes, COALESCE(t.content_type, '') FROM lessons l LEFT JOIN lesson_thumbs t ON t.lesson_id = l.id ORDER BY l.sort_order")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	var got []string
+	for rows.Next() {
+		var title, embed, ct string
+		var minutes int
+		if err := rows.Scan(&title, &embed, &minutes, &ct); err != nil {
+			t.Fatal(err)
+		}
+		got = append(got, title+"|"+embed+"|"+strconv.Itoa(minutes)+"|"+ct)
+	}
+	want := []string{
+		"What a share is|https://player.vimeo.com/video/111?h=ff111|2|image/jpeg",
+		"How prices move|https://player.vimeo.com/video/222?h=ff222|5|image/jpeg",
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Errorf("lessons:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+	w := as(srv, "", "GET", "/learn/lesson-thumb/1", nil, false)
+	if w.Header().Get("Content-Type") != "image/jpeg" {
+		t.Errorf("lesson thumb: %q", w.Header().Get("Content-Type"))
+	}
+
+	// A share link can't be read: the page says how to get the right one.
+	page = as(srv, "1", "GET", "/admin/courses/1?vimeo="+url.QueryEscape("https://vimeo.com/share/folder/2f489ff7"), nil, false).Body.String()
+	if !strings.Contains(page, "isn&#39;t a Vimeo folder link") {
+		t.Errorf("share link not explained:\n%s", page)
+	}
+}
+
+// TestCourses2026Imported checks Rob's ten 2026 courses arrive as drafts,
+// each with a cover and a "what you'll learn" list, once.
+func TestCourses2026Imported(t *testing.T) {
+	d := openTestDB(t)
+	for range 2 {
+		if err := RunSeedMigrations(d); err != nil {
+			t.Fatal(err)
+		}
+	}
+	rows, err := d.Query(`SELECT slug, summary, art, published FROM courses WHERE art != '' ORDER BY sort_order`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	n := 0
+	for rows.Next() {
+		var slug, summary, art string
+		var published int64
+		if err := rows.Scan(&slug, &summary, &art, &published); err != nil {
+			t.Fatal(err)
+		}
+		n++
+		o := courseOutline(summary)
+		if published != 0 || !validArt(art) || len(o.Intro) == 0 || len(o.Learn) < 5 || strings.Contains(summary, "General advice only") {
+			t.Errorf("%s: published %d, art %q, %d intro paragraphs, %d list items", slug, published, art, len(o.Intro), len(o.Learn))
+		}
+	}
+	if n != 10 {
+		t.Errorf("%d courses with covers, want 10", n)
 	}
 }
