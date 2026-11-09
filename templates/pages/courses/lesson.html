@@ -3,7 +3,7 @@
 {{define "content"}}
 {{template "learntabs" .}}
 {{$c := index .Extra "Course"}}
-{{$thumb := lessonThumb .Item.ID .Item.HasThumb}}
+{{$thumb := lessonThumb .Item.ID (and (eq $c.VimeoThumbs 1) .Item.HasThumb)}}
 
 <div class="lesson-page">
     <div class="lesson-main">

@@ -617,6 +617,7 @@ CREATE TABLE IF NOT EXISTS courses (
     summary      TEXT    NOT NULL DEFAULT '',
     art          TEXT    NOT NULL DEFAULT '',           -- cover illustration key (_learnart.html); '' = the generic one
     vimeo_folder TEXT    NOT NULL DEFAULT '',           -- the Vimeo folder link last filled from; pre-fills Fill from Vimeo
+    vimeo_thumbs INTEGER NOT NULL DEFAULT 0,            -- 1 = lessons show their Vimeo thumbnails; 0 = the course's picture
     published    INTEGER NOT NULL DEFAULT 0,            -- 0 = draft, only admins see it
     published_at TEXT,                                  -- first publish; set once
     sort_order   INTEGER NOT NULL DEFAULT 0,

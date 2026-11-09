@@ -47,6 +47,10 @@
                 </select>
             </div>
         </div>
+        <label class="checkbox-label" style="padding-top:0;margin-bottom:12px">
+            <input type="checkbox" name="vimeo_thumbs" value="1"{{if .Item.VimeoThumbs}} checked{{end}}>
+            <span>Use Vimeo thumbnails for the lessons. Leave it off to show the cover picture on every lesson, until each video has a good thumbnail on Vimeo.</span>
+        </label>
         <div class="form-group" style="max-width:200px">
             <label for="corder">Order on the courses page</label>
             <input type="number" id="corder" name="sort_order" value="{{.Item.SortOrder}}">

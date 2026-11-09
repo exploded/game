@@ -1348,7 +1348,7 @@ INSERT INTO courses (slug, title, summary) VALUES (?, ?, ?)
 RETURNING id;
 
 -- name: UpdateCourse :exec
-UPDATE courses SET title = ?, summary = ?, sort_order = ?, art = ? WHERE id = ?;
+UPDATE courses SET title = ?, summary = ?, sort_order = ?, art = ?, vimeo_thumbs = ? WHERE id = ?;
 
 -- name: SetCoursePublished :exec
 UPDATE courses SET published = sqlc.arg(published),

@@ -337,8 +337,13 @@ func (h *Handler) AdminCourseUpdate(w http.ResponseWriter, r *http.Request) {
 	if !validArt(art) {
 		art = c.Art
 	}
+	var vimeoThumbs int64
+	if r.FormValue("vimeo_thumbs") == "1" {
+		vimeoThumbs = 1
+	}
 	if err := h.q.UpdateCourse(r.Context(), db.UpdateCourseParams{
-		Title: title, Summary: strings.TrimSpace(r.FormValue("summary")), SortOrder: order, Art: art, ID: c.ID,
+		Title: title, Summary: strings.TrimSpace(r.FormValue("summary")), SortOrder: order, Art: art,
+		VimeoThumbs: vimeoThumbs, ID: c.ID,
 	}); err != nil {
 		h.serverError(w, "update course", err)
 		return

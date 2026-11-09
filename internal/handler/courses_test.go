@@ -357,9 +357,19 @@ func TestFillCourseFromVimeo(t *testing.T) {
 		t.Errorf("folder not remembered:\n%s", page)
 	}
 
-	// Lesson 3 has no thumbnail, so the course page draws the course's
-	// picture in its place.
+	// Until the course is set to use Vimeo's thumbnails, every lesson shows
+	// the course's picture.
 	as(srv, "1", "POST", "/admin/courses/1/publish", url.Values{"publish": {"1"}}, false)
+	page = as(srv, "1", "GET", "/learn/courses/shares-101", nil, false).Body.String()
+	if n := strings.Count(page, `<img class="lesson-thumb"`); n != 0 {
+		t.Errorf("lesson thumbnails before the switch = %d, want 0", n)
+	}
+	if n := strings.Count(page, `<span class="lesson-thumb course-tile-generic">`); n != 3 {
+		t.Errorf("course pictures before the switch = %d, want 3", n)
+	}
+
+	// With it on, lesson 3 (no thumbnail on Vimeo) still gets the picture.
+	as(srv, "1", "POST", "/admin/courses/1", url.Values{"title": {"Shares 101"}, "vimeo_thumbs": {"1"}}, false)
 	page = as(srv, "1", "GET", "/learn/courses/shares-101", nil, false).Body.String()
 	if n := strings.Count(page, `<img class="lesson-thumb"`); n != 2 {
 		t.Errorf("lesson thumbnails = %d, want 2", n)
