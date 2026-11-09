@@ -222,7 +222,7 @@ func TestHome(t *testing.T) {
 	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `action="/login"`) {
 		t.Errorf("signed out: GET / = %d, want 200 with the sign-in form", w.Code)
 	}
-	if !strings.Contains(w.Body.String(), `<source src="/static/video/the-wealth-lab-tour.mp4?v=`) {
+	if !strings.Contains(w.Body.String(), `<source src="/static/video/the-investor-project-tour.mp4?v=`) {
 		t.Error("sign-in page has no tour video")
 	}
 	// The home page's headline, tiles and points, from partials/_home.html.

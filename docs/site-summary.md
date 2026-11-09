@@ -96,9 +96,9 @@ To replace it with Rob's video:
 
 1. Make a web copy at 720p, with the index at the front so it starts playing
    straight away (in PowerShell, in the folder with Rob's file):
-   `ffmpeg -i rob.mp4 -vf scale=-2:720 -c:v libx264 -preset slow -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -movflags +faststart the-wealth-lab-tour.mp4`
+   `ffmpeg -i rob.mp4 -vf scale=-2:720 -c:v libx264 -preset slow -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -movflags +faststart the-investor-project-tour.mp4`
 2. Make a cover from a frame, here 1 second in:
-   `ffmpeg -ss 1 -i rob.mp4 -frames:v 1 -vf scale=1280:-2 -q:v 4 the-wealth-lab-tour.jpg`
+   `ffmpeg -ss 1 -i rob.mp4 -frames:v 1 -vf scale=1280:-2 -q:v 4 the-investor-project-tour.jpg`
 3. Replace both files in `static/video`, change or remove the music credit on
    the About page (`templates/pages/legal/about.html`), then build and deploy.
 

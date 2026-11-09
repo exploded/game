@@ -152,7 +152,7 @@ func TestDashboardJoinsCurrentGame(t *testing.T) {
 			t.Errorf("home page is missing %q", want)
 		}
 	}
-	if !strings.Contains(body, `<source src="/static/video/the-wealth-lab-tour.mp4?v=`) {
+	if !strings.Contains(body, `<source src="/static/video/the-investor-project-tour.mp4?v=`) {
 		t.Error("home page has no tour video")
 	}
 }

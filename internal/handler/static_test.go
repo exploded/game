@@ -74,14 +74,14 @@ func TestIntroVideoServes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	req := httptest.NewRequest("GET", s.URL("video/the-wealth-lab-tour.mp4"), nil)
+	req := httptest.NewRequest("GET", s.URL("video/the-investor-project-tour.mp4"), nil)
 	req.Header.Set("Range", "bytes=0-1023")
 	w := httptest.NewRecorder()
 	s.ServeHTTP(w, req)
 	if w.Code != http.StatusPartialContent || w.Body.Len() != 1024 || w.Header().Get("Content-Type") != "video/mp4" {
 		t.Errorf("GET with Range = %d, %d bytes, %q; want 206, 1024 bytes, video/mp4", w.Code, w.Body.Len(), w.Header().Get("Content-Type"))
 	}
-	if _, ok := s.hashes["video/the-wealth-lab-tour.jpg"]; !ok {
+	if _, ok := s.hashes["video/the-investor-project-tour.jpg"]; !ok {
 		t.Error("the tour's cover image is missing")
 	}
 }

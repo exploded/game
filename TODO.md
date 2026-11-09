@@ -41,10 +41,9 @@ Built on 2026-10-29, merged into `master` and deployed on 2026-10-30.
   course folder's videos to embed only on investorproject.au (and
   consortiumpw.com.au if they're used there too). Do it after a lesson has
   played on prod; localhost won't play them afterwards.
-- [ ] **Fill and publish the eleven courses** on prod: put `VIMEO_TOKEN` in the
-  server `.env`, use Fill from Vimeo on each, play a lesson of each on a
-  phone, publish (no email, or one), then unpublish the 7 old CPW courses
-  (the 2018 super ones quote 9.5% super; it's 12% now).
+- [x] **Fill and publish the eleven courses** on prod (2026-11-10): all eleven
+  are live. James deleted 6 of the 7 old CPW courses and unpublished the
+  Peter Thornhill one.
 - [ ] **From Anne:** which "Building Your First Home Deposit" Vimeo folder is
   current (December 2025, 7 videos, or February 2026, 6)?
 - [x] **Rob's investment presentation** (2026-11-09): James confirmed it
