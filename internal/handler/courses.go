@@ -307,6 +307,8 @@ func (h *Handler) AdminCourse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	extra := map[string]any{"Arts": courseArts, "Vimeo": h.vimeo != nil}
+	// The box opens on the folder the course was last filled from.
+	extra["VimeoLink"] = c.VimeoFolder
 	if link := strings.TrimSpace(r.URL.Query().Get("vimeo")); link != "" && h.vimeo != nil {
 		extra["VimeoLink"] = link
 		contents, err := h.vimeoFolder(r, link)

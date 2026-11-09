@@ -74,7 +74,7 @@
 {{if index .Extra "Vimeo"}}
 <div class="settings-card" id="vimeo">
     <h2>Fill from Vimeo</h2>
-    <p style="margin-bottom:12px">Open the course&rsquo;s folder on vimeo.com and copy the link from the address bar (it looks like <code>https://vimeo.com/user/8765158/folder/26617132</code>). Each video becomes a lesson, with its title, length and thumbnail. Importing again adds only new videos and refreshes the thumbnails of the rest, so after setting thumbnails on Vimeo, run it again. A video with no thumbnail on Vimeo shows the course picture.</p>
+    <p style="margin-bottom:12px">{{if .Item.VimeoFolder}}The box holds the folder this course was last filled from: click Show videos to import again. {{end}}Open the course&rsquo;s folder on vimeo.com and copy the link from the address bar (it looks like <code>https://vimeo.com/user/8765158/folder/26617132</code>). Each video becomes a lesson, with its title, length and thumbnail. Importing again adds only new videos and refreshes the thumbnails of the rest, so after setting thumbnails on Vimeo, run it again. A video with no thumbnail on Vimeo shows the course picture.</p>
     <form method="GET" action="/admin/courses/{{.Item.ID}}#vimeo" style="display:flex;gap:8px;flex-wrap:wrap">
         <div class="form-group" style="flex:1;min-width:240px;margin:0">
             <input type="url" name="vimeo" value="{{index .Extra "VimeoLink"}}" placeholder="https://vimeo.com/user/.../folder/..." required aria-label="Vimeo folder link">

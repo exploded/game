@@ -1727,7 +1727,7 @@ func (q *Queries) GetAvatar(ctx context.Context, id int64) (Avatar, error) {
 }
 
 const getCourse = `-- name: GetCourse :one
-SELECT id, slug, title, summary, art, published, published_at, sort_order, created_at FROM courses WHERE id = ?
+SELECT id, slug, title, summary, art, vimeo_folder, published, published_at, sort_order, created_at FROM courses WHERE id = ?
 `
 
 func (q *Queries) GetCourse(ctx context.Context, id int64) (Course, error) {
@@ -1739,6 +1739,7 @@ func (q *Queries) GetCourse(ctx context.Context, id int64) (Course, error) {
 		&i.Title,
 		&i.Summary,
 		&i.Art,
+		&i.VimeoFolder,
 		&i.Published,
 		&i.PublishedAt,
 		&i.SortOrder,
@@ -1748,7 +1749,7 @@ func (q *Queries) GetCourse(ctx context.Context, id int64) (Course, error) {
 }
 
 const getCourseBySlug = `-- name: GetCourseBySlug :one
-SELECT id, slug, title, summary, art, published, published_at, sort_order, created_at FROM courses WHERE slug = ?
+SELECT id, slug, title, summary, art, vimeo_folder, published, published_at, sort_order, created_at FROM courses WHERE slug = ?
 `
 
 func (q *Queries) GetCourseBySlug(ctx context.Context, slug string) (Course, error) {
@@ -1760,6 +1761,7 @@ func (q *Queries) GetCourseBySlug(ctx context.Context, slug string) (Course, err
 		&i.Title,
 		&i.Summary,
 		&i.Art,
+		&i.VimeoFolder,
 		&i.Published,
 		&i.PublishedAt,
 		&i.SortOrder,
@@ -3528,7 +3530,7 @@ func (q *Queries) ListAllActiveHoldings(ctx context.Context) ([]ListAllActiveHol
 }
 
 const listAllCourses = `-- name: ListAllCourses :many
-SELECT c.id, c.slug, c.title, c.summary, c.art, c.published, c.published_at, c.sort_order, c.created_at, (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id) AS lessons
+SELECT c.id, c.slug, c.title, c.summary, c.art, c.vimeo_folder, c.published, c.published_at, c.sort_order, c.created_at, (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id) AS lessons
 FROM courses c
 ORDER BY c.sort_order, c.id
 `
@@ -3539,6 +3541,7 @@ type ListAllCoursesRow struct {
 	Title       string
 	Summary     string
 	Art         string
+	VimeoFolder string
 	Published   int64
 	PublishedAt sql.NullString
 	SortOrder   int64
@@ -3561,6 +3564,7 @@ func (q *Queries) ListAllCourses(ctx context.Context) ([]ListAllCoursesRow, erro
 			&i.Title,
 			&i.Summary,
 			&i.Art,
+			&i.VimeoFolder,
 			&i.Published,
 			&i.PublishedAt,
 			&i.SortOrder,
@@ -8028,6 +8032,20 @@ type SetCoursePublishedParams struct {
 
 func (q *Queries) SetCoursePublished(ctx context.Context, arg SetCoursePublishedParams) error {
 	_, err := q.db.ExecContext(ctx, setCoursePublished, arg.Published, arg.ID)
+	return err
+}
+
+const setCourseVimeoFolder = `-- name: SetCourseVimeoFolder :exec
+UPDATE courses SET vimeo_folder = ? WHERE id = ?
+`
+
+type SetCourseVimeoFolderParams struct {
+	VimeoFolder string
+	ID          int64
+}
+
+func (q *Queries) SetCourseVimeoFolder(ctx context.Context, arg SetCourseVimeoFolderParams) error {
+	_, err := q.db.ExecContext(ctx, setCourseVimeoFolder, arg.VimeoFolder, arg.ID)
 	return err
 }
 

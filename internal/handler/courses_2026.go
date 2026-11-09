@@ -223,3 +223,20 @@ In this course, you''ll learn about:
 
 By the end of this course, you''ll have a better understanding of how share markets work and why successful investing is often more about patience, discipline and behaviour than trying to predict what the market will do next.',
 		'market', 10)`
+
+// courses2026VimeoFolders records each course's Vimeo folder (Consortium's
+// account). First Home Deposit uses the February 2026 folder; an older one
+// from December 2025 is also on Vimeo.
+const courses2026VimeoFolders = `UPDATE courses SET vimeo_folder = CASE slug
+	WHEN 'estate-planning-protecting-your-family-and-your-legacy' THEN 'https://vimeo.com/user/8765158/folder/28151043'
+	WHEN 'building-your-first-home-deposit' THEN 'https://vimeo.com/user/8765158/folder/28151777'
+	WHEN 'take-control-how-to-pay-off-your-home-loan-faster' THEN 'https://vimeo.com/user/8765158/folder/28233680'
+	WHEN 'investing-for-children-and-grandchildren' THEN 'https://vimeo.com/user/8765158/folder/28222860'
+	WHEN 'investor-psychology-how-behaviour-shapes-investment-outcomes' THEN 'https://vimeo.com/user/8765158/folder/28223572'
+	WHEN 'shares-vs-property-which-is-the-better-investment-for-the' THEN 'https://vimeo.com/user/8765158/folder/28223969'
+	WHEN 'the-key-things-you-need-to-know-about-superannuation' THEN 'https://vimeo.com/user/8765158/folder/28150902'
+	WHEN 'the-biggest-financial-mistakes-australians-make-and-how-to' THEN 'https://vimeo.com/user/8765158/folder/28151173'
+	WHEN 'the-power-of-understanding-compounding-returns' THEN 'https://vimeo.com/user/8765158/folder/28136916'
+	WHEN 'understanding-share-market-basics' THEN 'https://vimeo.com/user/8765158/folder/28137032'
+END
+WHERE vimeo_folder = '' AND slug IN ('estate-planning-protecting-your-family-and-your-legacy', 'building-your-first-home-deposit', 'take-control-how-to-pay-off-your-home-loan-faster', 'investing-for-children-and-grandchildren', 'investor-psychology-how-behaviour-shapes-investment-outcomes', 'shares-vs-property-which-is-the-better-investment-for-the', 'the-key-things-you-need-to-know-about-superannuation', 'the-biggest-financial-mistakes-australians-make-and-how-to', 'the-power-of-understanding-compounding-returns', 'understanding-share-market-basics')`

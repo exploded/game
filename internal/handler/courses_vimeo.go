@@ -89,6 +89,9 @@ func (h *Handler) AdminCourseVimeo(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, back+"?vimeo="+url.QueryEscape(link), http.StatusSeeOther)
 		return
 	}
+	if err := h.q.SetCourseVimeoFolder(r.Context(), db.SetCourseVimeoFolderParams{VimeoFolder: folder.Link, ID: c.ID}); err != nil {
+		slog.Warn("save course vimeo folder", "course", c.ID, "error", err)
+	}
 	added, existing, unplayable, noThumb := 0, 0, 0, 0
 	for _, v := range folder.Videos {
 		embed, ok := embedURL(v.Embed)

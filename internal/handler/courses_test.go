@@ -351,6 +351,12 @@ func TestFillCourseFromVimeo(t *testing.T) {
 		t.Errorf("lesson thumb: %q", w.Header().Get("Content-Type"))
 	}
 
+	// The admin page remembers the folder for next time.
+	page = as(srv, "1", "GET", "/admin/courses/1", nil, false).Body.String()
+	if !strings.Contains(page, `value="`+folder+`"`) {
+		t.Errorf("folder not remembered:\n%s", page)
+	}
+
 	// Lesson 3 has no thumbnail, so the course page draws the course's
 	// picture in its place.
 	as(srv, "1", "POST", "/admin/courses/1/publish", url.Values{"publish": {"1"}}, false)
@@ -378,19 +384,22 @@ func TestCourses2026Imported(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	rows, err := d.Query(`SELECT slug, summary, art, published FROM courses WHERE art != '' ORDER BY sort_order`)
+	rows, err := d.Query(`SELECT slug, summary, art, published, vimeo_folder FROM courses WHERE art != '' ORDER BY sort_order`)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer rows.Close()
 	n := 0
 	for rows.Next() {
-		var slug, summary, art string
+		var slug, summary, art, folder string
 		var published int64
-		if err := rows.Scan(&slug, &summary, &art, &published); err != nil {
+		if err := rows.Scan(&slug, &summary, &art, &published, &folder); err != nil {
 			t.Fatal(err)
 		}
 		n++
+		if _, _, ok := vimeo.ParseFolderURL(folder); !ok {
+			t.Errorf("%s: Vimeo folder %q", slug, folder)
+		}
 		o := courseOutline(summary)
 		if published != 0 || !validArt(art) || len(o.Intro) == 0 || len(o.Learn) < 5 || strings.Contains(summary, "General advice only") {
 			t.Errorf("%s: published %d, art %q, %d intro paragraphs, %d list items", slug, published, art, len(o.Intro), len(o.Learn))

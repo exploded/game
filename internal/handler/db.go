@@ -119,6 +119,7 @@ var addedColumns = []struct{ table, column, ddl string }{
 	{"participants", "traded", "INTEGER NOT NULL DEFAULT 0"},
 	{"participants", "uses_ai", "INTEGER NOT NULL DEFAULT 0"},
 	{"courses", "art", "TEXT NOT NULL DEFAULT ''"},
+	{"courses", "vimeo_folder", "TEXT NOT NULL DEFAULT ''"},
 }
 
 // onceMigrations run exactly once per database, in order. Each is recorded in
@@ -424,6 +425,8 @@ var seedMigrations = []struct{ name, stmt string }{
 	{"import-cpw-lessons", importCPWLessons},
 	// Rob's 2026 courses, as drafts (courses_2026.go).
 	{"import-2026-courses", import2026Courses},
+	// Each 2026 course's Vimeo folder, so Fill from Vimeo opens filled in.
+	{"courses-2026-vimeo-folders", courses2026VimeoFolders},
 }
 
 // RunSeedMigrations applies seedMigrations. Call it after market.SeedStocks.

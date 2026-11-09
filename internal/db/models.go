@@ -88,6 +88,7 @@ type Course struct {
 	Title       string
 	Summary     string
 	Art         string
+	VimeoFolder string
 	Published   int64
 	PublishedAt sql.NullString
 	SortOrder   int64

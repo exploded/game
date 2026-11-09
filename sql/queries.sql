@@ -1375,6 +1375,9 @@ VALUES (sqlc.arg(course_id), sqlc.arg(title), sqlc.arg(description), sqlc.arg(vi
         (SELECT COALESCE(MAX(l.sort_order), 0) + 1 FROM lessons l WHERE l.course_id = sqlc.arg(course_id)))
 RETURNING id;
 
+-- name: SetCourseVimeoFolder :exec
+UPDATE courses SET vimeo_folder = ? WHERE id = ?;
+
 -- name: GetCourseLessonByVideo :one
 SELECT id FROM lessons WHERE course_id = ? AND video_url = ? LIMIT 1;
 
