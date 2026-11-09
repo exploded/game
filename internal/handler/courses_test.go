@@ -279,19 +279,30 @@ func TestCourseOutline(t *testing.T) {
 // thumbnails, and importing again adds nothing.
 func TestFillCourseFromVimeo(t *testing.T) {
 	jpeg := []byte("\xff\xd8\xff\xe0\x00\x10JFIF\x00")
+	// Lesson 2 has no thumbnail on Vimeo until the second import; lesson 3
+	// never has one.
+	imports := 0
 	var api *httptest.Server
 	api = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/users/8765158/projects/26617132/items":
-			video := func(id, name string, secs int) map[string]any {
+			video := func(id, name string, secs int, picType string) map[string]any {
 				return map[string]any{"type": "video", "video": map[string]any{
 					"uri": "/videos/" + id, "name": name, "duration": secs, "created_time": "2026-02-06T01:00:00+00:00",
 					"player_embed_url": "https://player.vimeo.com/video/" + id + "?h=ff" + id,
-					"pictures":         map[string]any{"sizes": []any{map[string]any{"width": 640, "link": api.URL + "/thumb/" + id}}},
+					"pictures":         map[string]any{"type": picType, "sizes": []any{map[string]any{"width": 640, "link": api.URL + "/thumb/" + id}}},
 					"privacy":          map[string]string{"view": "unlisted", "embed": "public"},
 				}}
 			}
-			json.NewEncoder(w).Encode(map[string]any{"data": []any{video("222", "Lesson 2: How prices move", 250), video("111", "Lesson 1:  What a share is", 61)}})
+			second := "default"
+			if imports > 1 {
+				second = "custom"
+			}
+			json.NewEncoder(w).Encode(map[string]any{"data": []any{
+				video("222", "Lesson 2: How prices move", 250, second),
+				video("333", "Lesson 3: Wrap up", 30, "default"),
+				video("111", "Lesson 1:  What a share is", 61, "custom"),
+			}})
 		case "/thumb/111", "/thumb/222":
 			w.Write(jpeg)
 		default:
@@ -310,6 +321,7 @@ func TestFillCourseFromVimeo(t *testing.T) {
 		t.Errorf("admin page doesn't preview the folder:\n%s", page)
 	}
 	for range 2 {
+		imports++
 		as(srv, "1", "POST", "/admin/courses/1/vimeo", url.Values{"folder": {folder}}, false)
 	}
 	rows, err := d.Query("SELECT l.title, l.embed_url, l.minutes, COALESCE(t.content_type, '') FROM lessons l LEFT JOIN lesson_thumbs t ON t.lesson_id = l.id ORDER BY l.sort_order")
@@ -329,6 +341,7 @@ func TestFillCourseFromVimeo(t *testing.T) {
 	want := []string{
 		"What a share is|https://player.vimeo.com/video/111?h=ff111|2|image/jpeg",
 		"How prices move|https://player.vimeo.com/video/222?h=ff222|5|image/jpeg",
+		"Wrap up|https://player.vimeo.com/video/333?h=ff333|1|",
 	}
 	if strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Errorf("lessons:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
@@ -336,6 +349,17 @@ func TestFillCourseFromVimeo(t *testing.T) {
 	w := as(srv, "", "GET", "/learn/lesson-thumb/1", nil, false)
 	if w.Header().Get("Content-Type") != "image/jpeg" {
 		t.Errorf("lesson thumb: %q", w.Header().Get("Content-Type"))
+	}
+
+	// Lesson 3 has no thumbnail, so the course page draws the course's
+	// picture in its place.
+	as(srv, "1", "POST", "/admin/courses/1/publish", url.Values{"publish": {"1"}}, false)
+	page = as(srv, "1", "GET", "/learn/courses/shares-101", nil, false).Body.String()
+	if n := strings.Count(page, `<img class="lesson-thumb"`); n != 2 {
+		t.Errorf("lesson thumbnails = %d, want 2", n)
+	}
+	if !strings.Contains(page, `<span class="lesson-thumb course-tile-generic">`) {
+		t.Errorf("no course picture for the lesson without a thumbnail:\n%s", page)
 	}
 
 	// A share link can't be read: the page says how to get the right one.

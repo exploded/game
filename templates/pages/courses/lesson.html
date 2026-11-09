@@ -12,10 +12,10 @@
         <p class="lesson-meta">Lesson {{index .Extra "Number"}} of {{index .Extra "Count"}}{{if .Item.Minutes}} &middot; {{.Item.Minutes}} min{{end}}</p>
 
         {{if .User}}
-        {{template "player" (dict "Embed" .Item.EmbedUrl "Thumb" $thumb "Title" .Item.Title)}}
+        {{template "player" (dict "Embed" .Item.EmbedUrl "Thumb" $thumb "Title" .Item.Title "Art" $c.Art)}}
         {{else}}
         <div class="player lesson-locked">
-            {{with $thumb}}<img src="{{.}}" alt="">{{end}}
+            {{with $thumb}}<img src="{{.}}" alt="">{{else}}{{with $c.Art}}<span class="player-art course-tile-{{.}}">{{template "course-art" .}}</span>{{end}}{{end}}
             <div class="lesson-locked-text">
                 <strong>Sign in to watch</strong>
                 <span>It's free. Enter your email and we'll send you a sign-in link.</span>

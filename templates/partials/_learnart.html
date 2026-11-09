@@ -96,10 +96,11 @@ ListTopics rows. */}}
 
 {{/* A player that loads only when tapped, so a page of videos doesn't load a
 dozen third-party players. . is a dict with Embed, Thumb, Title and
-Vertical. */}}
+Vertical, and optionally Art: a course's art key, drawn when there's no
+thumbnail. */}}
 {{define "player"}}<div class="player{{if .Vertical}} player-tall{{end}}">
     <button type="button" class="player-start" data-play="{{.Embed}}" data-title="{{.Title}}" aria-label="Play {{.Title}}">
-        {{with .Thumb}}<img src="{{.}}" alt="">{{end}}
+        {{with .Thumb}}<img src="{{.}}" alt="">{{else}}{{with .Art}}<span class="player-art course-tile-{{.}}">{{template "course-art" .}}</span>{{end}}{{end}}
         <span class="player-icon" aria-hidden="true"></span>
     </button>
 </div>{{end}}

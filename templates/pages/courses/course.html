@@ -46,7 +46,7 @@
         {{range $i, $l := .Items}}
         <a href="/learn/courses/{{$.Item.Slug}}/{{$l.ID}}" class="lesson-row{{if $l.Completed}} lesson-done{{end}}">
             <span class="lesson-num" aria-hidden="true">{{if $l.Completed}}&#10003;{{else}}{{add $i 1}}{{end}}</span>
-            {{with lessonThumb $l.ID $l.HasThumb}}<img class="lesson-thumb" src="{{.}}" alt="" loading="lazy" decoding="async">{{end}}
+            {{with lessonThumb $l.ID $l.HasThumb}}<img class="lesson-thumb" src="{{.}}" alt="" loading="lazy" decoding="async">{{else}}<span class="lesson-thumb course-tile-{{or $.Item.Art "generic"}}">{{template "course-art" $.Item.Art}}</span>{{end}}
             <span class="lesson-text">
                 <span class="lesson-title">{{$l.Title}}</span>
                 <span class="lesson-meta">{{if $l.Minutes}}{{$l.Minutes}} min{{end}}{{if $l.Completed}}<span class="sr-only">, done</span>{{end}}</span>

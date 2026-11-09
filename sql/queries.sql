@@ -1375,8 +1375,8 @@ VALUES (sqlc.arg(course_id), sqlc.arg(title), sqlc.arg(description), sqlc.arg(vi
         (SELECT COALESCE(MAX(l.sort_order), 0) + 1 FROM lessons l WHERE l.course_id = sqlc.arg(course_id)))
 RETURNING id;
 
--- name: CountCourseLessonsWithVideo :one
-SELECT COUNT(*) FROM lessons WHERE course_id = ? AND video_url = ?;
+-- name: GetCourseLessonByVideo :one
+SELECT id FROM lessons WHERE course_id = ? AND video_url = ? LIMIT 1;
 
 -- name: SaveLessonThumb :exec
 INSERT INTO lesson_thumbs (lesson_id, content_type, data) VALUES (?, ?, ?)
@@ -1384,6 +1384,9 @@ ON CONFLICT (lesson_id) DO UPDATE SET content_type = excluded.content_type, data
 
 -- name: GetLessonThumb :one
 SELECT content_type, data FROM lesson_thumbs WHERE lesson_id = ?;
+
+-- name: DeleteLessonThumb :exec
+DELETE FROM lesson_thumbs WHERE lesson_id = ?;
 
 -- name: UpdateLesson :exec
 UPDATE lessons SET title = ?, description = ?, video_url = ?, embed_url = ?, minutes = ?, sort_order = ?

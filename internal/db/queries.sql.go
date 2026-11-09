@@ -378,22 +378,6 @@ func (q *Queries) CountBlockedLobbyMessages(ctx context.Context) (int64, error) 
 	return count, err
 }
 
-const countCourseLessonsWithVideo = `-- name: CountCourseLessonsWithVideo :one
-SELECT COUNT(*) FROM lessons WHERE course_id = ? AND video_url = ?
-`
-
-type CountCourseLessonsWithVideoParams struct {
-	CourseID int64
-	VideoUrl string
-}
-
-func (q *Queries) CountCourseLessonsWithVideo(ctx context.Context, arg CountCourseLessonsWithVideoParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countCourseLessonsWithVideo, arg.CourseID, arg.VideoUrl)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const countInvitesSentInGame = `-- name: CountInvitesSentInGame :one
 SELECT COUNT(*) FROM game_invites
 WHERE game_id = ? AND created_by = ? AND email IS NOT NULL
@@ -1379,6 +1363,15 @@ func (q *Queries) DeleteLesson(ctx context.Context, id int64) error {
 	return err
 }
 
+const deleteLessonThumb = `-- name: DeleteLessonThumb :exec
+DELETE FROM lesson_thumbs WHERE lesson_id = ?
+`
+
+func (q *Queries) DeleteLessonThumb(ctx context.Context, lessonID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteLessonThumb, lessonID)
+	return err
+}
+
 const deleteLiveEvent = `-- name: DeleteLiveEvent :exec
 DELETE FROM live_events WHERE id = ?
 `
@@ -1773,6 +1766,22 @@ func (q *Queries) GetCourseBySlug(ctx context.Context, slug string) (Course, err
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const getCourseLessonByVideo = `-- name: GetCourseLessonByVideo :one
+SELECT id FROM lessons WHERE course_id = ? AND video_url = ? LIMIT 1
+`
+
+type GetCourseLessonByVideoParams struct {
+	CourseID int64
+	VideoUrl string
+}
+
+func (q *Queries) GetCourseLessonByVideo(ctx context.Context, arg GetCourseLessonByVideoParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getCourseLessonByVideo, arg.CourseID, arg.VideoUrl)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
 }
 
 const getGame = `-- name: GetGame :one

@@ -78,7 +78,7 @@ type Video struct {
 	Link    string    // vimeo.com page
 	Embed   string    // player URL; carries ?h= for an unlisted video
 	Seconds int       // length
-	Thumb   string    // a thumbnail about 640 wide, or ""
+	Thumb   string    // a thumbnail about 640 wide, or "" when Vimeo has none
 	Created time.Time // upload time
 	View    string    // privacy.view: anybody, unlisted, disable (hide from Vimeo), nobody, password, …
 	EmbedOK string    // privacy.embed: public, private, whitelist
@@ -195,6 +195,7 @@ type apiVideo struct {
 	Duration int    `json:"duration"`
 	Created  string `json:"created_time"`
 	Pictures struct {
+		Type  string `json:"type"` // "default" is Vimeo's grey placeholder
 		Sizes []struct {
 			Width int    `json:"width"`
 			Link  string `json:"link"`
@@ -207,7 +208,7 @@ type apiVideo struct {
 }
 
 const folderFields = "uri,name,metadata.connections.videos.total"
-const videoFields = "uri,name,link,player_embed_url,duration,created_time,pictures.sizes,privacy.view,privacy.embed"
+const videoFields = "uri,name,link,player_embed_url,duration,created_time,pictures.type,pictures.sizes,privacy.view,privacy.embed"
 
 // uriPart pulls the id after key in a Vimeo uri ("/users/1/projects/2").
 func uriPart(uri, key string) string {
@@ -235,7 +236,11 @@ func (v apiVideo) video() Video {
 	if t, err := time.Parse(time.RFC3339, v.Created); err == nil {
 		out.Created = t
 	}
-	// The smallest picture at least 640 wide, else the biggest.
+	// The smallest picture at least 640 wide, else the biggest. A video with
+	// no thumbnail set gets Vimeo's grey camera placeholder: leave it out.
+	if v.Pictures.Type == "default" {
+		return out
+	}
 	bigEnough, biggest := -1, -1
 	for _, s := range v.Pictures.Sizes {
 		if s.Width >= 640 && (bigEnough < 0 || s.Width < bigEnough) {

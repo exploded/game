@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -16,8 +17,10 @@ import (
 // Filling a course from a Vimeo folder: the admin pastes the folder's link
 // on /admin/courses/{id}, sees its videos, and imports them. Each video
 // becomes a lesson (title, length, player link, thumbnail), in lesson
-// order; a video already in the course is skipped, so importing again only
-// adds new ones.
+// order. A video already in the course only gets its thumbnail refreshed, so
+// importing again adds new videos and picks up thumbnails set on Vimeo since.
+// A video with no thumbnail on Vimeo gets none here, and the course pages
+// show the course's picture instead.
 
 // vimeoFolderView is a Vimeo folder as the admin course page shows it.
 type vimeoFolderView struct {
@@ -86,53 +89,73 @@ func (h *Handler) AdminCourseVimeo(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, back+"?vimeo="+url.QueryEscape(link), http.StatusSeeOther)
 		return
 	}
-	added, skipped, noThumb := 0, 0, 0
+	added, existing, unplayable, noThumb := 0, 0, 0, 0
 	for _, v := range folder.Videos {
 		embed, ok := embedURL(v.Embed)
 		if !ok {
-			skipped++
+			unplayable++
 			continue
 		}
-		if n, err := h.q.CountCourseLessonsWithVideo(r.Context(), db.CountCourseLessonsWithVideoParams{CourseID: c.ID, VideoUrl: v.Embed}); err != nil || n > 0 {
-			skipped++
-			continue
-		}
-		title := v.Title()
-		if len([]rune(title)) > 120 {
-			title = string([]rune(title)[:120])
-		}
-		id, err := h.q.CreateLesson(r.Context(), db.CreateLessonParams{
-			CourseID: c.ID, Title: title, VideoUrl: v.Embed, EmbedUrl: embed, Minutes: v.Minutes(),
-		})
-		if err != nil {
-			h.serverError(w, "create lesson", err)
+		id, err := h.q.GetCourseLessonByVideo(r.Context(), db.GetCourseLessonByVideoParams{CourseID: c.ID, VideoUrl: v.Embed})
+		switch {
+		case err == nil:
+			existing++
+		case errors.Is(err, sql.ErrNoRows):
+			title := v.Title()
+			if len([]rune(title)) > 120 {
+				title = string([]rune(title)[:120])
+			}
+			id, err = h.q.CreateLesson(r.Context(), db.CreateLessonParams{
+				CourseID: c.ID, Title: title, VideoUrl: v.Embed, EmbedUrl: embed, Minutes: v.Minutes(),
+			})
+			if err != nil {
+				h.serverError(w, "create lesson", err)
+				return
+			}
+			added++
+		default:
+			h.serverError(w, "find lesson", err)
 			return
 		}
-		added++
-		if v.Thumb == "" {
-			noThumb++
-			continue
-		}
-		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
-		ct, data, err := h.vimeo.Thumbnail(ctx, v.Thumb)
-		cancel()
-		if err == nil {
-			err = h.q.SaveLessonThumb(r.Context(), db.SaveLessonThumbParams{LessonID: id, ContentType: ct, Data: data})
-		}
-		if err != nil {
-			slog.Warn("vimeo thumbnail", "lesson", id, "error", err)
+		if !h.copyLessonThumb(r, id, v.Thumb) {
 			noThumb++
 		}
 	}
 	msg := "Added " + plural(added, "lesson") + "."
-	if skipped > 0 {
-		msg += " Skipped " + plural(skipped, "video") + " already in the course."
+	if existing > 0 {
+		msg += " Updated the thumbnails of " + plural(existing, "lesson") + " already in the course."
+	}
+	if unplayable > 0 {
+		msg += " Skipped " + plural(unplayable, "video") + " with no player link."
 	}
 	if noThumb > 0 {
-		msg += " " + plural(noThumb, "lesson") + " got no thumbnail."
+		msg += " " + plural(noThumb, "lesson") + " show the course picture: Vimeo has no thumbnail for them."
 	}
 	setFlashCookie(w, msg, "success")
 	http.Redirect(w, r, back, http.StatusSeeOther)
+}
+
+// copyLessonThumb copies a video's thumbnail into lesson_thumbs, or removes
+// the lesson's thumbnail when Vimeo has none (link ""). It says whether the
+// lesson has a thumbnail now; a failed download keeps any it had.
+func (h *Handler) copyLessonThumb(r *http.Request, lessonID int64, link string) bool {
+	if link == "" {
+		if err := h.q.DeleteLessonThumb(r.Context(), lessonID); err != nil {
+			slog.Warn("delete lesson thumbnail", "lesson", lessonID, "error", err)
+		}
+		return false
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	ct, data, err := h.vimeo.Thumbnail(ctx, link)
+	cancel()
+	if err == nil {
+		err = h.q.SaveLessonThumb(r.Context(), db.SaveLessonThumbParams{LessonID: lessonID, ContentType: ct, Data: data})
+	}
+	if err != nil {
+		slog.Warn("vimeo thumbnail", "lesson", lessonID, "error", err)
+		return false
+	}
+	return true
 }
 
 // plural is "1 lesson" or "3 lessons".
