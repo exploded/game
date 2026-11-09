@@ -40,7 +40,7 @@ SELECT * FROM users ORDER BY created_at DESC;
 -- Every user with how much they've played, for /admin/users.
 -- name: ListUsersWithActivity :many
 SELECT u.id, u.name, u.email, u.avatar_id, u.is_admin,
-    u.created_at, u.last_seen, u.deleted_at, u.blocked_at, u.ai_orders_per_day,
+    u.created_at, u.last_seen, u.deleted_at, u.blocked_at,
     (SELECT COUNT(*) FROM participants p WHERE p.user_id = u.id) AS game_count,
     (SELECT COUNT(*) FROM transactions t JOIN participants p ON p.id = t.participant_id WHERE p.user_id = u.id) AS trade_count
 FROM users u
@@ -51,9 +51,6 @@ UPDATE users SET blocked_at = datetime('now') WHERE id = ? AND blocked_at IS NUL
 
 -- name: UnblockUser :exec
 UPDATE users SET blocked_at = NULL WHERE id = ?;
-
--- name: SetUserAIOrders :exec
-UPDATE users SET ai_orders_per_day = ? WHERE id = ?;
 
 -- name: SoftDeleteUser :exec
 UPDATE users SET

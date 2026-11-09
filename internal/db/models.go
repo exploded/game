@@ -587,7 +587,6 @@ type User struct {
 	EmailToken     string
 	BlockedAt      sql.NullString
 	AgeConfirmedAt sql.NullString
-	AiOrdersPerDay int64
 }
 
 type UserAchievement struct {

@@ -33,8 +33,7 @@ CREATE TABLE IF NOT EXISTS users (
     last_game_id INTEGER REFERENCES games(id) ON DELETE SET NULL, -- the game the game bar last showed
     email_token TEXT    NOT NULL UNIQUE,                    -- random; identifies the user in unsubscribe links
     blocked_at  TEXT,                                       -- NULL = can sign in; set = an admin blocked them
-    age_confirmed_at TEXT,                                  -- when they ticked "I'm 18 or older" on /welcome; NULL = signed up before 1 Nov 2026 or skipped it
-    ai_orders_per_day INTEGER NOT NULL DEFAULT 0            -- orders their AI may place a day, set at /admin/users; 0 = AIOrdersPerDay
+    age_confirmed_at TEXT                                   -- when they ticked "I'm 18 or older" on /welcome; NULL = signed up before 1 Nov 2026 or skipped it
 );
 
 --------------------------------------------------------------------------------

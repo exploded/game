@@ -19,10 +19,10 @@ suggestions as advice from The Investor Project.
    such as a UUID). If a request times out, retry with the same key: if the
    order went through, you get its answer back instead of a second order.
 3. **Respect limits.** {{.Requests}} requests a minute: a `429` means wait
-   for the `Retry-After` seconds. The player's AI can place {{.Orders}} orders
-   a day (some players have more), counted from midnight in the game's
-   `time_zone`; previews, cancels and refused orders don't count. `GET
-   /api/v1/game` gives `ai_orders_left_today`. Once it's 0, orders are
+   for the `Retry-After` seconds. Every player's AI can place {{.Orders}}
+   orders a day, counted from midnight in the game's `time_zone`; previews,
+   cancels and refused orders don't count. `GET /api/v1/game` gives
+   `ai_orders_left_today`. Once it's 0, orders are
    refused until midnight, so don't retry: tell the player.
 4. **Read money from `cents` or `text`.** Every amount is
    `{"cents": 123456, "text": "$1,234.56", "currency": "USD"}`. Quantities are

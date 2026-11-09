@@ -109,7 +109,6 @@ var addedColumns = []struct{ table, column, ddl string }{
 	{"users", "blocked_at", "TEXT DEFAULT NULL"},
 	{"lobby_messages", "blocked_reason", "TEXT NOT NULL DEFAULT ''"},
 	{"users", "age_confirmed_at", "TEXT DEFAULT NULL"},
-	{"users", "ai_orders_per_day", "INTEGER NOT NULL DEFAULT 0"},
 	{"activity_feed", "stock_id", "INTEGER DEFAULT NULL REFERENCES stocks(id) ON DELETE SET NULL"},
 	{"games", "ai_trading", "INTEGER NOT NULL DEFAULT 1"},
 	{"transactions", "source", "TEXT NOT NULL DEFAULT ''"},
@@ -327,6 +326,9 @@ var droppedColumns = []struct{ table, column string }{
 	{"games", "fractional_shares"},
 	// Google profile photos, from before email sign-in.
 	{"users", "picture_url"},
+	// Per-player AI order limits, set at /admin/users. Since 10 November
+	// 2026 every player's AI gets the same AIOrdersPerDay.
+	{"users", "ai_orders_per_day"},
 	// Company dividend figures from Twelve Data. Players get no dividends,
 	// so the stock page doesn't show them.
 	{"stock_profiles", "forward_div_rate"},

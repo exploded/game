@@ -448,7 +448,6 @@ func main() {
 			r.Get("/users", h.AdminUsers)
 			r.Post("/users/{id}/admin", h.AdminToggle)
 			r.Post("/users/{id}/block", h.AdminBlockToggle)
-			r.Post("/users/{id}/ai-orders", h.AdminSetAIOrders)
 			r.Get("/picks", h.AdminPicks)
 			r.Post("/picks", h.AdminPickAdd)
 			r.Post("/picks/{sid}", h.AdminPickUpdate)

@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -289,11 +290,8 @@ func TestAPILimitAndCancel(t *testing.T) {
 }
 
 func TestAPIDailyOrderLimit(t *testing.T) {
-	srv, q, _, d := apiServer(t)
+	srv, q, _, _ := apiServer(t)
 	key := newKey(t, q, "trade")
-	if _, err := d.Exec(`UPDATE users SET ai_orders_per_day = 2 WHERE id = 1`); err != nil {
-		t.Fatal(err)
-	}
 	order := `{"symbol": "ACME", "side": "buy", "quantity": 1}`
 	left := func() any { return decode(t, callAPI(srv, "GET", "/api/v1/game", key, ""))["ai_orders_left_today"] }
 
@@ -301,19 +299,19 @@ func TestAPIDailyOrderLimit(t *testing.T) {
 	if w := callAPI(srv, "POST", "/api/v1/orders", key, `{"symbol": "ACME", "side": "buy", "quantity": 1000000}`); w.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("too big: %d %s", w.Code, w.Body.String())
 	}
-	if n := left(); n != float64(2) {
-		t.Errorf("after a refusal, %v left, want 2", n)
+	if n := left(); n != float64(AIOrdersPerDay) {
+		t.Errorf("after a refusal, %v left, want %d", n, AIOrdersPerDay)
 	}
-	for i := range 2 {
+	for i := range AIOrdersPerDay {
 		if w := callAPI(srv, "POST", "/api/v1/orders", key, order); w.Code != http.StatusCreated {
 			t.Fatalf("order %d: %d %s", i+1, w.Code, w.Body.String())
 		}
 	}
 	if n := left(); n != float64(0) {
-		t.Errorf("after 2 orders, %v left, want 0", n)
+		t.Errorf("after %d orders, %v left, want 0", AIOrdersPerDay, n)
 	}
 	w := callAPI(srv, "POST", "/api/v1/orders", key, order)
-	if w.Code != http.StatusUnprocessableEntity || !strings.Contains(w.Body.String(), "placed its 2 orders for today") {
+	if w.Code != http.StatusUnprocessableEntity || !strings.Contains(w.Body.String(), fmt.Sprintf("placed its %d orders for today", AIOrdersPerDay)) {
 		t.Errorf("over the limit: %d %s", w.Code, w.Body.String())
 	}
 	if w := callAPI(srv, "POST", "/api/v1/orders/preview", key, order); w.Code != 200 {
@@ -333,16 +331,8 @@ func TestAPIDailyOrderLimit(t *testing.T) {
 	if err != nil || !res.IsError {
 		t.Errorf("MCP order over the limit: %v %+v", err, res)
 	}
-	if h := holding(t, q); h.Quantity != 2 {
-		t.Errorf("holding = %d, want 2", h.Quantity)
-	}
-
-	// An admin raising the limit lets the AI trade again today.
-	if _, err := d.Exec(`UPDATE users SET ai_orders_per_day = 3 WHERE id = 1`); err != nil {
-		t.Fatal(err)
-	}
-	if w := callAPI(srv, "POST", "/api/v1/orders", key, order); w.Code != http.StatusCreated {
-		t.Errorf("after raising the limit: %d %s", w.Code, w.Body.String())
+	if h := holding(t, q); h.Quantity != AIOrdersPerDay {
+		t.Errorf("holding = %d, want %d", h.Quantity, AIOrdersPerDay)
 	}
 }
 
@@ -632,7 +622,7 @@ func TestOAuthConnect(t *testing.T) {
 func TestAgentsDoc(t *testing.T) {
 	srv, _, _, _ := apiServer(t)
 	w := callAPI(srv, "GET", "/agents.md", "", "")
-	if w.Code != 200 || !strings.Contains(w.Body.String(), "http://example.com/api/v1") || !strings.Contains(w.Body.String(), "30 requests a minute") || !strings.Contains(w.Body.String(), "can place 12 orders") {
+	if w.Code != 200 || !strings.Contains(w.Body.String(), "http://example.com/api/v1") || !strings.Contains(w.Body.String(), "30 requests a minute") || !strings.Contains(w.Body.String(), "AI can place 12") {
 		t.Errorf("agents.md: %d\n%s", w.Code, w.Body.String())
 	}
 }

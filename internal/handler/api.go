@@ -133,8 +133,8 @@ func (h *Handler) apiGameInfo(ctx context.Context, user *db.User, game db.Game) 
 		LimitOrders:       game.LimitOrders != 0,
 		AfterHoursTrading: game.AfterHoursTrading != 0,
 		AITrading:         game.AiTrading != 0,
-		AIOrdersPerDay:    aiOrderLimit(user),
-		AIOrdersLeft:      max(aiOrderLimit(user)-used, 0),
+		AIOrdersPerDay:    AIOrdersPerDay,
+		AIOrdersLeft:      max(AIOrdersPerDay-used, 0),
 		InterestOnCash:    fmt.Sprintf("%.2f%% a year, paid daily", float64(game.CreditInterestRate)/100),
 		USMarket:          usMarket(),
 		RulesURL:          fmt.Sprintf("%s/games/%d/rules", publicURL(), game.ID),
@@ -715,14 +715,6 @@ func (h *Handler) APILimit(next http.Handler) http.Handler {
 	})
 }
 
-// aiOrderLimit is how many orders the player's AI may place a day.
-func aiOrderLimit(user *db.User) int64 {
-	if user.AiOrdersPerDay > 0 {
-		return user.AiOrdersPerDay
-	}
-	return AIOrdersPerDay
-}
-
 // aiDay is the day AI orders count against: today in TIMEZONE.
 func (h *Handler) aiDay() string {
 	return time.Now().In(h.loc).Format("2006-01-02")
@@ -736,14 +728,13 @@ func (h *Handler) reserveAIOrder(ctx context.Context, user *db.User) (release fu
 	if err := h.q.StartAIOrderDay(ctx, db.StartAIOrderDayParams{UserID: user.ID, Day: day}); err != nil {
 		return nil, err
 	}
-	limit := aiOrderLimit(user)
-	n, err := h.q.ReserveAIOrder(ctx, db.ReserveAIOrderParams{UserID: user.ID, Day: day, MaxOrders: limit})
+	n, err := h.q.ReserveAIOrder(ctx, db.ReserveAIOrderParams{UserID: user.ID, Day: day, MaxOrders: AIOrdersPerDay})
 	if err != nil {
 		return nil, err
 	}
 	if n == 0 {
-		return nil, refuse("Your AI has placed its %d orders for today. It can place more from midnight %s, and you can still trade on the site. To ask for a higher limit, write to us at %s/contact.",
-			limit, time.Now().In(h.loc).Format("MST"), publicURL())
+		return nil, refuse("Your AI has placed its %d orders for today. It can place more from midnight %s, and you can still trade on the site.",
+			AIOrdersPerDay, time.Now().In(h.loc).Format("MST"))
 	}
 	return func() {
 		_ = h.q.ReleaseAIOrder(context.WithoutCancel(ctx), db.ReleaseAIOrderParams{UserID: user.ID, Day: day})

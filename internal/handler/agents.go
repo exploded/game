@@ -15,8 +15,8 @@ var agentsDoc string
 
 var agentsTmpl = template.Must(template.New("agents.md").Parse(agentsDoc))
 
-// Each player's API and MCP limits, quoted in agents.md and on /ai. An admin
-// can give a player more orders a day at /admin/users (users.ai_orders_per_day).
+// Each player's API and MCP limits, quoted in agents.md and on /ai. They're
+// the same for every player.
 const (
 	APIRequestsPerMinute = 30
 	AIOrdersPerDay       = 12
