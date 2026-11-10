@@ -92,7 +92,7 @@ func (f *Fetcher) fetchQuoteBatch(ctx context.Context, q *db.Queries, batch []db
 	defer resp.Body.Close()
 
 	var body map[string]json.RawMessage
-	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+	if err := decodeTD(resp, &body); err != nil {
 		return 0, 0, err
 	}
 	if err := requestError(body); err != nil {

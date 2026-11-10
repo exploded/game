@@ -132,3 +132,26 @@ func TestBackfillOnceForRecentListing(t *testing.T) {
 		t.Error("the backfill counts as a daily fetch")
 	}
 }
+
+// An outage page in front of Twelve Data must log as what it is, not as a
+// JSON syntax error.
+func TestDecodeTDNamesNonJSONBody(t *testing.T) {
+	resp := &http.Response{
+		Status: "502 Bad Gateway",
+		Body:   io.NopCloser(strings.NewReader("error code: 502\n")),
+	}
+	var body map[string]any
+	err := decodeTD(resp, &body)
+	if err == nil {
+		t.Fatal("want an error for a plain-text body")
+	}
+	want := `twelve data: 502 Bad Gateway, not JSON: "error code: 502"`
+	if err.Error() != want {
+		t.Errorf("got %q, want %q", err, want)
+	}
+
+	resp = &http.Response{Status: "200 OK", Body: io.NopCloser(strings.NewReader(`{"code":429}`))}
+	if err := decodeTD(resp, &body); err != nil || body["code"] != float64(429) {
+		t.Errorf("JSON body: err %v, body %v", err, body)
+	}
+}

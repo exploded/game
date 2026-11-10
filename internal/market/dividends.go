@@ -68,7 +68,7 @@ func (f *Fetcher) CheckDividends(ctx context.Context, q *db.Queries, today strin
 	defer resp.Body.Close()
 
 	var raw json.RawMessage
-	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+	if err := decodeTD(resp, &raw); err != nil {
 		return 0, err
 	}
 	var divs []calendarDividend

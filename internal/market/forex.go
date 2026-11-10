@@ -2,7 +2,6 @@ package market
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math"
@@ -48,7 +47,7 @@ func (f *Fetcher) FetchExchangeRates(ctx context.Context, q *db.Queries) error {
 		Code    int    `json:"code"`
 		Message string `json:"message"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+	if err := decodeTD(resp, &body); err != nil {
 		return fmt.Errorf("decoding AUD/USD: %w", err)
 	}
 	if body.Code != 0 {

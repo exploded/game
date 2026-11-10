@@ -62,7 +62,7 @@ func (f *Fetcher) CheckSplits(ctx context.Context, q *db.Queries, today string) 
 	defer resp.Body.Close()
 
 	var raw json.RawMessage
-	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+	if err := decodeTD(resp, &raw); err != nil {
 		return 0, err
 	}
 	var splits []calendarSplit

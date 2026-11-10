@@ -150,7 +150,7 @@ func (f *Fetcher) getJSON(ctx context.Context, endpoint string, cost int, symbol
 	defer resp.Body.Close()
 
 	var raw json.RawMessage
-	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+	if err := decodeTD(resp, &raw); err != nil {
 		return err
 	}
 	var e struct {

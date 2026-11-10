@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"math"
 	"net/http"
@@ -271,7 +272,7 @@ func (f *Fetcher) fetchOneBatch(ctx context.Context, q *db.Queries, batch []db.S
 	defer resp.Body.Close()
 
 	var body map[string]json.RawMessage
-	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+	if err := decodeTD(resp, &body); err != nil {
 		return 0, 0, 0, err
 	}
 	if _, isSingle := body["meta"]; !isSingle {
@@ -404,6 +405,23 @@ func requestError(body map[string]json.RawMessage) error {
 	raw, _ := json.Marshal(body)
 	json.Unmarshal(raw, &e)
 	return fmt.Errorf("twelve data error %d: %s", e.Code, e.Message)
+}
+
+// decodeTD decodes a Twelve Data response into v. Twelve Data sends its own
+// errors as JSON (see requestError), but during an outage something in front of
+// it answers with a plain-text page such as "error code: 502", which would
+// otherwise log as "invalid character 'e' looking for beginning of value". The
+// error names the HTTP status and quotes the start of the body instead.
+func decodeTD(resp *http.Response, v any) error {
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("twelve data: %s: reading body: %w", resp.Status, err)
+	}
+	if err := json.Unmarshal(body, v); err != nil {
+		head := strings.Join(strings.Fields(string(body[:min(len(body), 120)])), " ")
+		return fmt.Errorf("twelve data: %s, not JSON: %q", resp.Status, head)
+	}
+	return nil
 }
 
 // isOutOfCredits reports whether err is Twelve Data's per-minute credit limit.
