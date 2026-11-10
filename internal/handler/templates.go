@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"io/fs"
+	"os"
 	"path"
 	"strings"
 	"time"
@@ -46,6 +47,15 @@ func RegisterAvatarPath(id int64, path string) {
 func LoadTemplates(fsys fs.FS, static *Static) (PageTemplates, error) {
 	funcMap := template.FuncMap{
 		"asset": static.URL,
+		// absURL turns a site path into a full URL, for tags read off the
+		// site (og:image), where a relative path doesn't work.
+		"absURL": func(p string) string {
+			base := strings.TrimRight(os.Getenv("BASE_URL"), "/")
+			if base == "" {
+				base = "https://investorproject.au"
+			}
+			return base + p
+		},
 		"cents": func(v any) string {
 			switch val := v.(type) {
 			case int64:

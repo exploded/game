@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<!-- The link preview card (og:image), 1200 x 630. render-og.ps1 screenshots
+     it into static/img/og.jpg. The wording follows the sign-in page's hero. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @font-face {
+    font-family: "Inter";
+    font-weight: 100 900;
+    src: url("../../static/fonts/inter-latin-var-5.2.8.woff2") format("woff2");
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    position: relative;
+    background: radial-gradient(900px 600px at 85% 30%, #0f2347 0%, #0A0E17 60%);
+    color: #fff;
+    font-family: "Inter", sans-serif;
+  }
+  .chart { position: absolute; left: 0; right: 0; bottom: 0; width: 1200px; height: 300px; }
+  .chart .line { fill: none; stroke: #02C77A; stroke-width: 5; stroke-linejoin: round; stroke-linecap: round; opacity: .55; }
+  .chart .candles path { stroke: #2a3346; stroke-width: 3; }
+  .chart .candles rect { fill: #1b2333; }
+  .mark { position: absolute; right: 96px; top: 92px; width: 340px; height: 340px; }
+  .text { position: absolute; left: 80px; top: 92px; width: 680px; }
+  .tag { font-size: 26px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: #199ce4; }
+  h1 { margin-top: 18px; font-size: 84px; line-height: 1.02; font-weight: 800; letter-spacing: -0.03em; }
+  .head { margin-top: 26px; font-size: 36px; line-height: 1.25; font-weight: 600; color: #d6dae4; }
+  .head span { color: #02C77A; }
+  .facts { position: absolute; left: 80px; bottom: 70px; display: flex; gap: 18px; }
+  .fact { padding: 14px 22px; border-radius: 14px; background: rgba(17, 23, 34, .88); border: 1px solid #253047; font-size: 24px; font-weight: 600; color: #fff; }
+  .fact b { color: #02C77A; font-weight: 700; }
+  .url { position: absolute; right: 96px; bottom: 82px; font-size: 26px; font-weight: 600; color: #878A9B; }
+</style>
+</head>
+<body>
+  <svg class="chart" viewBox="0 0 1200 300" preserveAspectRatio="none" aria-hidden="true">
+    <defs>
+      <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#02C77A" stop-opacity=".18"/>
+        <stop offset="1" stop-color="#02C77A" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <g class="candles">
+      <path d="M560 210v60M640 190v60M720 170v60M800 175v55M880 140v60M960 130v55M1040 100v60M1120 80v55"/>
+      <rect x="552" y="225" width="16" height="30"/><rect x="632" y="205" width="16" height="30"/>
+      <rect x="712" y="185" width="16" height="32"/><rect x="792" y="188" width="16" height="26"/>
+      <rect x="872" y="155" width="16" height="32"/><rect x="952" y="145" width="16" height="28"/>
+      <rect x="1032" y="115" width="16" height="32"/><rect x="1112" y="95" width="16" height="28"/>
+    </g>
+    <path d="M0 285L120 262L220 272L340 236L440 248L560 205L660 218L780 170L880 184L1000 120L1090 132L1200 70V300H0Z" fill="url(#fill)"/>
+    <path class="line" d="M0 285L120 262L220 272L340 236L440 248L560 205L660 218L780 170L880 184L1000 120L1090 132L1200 70"/>
+  </svg>
+
+  <img class="mark" src="mark-dark.svg" alt="">
+
+  <div class="text">
+    <p class="tag">Trade &bull; Learn &bull; Grow</p>
+    <h1>The Investor<br>Project</h1>
+    <p class="head">Build real skills.<br>Play for a <span>brighter future.</span></p>
+  </div>
+
+  <div class="facts">
+    <div class="fact"><b>$1M</b> play money</div>
+    <div class="fact">Real <b>S&amp;P 500</b> prices</div>
+    <div class="fact"><b>0%</b> real risk</div>
+  </div>
+  <p class="url">investorproject.au</p>
+</body>
+</html>
