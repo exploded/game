@@ -33,6 +33,42 @@
     </form>
 </div>
 
+<section class="section" id="optouts">
+    <h2>Don't invite</h2>
+    <p class="text-muted" style="margin-bottom:12px">Players can't send an invite to these addresses. People add themselves with the link in the invite email. When someone replies to an invite asking to stop instead, add their address here.</p>
+    <div class="settings-card">
+        <form method="POST" action="/admin/email/optouts" class="btn-group" style="flex-wrap:wrap">
+            <label for="optout-email" class="sr-only">Email address</label>
+            <input type="email" id="optout-email" name="email" placeholder="name@example.com" required style="flex:1;min-width:220px">
+            <button type="submit" class="btn btn-primary">Add</button>
+        </form>
+    </div>
+    {{with index .Extra "Optouts"}}
+    <div class="table-wrap" style="margin-top:12px">
+    <table>
+        <thead><tr><th>Email</th><th>How</th><th>Added</th><th></th></tr></thead>
+        <tbody>
+        {{range .}}
+        <tr>
+            <td>{{.Email}}</td>
+            <td>{{if eq .Source "admin"}}Added by an admin{{else}}Invite email link{{end}}</td>
+            <td>{{slice .CreatedAt 0 10}}</td>
+            <td class="num">
+                <form method="POST" action="/admin/email/optouts/delete">
+                    <input type="hidden" name="email" value="{{.Email}}">
+                    <button type="submit" class="btn btn-sm" data-confirm="Let players invite {{.Email}} again? Only do this if they asked." data-confirm-ok="Remove">Remove</button>
+                </form>
+            </td>
+        </tr>
+        {{end}}
+        </tbody>
+    </table>
+    </div>
+    {{else}}
+    <p class="text-muted" style="margin-top:12px">Nobody has asked to stop yet.</p>
+    {{end}}
+</section>
+
 {{if .Items}}
 <section class="section">
     <h2>Sent</h2>

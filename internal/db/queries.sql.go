@@ -10,6 +10,20 @@ import (
 	"database/sql"
 )
 
+const addInviteOptout = `-- name: AddInviteOptout :exec
+INSERT OR IGNORE INTO invite_optouts (email, source) VALUES (?, ?)
+`
+
+type AddInviteOptoutParams struct {
+	Email  string
+	Source string
+}
+
+func (q *Queries) AddInviteOptout(ctx context.Context, arg AddInviteOptoutParams) error {
+	_, err := q.db.ExecContext(ctx, addInviteOptout, arg.Email, arg.Source)
+	return err
+}
+
 const addLiveReminder = `-- name: AddLiveReminder :exec
 INSERT OR IGNORE INTO live_reminders (event_id, user_id) VALUES (?, ?)
 `
@@ -1359,6 +1373,15 @@ type DeleteHoldingParams struct {
 
 func (q *Queries) DeleteHolding(ctx context.Context, arg DeleteHoldingParams) error {
 	_, err := q.db.ExecContext(ctx, deleteHolding, arg.ParticipantID, arg.StockID)
+	return err
+}
+
+const deleteInviteOptout = `-- name: DeleteInviteOptout :exec
+DELETE FROM invite_optouts WHERE email = ?
+`
+
+func (q *Queries) DeleteInviteOptout(ctx context.Context, email string) error {
+	_, err := q.db.ExecContext(ctx, deleteInviteOptout, email)
 	return err
 }
 
@@ -3113,6 +3136,17 @@ func (q *Queries) InviteSentTo(ctx context.Context, arg InviteSentToParams) (int
 	return count, err
 }
 
+const isInviteOptout = `-- name: IsInviteOptout :one
+SELECT COUNT(*) FROM invite_optouts WHERE email = ?
+`
+
+func (q *Queries) IsInviteOptout(ctx context.Context, email string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, isInviteOptout, email)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const isWatching = `-- name: IsWatching :one
 SELECT COUNT(*) FROM watchlist WHERE user_id = ? AND stock_id = ?
 `
@@ -4611,6 +4645,33 @@ func (q *Queries) ListInterestDue(ctx context.Context, arg ListInterestDueParams
 	for rows.Next() {
 		var i ListInterestDueRow
 		if err := rows.Scan(&i.ID, &i.CashBalance, &i.CreditInterestRate); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listInviteOptouts = `-- name: ListInviteOptouts :many
+SELECT email, source, created_at FROM invite_optouts ORDER BY created_at DESC, email
+`
+
+func (q *Queries) ListInviteOptouts(ctx context.Context) ([]InviteOptout, error) {
+	rows, err := q.db.QueryContext(ctx, listInviteOptouts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []InviteOptout
+	for rows.Next() {
+		var i InviteOptout
+		if err := rows.Scan(&i.Email, &i.Source, &i.CreatedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

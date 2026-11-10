@@ -30,6 +30,11 @@ func (h *Handler) renderAdminEmail(w http.ResponseWriter, r *http.Request, subje
 		h.serverError(w, "list broadcasts", err)
 		return
 	}
+	optouts, err := h.q.ListInviteOptouts(r.Context())
+	if err != nil {
+		h.serverError(w, "list invite opt-outs", err)
+		return
+	}
 	h.render(w, r, "admin/email", "", PageData{
 		Title:  "Email",
 		Flash:  flash,
@@ -40,6 +45,7 @@ func (h *Handler) renderAdminEmail(w http.ResponseWriter, r *http.Request, subje
 			"Ready":       h.mailer.NewsReady(),
 			"Subject":     subject,
 			"Body":        body,
+			"Optouts":     optouts,
 		},
 	})
 }
@@ -106,4 +112,32 @@ func (h *Handler) AdminEmailSend(w http.ResponseWriter, r *http.Request) {
 	}
 	setFlashCookie(w, "Newsletter queued for "+strconv.Itoa(queued)+" subscribers.", "success")
 	http.Redirect(w, r, "/admin/email", http.StatusSeeOther)
+}
+
+// AdminInviteOptoutAdd adds an address to the "don't invite" list, for
+// someone who replied to an invite instead of using its stop link.
+func (h *Handler) AdminInviteOptoutAdd(w http.ResponseWriter, r *http.Request) {
+	email, ok := mail.NormalizeAddress(r.FormValue("email"))
+	if !ok {
+		setFlashCookie(w, "Enter a valid email address, like name@example.com.", "error")
+		http.Redirect(w, r, "/admin/email#optouts", http.StatusSeeOther)
+		return
+	}
+	if err := h.q.AddInviteOptout(r.Context(), db.AddInviteOptoutParams{Email: email, Source: "admin"}); err != nil {
+		h.serverError(w, "add invite opt-out", err)
+		return
+	}
+	setFlashCookie(w, email+" won't be invited again.", "success")
+	http.Redirect(w, r, "/admin/email#optouts", http.StatusSeeOther)
+}
+
+// AdminInviteOptoutDelete takes an address off the "don't invite" list.
+func (h *Handler) AdminInviteOptoutDelete(w http.ResponseWriter, r *http.Request) {
+	email := r.FormValue("email")
+	if err := h.q.DeleteInviteOptout(r.Context(), email); err != nil {
+		h.serverError(w, "delete invite opt-out", err)
+		return
+	}
+	setFlashCookie(w, email+" can be invited again.", "success")
+	http.Redirect(w, r, "/admin/email#optouts", http.StatusSeeOther)
 }

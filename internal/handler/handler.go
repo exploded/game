@@ -64,6 +64,7 @@ type PageData struct {
 	Title     string
 	CSRFToken string
 	Nonce     string // CSP nonce; inline <script> tags need nonce="{{.Nonce}}"
+	PageURL   string // this page's full URL without its query, for og:url; render sets it
 	Flash     *Flash
 	User      *db.User
 	Items     any
@@ -131,6 +132,7 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, pageName, fragm
 	}
 	data.Nonce = cspNonce(r)
 	if name == "base" {
+		data.PageURL = siteURL(r) + r.URL.Path
 		data.User = auth.UserFromContext(r.Context())
 		if data.CSRFToken == "" {
 			data.CSRFToken = auth.CSRFTokenFromContext(r.Context())

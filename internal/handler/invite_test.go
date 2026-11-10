@@ -58,6 +58,11 @@ func inviteServer(t *testing.T) (http.Handler, *sql.DB) {
 	r.Post("/login", h.LoginSubmit)
 	r.Post("/login/code", h.LoginCode)
 	r.Get("/invite/{code}", h.InviteLanding)
+	r.Get("/invite/{code}/stop", h.InviteStopPage)
+	r.Post("/invite/{code}/stop", h.InviteStop)
+	r.Get("/admin/email", h.AdminEmail)
+	r.Post("/admin/email/optouts", h.AdminInviteOptoutAdd)
+	r.Post("/admin/email/optouts/delete", h.AdminInviteOptoutDelete)
 	r.Route("/games/{id}", func(r chi.Router) {
 		r.Use(h.GameContext)
 		r.Get("/", h.GameDetail)
@@ -98,7 +103,7 @@ func openInvite(t *testing.T, srv http.Handler, d *sql.DB, email string) *http.C
 	}
 	m := inviteRE.FindStringSubmatch(body)
 	if m == nil || !strings.Contains(body, "Alice invited you to join the Spring Cup share game") ||
-		!strings.Contains(body, "reply to this email.\n\nSent by Consortium Private Wealth, Horsham VIC.") {
+		!strings.Contains(body, "To stop all invitations: https://game.example/invite/"+m[1]+"/stop\n\nSent by Consortium Private Wealth, Horsham VIC.") {
 		t.Fatalf("invite email:\n%s", body)
 	}
 	w := httptest.NewRecorder()
@@ -265,5 +270,81 @@ func TestInviteAfterGameEndsPaysCurrentGame(t *testing.T) {
 	}
 	if got := cash(t, d, 1); got != 100000000 {
 		t.Errorf("Alice's cash in the ended game = %d, want it unchanged", got)
+	}
+}
+
+// The stop link in an invite email keeps the friend from being invited again,
+// by anyone. Opening the link changes nothing; its button does.
+func TestInviteStopLink(t *testing.T) {
+	srv, d := inviteServer(t)
+	openInvite(t, srv, d, "friend@example.com")
+	var code, stopURL string
+	d.QueryRow("SELECT code FROM game_invites WHERE email = 'friend@example.com'").Scan(&code)
+	d.QueryRow("SELECT unsubscribe_url FROM email_outbox WHERE template = 'invite'").Scan(&stopURL)
+	if want := "https://game.example/invite/" + code + "/stop"; stopURL != want {
+		t.Errorf("List-Unsubscribe URL = %q, want %q", stopURL, want)
+	}
+	optouts := func() int {
+		var n int
+		d.QueryRow("SELECT COUNT(*) FROM invite_optouts WHERE email = 'friend@example.com' AND source = 'link'").Scan(&n)
+		return n
+	}
+
+	w := httptest.NewRecorder()
+	srv.ServeHTTP(w, httptest.NewRequest("GET", "/invite/"+code+"/stop", nil))
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Stop invitations?") || optouts() != 0 {
+		t.Fatalf("opening the stop link: %d, %d opt-outs\n%s", w.Code, optouts(), w.Body)
+	}
+	// A mail client's RFC 8058 one-click POST, with no session.
+	w = post(srv, "/invite/"+code+"/stop", url.Values{"List-Unsubscribe": {"One-Click"}})
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "No more invitations") || optouts() != 1 {
+		t.Fatalf("stop: %d, %d opt-outs\n%s", w.Code, optouts(), w.Body)
+	}
+
+	// Bob joins and tries to invite the same friend.
+	d.Exec("INSERT INTO participants (game_id, user_id, cash_balance, portfolio_value) VALUES (1, 2, 100000000, 100000000)")
+	if got := invite(t, srv, "2", "Friend@Example.com"); !strings.Contains(got, "asked not to get invitations") {
+		t.Errorf("invite after stop: flash %q", got)
+	}
+	var invites int
+	d.QueryRow("SELECT COUNT(*) FROM game_invites WHERE created_by = 2").Scan(&invites)
+	if invites != 0 {
+		t.Error("the refused invite used up Bob's invite")
+	}
+
+	// A made-up code changes nothing.
+	w = post(srv, "/invite/nope/stop", nil)
+	if !strings.Contains(w.Body.String(), "This link doesn't work") {
+		t.Errorf("bad stop link:\n%s", w.Body)
+	}
+}
+
+// Admins add someone who replied to an invite, and can take them off again.
+func TestAdminInviteOptouts(t *testing.T) {
+	srv, d := inviteServer(t)
+	for _, tc := range []struct{ email, want string }{
+		{"nope", "Enter a valid email"},
+		{" Replied@Example.com ", "success|replied@example.com won't be invited again."},
+	} {
+		w := post(srv, "/admin/email/optouts", url.Values{"email": {tc.email}})
+		if c := cookie(w, "flash"); c == nil || !strings.Contains(c.Value, tc.want) {
+			t.Errorf("add %q: flash %v, want %q", tc.email, c, tc.want)
+		}
+	}
+	if body := getPage(t, srv, "/admin/email", "1"); !strings.Contains(body, "replied@example.com") || !strings.Contains(body, "Added by an admin") {
+		t.Error("admin email page doesn't list the opt-out")
+	}
+	if got := invite(t, srv, "1", "replied@example.com"); !strings.Contains(got, "asked not to get invitations") {
+		t.Errorf("invite an opted-out address: flash %q", got)
+	}
+
+	post(srv, "/admin/email/optouts/delete", url.Values{"email": {"replied@example.com"}})
+	var n int
+	d.QueryRow("SELECT COUNT(*) FROM invite_optouts").Scan(&n)
+	if n != 0 {
+		t.Errorf("%d opt-outs after removing, want 0", n)
+	}
+	if got := invite(t, srv, "1", "replied@example.com"); !strings.HasPrefix(got, "success|") {
+		t.Errorf("invite after removing the opt-out: flash %q", got)
 	}
 }

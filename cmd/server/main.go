@@ -287,6 +287,9 @@ func main() {
 	// RFC 8058 one-click request from mail clients, which has no session.
 	r.Get("/email/unsubscribe", h.UnsubscribePage)
 	r.Post("/email/unsubscribe", h.Unsubscribe)
+	// The invite email's "stop invitations" link, for someone with no account.
+	r.Get("/invite/{code}/stop", h.InviteStopPage)
+	r.Post("/invite/{code}/stop", h.InviteStop)
 
 	// Public pages (with optional auth for / to send a signed-in user to the
 	// dashboard).
@@ -456,6 +459,8 @@ func main() {
 			r.Get("/prices", h.AdminPrices)
 			r.Get("/messages", h.AdminContactMessages)
 			r.Get("/email", h.AdminEmail)
+			r.Post("/email/optouts", h.AdminInviteOptoutAdd)
+			r.Post("/email/optouts/delete", h.AdminInviteOptoutDelete)
 			r.Get("/courses", h.AdminCourses)
 			r.Post("/courses", h.AdminCourseCreate)
 			r.Get("/courses/{cid}", h.AdminCourse)

@@ -327,6 +327,15 @@ CREATE TABLE IF NOT EXISTS game_invites (
 );
 CREATE INDEX IF NOT EXISTS idx_invites_code ON game_invites(code);
 
+-- Addresses that asked not to be invited again: through the link in an invite
+-- email, or added by an admin when someone replied instead. Lower case, as
+-- mail.NormalizeAddress leaves them.
+CREATE TABLE IF NOT EXISTS invite_optouts (
+    email      TEXT PRIMARY KEY,
+    source     TEXT NOT NULL DEFAULT 'link',         -- 'link' | 'admin'
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 --------------------------------------------------------------------------------
 -- Achievements (Feature 8)
 --------------------------------------------------------------------------------

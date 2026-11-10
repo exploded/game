@@ -220,6 +220,12 @@ type InterestPayment struct {
 	CreatedAt     string
 }
 
+type InviteOptout struct {
+	Email     string
+	Source    string
+	CreatedAt string
+}
+
 type Lesson struct {
 	ID          int64
 	CourseID    int64

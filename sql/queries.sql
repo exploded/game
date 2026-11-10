@@ -916,6 +916,18 @@ WHERE gi.game_id = ? AND gi.created_by = ? AND gi.email IS NOT NULL
 ORDER BY gi.id DESC
 LIMIT 20;
 
+-- name: AddInviteOptout :exec
+INSERT OR IGNORE INTO invite_optouts (email, source) VALUES (?, ?);
+
+-- name: IsInviteOptout :one
+SELECT COUNT(*) FROM invite_optouts WHERE email = ?;
+
+-- name: ListInviteOptouts :many
+SELECT * FROM invite_optouts ORDER BY created_at DESC, email;
+
+-- name: DeleteInviteOptout :exec
+DELETE FROM invite_optouts WHERE email = ?;
+
 -- =============================================================================
 -- Achievements (Feature 8)
 -- =============================================================================

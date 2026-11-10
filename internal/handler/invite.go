@@ -20,7 +20,8 @@ import (
 // a cookie; if the friend then signs up, they join the game and the player
 // who invited them gets the game's referral bonus in that game, or in this
 // month's game if that one has ended. Existing accounts can't be invited, and
-// each player sends one invite per game.
+// each player sends one invite per game. The email's stop link puts the
+// friend's address in invite_optouts, which no invite can be sent to.
 const (
 	inviteCookie      = "invite"
 	inviteCookieAge   = 30 * 24 * 60 * 60 // seconds
@@ -99,6 +100,13 @@ func (h *Handler) InviteSend(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, "invite: find user", err)
 		return
 	}
+	if n, err := h.q.IsInviteOptout(ctx, email); err != nil {
+		h.serverError(w, "invite: check opt-outs", err)
+		return
+	} else if n > 0 {
+		fail(email + " has asked not to get invitations from The Investor Project. Try another friend.")
+		return
+	}
 	if n, err := h.q.InviteSentTo(ctx, db.InviteSentToParams{
 		GameID: game.ID, Email: sql.NullString{String: email, Valid: true},
 	}); err != nil || n > 0 {
@@ -121,10 +129,10 @@ func (h *Handler) InviteSend(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, "create invite", err)
 		return
 	}
-	if err := h.mailer.ToAddress(ctx, email, "invite", inviteEmail{
+	if err := h.mailer.ToStranger(ctx, email, "invite", inviteEmail{
 		From: user.Name, Game: game.Name, Code: code, Starting: fmtDollars(game.StartingBalance),
 		Sender: h.mailer.Sender(),
-	}); err != nil {
+	}, h.mailer.URL(inviteStopPath(code))); err != nil {
 		h.serverError(w, "queue invite email", err)
 		return
 	}
@@ -169,6 +177,45 @@ func (h *Handler) InviteLanding(w http.ResponseWriter, r *http.Request) {
 			"Game":      game.Name,
 			"Starting":  fmtDollars(game.StartingBalance),
 		}),
+	})
+}
+
+// inviteStopPath is the invite email's "stop invitations" link, also sent as
+// its List-Unsubscribe header.
+func inviteStopPath(code string) string { return "/invite/" + code + "/stop" }
+
+// inviteStopTarget is the address the stop link's invite was emailed to.
+func (h *Handler) inviteStopTarget(r *http.Request) (string, bool) {
+	invite, err := h.q.GetInviteByCode(r.Context(), r.PathValue("code"))
+	if err != nil || invite.Email.String == "" {
+		return "", false
+	}
+	return invite.Email.String, true
+}
+
+// InviteStopPage is where the stop link lands. It asks for a click, as the
+// unsubscribe page does, so a mail scanner opening the link changes nothing.
+func (h *Handler) InviteStopPage(w http.ResponseWriter, r *http.Request) {
+	email, ok := h.inviteStopTarget(r)
+	h.render(w, r, "email/invite_stop", "", PageData{
+		Title: "Stop invitations",
+		Extra: map[string]any{"Valid": ok, "Email": email, "Action": r.URL.Path},
+	})
+}
+
+// InviteStop records the address so it's never invited again. It serves the
+// page's button and the RFC 8058 one-click POST that mail clients send.
+func (h *Handler) InviteStop(w http.ResponseWriter, r *http.Request) {
+	email, ok := h.inviteStopTarget(r)
+	if ok {
+		if err := h.q.AddInviteOptout(r.Context(), db.AddInviteOptoutParams{Email: email, Source: "link"}); err != nil {
+			h.serverError(w, "invite opt-out", err)
+			return
+		}
+	}
+	h.render(w, r, "email/invite_stop", "", PageData{
+		Title: "Stop invitations",
+		Extra: map[string]any{"Valid": ok, "Done": ok, "Email": email},
 	})
 }
 

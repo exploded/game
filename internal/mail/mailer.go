@@ -124,6 +124,14 @@ func (m *Mailer) render(name string, v view) (subject, text, html string, err er
 // ToAddress queues an Account email to an address that may not belong to a
 // user yet, such as a sign-in link.
 func (m *Mailer) ToAddress(ctx context.Context, to, template string, data any) error {
+	return m.ToStranger(ctx, to, template, data, "")
+}
+
+// ToStranger is ToAddress with a stop link for the List-Unsubscribe headers,
+// for email to someone who never signed up, such as a friend's invite. The
+// template shows the link itself: the layout's unsubscribe footer talks
+// about a user's email settings, which a stranger doesn't have.
+func (m *Mailer) ToStranger(ctx context.Context, to, template string, data any, stopURL string) error {
 	subject, text, html, err := m.render(template, view{BaseURL: m.cfg.BaseURL, D: data})
 	if err != nil {
 		return err
@@ -131,6 +139,7 @@ func (m *Mailer) ToAddress(ctx context.Context, to, template string, data any) e
 	if err := m.q.QueueEmail(ctx, db.QueueEmailParams{
 		ToEmail: to, Category: string(Account), Template: template,
 		Subject: subject, TextBody: text, HtmlBody: html, ReplyTo: m.cfg.ReplyTo,
+		UnsubscribeUrl: stopURL,
 	}); err != nil {
 		return err
 	}
@@ -234,6 +243,9 @@ func Prefs(ctx context.Context, q *db.Queries, userID int64) (map[Category]bool,
 	}
 	return prefs, nil
 }
+
+// URL turns a site path into a full URL on BASE_URL.
+func (m *Mailer) URL(path string) string { return m.cfg.BaseURL + path }
 
 // UnsubscribeURL is the one-click link for a user's category.
 func (m *Mailer) UnsubscribeURL(emailToken string, c Category) string {

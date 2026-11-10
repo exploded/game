@@ -216,7 +216,9 @@ From the game's home page a player can email one friend an invitation per
 game. When the friend makes an account, they join the game and the player
 gets a bonus of 1% of the starting money ($10,000) in game money, in that
 game, or in the current month's game if that one has ended. People who already
-have an account can't be invited.
+have an account can't be invited, and neither can anyone who used the "Stop
+all invitations" link in an invite email or was added under **Don't invite**
+on the admin email page.
 
 ### Achievements and avatars
 

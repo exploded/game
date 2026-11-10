@@ -1,0 +1,19 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="settings-card" style="max-width:520px;margin:48px auto">
+    {{if not (index .Extra "Valid")}}
+    <h1 style="font-size:20px;margin-bottom:12px">This link doesn't work</h1>
+    <p>The link is incomplete. To stop invitations, reply to the invite email and we'll take your address off by hand.</p>
+    {{else if index .Extra "Done"}}
+    <h1 style="font-size:20px;margin-bottom:12px">No more invitations</h1>
+    <p><strong>{{index .Extra "Email"}}</strong> won't get any more invitations from The Investor Project, whoever tries to send one. You weren't on any mailing list, so there's nothing else to stop.</p>
+    {{else}}
+    <h1 style="font-size:20px;margin-bottom:12px">Stop invitations?</h1>
+    <p style="margin-bottom:16px">Players won't be able to invite <strong>{{index .Extra "Email"}}</strong> to The Investor Project again.</p>
+    <form method="POST" action="{{index .Extra "Action"}}">
+        <button type="submit" class="btn btn-primary">Stop invitations</button>
+    </form>
+    {{end}}
+</div>
+{{end}}
