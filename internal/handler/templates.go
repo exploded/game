@@ -258,6 +258,9 @@ func LoadTemplates(fsys fs.FS, static *Static) (PageTemplates, error) {
 			}
 			return fmt.Sprintf("/learn/lesson-thumb/%d", id)
 		},
+		// courseCoverURL is where a course's uploaded cover is served
+		// (course_cover.go).
+		"courseCoverURL": courseCoverURL,
 		"int": func(v any) int {
 			switch val := v.(type) {
 			case int:

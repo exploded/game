@@ -39,13 +39,14 @@
             <p class="text-muted" style="font-size:12px;margin-top:4px">Blank lines start new paragraphs. Lines starting with &#9745;&#65039; become the &ldquo;What you&rsquo;ll learn&rdquo; list. The first paragraph goes in the new-course email.</p>
         </div>
         <div class="form-group">
-            <label for="cart">Cover picture</label>
+            <label for="cart">Drawing</label>
             <div style="display:flex;gap:12px;align-items:center">
                 <span class="course-tile-{{if .Item.Art}}{{.Item.Art}}{{else}}generic{{end}}" style="width:96px;flex-shrink:0">{{template "course-art" .Item.Art}}</span>
                 <select id="cart" name="art">
                     {{range index .Extra "Arts"}}<option value="{{.Key}}"{{if eq .Key $.Item.Art}} selected{{end}}>{{.Name}}</option>{{end}}
                 </select>
             </div>
+            <p class="text-muted" style="font-size:12px;margin-top:4px">{{if .Item.CoverVersion}}Not shown while the course has an uploaded cover picture. Its colour still tints the course&rsquo;s card.{{else}}The course&rsquo;s cover until you upload a picture under Cover picture.{{end}}</p>
         </div>
         <label class="checkbox-label" style="padding-top:0;margin-bottom:12px">
             <input type="checkbox" name="vimeo_thumbs" value="1"{{if .Item.VimeoThumbs}} checked{{end}}>
@@ -57,6 +58,25 @@
         </div>
         <button type="submit" class="btn btn-sm">Save details</button>
     </form>
+</div>
+
+<div class="settings-card" id="cover">
+    <h2>Cover picture</h2>
+    <div class="cover-admin">
+        <span class="cover-admin-preview course-tile-{{if .Item.Art}}{{.Item.Art}}{{else}}generic{{end}}">{{template "course-cover" .Item}}</span>
+        <div class="cover-admin-text">
+            <p style="margin-bottom:12px">{{if .Item.CoverVersion}}This course shows the picture you uploaded{{else}}This course shows its drawing (under Details){{end}} on its card, at the top of its page, and on lessons without a Vimeo thumbnail. {{if .Item.CoverVersion}}Upload another to replace it{{else}}Upload a picture to use instead{{end}}: a JPEG, PNG or WebP up to 10 MB. Make it 16:9, at least 1280 &times; 720 pixels; other shapes are trimmed at the edges, and the course page trims it to a wide strip on phones, so keep words near the middle.</p>
+            <form method="POST" action="/admin/courses/{{.Item.ID}}/cover" enctype="multipart/form-data" class="cover-admin-form">
+                <input type="file" name="cover" accept="image/jpeg,image/png,image/webp" required data-max-bytes="10485760" aria-label="Cover picture file">
+                <button type="submit" class="btn btn-sm btn-primary">Upload</button>
+            </form>
+            {{if .Item.CoverVersion}}
+            <form method="POST" action="/admin/courses/{{.Item.ID}}/cover/delete" style="margin-top:12px">
+                <button type="submit" class="btn btn-sm btn-danger" data-confirm="Remove the uploaded picture? The course goes back to its drawing.">Remove picture</button>
+            </form>
+            {{end}}
+        </div>
+    </div>
 </div>
 
 <h2 style="margin:24px 0 12px">Lessons</h2>

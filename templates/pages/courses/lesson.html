@@ -12,7 +12,7 @@
         <p class="lesson-meta">Lesson {{index .Extra "Number"}} of {{index .Extra "Count"}}{{if .Item.Minutes}} &middot; {{.Item.Minutes}} min{{end}}</p>
 
         {{if .User}}
-        {{template "player" (dict "Embed" .Item.EmbedUrl "Thumb" $thumb "Title" .Item.Title "Art" $c.Art)}}
+        {{template "player" (dict "Embed" .Item.EmbedUrl "Thumb" $thumb "Title" .Item.Title "Course" $c)}}
         {{/* Shown over the player when the video ends (app.js), in place of
              Vimeo's "More from ..." end screen, which lists other videos. */}}
         <template id="lesson-end">
@@ -28,7 +28,7 @@
         </template>
         {{else}}
         <div class="player lesson-locked">
-            {{with $thumb}}<img src="{{.}}" alt="">{{else}}{{with $c.Art}}<span class="player-art course-tile-{{.}}">{{template "course-art" .}}</span>{{end}}{{end}}
+            {{with $thumb}}<img src="{{.}}" alt="">{{else}}<span class="player-art course-tile-{{or $c.Art "generic"}}">{{template "course-cover" $c}}</span>{{end}}
             <div class="lesson-locked-text">
                 <strong>Sign in to watch</strong>
                 <span>It's free. Enter your email and we'll send you a sign-in link.</span>

@@ -617,6 +617,7 @@ CREATE TABLE IF NOT EXISTS courses (
     art          TEXT    NOT NULL DEFAULT '',           -- cover illustration key (_learnart.html); '' = the generic one
     vimeo_folder TEXT    NOT NULL DEFAULT '',           -- the Vimeo folder link last filled from; pre-fills Fill from Vimeo
     vimeo_thumbs INTEGER NOT NULL DEFAULT 0,            -- 1 = lessons show their Vimeo thumbnails; 0 = the course's picture
+    cover_version INTEGER NOT NULL DEFAULT 0,           -- 0 = no uploaded cover (art is drawn); else when course_covers last changed, in the cover's URL
     published    INTEGER NOT NULL DEFAULT 0,            -- 0 = draft, only admins see it
     published_at TEXT,                                  -- first publish; set once
     sort_order   INTEGER NOT NULL DEFAULT 0,
@@ -640,6 +641,14 @@ CREATE INDEX IF NOT EXISTS idx_lessons_course ON lessons(course_id, sort_order);
 -- served from /learn/lesson-thumb/{id}, so img-src needs no video host.
 CREATE TABLE IF NOT EXISTS lesson_thumbs (
     lesson_id    INTEGER PRIMARY KEY REFERENCES lessons(id) ON DELETE CASCADE,
+    content_type TEXT    NOT NULL,
+    data         BLOB    NOT NULL
+);
+
+-- A cover picture an admin uploaded for a course, resized (courseCoverImage).
+-- It replaces the drawn art everywhere the course's picture shows.
+CREATE TABLE IF NOT EXISTS course_covers (
+    course_id    INTEGER PRIMARY KEY REFERENCES courses(id) ON DELETE CASCADE,
     content_type TEXT    NOT NULL,
     data         BLOB    NOT NULL
 );

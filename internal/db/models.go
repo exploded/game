@@ -83,17 +83,24 @@ type ContactMessage struct {
 }
 
 type Course struct {
-	ID          int64
-	Slug        string
-	Title       string
-	Summary     string
-	Art         string
-	VimeoFolder string
-	VimeoThumbs int64
-	Published   int64
-	PublishedAt sql.NullString
-	SortOrder   int64
-	CreatedAt   string
+	ID           int64
+	Slug         string
+	Title        string
+	Summary      string
+	Art          string
+	VimeoFolder  string
+	VimeoThumbs  int64
+	CoverVersion int64
+	Published    int64
+	PublishedAt  sql.NullString
+	SortOrder    int64
+	CreatedAt    string
+}
+
+type CourseCover struct {
+	CourseID    int64
+	ContentType string
+	Data        []byte
 }
 
 type DividendPayment struct {

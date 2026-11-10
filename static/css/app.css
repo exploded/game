@@ -1870,6 +1870,13 @@ dialog.confirm form { padding: 20px; }
 .course-art-bg path { fill: none; stroke: currentColor; stroke-width: 1.5; opacity: 0.25; stroke-linejoin: round; }
 .course-art-icon { position: relative; width: 38%; max-width: 72px; height: auto; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.35)); }
 .course-art-icon .solid { fill: currentColor; stroke: none; }
+/* An uploaded cover (course_cover.go) takes the drawing's place and shape. */
+img.course-cover { display: block; width: 100%; height: auto; object-fit: cover; }
+.cover-admin { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+.cover-admin-preview { width: 260px; max-width: 100%; flex-shrink: 0; }
+.cover-admin-text { flex: 1; min-width: 240px; }
+.cover-admin-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cover-admin-form input[type=file] { flex: 1; min-width: 200px; }
 .course-row { display: grid; grid-auto-flow: column; grid-auto-columns: 72%; gap: 12px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .course-row::-webkit-scrollbar { display: none; }
 .course-row > * { scroll-snap-align: start; }

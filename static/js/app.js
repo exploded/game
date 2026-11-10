@@ -111,6 +111,19 @@ document.addEventListener("change", function(e) {
     }
 });
 
+// data-max-bytes on a file input (a course's cover): refuse a file that's too
+// big before it's sent, since the server's answer would be a bare error page.
+document.addEventListener("change", function(e) {
+    const input = e.target;
+    if (!input.matches("input[type=file][data-max-bytes]") || !input.files.length) return;
+    const max = Number(input.dataset.maxBytes);
+    const size = input.files[0].size;
+    if (size > max) {
+        showToast("That picture is " + (size / 1048576).toFixed(1) + " MB. Choose one under " + Math.round(max / 1048576) + " MB.", "error");
+        input.value = "";
+    }
+});
+
 // data-prefill on a form (Add a stream): JSON of field values for each
 // value of the select named by data-prefill-by. Choosing an option fills the
 // fields, leaving alone any the admin has typed in.

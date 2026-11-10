@@ -7,7 +7,9 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"mime"
 	"net/http"
 )
 
@@ -56,7 +58,19 @@ func CSRFProtect(secret []byte) func(http.Handler) http.Handler {
 
 				// Accept token from header (HTMX) or form field.
 				submitted := r.Header.Get("X-CSRF-Token")
-				if submitted == "" {
+				if submitted == "" && isMultipart(r) {
+					// A file upload: ParseForm doesn't read multipart bodies.
+					r.Body = http.MaxBytesReader(w, r.Body, MaxUploadBytes)
+					err := r.ParseMultipartForm(MaxUploadBytes)
+					var tooBig *http.MaxBytesError
+					if errors.As(err, &tooBig) {
+						http.Error(w, "That file is too big.", http.StatusRequestEntityTooLarge)
+						return
+					}
+					if err == nil {
+						submitted = r.FormValue("_csrf")
+					}
+				} else if submitted == "" {
 					if err := r.ParseForm(); err == nil {
 						submitted = r.FormValue("_csrf")
 					}
@@ -73,6 +87,15 @@ func CSRFProtect(secret []byte) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+// MaxUploadBytes is the largest multipart form (a file upload, such as a
+// course's cover) accepted. The whole form is held in memory, not in /tmp.
+const MaxUploadBytes = 12 << 20
+
+func isMultipart(r *http.Request) bool {
+	mt, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	return err == nil && mt == "multipart/form-data"
 }
 
 // CSRFTokenFromContext retrieves the CSRF token from context.

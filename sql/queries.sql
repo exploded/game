@@ -1320,7 +1320,7 @@ SELECT user_id FROM question_votes WHERE question_id = sqlc.arg(id);
 -- =============================================================================
 
 -- name: ListPublishedCourses :many
-SELECT c.id, c.slug, c.title, c.summary, c.art,
+SELECT c.id, c.slug, c.title, c.summary, c.art, c.cover_version,
        (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id) AS lessons,
        (SELECT COALESCE(SUM(l.minutes), 0) FROM lessons l WHERE l.course_id = c.id) AS minutes,
        (SELECT COUNT(*) FROM lessons l JOIN lesson_progress p ON p.lesson_id = l.id
@@ -1354,6 +1354,19 @@ WHERE id = sqlc.arg(id);
 
 -- name: DeleteCourse :exec
 DELETE FROM courses WHERE id = ?;
+
+-- name: SaveCourseCover :exec
+INSERT INTO course_covers (course_id, content_type, data) VALUES (?, ?, ?)
+ON CONFLICT (course_id) DO UPDATE SET content_type = excluded.content_type, data = excluded.data;
+
+-- name: GetCourseCover :one
+SELECT content_type, data FROM course_covers WHERE course_id = ?;
+
+-- name: DeleteCourseCover :exec
+DELETE FROM course_covers WHERE course_id = ?;
+
+-- name: SetCourseCoverVersion :exec
+UPDATE courses SET cover_version = ? WHERE id = ?;
 
 -- name: ListLessons :many
 SELECT l.*,

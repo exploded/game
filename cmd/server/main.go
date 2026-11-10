@@ -326,6 +326,7 @@ func main() {
 		r.Get("/learn/courses/{slug}", h.CoursePage)
 		r.Get("/learn/courses/{slug}/{lid}", h.LessonPage)
 		r.Get("/learn/lesson-thumb/{lid}", h.LessonThumb)
+		r.Get("/learn/course-cover/{cid}", h.CourseCover)
 		// Courses lived at /courses until 9 November 2026.
 		r.Get("/courses", h.OldCourseURL)
 		r.Get("/courses/*", h.OldCourseURL)
@@ -463,6 +464,8 @@ func main() {
 			r.Post("/courses/{cid}/delete", h.AdminCourseDelete)
 			r.Post("/courses/{cid}/lessons", h.AdminLessonCreate)
 			r.Post("/courses/{cid}/vimeo", h.AdminCourseVimeo)
+			r.Post("/courses/{cid}/cover", h.AdminCourseCover)
+			r.Post("/courses/{cid}/cover/delete", h.AdminCourseCoverDelete)
 			r.Post("/lessons/{lid}", h.AdminLessonUpdate)
 			r.Post("/lessons/{lid}/delete", h.AdminLessonDelete)
 			r.Get("/learn", h.AdminLearn)

@@ -1321,6 +1321,15 @@ func (q *Queries) DeleteCourse(ctx context.Context, id int64) error {
 	return err
 }
 
+const deleteCourseCover = `-- name: DeleteCourseCover :exec
+DELETE FROM course_covers WHERE course_id = ?
+`
+
+func (q *Queries) DeleteCourseCover(ctx context.Context, courseID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteCourseCover, courseID)
+	return err
+}
+
 const deleteExpiredOAuthCodes = `-- name: DeleteExpiredOAuthCodes :exec
 DELETE FROM oauth_codes WHERE expires_at < datetime('now')
 `
@@ -1726,7 +1735,7 @@ func (q *Queries) GetAvatar(ctx context.Context, id int64) (Avatar, error) {
 }
 
 const getCourse = `-- name: GetCourse :one
-SELECT id, slug, title, summary, art, vimeo_folder, vimeo_thumbs, published, published_at, sort_order, created_at FROM courses WHERE id = ?
+SELECT id, slug, title, summary, art, vimeo_folder, vimeo_thumbs, cover_version, published, published_at, sort_order, created_at FROM courses WHERE id = ?
 `
 
 func (q *Queries) GetCourse(ctx context.Context, id int64) (Course, error) {
@@ -1740,6 +1749,7 @@ func (q *Queries) GetCourse(ctx context.Context, id int64) (Course, error) {
 		&i.Art,
 		&i.VimeoFolder,
 		&i.VimeoThumbs,
+		&i.CoverVersion,
 		&i.Published,
 		&i.PublishedAt,
 		&i.SortOrder,
@@ -1749,7 +1759,7 @@ func (q *Queries) GetCourse(ctx context.Context, id int64) (Course, error) {
 }
 
 const getCourseBySlug = `-- name: GetCourseBySlug :one
-SELECT id, slug, title, summary, art, vimeo_folder, vimeo_thumbs, published, published_at, sort_order, created_at FROM courses WHERE slug = ?
+SELECT id, slug, title, summary, art, vimeo_folder, vimeo_thumbs, cover_version, published, published_at, sort_order, created_at FROM courses WHERE slug = ?
 `
 
 func (q *Queries) GetCourseBySlug(ctx context.Context, slug string) (Course, error) {
@@ -1763,11 +1773,28 @@ func (q *Queries) GetCourseBySlug(ctx context.Context, slug string) (Course, err
 		&i.Art,
 		&i.VimeoFolder,
 		&i.VimeoThumbs,
+		&i.CoverVersion,
 		&i.Published,
 		&i.PublishedAt,
 		&i.SortOrder,
 		&i.CreatedAt,
 	)
+	return i, err
+}
+
+const getCourseCover = `-- name: GetCourseCover :one
+SELECT content_type, data FROM course_covers WHERE course_id = ?
+`
+
+type GetCourseCoverRow struct {
+	ContentType string
+	Data        []byte
+}
+
+func (q *Queries) GetCourseCover(ctx context.Context, courseID int64) (GetCourseCoverRow, error) {
+	row := q.db.QueryRowContext(ctx, getCourseCover, courseID)
+	var i GetCourseCoverRow
+	err := row.Scan(&i.ContentType, &i.Data)
 	return i, err
 }
 
@@ -3528,24 +3555,25 @@ func (q *Queries) ListAllActiveHoldings(ctx context.Context) ([]ListAllActiveHol
 }
 
 const listAllCourses = `-- name: ListAllCourses :many
-SELECT c.id, c.slug, c.title, c.summary, c.art, c.vimeo_folder, c.vimeo_thumbs, c.published, c.published_at, c.sort_order, c.created_at, (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id) AS lessons
+SELECT c.id, c.slug, c.title, c.summary, c.art, c.vimeo_folder, c.vimeo_thumbs, c.cover_version, c.published, c.published_at, c.sort_order, c.created_at, (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id) AS lessons
 FROM courses c
 ORDER BY c.sort_order, c.id
 `
 
 type ListAllCoursesRow struct {
-	ID          int64
-	Slug        string
-	Title       string
-	Summary     string
-	Art         string
-	VimeoFolder string
-	VimeoThumbs int64
-	Published   int64
-	PublishedAt sql.NullString
-	SortOrder   int64
-	CreatedAt   string
-	Lessons     int64
+	ID           int64
+	Slug         string
+	Title        string
+	Summary      string
+	Art          string
+	VimeoFolder  string
+	VimeoThumbs  int64
+	CoverVersion int64
+	Published    int64
+	PublishedAt  sql.NullString
+	SortOrder    int64
+	CreatedAt    string
+	Lessons      int64
 }
 
 func (q *Queries) ListAllCourses(ctx context.Context) ([]ListAllCoursesRow, error) {
@@ -3565,6 +3593,7 @@ func (q *Queries) ListAllCourses(ctx context.Context) ([]ListAllCoursesRow, erro
 			&i.Art,
 			&i.VimeoFolder,
 			&i.VimeoThumbs,
+			&i.CoverVersion,
 			&i.Published,
 			&i.PublishedAt,
 			&i.SortOrder,
@@ -5669,7 +5698,7 @@ func (q *Queries) ListPriceHistory(ctx context.Context, arg ListPriceHistoryPara
 
 const listPublishedCourses = `-- name: ListPublishedCourses :many
 
-SELECT c.id, c.slug, c.title, c.summary, c.art,
+SELECT c.id, c.slug, c.title, c.summary, c.art, c.cover_version,
        (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id) AS lessons,
        (SELECT COALESCE(SUM(l.minutes), 0) FROM lessons l WHERE l.course_id = c.id) AS minutes,
        (SELECT COUNT(*) FROM lessons l JOIN lesson_progress p ON p.lesson_id = l.id
@@ -5680,14 +5709,15 @@ ORDER BY c.sort_order, c.id
 `
 
 type ListPublishedCoursesRow struct {
-	ID        int64
-	Slug      string
-	Title     string
-	Summary   string
-	Art       string
-	Lessons   int64
-	Minutes   interface{}
-	Completed int64
+	ID           int64
+	Slug         string
+	Title        string
+	Summary      string
+	Art          string
+	CoverVersion int64
+	Lessons      int64
+	Minutes      interface{}
+	Completed    int64
 }
 
 // =============================================================================
@@ -5708,6 +5738,7 @@ func (q *Queries) ListPublishedCourses(ctx context.Context, viewer int64) ([]Lis
 			&i.Title,
 			&i.Summary,
 			&i.Art,
+			&i.CoverVersion,
 			&i.Lessons,
 			&i.Minutes,
 			&i.Completed,
@@ -7880,6 +7911,22 @@ func (q *Queries) RevokeUserGrant(ctx context.Context, arg RevokeUserGrantParams
 	return result.RowsAffected()
 }
 
+const saveCourseCover = `-- name: SaveCourseCover :exec
+INSERT INTO course_covers (course_id, content_type, data) VALUES (?, ?, ?)
+ON CONFLICT (course_id) DO UPDATE SET content_type = excluded.content_type, data = excluded.data
+`
+
+type SaveCourseCoverParams struct {
+	CourseID    int64
+	ContentType string
+	Data        []byte
+}
+
+func (q *Queries) SaveCourseCover(ctx context.Context, arg SaveCourseCoverParams) error {
+	_, err := q.db.ExecContext(ctx, saveCourseCover, arg.CourseID, arg.ContentType, arg.Data)
+	return err
+}
+
 const saveIdempotency = `-- name: SaveIdempotency :exec
 UPDATE api_idempotency SET status = ?, response = ? WHERE user_id = ? AND key = ?
 `
@@ -8013,6 +8060,20 @@ type SetAdminParams struct {
 
 func (q *Queries) SetAdmin(ctx context.Context, arg SetAdminParams) error {
 	_, err := q.db.ExecContext(ctx, setAdmin, arg.IsAdmin, arg.ID)
+	return err
+}
+
+const setCourseCoverVersion = `-- name: SetCourseCoverVersion :exec
+UPDATE courses SET cover_version = ? WHERE id = ?
+`
+
+type SetCourseCoverVersionParams struct {
+	CoverVersion int64
+	ID           int64
+}
+
+func (q *Queries) SetCourseCoverVersion(ctx context.Context, arg SetCourseCoverVersionParams) error {
+	_, err := q.db.ExecContext(ctx, setCourseCoverVersion, arg.CoverVersion, arg.ID)
 	return err
 }
 
