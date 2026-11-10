@@ -43,8 +43,6 @@ YOUTUBE_API_KEY=
 ANTHROPIC_API_KEY=
 TIKTOK_CLIENT_KEY=
 TIKTOK_CLIENT_SECRET=
-# The redirect URI registered with the TikTok app, if not BASE_URL/admin/learn/tiktok/callback.
-TIKTOK_REDIRECT_URL=
 LEARN_DISCLAIMER=
 ENVEOF
     chmod 600 "$APP_DIR/.env"

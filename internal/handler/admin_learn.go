@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -518,17 +517,10 @@ func (h *Handler) setRecording(r *http.Request, e db.LiveEvent) (msg, bad string
 }
 
 // TikTok connection. The callback URL must be registered with the TikTok
-// app exactly: BASE_URL + /admin/learn/tiktok/callback, or TIKTOK_REDIRECT_URL
-// when that's set. The approved app names thewealthlab.au, which Caddy
-// redirects here with the query kept, so the override saves a new review.
+// app exactly: BASE_URL + /admin/learn/tiktok/callback.
 const tiktokStateCookie = "tiktok_state"
 
-func tiktokRedirect(r *http.Request) string {
-	if u := os.Getenv("TIKTOK_REDIRECT_URL"); u != "" {
-		return u
-	}
-	return siteURL(r) + "/admin/learn/tiktok/callback"
-}
+func tiktokRedirect(r *http.Request) string { return siteURL(r) + "/admin/learn/tiktok/callback" }
 
 // AdminTikTokConnect sends Rob to TikTok to allow the app to read his
 // videos.

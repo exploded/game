@@ -131,10 +131,9 @@ reminders need an account.
   shows new videos and the next stream.
 - [x] **Go live:** `YOUTUBE_API_KEY` and `ANTHROPIC_API_KEY` are in the server
   `.env` (2026-10-30).
-- [ ] **TikTok app:** approved on 10 November 2026. Its redirect is still
-  `https://thewealthlab.au/admin/learn/tiktok/callback`, so the server's
-  `.env` sets `TIKTOK_REDIRECT_URL` to that. Registered at developers.tiktok.com (Login Kit, Display
-  API), passed TikTok's app review, set `TIKTOK_CLIENT_KEY` and
+- [ ] **TikTok app:** approved on 10 November 2026, with the redirect
+  `https://investorproject.au/admin/learn/tiktok/callback`. Registered at
+  developers.tiktok.com (Login Kit, Display API), passed TikTok's app review, set `TIKTOK_CLIENT_KEY` and
   `TIKTOK_CLIENT_SECRET`, then Rob clicks **Connect TikTok**. Reconnect
   before the year is up; the admin page warns 30 days ahead.
 - [ ] **Pasted TikToks have no cover** (2026-11-05). TikTok's oEmbed no

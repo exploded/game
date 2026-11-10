@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"maps"
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"strconv"
 	"strings"
@@ -367,20 +366,5 @@ func TestListTopicsCounts(t *testing.T) {
 		if i > 0 && tp.SortOrder < topics[i-1].SortOrder {
 			t.Errorf("%s comes after %s, out of sort order", tp.Slug, topics[i-1].Slug)
 		}
-	}
-}
-
-// The TikTok callback is BASE_URL's unless TIKTOK_REDIRECT_URL names the one
-// the app was approved with.
-func TestTikTokRedirect(t *testing.T) {
-	r := httptest.NewRequest("GET", "/admin/learn/tiktok/connect", nil)
-	t.Setenv("BASE_URL", "https://investorproject.au")
-	t.Setenv("TIKTOK_REDIRECT_URL", "")
-	if got, want := tiktokRedirect(r), "https://investorproject.au/admin/learn/tiktok/callback"; got != want {
-		t.Errorf("tiktokRedirect = %q, want %q", got, want)
-	}
-	t.Setenv("TIKTOK_REDIRECT_URL", "https://thewealthlab.au/admin/learn/tiktok/callback")
-	if got, want := tiktokRedirect(r), "https://thewealthlab.au/admin/learn/tiktok/callback"; got != want {
-		t.Errorf("with TIKTOK_REDIRECT_URL, tiktokRedirect = %q, want %q", got, want)
 	}
 }
