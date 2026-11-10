@@ -115,7 +115,8 @@ reminders need an account.
   TikTok's own start time and ends at the last check that found Rob on air
   (it used to end 5 minutes late). Admins can attach a recording to a
   finished stream.
-- [ ] **For Rob: save your TikTok live streams** (2026-11-05). TikTok doesn't
+- [x] **For Rob: save your TikTok live streams** (2026-11-05). He posts
+  them to YouTube, and it works (2026-11-10). TikTok doesn't
   keep a live stream for viewers, so the site can't show one afterwards.
   After each stream, Rob saves the replay (TikTok lets the host download it
   for 90 days) and posts it to TikTok or YouTube as an ordinary video. Once
@@ -130,8 +131,10 @@ reminders need an account.
   shows new videos and the next stream.
 - [x] **Go live:** `YOUTUBE_API_KEY` and `ANTHROPIC_API_KEY` are in the server
   `.env` (2026-10-30).
-- [ ] **TikTok app:** register at developers.tiktok.com (Login Kit, Display
-  API), pass TikTok's app review, set `TIKTOK_CLIENT_KEY` and
+- [ ] **TikTok app:** approved on 10 November 2026. Its redirect is still
+  `https://thewealthlab.au/admin/learn/tiktok/callback`, so the server's
+  `.env` sets `TIKTOK_REDIRECT_URL` to that. Registered at developers.tiktok.com (Login Kit, Display
+  API), passed TikTok's app review, set `TIKTOK_CLIENT_KEY` and
   `TIKTOK_CLIENT_SECRET`, then Rob clicks **Connect TikTok**. Reconnect
   before the year is up; the admin page warns 30 days ahead.
 - [ ] **Pasted TikToks have no cover** (2026-11-05). TikTok's oEmbed no

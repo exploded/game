@@ -52,7 +52,7 @@ All settings come from `.env` (or the environment, which takes priority):
 | `YOUTUBE_CHANNEL` | Handle or channel id. Default `@ConsortiumPW`. |
 | `ANTHROPIC_API_KEY` | Claude API key. Sorts videos and questions into topics. Without it, admins tick topics by hand. |
 | `CLAUDE_MODEL` | Model for sorting. Default `claude-opus-5-5`. |
-| `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET` | TikTok app with Login Kit and the Display API (`user.info.basic`, `video.list`). Its redirect URI is `BASE_URL/admin/learn/tiktok/callback`. Rob then clicks **Connect TikTok** on `/admin/learn`. |
+| `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET` | TikTok app with Login Kit and the Display API (`user.info.basic`, `video.list`). Its redirect URI is `BASE_URL/admin/learn/tiktok/callback`, or `TIKTOK_REDIRECT_URL` if set (production uses `https://thewealthlab.au/admin/learn/tiktok/callback`, which the app was approved with). Rob then clicks **Connect TikTok** on `/admin/learn`. |
 | `LEARN_DISCLAIMER` | Replaces the general advice warning under every Learn page. The default is Rob's licensee wording. |
 | `VIMEO_TOKEN` | Vimeo personal access token on Consortium's account (scopes `public`, `private`). Turns on **Fill from Vimeo** on `/admin/courses/{id}`. `go run ./cmd/vimeocheck <folder link>` shows what it can see. |
 | `BACKUP_S3_BUCKET`, `BACKUP_AWS_ACCESS_KEY_ID`, `BACKUP_AWS_SECRET_ACCESS_KEY` | Daily database backup to S3. `scripts/s3-backup-setup.sh` makes the bucket and a put-only IAM user and prints these. Off without them. |
