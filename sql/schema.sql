@@ -585,6 +585,16 @@ CREATE TABLE IF NOT EXISTS stock_news (
 -- UNIQUE(stock_id, url) is idx_stock_news_url, made by a migration in db.go.
 CREATE INDEX IF NOT EXISTS idx_stock_news_stock ON stock_news(stock_id, published_at DESC);
 
+-- A shown story's picture, copied from the article's og:image and scaled
+-- down (internal/market/newsthumb.go). Only the stories the stock page shows
+-- have one. An empty data means the picture was tried and couldn't be had,
+-- so it isn't tried again.
+CREATE TABLE IF NOT EXISTS news_thumbs (
+    news_id      INTEGER PRIMARY KEY REFERENCES stock_news(id) ON DELETE CASCADE,
+    content_type TEXT    NOT NULL DEFAULT '',
+    data         BLOB    NOT NULL
+);
+
 --------------------------------------------------------------------------------
 -- Ask a Question: members ask, vote, and Rob (an admin) answers.
 --------------------------------------------------------------------------------

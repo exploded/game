@@ -313,6 +313,12 @@ type MediaState struct {
 	Value string
 }
 
+type NewsThumb struct {
+	NewsID      int64
+	ContentType string
+	Data        []byte
+}
+
 type Notification struct {
 	ID        int64
 	UserID    int64

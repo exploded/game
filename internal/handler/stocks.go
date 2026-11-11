@@ -2,7 +2,9 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -243,8 +245,26 @@ func profileHealth(stock db.Stock, p db.StockProfile) (int, bool) {
 }
 
 // stockNewsShown is how many stories the stock page shows: the newest the
-// news filter kept. More is mostly repetition.
-const stockNewsShown = 2
+// news filter kept. More is mostly repetition. Only these get a thumbnail.
+const stockNewsShown = market.NewsShown
+
+// NewsThumb serves a news story's thumbnail (market.newsThumbs). A story's
+// picture never changes, so it's cached for a year.
+func (h *Handler) NewsThumb(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseInt(r.PathValue("nid"), 10, 64)
+	t, err := h.q.GetNewsThumb(r.Context(), id)
+	if errors.Is(err, sql.ErrNoRows) {
+		http.NotFound(w, r)
+		return
+	}
+	if err != nil {
+		h.serverError(w, "get news thumb", err)
+		return
+	}
+	w.Header().Set("Content-Type", t.ContentType)
+	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	w.Write(t.Data)
+}
 
 // backTo is where the stock page's Back link goes.
 type backTo struct {

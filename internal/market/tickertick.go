@@ -132,6 +132,7 @@ func (f *Fetcher) FetchTickerTickNews(ctx context.Context, q *db.Queries, market
 
 	cutoff := time.Now().UTC().Add(-tickertickSkipAge)
 	fetched, filterFails := 0, 0
+	var lastCall time.Time
 
 	for i, s := range stocks {
 		// Skip stocks that already have recent news (e.g. from a prior
@@ -143,13 +144,15 @@ func (f *Fetcher) FetchTickerTickNews(ctx context.Context, q *db.Queries, market
 			}
 		}
 
-		// Rate limit: wait between calls (skip the first API call).
+		// Rate limit: wait between calls (skip the first API call). Time
+		// spent fetching thumbnails counts towards the wait.
 		if fetched > 0 {
-			if err := tickertickSleep(ctx, tickertickInterval); err != nil {
+			if err := tickertickSleep(ctx, tickertickInterval-time.Since(lastCall)); err != nil {
 				return err
 			}
 		}
 		fetched++
+		lastCall = time.Now()
 
 		stories, err := fetchTickerTickWithRetry(ctx, client, s.Symbol)
 		if err != nil {
@@ -166,6 +169,7 @@ func (f *Fetcher) FetchTickerTickNews(ctx context.Context, q *db.Queries, market
 		}
 		fresh := newStories(stories, known)
 		if len(fresh) == 0 {
+			newsThumbs(ctx, q, s.ID, s.Symbol) // pictures for stories stored before thumbnails
 			skipped++
 			continue
 		}
@@ -222,6 +226,7 @@ func (f *Fetcher) FetchTickerTickNews(ctx context.Context, q *db.Queries, market
 		if err := q.PruneStockNews(ctx, db.PruneStockNewsParams{StockID: s.ID, Keep: tickertickKeepRows}); err != nil {
 			slog.Error("tickertick news prune", "symbol", s.Symbol, "error", err)
 		}
+		newsThumbs(ctx, q, s.ID, s.Symbol)
 		newsOK++
 
 		if (i+1)%25 == 0 {
@@ -393,8 +398,12 @@ func fetchTickerTickStories(ctx context.Context, client *http.Client, symbol str
 	return result.Stories, nil
 }
 
-// tickertickSleep pauses for the given duration, cancellable via ctx.
+// tickertickSleep pauses for the given duration, cancellable via ctx. It
+// returns at once for d <= 0.
 func tickertickSleep(ctx context.Context, d time.Duration) error {
+	if d <= 0 {
+		return ctx.Err()
+	}
 	select {
 	case <-ctx.Done():
 		return ctx.Err()

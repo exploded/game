@@ -105,6 +105,14 @@ func TestFetchTickerTickNews(t *testing.T) {
 	tickertickBaseURL = srv.URL
 	defer func() { tickertickBaseURL = old }()
 
+	oldThumb := fetchNewsThumb
+	var thumbAsked []string
+	fetchNewsThumb = func(_ context.Context, u string) (string, []byte, error) {
+		thumbAsked = append(thumbAsked, u)
+		return "image/jpeg", []byte("jpeg"), nil
+	}
+	defer func() { fetchNewsThumb = oldThumb }()
+
 	f := &Fetcher{q: q, rawDB: d}
 	stale := func() { // so the next run doesn't skip the stock as fresh
 		d.Exec(`UPDATE stock_news SET created_at = datetime('now', '-5 hours')`)
@@ -173,6 +181,17 @@ func TestFetchTickerTickNews(t *testing.T) {
 	}
 	if got := fmt.Sprint(shown()); got != "[results loan alexa]" {
 		t.Errorf("with no filter, shown %s, want [results loan alexa]", got)
+	}
+
+	// Each shown story got its picture once, while it was one of the newest
+	// two, and alexa's went when results pushed it out.
+	if got := fmt.Sprint(thumbAsked); got != "[https://pymnts.com/alexa https://qz.com/loan https://cnbc.com/results]" {
+		t.Errorf("thumbnails asked for %s", got)
+	}
+	var thumbs int
+	d.QueryRow(`SELECT COUNT(*) FROM news_thumbs`).Scan(&thumbs)
+	if thumbs != NewsShown {
+		t.Errorf("%d thumbnails kept, want %d", thumbs, NewsShown)
 	}
 }
 

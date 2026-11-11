@@ -1485,6 +1485,14 @@ dialog.confirm form { padding: 20px; }
     display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
 .news-list .btn { margin-top: 10px; }
+/* A story with a picture: the picture sits top right, the text wraps to its
+   left, and the summary and button run full width below it. */
+.news-list li.has-thumb::after { content: ""; display: table; clear: both; }
+.news-thumb { float: right; margin: 2px 0 6px 12px; line-height: 0; }
+.news-thumb img {
+    width: 96px; height: 64px; object-fit: cover; border-radius: 8px;
+    background: var(--color-border);
+}
 
 /* The click-to-play player */
 .player {

@@ -189,7 +189,8 @@ open them, and they took a phone's whole screen many times over. */}}
     <h2 class="stock-h2">In the news</h2>
     <ul class="news-list">
         {{range .Extra.News}}
-        <li>
+        <li{{if .HasThumb}} class="has-thumb"{{end}}>
+            {{if .HasThumb}}<a href="{{.Url}}" target="_blank" rel="noopener noreferrer" class="news-thumb" tabindex="-1" aria-hidden="true"><img src="/news-thumb/{{.ID}}" alt="" width="96" height="64" loading="lazy"></a>{{end}}
             <a href="{{.Url}}" target="_blank" rel="noopener noreferrer" class="news-title">{{.Headline}}</a>
             <div class="news-meta">{{.Source}} &middot; {{unixDate .PublishedAt}}</div>
             {{if .Summary}}<p class="news-summary">{{.Summary}}</p>{{end}}

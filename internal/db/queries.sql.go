@@ -2247,6 +2247,22 @@ func (q *Queries) GetMediaState(ctx context.Context, key string) (string, error)
 	return value, err
 }
 
+const getNewsThumb = `-- name: GetNewsThumb :one
+SELECT content_type, data FROM news_thumbs WHERE news_id = ? AND length(data) > 0
+`
+
+type GetNewsThumbRow struct {
+	ContentType string
+	Data        []byte
+}
+
+func (q *Queries) GetNewsThumb(ctx context.Context, newsID int64) (GetNewsThumbRow, error) {
+	row := q.db.QueryRowContext(ctx, getNewsThumb, newsID)
+	var i GetNewsThumbRow
+	err := row.Scan(&i.ContentType, &i.Data)
+	return i, err
+}
+
 const getOAuthClient = `-- name: GetOAuthClient :one
 SELECT id, name, redirect_uris, created_at, last_used_at FROM oauth_clients WHERE id = ?
 `
@@ -5300,6 +5316,48 @@ func (q *Queries) ListLobbyMessages(ctx context.Context, arg ListLobbyMessagesPa
 	return items, nil
 }
 
+const listNewsNeedingThumb = `-- name: ListNewsNeedingThumb :many
+SELECT n.id, n.url FROM stock_news n
+WHERE n.id IN (
+    SELECT s.id FROM stock_news s WHERE s.stock_id = ?1 AND s.shown = 1
+    ORDER BY s.published_at DESC, s.id DESC LIMIT ?2
+) AND NOT EXISTS (SELECT 1 FROM news_thumbs t WHERE t.news_id = n.id)
+`
+
+type ListNewsNeedingThumbParams struct {
+	StockID int64
+	Shown   int64
+}
+
+type ListNewsNeedingThumbRow struct {
+	ID  int64
+	Url string
+}
+
+// The stock's newest shown stories whose picture hasn't been tried.
+func (q *Queries) ListNewsNeedingThumb(ctx context.Context, arg ListNewsNeedingThumbParams) ([]ListNewsNeedingThumbRow, error) {
+	rows, err := q.db.QueryContext(ctx, listNewsNeedingThumb, arg.StockID, arg.Shown)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListNewsNeedingThumbRow
+	for rows.Next() {
+		var i ListNewsNeedingThumbRow
+		if err := rows.Scan(&i.ID, &i.Url); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listNewsSubscribers = `-- name: ListNewsSubscribers :many
 SELECT u.id FROM users u
 JOIN email_prefs p ON p.user_id = u.id AND p.category = 'news' AND p.enabled = 1
@@ -6308,8 +6366,9 @@ func (q *Queries) ListStockLastDates(ctx context.Context, market string) ([]List
 }
 
 const listStockNews = `-- name: ListStockNews :many
-SELECT id, stock_id, headline, summary, source, url, published_at, created_at, shown FROM stock_news WHERE stock_id = ? AND shown = 1
-ORDER BY published_at DESC LIMIT ?
+SELECT n.id, n.stock_id, n.headline, n.summary, n.source, n.url, n.published_at, n.created_at, n.shown, EXISTS (SELECT 1 FROM news_thumbs t WHERE t.news_id = n.id AND length(t.data) > 0) AS has_thumb
+FROM stock_news n WHERE n.stock_id = ? AND n.shown = 1
+ORDER BY n.published_at DESC, n.id DESC LIMIT ?
 `
 
 type ListStockNewsParams struct {
@@ -6317,15 +6376,28 @@ type ListStockNewsParams struct {
 	Limit   int64
 }
 
-func (q *Queries) ListStockNews(ctx context.Context, arg ListStockNewsParams) ([]StockNews, error) {
+type ListStockNewsRow struct {
+	ID          int64
+	StockID     int64
+	Headline    string
+	Summary     string
+	Source      string
+	Url         string
+	PublishedAt int64
+	CreatedAt   string
+	Shown       int64
+	HasThumb    bool
+}
+
+func (q *Queries) ListStockNews(ctx context.Context, arg ListStockNewsParams) ([]ListStockNewsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listStockNews, arg.StockID, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []StockNews
+	var items []ListStockNewsRow
 	for rows.Next() {
-		var i StockNews
+		var i ListStockNewsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.StockID,
@@ -6336,6 +6408,7 @@ func (q *Queries) ListStockNews(ctx context.Context, arg ListStockNewsParams) ([
 			&i.PublishedAt,
 			&i.CreatedAt,
 			&i.Shown,
+			&i.HasThumb,
 		); err != nil {
 			return nil, err
 		}
@@ -7688,6 +7761,28 @@ func (q *Queries) PruneEmailOutbox(ctx context.Context) error {
 	return err
 }
 
+const pruneNewsThumbs = `-- name: PruneNewsThumbs :exec
+DELETE FROM news_thumbs WHERE news_id NOT IN (SELECT id FROM stock_news)
+    OR news_id IN (
+        SELECT n.id FROM stock_news n WHERE n.stock_id = ?1 AND n.id NOT IN (
+            SELECT s.id FROM stock_news s WHERE s.stock_id = ?1 AND s.shown = 1
+            ORDER BY s.published_at DESC, s.id DESC LIMIT ?2
+        )
+    )
+`
+
+type PruneNewsThumbsParams struct {
+	StockID int64
+	Shown   int64
+}
+
+// Keeps pictures only for the stock's newest shown stories, and drops any
+// left by a deleted story.
+func (q *Queries) PruneNewsThumbs(ctx context.Context, arg PruneNewsThumbsParams) error {
+	_, err := q.db.ExecContext(ctx, pruneNewsThumbs, arg.StockID, arg.Shown)
+	return err
+}
+
 const pruneStockNews = `-- name: PruneStockNews :exec
 DELETE FROM stock_news WHERE stock_news.stock_id = ?1 AND stock_news.id NOT IN (
     SELECT n.id FROM stock_news n WHERE n.stock_id = ?1
@@ -8022,6 +8117,22 @@ type SaveLessonThumbParams struct {
 
 func (q *Queries) SaveLessonThumb(ctx context.Context, arg SaveLessonThumbParams) error {
 	_, err := q.db.ExecContext(ctx, saveLessonThumb, arg.LessonID, arg.ContentType, arg.Data)
+	return err
+}
+
+const saveNewsThumb = `-- name: SaveNewsThumb :exec
+INSERT OR REPLACE INTO news_thumbs (news_id, content_type, data) VALUES (?, ?, ?)
+`
+
+type SaveNewsThumbParams struct {
+	NewsID      int64
+	ContentType string
+	Data        []byte
+}
+
+// An empty data records a picture that couldn't be had.
+func (q *Queries) SaveNewsThumb(ctx context.Context, arg SaveNewsThumbParams) error {
+	_, err := q.db.ExecContext(ctx, saveNewsThumb, arg.NewsID, arg.ContentType, arg.Data)
 	return err
 }
 

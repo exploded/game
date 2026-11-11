@@ -14,6 +14,7 @@ require (
 	github.com/go-chi/chi/v5 v5.5.0
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	golang.org/x/image v0.48.0
+	golang.org/x/net v0.41.0
 	modernc.org/sqlite v1.62.0
 )
 

@@ -561,8 +561,35 @@ INSERT OR IGNORE INTO stock_news (stock_id, headline, summary, source, url, publ
 VALUES (?, ?, ?, ?, ?, ?, ?);
 
 -- name: ListStockNews :many
-SELECT * FROM stock_news WHERE stock_id = ? AND shown = 1
-ORDER BY published_at DESC LIMIT ?;
+SELECT n.*, EXISTS (SELECT 1 FROM news_thumbs t WHERE t.news_id = n.id AND length(t.data) > 0) AS has_thumb
+FROM stock_news n WHERE n.stock_id = ? AND n.shown = 1
+ORDER BY n.published_at DESC, n.id DESC LIMIT ?;
+
+-- name: ListNewsNeedingThumb :many
+-- The stock's newest shown stories whose picture hasn't been tried.
+SELECT n.id, n.url FROM stock_news n
+WHERE n.id IN (
+    SELECT s.id FROM stock_news s WHERE s.stock_id = sqlc.arg(stock_id) AND s.shown = 1
+    ORDER BY s.published_at DESC, s.id DESC LIMIT sqlc.arg(shown)
+) AND NOT EXISTS (SELECT 1 FROM news_thumbs t WHERE t.news_id = n.id);
+
+-- name: SaveNewsThumb :exec
+-- An empty data records a picture that couldn't be had.
+INSERT OR REPLACE INTO news_thumbs (news_id, content_type, data) VALUES (?, ?, ?);
+
+-- name: GetNewsThumb :one
+SELECT content_type, data FROM news_thumbs WHERE news_id = ? AND length(data) > 0;
+
+-- name: PruneNewsThumbs :exec
+-- Keeps pictures only for the stock's newest shown stories, and drops any
+-- left by a deleted story.
+DELETE FROM news_thumbs WHERE news_id NOT IN (SELECT id FROM stock_news)
+    OR news_id IN (
+        SELECT n.id FROM stock_news n WHERE n.stock_id = sqlc.arg(stock_id) AND n.id NOT IN (
+            SELECT s.id FROM stock_news s WHERE s.stock_id = sqlc.arg(stock_id) AND s.shown = 1
+            ORDER BY s.published_at DESC, s.id DESC LIMIT sqlc.arg(shown)
+        )
+    );
 
 -- name: ListStockNewsKeys :many
 -- What a new story is checked against, so it isn't stored twice.

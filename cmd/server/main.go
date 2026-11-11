@@ -330,6 +330,7 @@ func main() {
 		r.Get("/learn/courses/{slug}/{lid}", h.LessonPage)
 		r.Get("/learn/lesson-thumb/{lid}", h.LessonThumb)
 		r.Get("/learn/course-cover/{cid}", h.CourseCover)
+		r.Get("/news-thumb/{nid}", h.NewsThumb)
 		// Courses lived at /courses until 9 November 2026.
 		r.Get("/courses", h.OldCourseURL)
 		r.Get("/courses/*", h.OldCourseURL)
