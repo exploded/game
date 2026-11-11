@@ -302,6 +302,18 @@ var onceMigrations = []struct{ name, stmt string }{
 	{"idx-participants-ranked", "CREATE INDEX IF NOT EXISTS idx_participants_ranked ON participants(game_id, traded, portfolio_value DESC, user_id)"},
 	// The few blocked users, which the leaderboard leaves out.
 	{"idx-users-blocked", "CREATE INDEX IF NOT EXISTS idx_users_blocked ON users(id) WHERE blocked_at IS NOT NULL"},
+	// Ticker changes in November 2026, renamed in place like SQ to XYZ:
+	// Marsh McLennan now trades as MRSH and Fiserv moved to the Nasdaq as
+	// FISV. Twelve Data still answered to the old symbols, days late, so the
+	// backfill fetches each history again to fill the missing days.
+	{"rename-mmc-mrsh", `UPDATE stocks SET symbol = 'MRSH', history_fetched_at = NULL WHERE symbol = 'MMC' AND market = 'sp500'
+		AND NOT EXISTS (SELECT 1 FROM stocks WHERE symbol = 'MRSH' AND market = 'sp500')`},
+	{"rename-fi-fisv", `UPDATE stocks SET symbol = 'FISV', history_fetched_at = NULL WHERE symbol = 'FI' AND market = 'sp500'
+		AND NOT EXISTS (SELECT 1 FROM stocks WHERE symbol = 'FISV' AND market = 'sp500')`},
+	// Kimberly-Clark bought Kenvue: its last trade was on 30 October 2026.
+	// Nobody held it or had an order in it. Hidden rather than deleted, so
+	// past trades still name it.
+	{"deactivate-kvue", "UPDATE stocks SET is_active = 0 WHERE symbol = 'KVUE' AND market = 'sp500'"},
 }
 
 // droppedColumns are columns taken out of schema.sql. Older databases still
