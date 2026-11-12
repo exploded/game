@@ -15,14 +15,7 @@
 
         <details class="faq-item" open>
             <summary>Claude or ChatGPT app</summary>
-            <p>Add The Investor Project as a connector, once. There's nothing to paste into the chat.</p>
-            <ol class="ai-steps">
-                <li><strong>Claude:</strong> Settings &rarr; Connectors &rarr; Add custom connector.</li>
-                <li><strong>ChatGPT:</strong> Settings &rarr; Apps &amp; Connectors &rarr; Create. ChatGPT may ask you to turn on developer mode first.</li>
-                <li>Paste <code>{{.Extra.MCPURL}}</code> as the address.</li>
-                <li>Sign in to The Investor Project when asked, and choose whether it can trade or only look.</li>
-            </ol>
-            <p>Connectors, and how they're named in settings, depend on your plan and change from time to time. Check Claude's or ChatGPT's help if the steps don't match.</p>
+            {{template "ai-connect-apps" .}}
         </details>
 
         <details class="faq-item">

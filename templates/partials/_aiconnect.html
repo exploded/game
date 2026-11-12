@@ -1,0 +1,35 @@
+{{/* How to add The Investor Project as a connector in Claude or ChatGPT.
+     Shared by /settings/api and /ai; needs .Extra.MCPURL. */}}
+{{define "ai-connect-apps"}}
+<p>Add The Investor Project as a connector, once. There's nothing to paste into the chat. You'll need this address:</p>
+<div class="copy-box"><pre id="mcp-url">{{.Extra.MCPURL}}</pre><button type="button" class="btn btn-sm" data-copy="mcp-url">Copy</button></div>
+
+<h3 class="ai-app">Claude</h3>
+<ol class="ai-steps">
+    <li>On claude.ai or in the Claude desktop app, open <strong>Settings</strong> &rarr; <strong>Customize</strong> &rarr; <strong>Connectors</strong>.</li>
+    <li>Select <strong>+ Add</strong>, then <strong>Add custom connector</strong>.</li>
+    <li>Name it <strong>The Investor Project</strong>, paste the address above as the URL, and select <strong>Continue</strong>.</li>
+    <li>Claude fills in the sign-in settings for you (<strong>Sign in now</strong> and <strong>Register automatically</strong>, each marked <strong>Detected</strong>). Leave them and the rest as they are, and select <strong>Add</strong>.</li>
+    <li>Claude then says &ldquo;You're not connected to The Investor Project yet.&rdquo; Select <strong>Connect</strong>. In the desktop app, your browser opens and asks &ldquo;Finish connecting a connector?&rdquo;: select <strong>Continue connecting</strong>.</li>
+    <li>Sign in to The Investor Project if you aren't already. On &ldquo;Connect Claude to The Investor Project?&rdquo;, choose <strong>See my portfolio</strong> (look only) or <strong>See my portfolio and trade</strong>, and select <strong>Allow</strong>.</li>
+    <li>You go back to Claude, which says &ldquo;Connected to The Investor Project.&rdquo; In the desktop app, your browser first asks &ldquo;Open Claude?&rdquo;: select <strong>Open Claude</strong>.</li>
+    <li>Start a new chat and ask &ldquo;What's in my Investor Project portfolio?&rdquo; A connector you add on the web works in Claude's phone app too.</li>
+</ol>
+
+<h3 class="ai-app">Stop Claude asking every time</h3>
+<p>Claude asks before it uses each tool the first time, such as Get portfolio or Get leaderboard. These prompts are Claude's own check, so The Investor Project can't turn them off for you. To stop them:</p>
+<ul class="ai-steps">
+    <li>When Claude asks, choose <strong>Always allow</strong>. It won't ask about that tool again.</li>
+    <li>Or allow them all at once: in <strong>Settings</strong> &rarr; <strong>Customize</strong> &rarr; <strong>Connectors</strong>, select <strong>The Investor Project</strong>. Under <strong>Tool permissions</strong>, open the menu beside <strong>Read-only tools</strong> and choose <strong>Always allow</strong>. You can also set each tool on its own with the tick (always allow), hand (needs approval) and no-entry (never) buttons beside it.</li>
+</ul>
+<p class="text-muted">The two <strong>Write/delete tools</strong>, Place order and Cancel order, are the only ones that change anything. You might leave them on <strong>Needs approval</strong>, so nothing trades without you seeing it first. Either way, Claude shows you each order before placing it unless you tell it to trade without asking.</p>
+
+<h3 class="ai-app">ChatGPT</h3>
+<ol class="ai-steps">
+    <li>Open <strong>Settings</strong> &rarr; <strong>Apps &amp; Connectors</strong> &rarr; <strong>Create</strong>. ChatGPT may ask you to turn on developer mode first.</li>
+    <li>Paste the address above. If it asks how to sign in, choose <strong>OAuth</strong>.</li>
+    <li>Sign in to The Investor Project when asked, and choose whether ChatGPT can trade or only look.</li>
+</ol>
+
+<p class="text-muted">Connectors, and how they're named in settings, depend on your plan and change from time to time. Check Claude's or ChatGPT's help if the steps don't match.</p>
+{{end}}

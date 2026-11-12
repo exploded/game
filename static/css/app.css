@@ -2062,3 +2062,4 @@ span.lesson-thumb { display: block; overflow: hidden; }
 .intro-frame.playing .intro-play { display: none; }
 @media (scripting: none) { .intro-play { display: none; } }
 @media (max-width: 767px) { .intro-play { width: 60px; height: 60px; margin: -30px 0 0 -30px; } .intro-play::after { margin: -11px 0 0 -6px; border-width: 11px 0 11px 19px; } }
+.ai-app { font-size: 1rem; margin: 18px 0 6px; }

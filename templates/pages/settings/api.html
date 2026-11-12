@@ -30,14 +30,7 @@
 
 <div class="settings-card">
     <h2>Claude or ChatGPT app</h2>
-    <p>Nothing to paste into the chat. Add The Investor Project as a connector once:</p>
-    <ol class="ai-steps">
-        <li><strong>Claude:</strong> Settings &rarr; Connectors &rarr; Add custom connector.</li>
-        <li><strong>ChatGPT:</strong> Settings &rarr; Apps &amp; Connectors &rarr; Create (developer mode).</li>
-        <li>Paste this address, then sign in to The Investor Project when asked:</li>
-    </ol>
-    <div class="copy-box"><pre id="mcp-url">{{.Extra.MCPURL}}</pre><button type="button" class="btn btn-sm" data-copy="mcp-url">Copy</button></div>
-    <p class="text-muted">Then ask it things like &ldquo;What's in my Investor Project portfolio?&rdquo; or &ldquo;Buy 20 Nvidia&rdquo;. It shows you each order before placing it.</p>
+    {{template "ai-connect-apps" .}}
 </div>
 
 <div class="settings-card">
