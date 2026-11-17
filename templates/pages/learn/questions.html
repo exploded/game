@@ -10,7 +10,7 @@
     <form method="POST" action="/learn/questions">
         <div class="form-group">
             <label for="title">Your question</label>
-            <input type="text" id="title" name="title" value="{{index $f "Title"}}" maxlength="150" required placeholder="For example: should I salary sacrifice into super?">
+            <input type="text" id="title" name="title" value="{{index $f "Title"}}" maxlength="150" required placeholder="For example: how does salary sacrificing into super work?">
             {{with index .Errors "title"}}<p class="form-error">{{.}}</p>{{end}}
         </div>
         <div class="form-group">
@@ -25,6 +25,7 @@
                 {{range index .Extra "Topics"}}<option value="{{.Slug}}"{{if eq .Slug (index $f "Topic")}} selected{{end}}>{{.Name}}</option>{{end}}
             </select>
         </div>
+        <p class="text-muted" style="font-size:0.875rem;margin-bottom:12px">Every member sees your question and display name, and Rob may read it out on a public live stream or video. Keep personal details, such as your income, balances, or age, out of it. Rob&rsquo;s answers are general and can&rsquo;t take your own circumstances into account.</p>
         <button type="submit" class="btn btn-primary">Ask</button>
     </form>
 </div>

@@ -411,9 +411,16 @@ Rob's answers to the open questions:
 
 ## Things still to decide or do
 
-- **Rob to check the Terms change**: on 17 November 2026 the paragraph
-  letting players' own AI use their account came out of section 10, with AI
-  trading, and a new line forbids using bots or scripts to trade.
+- **Legal review of the 17 November 2026 legal pages**: after Rob's
+  changes, the Terms, Privacy Policy, Help and About were reworded and sent
+  for legal review. Terms: section 4 now says Learn is general in nature
+  only and not personal advice, and that the game's stocks and lists aren't
+  recommendations; new section 10 (What You Post) lets Rob read out
+  questions with display names; Acceptable Use (now 11) forbids bots and
+  scripts; section 17 promises notice of significant changes. Privacy:
+  lists what other players see, server logs, hosting and backups, Vimeo,
+  overseas services, the AI chat check and an OAIC complaint route. Footers
+  say "Nothing here is personal financial advice".
 
 - **Rob to check the Terms change**: section 7 says again that dividends are
   credited to players (from 2 November 2026, when the game started paying
