@@ -118,7 +118,7 @@ func TestLearnPagesRender(t *testing.T) {
 		{"", "/learn/v/1?t=65", []string{"embed/a?rel=0&amp;start=65"}},
 		{"", "/learn/live", []string{"Thursday Q&amp;A", "Add to calendar", "Last week"}},
 		{"2", "/learn/live", []string{"Remind me"}},
-		{"", "/learn/live/1", []string{"Thursday Q&amp;A", "Is super worth it?", `href="/login?next=%2Flearn%2Flive%2F1"`}},
+		{"2", "/learn/live/1", []string{"Thursday Q&amp;A", "Is super worth it?", `action="/learn/questions/1/vote"`}},
 		{"1", "/learn/live/2", []string{"End stream", "Answered", `hx-trigger="every 20s"`}},
 		{"", "/learn/live/3", []string{"Recorded"}},
 		{"", "/learn/questions?topic=super", []string{"Is super worth it?", "Superannuation"}},
@@ -127,7 +127,7 @@ func TestLearnPagesRender(t *testing.T) {
 		{"1", "/admin/learn", []string{"YouTube is off", "Salary sacrifice explained"}},
 		{"1", "/admin/learn/videos/1", []string{"Superannuation", "Pin to"}},
 		{"1", "/admin/learn/topics", []string{"Superannuation", "Add a topic"}},
-		{"1", "/admin/learn/live", []string{"TikTok live", "live now", `data-prefill-by="platform"`, "consortiumprivatewealth/live/", "TikTok live checks", "Today: 2 checks, 1 found Rob live, 1 failed", "1 refused by TikTok", "error (403)", `Started the booked stream. <a href="/learn/live/2">Stream</a>`, "@rob_goudie (booked)"}},
+		{"1", "/admin/learn/live", []string{"TikTok live", "live now", `data-prefill-by="platform"`, "@ConsortiumPW/live", "TikTok live checks", "Today: 2 checks, 1 found Rob live, 1 failed", "1 refused by TikTok", "error (403)", `Started the booked stream. <a href="/learn/live/2">Stream</a>`, "@rob_goudie (booked)"}},
 	} {
 		w := as(srv, tc.user, "GET", tc.path, nil, false)
 		if w.Code != http.StatusOK {
@@ -163,17 +163,14 @@ func TestSitemapAndRobots(t *testing.T) {
 	}
 	for _, s := range []string{
 		"<loc>https://site.example/login</loc>",
-		"<loc>https://site.example/ai</loc>",
-		"<loc>https://site.example/learn/topics/super</loc>",
-		"<loc>https://site.example/learn/v/1</loc><lastmod>2026-10-01</lastmod>",
-		"<loc>https://site.example/learn/v/2</loc>",
+		"<loc>https://site.example/terms</loc>",
 	} {
 		if !strings.Contains(body, s) {
 			t.Errorf("sitemap has no %s\n%s", s, body)
 		}
 	}
-	if strings.Contains(body, "/learn/questions/1") {
-		t.Error("the sitemap lists an unanswered question")
+	if strings.Contains(body, "/learn") {
+		t.Error("the sitemap lists Learn, which needs an account")
 	}
 
 	w = as(srv, "", "GET", "/robots.txt", nil, false)

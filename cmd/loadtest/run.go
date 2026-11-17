@@ -29,7 +29,7 @@ type page struct {
 	path   func(p *Players, r *mrand.Rand) string
 }
 
-var chips = []string{"picks", "all", "mag7", "tech", "up", "down", "big", "active", "intl", "crypto", "popular", "watch"}
+var chips = []string{"all", "mag7", "tech", "up", "down", "big", "active", "intl", "popular", "watch"}
 
 var pages = []page{
 	{name: "dashboard", weight: 10, path: func(p *Players, r *mrand.Rand) string { return "/dashboard" }},

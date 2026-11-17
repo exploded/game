@@ -44,10 +44,9 @@ func NewThrottle(limit, backlog int, wait, deadline time.Duration) *Throttle {
 
 // throttleExempt are paths the cap leaves alone: static files are cheap and
 // cached, /health is the uptime check, /live/banner is answered from memory
-// (every open tab asks once a minute), and /mcp holds connections open for
-// minutes (an AI app's listen stream) and has its own per-user limit.
+// (every open tab asks once a minute).
 func throttleExempt(path string) bool {
-	return strings.HasPrefix(path, "/static/") || path == "/favicon.ico" || path == "/health" || path == "/live/banner" || path == "/mcp"
+	return strings.HasPrefix(path, "/static/") || path == "/favicon.ico" || path == "/health" || path == "/live/banner"
 }
 
 // Middleware applies the cap.

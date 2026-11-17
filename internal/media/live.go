@@ -39,10 +39,6 @@ func PlatformName(p string) string {
 		return "YouTube"
 	case "tiktok":
 		return "TikTok"
-	case "facebook":
-		return "Facebook"
-	case "instagram":
-		return "Instagram"
 	case "x":
 		return "X"
 	}

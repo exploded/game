@@ -38,7 +38,7 @@ func (h *Handler) CoursesPage(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, "list courses", err)
 		return
 	}
-	h.render(w, r, "courses/list", "", learnPage(r, "courses", PageData{Title: "Courses", Items: courses}))
+	h.render(w, r, "courses/list", "", learnPage("courses", PageData{Title: "Courses", Items: courses}))
 }
 
 // OldCourseURL sends the courses' old addresses (/courses/...) to their
@@ -96,7 +96,7 @@ func (h *Handler) CoursePage(w http.ResponseWriter, r *http.Request) {
 	if len(lessons) > 0 {
 		extra["Pct"] = done * 100 / len(lessons)
 	}
-	h.render(w, r, "courses/course", "", learnPage(r, "courses", PageData{
+	h.render(w, r, "courses/course", "", learnPage("courses", PageData{
 		Title: c.Title, Item: c, Items: lessons, Extra: extra,
 	}))
 }
@@ -120,7 +120,7 @@ func (h *Handler) LessonPage(w http.ResponseWriter, r *http.Request) {
 	if i+1 < len(lessons) {
 		extra["Next"] = lessons[i+1]
 	}
-	h.render(w, r, "courses/lesson", "", learnPage(r, "courses", PageData{
+	h.render(w, r, "courses/lesson", "", learnPage("courses", PageData{
 		Title: lessons[i].Title, Item: lessons[i], Items: lessons, Extra: extra,
 	}))
 }

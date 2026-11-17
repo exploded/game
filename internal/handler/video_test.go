@@ -20,11 +20,9 @@ func TestEmbedURL(t *testing.T) {
 		"https://youtu.be/":                                               "",
 		"https://www.tiktok.com/@rob_goudie/video/7301234567890123456":    "https://www.tiktok.com/player/v1/7301234567890123456?rel=0&description=1",
 		"https://www.tiktok.com/@rob_goudie/video/notanumber":             "",
-		"https://www.facebook.com/consortiumpw/videos/123456789/":         "https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Fwatch%2F%3Fv%3D123456789&show_text=false",
-		"https://www.facebook.com/watch/?v=123456789":                     "https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Fwatch%2F%3Fv%3D123456789&show_text=false",
-		"https://www.instagram.com/reel/C1a2B3c4D5e/":                     "https://www.instagram.com/reel/C1a2B3c4D5e/embed",
-		"https://www.instagram.com/p/C1a2B3c4D5e/?igsh=x":                 "https://www.instagram.com/p/C1a2B3c4D5e/embed",
-		"https://www.instagram.com/consortiumprivatewealth/":              "",
+		// Facebook and Instagram were dropped on 17 November 2026.
+		"https://www.facebook.com/consortiumpw/videos/123456789/": "",
+		"https://www.instagram.com/reel/C1a2B3c4D5e/":             "",
 	} {
 		got, ok := embedURL(in)
 		if got != want || ok != (want != "") {
@@ -38,7 +36,6 @@ func TestParseVideoVertical(t *testing.T) {
 		"https://youtube.com/shorts/dQw4w9WgXcQ":                       true,
 		"https://www.youtube.com/watch?v=dQw4w9WgXcQ":                  false,
 		"https://www.tiktok.com/@rob_goudie/video/7301234567890123456": true,
-		"https://www.instagram.com/reel/C1a2B3c4D5e/":                  true,
 	} {
 		v, ok := parseVideo(in)
 		if !ok || v.Vertical != want {

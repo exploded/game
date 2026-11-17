@@ -44,7 +44,7 @@
 {{define "lbrow"}}{{$p := .Row}}{{$g := .Game}}
 <tr{{if .Mine}} class="highlight-row"{{end}}>
     <td>{{$p.Rank}}</td>
-    <td>{{$p.UserName}}{{if $p.UsesAi}} <a href="/ai" class="ai-badge" title="Trades through an AI assistant: find out how" aria-label="Trades through an AI assistant: find out how">&#129302;</a>{{end}}</td>
+    <td>{{$p.UserName}}</td>
     <td class="num">{{cents $p.PortfolioValue}}</td>
     <td class="num hide-sm {{if gt $p.PortfolioValue $g.StartingBalance}}text-green{{else if lt $p.PortfolioValue $g.StartingBalance}}text-red{{end}}">
         {{cents (subtract $p.PortfolioValue $g.StartingBalance)}}

@@ -219,38 +219,34 @@ func TestCPWCoursesImported(t *testing.T) {
 	}
 }
 
-// TestCoursesArePublic checks a visitor can browse a published course and
-// its lessons but gets a sign-in button instead of the player, and that the
-// old /courses addresses move to /learn/courses.
-func TestCoursesArePublic(t *testing.T) {
+// TestCoursePages checks a player can browse a published course and play its
+// lessons, can't open a draft, and that the old /courses addresses move to
+// /learn/courses.
+func TestCoursePages(t *testing.T) {
 	srv, _ := courseServer(t)
 	as(srv, "1", "POST", "/admin/courses", url.Values{"title": {"Shares 101"}}, false)
 	as(srv, "1", "POST", "/admin/courses/1", url.Values{"title": {"Shares 101"}, "art": {"market"},
 		"summary": {"Start here.\n\nIn this course, you'll learn about:\n\n☑️ What a share is\n☑️How prices move"}}, false)
 	as(srv, "1", "POST", "/admin/courses/1/lessons", url.Values{"title": {"What is a share?"}, "video_url": {"https://vimeo.com/76979871/abc123"}, "minutes": {"4"}}, false)
-	if w := as(srv, "", "GET", "/learn/courses/shares-101", nil, false); w.Code != http.StatusNotFound {
-		t.Errorf("a visitor opening a draft: %d, want 404", w.Code)
+	if w := as(srv, "2", "GET", "/learn/courses/shares-101", nil, false); w.Code != http.StatusNotFound {
+		t.Errorf("a player opening a draft: %d, want 404", w.Code)
 	}
 	as(srv, "1", "POST", "/admin/courses/1/publish", url.Values{"publish": {"1"}}, false)
 
-	list := as(srv, "", "GET", "/learn/courses", nil, false).Body.String()
-	for _, want := range []string{"Shares 101", "course-tile-market", "1 lesson", "Sign in free"} {
+	list := as(srv, "2", "GET", "/learn/courses", nil, false).Body.String()
+	for _, want := range []string{"Shares 101", "course-tile-market", "1 lesson"} {
 		if !strings.Contains(list, want) {
-			t.Errorf("courses page for a visitor: no %q", want)
+			t.Errorf("courses page: no %q", want)
 		}
 	}
-	course := as(srv, "", "GET", "/learn/courses/shares-101", nil, false).Body.String()
-	for _, want := range []string{"Start here.", "What you'll learn", "<li>What a share is</li>", "<li>How prices move</li>", "Sign in free to watch", "What is a share?"} {
+	course := as(srv, "2", "GET", "/learn/courses/shares-101", nil, false).Body.String()
+	for _, want := range []string{"Start here.", "What you'll learn", "<li>What a share is</li>", "<li>How prices move</li>", "Start the course", "What is a share?"} {
 		if !strings.Contains(course, want) {
-			t.Errorf("course page for a visitor: no %q", want)
+			t.Errorf("course page: no %q", want)
 		}
 	}
 	if strings.Contains(course, "learn about:") {
 		t.Error("course page repeats the list's lead-in line")
-	}
-	lesson := as(srv, "", "GET", "/learn/courses/shares-101/1", nil, false).Body.String()
-	if strings.Contains(lesson, "data-play") || strings.Contains(lesson, "player.vimeo.com") || !strings.Contains(lesson, "Sign in to watch") {
-		t.Errorf("lesson page for a visitor shows the player or no sign-in:\n%s", lesson)
 	}
 	if lesson := as(srv, "2", "GET", "/learn/courses/shares-101/1", nil, false).Body.String(); !strings.Contains(lesson, `data-play="https://player.vimeo.com/video/76979871?h=abc123"`) {
 		t.Errorf("lesson page for a player has no player")

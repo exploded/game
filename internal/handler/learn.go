@@ -17,8 +17,8 @@ import (
 	"github.com/exploded/game/internal/media"
 )
 
-// Learn is the public hub for Rob's videos, live streams and questions.
-// Anyone can browse; asking, voting and reminders need an account.
+// Learn is the hub for Rob's videos, live streams and questions. Since 17
+// November 2026 every Learn page needs an account (Rob's call).
 
 // social is one of Rob's accounts, linked from the front of Learn.
 type social struct{ Name, URL, Class string }
@@ -41,15 +41,13 @@ func learnDisclaimer() string {
 		"constitute personal financial advice."
 }
 
-// learnPage fills in what every Learn page shows: the tab, the warning, and
-// a sign-in link that comes back to this page.
-func learnPage(r *http.Request, tab string, d PageData) PageData {
+// learnPage fills in what every Learn page shows: the tab and the warning.
+func learnPage(tab string, d PageData) PageData {
 	if d.Extra == nil {
 		d.Extra = map[string]any{}
 	}
 	d.Extra["Tab"] = tab
 	d.Extra["Disclaimer"] = learnDisclaimer()
-	d.Extra["SignIn"] = "/login?next=" + url.QueryEscape(r.URL.RequestURI())
 	return d
 }
 
@@ -96,7 +94,7 @@ func (h *Handler) LearnHome(w http.ResponseWriter, r *http.Request) {
 	if upcoming, _ := h.q.ListUpcomingLive(ctx); len(upcoming) > 0 {
 		extra["Next"] = upcoming[0]
 	}
-	h.render(w, r, "learn/home", "", learnPage(r, "", PageData{Title: "Learn with Rob", Extra: extra}))
+	h.render(w, r, "learn/home", "", learnPage("", PageData{Title: "Learn with Rob", Extra: extra}))
 }
 
 // LearnVideos is the Videos tab: search, topics, then Rob's picks, the
@@ -122,7 +120,7 @@ func (h *Handler) LearnVideos(w http.ResponseWriter, r *http.Request) {
 		})
 		extra["Query"] = q
 		extra["Results"] = results
-		h.render(w, r, "learn/videos", "", learnPage(r, "videos", PageData{Title: "Search: " + q, Extra: extra}))
+		h.render(w, r, "learn/videos", "", learnPage("videos", PageData{Title: "Search: " + q, Extra: extra}))
 		return
 	}
 
@@ -136,7 +134,7 @@ func (h *Handler) LearnVideos(w http.ResponseWriter, r *http.Request) {
 	extra["Latest"] = latest
 	extra["Shorts"] = shorts
 	extra["Featured"] = featured
-	h.render(w, r, "learn/videos", "", learnPage(r, "videos", PageData{Title: "Rob's videos", Extra: extra}))
+	h.render(w, r, "learn/videos", "", learnPage("videos", PageData{Title: "Rob's videos", Extra: extra}))
 }
 
 // learnPerPage is how many videos a topic page shows at a time.
@@ -175,7 +173,7 @@ func (h *Handler) LearnTopic(w http.ResponseWriter, r *http.Request) {
 	if int64(page*learnPerPage) < total {
 		extra["Next"] = page + 1
 	}
-	h.render(w, r, "learn/topic", "", learnPage(r, "videos", PageData{Title: t.Name, Items: videos, Extra: extra}))
+	h.render(w, r, "learn/topic", "", learnPage("videos", PageData{Title: t.Name, Items: videos, Extra: extra}))
 }
 
 // learnVideo loads the {vid} video. Hidden videos are for admins only.
@@ -212,7 +210,7 @@ func (h *Handler) LearnVideo(w http.ResponseWriter, r *http.Request) {
 		stocks, _ = h.q.ListVideoStocks(ctx, v.ID)
 	}
 	start, _ := strconv.ParseInt(r.URL.Query().Get("t"), 10, 64)
-	h.render(w, r, "learn/video", "", learnPage(r, "videos", PageData{
+	h.render(w, r, "learn/video", "", learnPage("videos", PageData{
 		Title: v.Title,
 		Item:  v,
 		Extra: map[string]any{
@@ -279,7 +277,7 @@ func (h *Handler) LearnLive(w http.ResponseWriter, r *http.Request) {
 			unrecorded = append(unrecorded, e)
 		}
 	}
-	h.render(w, r, "learn/live", "", learnPage(r, "live", PageData{
+	h.render(w, r, "learn/live", "", learnPage("live", PageData{
 		Title: "Live with Rob",
 		Extra: map[string]any{
 			"Now": now, "Upcoming": upcoming, "Recorded": recorded, "Unrecorded": unrecorded,
@@ -347,7 +345,7 @@ func (h *Handler) LearnLiveEvent(w http.ResponseWriter, r *http.Request) {
 			extra["Video"] = v
 		}
 	}
-	h.render(w, r, "learn/event", "", learnPage(r, "live", PageData{Title: streamTitle(e.Title, e.Status), Item: e, Extra: extra}))
+	h.render(w, r, "learn/event", "", learnPage("live", PageData{Title: streamTitle(e.Title, e.Status), Item: e, Extra: extra}))
 }
 
 // LearnLiveQueue is the queue on its own, which the stream page polls.
@@ -357,7 +355,7 @@ func (h *Handler) LearnLiveQueue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	queue, _ := h.q.ListLiveQueue(r.Context(), viewerID(r))
-	h.render(w, r, "learn/event", "queue", learnPage(r, "live", PageData{
+	h.render(w, r, "learn/event", "queue", learnPage("live", PageData{
 		User: auth.UserFromContext(r.Context()), Item: e, Extra: map[string]any{"Queue": queue},
 	}))
 }

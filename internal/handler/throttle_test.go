@@ -56,7 +56,7 @@ func TestThrottleRefusesOverTheCap(t *testing.T) {
 	}
 
 	// Static files, the uptime check and AI listen streams aren't capped.
-	for _, path := range []string{"/static/css/app.css", "/favicon.ico", "/health", "/mcp"} {
+	for _, path := range []string{"/static/css/app.css", "/favicon.ico", "/health", "/live/banner"} {
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, httptest.NewRequest("GET", path, nil))
 		if w.Code != http.StatusOK {

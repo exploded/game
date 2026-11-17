@@ -6,7 +6,7 @@
 {{with .Item}}
 <p style="margin-bottom:12px"><a href="/learn/questions">&larr; All questions</a></p>
 <div class="settings-card q-card">
-    {{template "vote" (dict "Q" . "User" $.User "SignIn" (index $.Extra "SignIn"))}}
+    {{template "vote" (dict "Q" .)}}
     <div style="min-width:0">
         <h1 class="q-h1">{{.Title}}</h1>
         <p class="text-muted q-meta" style="margin-bottom:12px">

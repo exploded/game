@@ -39,9 +39,6 @@ Wealth. It has two halves:
 - Shares in the S&P 500 (the 500 biggest US companies).
 - Australian companies listed in the US, and big overseas companies listed in
   the US, such as ASML, TSMC, Novo Nordisk and Shopify.
-- Two US Bitcoin shares outside the S&P 500: the iShares Bitcoin Trust ETF
-  (IBIT), which follows the Bitcoin price, and Strategy (MSTR), which holds
-  Bitcoin. Crypto itself isn't offered.
 - SpaceX (SPCX), which listed on the Nasdaq in June 2026 and isn't in the
   S&P 500 yet.
 - Australian (ASX) shares aren't offered until a data licence is in place.
@@ -58,7 +55,7 @@ at the bottom of the screen; on a computer they're links in the bar at the top.
 The bar at the top also has the logo (back to Home), the player's cash on a
 game's pages (tap it to open the game's home page), a bell for notifications with the unread count, and the player's
 picture, which opens a menu: Orders, My history, Achievements, Game rules, Past
-and upcoming games, Settings, Connect your AI, Help and Sign out. (Before 3
+and upcoming games, Settings, Help and Sign out. (Before 3
 November 2026 the site had two bars of links and a separate game bar, and the
 phone's icons showed only on game pages.)
 
@@ -112,7 +109,10 @@ When a player opens the game (the Game Home tile) they see:
 - What their portfolio is worth, how much it moved today and since the game
   started, their place on the leaderboard and how far they are behind the
   player above, and a chart of their portfolio's value across the month, all in
-  one card.
+  one card. Once they're on the leaderboard, **Share my result** opens the
+  phone's share sheet (or copies the text on a computer) with their place and
+  their percentage return, "with $1,000,000 of play money", and a link to the
+  site. It never names what they hold.
 - **Waiting orders**, when they have orders that haven't filled yet.
 - Each share they hold, with today's move and the overall gain or loss, and a
   **Close position** button to sell it all in one tap.
@@ -120,7 +120,7 @@ When a player opens the game (the Game Home tile) they see:
 - **Invite a friend** (see [Inviting friends](#inviting-friends)).
 
 A player who hasn't bought anything yet sees three steps explaining the game,
-then the first five of Rob's Picks to tap straight into, and a search box.
+then the five biggest companies to tap straight into, and a search box.
 
 When a game is over, the page shows the final values from the end of the game.
 
@@ -131,11 +131,10 @@ move and a small 30-day chart. Quick filters pick a list:
 
 - **Watchlist** (shares the player has starred; it carries over from one
   month's game to the next)
-- **Rob's Picks** (the default, chosen by Rob)
+- **Biggest** (the default: the 50 biggest companies)
 - **Mag 7** (Apple, Microsoft, Amazon, Nvidia, Alphabet, Meta and Tesla)
-- **Tech**, **Gainers**, **Losers**, **Biggest** and **Most traded**
+- **Tech**, **Gainers**, **Losers** and **Most traded**
 - **Aussie** and **International** (companies from Australia and overseas)
-- **Crypto** (Bitcoin funds and crypto companies such as Coinbase)
 - **Players' favourites** (most held by players in this game)
 - **All A–Z**
 
@@ -257,7 +256,9 @@ they can check them (see Admin tools). Admins can also delete any message.
 
 ## Learn
 
-Learn is open to everyone, signed in or not. Its front page (`/learn`) has a
+Learn needs a free account (since 17 November 2026; until then anyone could
+read it). A signed-out visitor who follows a Learn link signs in first and
+lands on the page they wanted. Its front page (`/learn`) has a
 headline over an open-book drawing, then Rob's courses as picture cards, the
 top questions, the video topics as tiles with icons, and the latest videos. It
 has four tabs, which also show on the course pages:
@@ -268,19 +269,19 @@ has four tabs, which also show on the course pages:
   page shows the most-voted questions.
 - **Videos**: Rob's YouTube videos (and TikTok, once TikTok approves the
   connection), sorted into topics such as retirement, superannuation and buying
-  a home. Visitors can search, browse by topic, and watch without leaving the
-  site. A video lists the shares Rob mentions in it ("Mentioned in this
+  a home. Members can search, browse by topic, and watch without leaving the
+  site. Videos come from YouTube and TikTok only (Facebook and Instagram were
+  dropped on 17 November 2026). A video lists the shares Rob mentions in it ("Mentioned in this
   video"); each opens that share in this month's game, after signing in.
   Shares Rob talks about link back to his videos.
 - **Live**: Rob's upcoming and current live streams. A "Rob is live" banner
-  shows across the whole site while he's on air. Visitors can add a stream to
-  their calendar, and members can ask for a reminder email.
+  shows across the whole site while he's on air. Members can add a stream to
+  their calendar or ask for a reminder email.
 - **Courses**: Rob's ten video courses recorded in February 2026 (estate
   planning, a first home deposit, paying off a home loan, investing for
   children, investor psychology, shares or property, super, common mistakes,
   compounding and share market basics), plus How to Invest for the Long Term,
-  his ten-part investment presentation. Anyone can see what's in a course;
-  watching a lesson needs a free account. Members tick off lessons as they go,
+  his ten-part investment presentation. Members tick off lessons as they go,
   see their progress, and carry on where they left off. The videos stay in
   Consortium's Vimeo account and play on the site.
 
@@ -310,19 +311,6 @@ which emails they get, download a copy of all their data, and delete their
 account. **Notifications**, under the bell at the top, list everything that
 happened to them in the games; the bell shows how many are unread.
 
-**Connect your AI** (`/settings/api`, linked from Settings) lets a player's
-own AI check their portfolio and trade for them in this month's game. Claude
-and ChatGPT add the site as a connector at `/mcp` and the player signs in on
-a consent page, choosing read only or trading. Agents and scripts (Claude
-Code, Codex, a cron job) use a personal API key with the JSON API at
-`/api/v1`; the page shows the key once, with a prompt to paste that points
-the agent at `/agents.md`. Players can revoke keys and disconnect apps there.
-The site never runs an AI to choose trades: the player's AI does. Trades made
-this way are marked "via AI" in History, and players who use it get a robot
-beside their name on the leaderboard (and on their trades in Activity), which
-links to `/ai`. `/ai` explains it all, with example prompts; Help and each
-game's rules link to it too. Admins can turn AI trading off for a game.
-
 The footer links to About, Help, Contact, Privacy and Terms. The Contact form
 needs an account, because everything sent through it while it was open to the
 public was spam.
@@ -335,7 +323,6 @@ Admins (Rob and the site team) get an **Admin** menu with:
   currency, fee per trade, currency fee (default 0.5%), referral bonus, interest rate, and whether limit
   orders, short selling and after-hours trading are allowed. A game can also be
   cancelled.
-- **Picks**: choose and order Rob's Picks, with a note on each.
 - **Users**: everyone who has signed up, with their games, trades and last
   visit. Admins can make someone an admin, or block them (a blocked person
   can't sign in, gets no email, and disappears from leaderboards and the lobby).
@@ -343,7 +330,7 @@ Admins (Rob and the site team) get an **Admin** menu with:
 - **Email**: write a newsletter, send a test to yourself, then send it to
   everyone who opted in.
 - **Courses**: build, edit, publish and remove courses and lessons.
-- **Learn**: sync videos, add a Facebook or Instagram video by pasting its link,
+- **Learn**: sync videos, add a YouTube or TikTok video by pasting its link,
   edit topics, hide or pin videos, turn off a video's share links, schedule
   live streams, and connect TikTok.
 - **Messages**: read and delete Contact form messages.
@@ -409,11 +396,24 @@ folded into others:
   share type, exchange, revenue and cash per share, float, shares sold short
   and the last split were dropped.
 
+## What changed on 17 November 2026
+
+Rob's answers to the open questions:
+
+- **Removed**: Rob's Picks (the Stocks page now opens on Biggest), players'
+  own AI trading (Connect your AI, the API, the Claude and ChatGPT connector,
+  `/ai`, `/agents.md` and the leaderboard's robot) and the two Bitcoin shares
+  with the Crypto chip. Coinbase, Robinhood and Block stay, as S&P 500
+  companies; so does IREN, as an Australian company.
+- **Learn** needs a free account, and Facebook and Instagram videos are gone.
+- **Added**: Share my result on the game's home page.
+- **Finder**: Rob is happy for the game to be listed.
+
 ## Things still to decide or do
 
-- **Rob, and his lawyer, to check AI trading**: the new paragraph in Terms
-  section 10, the wording on `/ai`, and whether Consortium Private Wealth is
-  comfortable with players' own AI trading in the game at all.
+- **Rob to check the Terms change**: on 17 November 2026 the paragraph
+  letting players' own AI use their account came out of section 10, with AI
+  trading, and a new line forbids using bots or scripts to trade.
 
 - **Rob to check the Terms change**: section 7 says again that dividends are
   credited to players (from 2 November 2026, when the game started paying

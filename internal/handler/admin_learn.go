@@ -71,7 +71,7 @@ func (h *Handler) AdminLearnPaste(w http.ResponseWriter, r *http.Request) {
 	link := media.ExpandShortLink(r.Context(), r.FormValue("url"))
 	v, ok := parseVideo(link)
 	if !ok || v.Platform == "vimeo" || v.Platform == "bunny" {
-		setFlashCookie(w, "Paste a YouTube, TikTok, Facebook or Instagram video link.", "error")
+		setFlashCookie(w, "Paste a YouTube or TikTok video link.", "error")
 		http.Redirect(w, r, "/admin/learn", http.StatusSeeOther)
 		return
 	}
@@ -269,8 +269,8 @@ func (h *Handler) AdminLearnTopicDelete(w http.ResponseWriter, r *http.Request) 
 	http.Redirect(w, r, "/admin/learn/topics", http.StatusSeeOther)
 }
 
-// AdminLearnLive lists streams and adds one by hand (TikTok, Facebook and
-// Instagram have no schedule API; YouTube streams appear by themselves).
+// AdminLearnLive lists streams and adds one by hand (TikTok has no schedule
+// API; YouTube streams appear by themselves).
 func (h *Handler) AdminLearnLive(w http.ResponseWriter, r *http.Request) {
 	events, err := h.q.ListAllLiveEvents(r.Context())
 	if err != nil {
@@ -302,11 +302,9 @@ func (h *Handler) AdminLearnLive(w http.ResponseWriter, r *http.Request) {
 
 // liveLinks are Rob's live pages, for a platform with no stream added yet.
 var liveLinks = map[string]string{
-	"tiktok":    "https://www.tiktok.com/@rob_goudie/live",
-	"youtube":   "https://www.youtube.com/@ConsortiumPW/live",
-	"facebook":  "https://www.facebook.com/consortiumpw/live_videos",
-	"instagram": "https://www.instagram.com/consortiumprivatewealth/live/",
-	"x":         "https://x.com/consortiumpw",
+	"tiktok":  "https://www.tiktok.com/@rob_goudie/live",
+	"youtube": "https://www.youtube.com/@ConsortiumPW/live",
+	"x":       "https://x.com/consortiumpw",
 }
 
 // livePrefill is what choosing a platform fills the Add a stream form with:
@@ -356,7 +354,7 @@ func liveForm(r *http.Request) (platform, link, embed, title, description string
 		platform, embed = v.Platform, v.Embed
 	}
 	switch platform {
-	case "youtube", "tiktok", "facebook", "instagram", "x":
+	case "youtube", "tiktok", "x":
 	default:
 		msg = "Pick where the stream is."
 	}

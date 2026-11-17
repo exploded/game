@@ -110,13 +110,8 @@ var addedColumns = []struct{ table, column, ddl string }{
 	{"lobby_messages", "blocked_reason", "TEXT NOT NULL DEFAULT ''"},
 	{"users", "age_confirmed_at", "TEXT DEFAULT NULL"},
 	{"activity_feed", "stock_id", "INTEGER DEFAULT NULL REFERENCES stocks(id) ON DELETE SET NULL"},
-	{"games", "ai_trading", "INTEGER NOT NULL DEFAULT 1"},
-	{"transactions", "source", "TEXT NOT NULL DEFAULT ''"},
-	{"limit_orders", "source", "TEXT NOT NULL DEFAULT ''"},
-	{"activity_feed", "source", "TEXT NOT NULL DEFAULT ''"},
 	{"stock_news", "shown", "INTEGER NOT NULL DEFAULT 0"},
 	{"participants", "traded", "INTEGER NOT NULL DEFAULT 0"},
-	{"participants", "uses_ai", "INTEGER NOT NULL DEFAULT 0"},
 	{"courses", "art", "TEXT NOT NULL DEFAULT ''"},
 	{"courses", "vimeo_folder", "TEXT NOT NULL DEFAULT ''"},
 	{"courses", "vimeo_thumbs", "INTEGER NOT NULL DEFAULT 0"},
@@ -251,17 +246,6 @@ var onceMigrations = []struct{ name, stmt string }{
 	// Finnhub's analyst ratings. Nothing has filled the table since the move
 	// to Twelve Data. Dropped on 1 November 2026.
 	{"drop-stock-recommendations", "DROP TABLE IF EXISTS stock_recommendations"},
-	// The activity feed marks AI trades from 2 November 2026. Earlier ones
-	// take the source of the player's trade in the same stock and direction
-	// made within 5 seconds of them.
-	{"activity-feed-source", `UPDATE activity_feed SET source = COALESCE((
-			SELECT t.source FROM transactions t
-			JOIN participants p ON p.id = t.participant_id
-			WHERE p.game_id = activity_feed.game_id AND p.user_id = activity_feed.user_id
-				AND t.stock_id = activity_feed.stock_id AND t.type = activity_feed.action
-				AND abs(strftime('%s', t.created_at) - strftime('%s', activity_feed.created_at)) <= 5
-			LIMIT 1), '')
-		WHERE action IN ('buy', 'sell') AND stock_id IS NOT NULL`},
 	// News stored before 2 November 2026 wasn't filtered: shopping deals,
 	// filler and paywalled sites. Clear it so the next fetch refills it
 	// through the filter, which also needs one row per stock and URL.
@@ -287,16 +271,13 @@ var onceMigrations = []struct{ name, stmt string }{
 			AND EXISTS (SELECT 1 FROM tiktok_live_checks c WHERE c.event_id = live_events.id AND c.result = 'live')`},
 
 	// The leaderboard (docs/capacity.md). Until 6 November 2026 every view
-	// looked through each player's trades and orders to see who had traded
-	// and who used an AI: 130 ms at 10,000 players. participants.traded and
-	// uses_ai keep the answer, set by triggers in schema.sql from here on.
-	// This fills them in for the trades and orders already stored. The
-	// indexes aren't in schema.sql, which runs before addedColumns adds the
-	// columns.
+	// looked through each player's trades to see who had traded: 130 ms at
+	// 10,000 players. participants.traded keeps the answer, set by a trigger
+	// (sql/triggers.sql) from here on. This fills it in for the trades
+	// already stored. The indexes aren't in schema.sql, which runs before
+	// addedColumns adds the columns.
 	{"participants-traded-flags", `UPDATE participants SET
-			traded = EXISTS (SELECT 1 FROM transactions t WHERE t.participant_id = participants.id),
-			uses_ai = EXISTS (SELECT 1 FROM transactions t WHERE t.participant_id = participants.id AND t.source != '')
-				OR EXISTS (SELECT 1 FROM limit_orders o WHERE o.participant_id = participants.id AND o.source != '')`},
+			traded = EXISTS (SELECT 1 FROM transactions t WHERE t.participant_id = participants.id)`},
 	// A game's ranked players, best first, with user_id so the counts that
 	// leave out blocked players need only the index.
 	{"idx-participants-ranked", "CREATE INDEX IF NOT EXISTS idx_participants_ranked ON participants(game_id, traded, portfolio_value DESC, user_id)"},
@@ -317,6 +298,20 @@ var onceMigrations = []struct{ name, stmt string }{
 	// Nobody held it or had an order in it. Hidden rather than deleted, so
 	// past trades still name it.
 	{"deactivate-kvue", "UPDATE stocks SET is_active = 0 WHERE symbol = 'KVUE' AND market = 'sp500'"},
+	// Rob dropped the Bitcoin stocks on 17 November 2026. Nobody held IBIT
+	// or MSTR or had an order in them. Hidden rather than deleted, so past
+	// trades still name them.
+	{"deactivate-crypto", "UPDATE stocks SET is_active = 0 WHERE symbol IN ('IBIT', 'MSTR') AND market = 'sp500'"},
+	// Rob dropped Rob's Picks on 17 November 2026: a licensed adviser's
+	// list of stocks read as advice. The stocks page opens on Biggest.
+	{"drop-stock-picks", "DROP TABLE IF EXISTS stock_picks"},
+	// Rob dropped players' own AI trading (the API, MCP and OAuth) on 17
+	// November 2026. The tokens go with it.
+	{"drop-ai-tables", `DROP TABLE IF EXISTS api_tokens;
+		DROP TABLE IF EXISTS oauth_codes;
+		DROP TABLE IF EXISTS oauth_clients;
+		DROP TABLE IF EXISTS api_idempotency;
+		DROP TABLE IF EXISTS ai_order_days`},
 }
 
 // droppedColumns are columns taken out of schema.sql. Older databases still
@@ -342,9 +337,16 @@ var droppedColumns = []struct{ table, column string }{
 	{"games", "fractional_shares"},
 	// Google profile photos, from before email sign-in.
 	{"users", "picture_url"},
-	// Per-player AI order limits, set at /admin/users. Since 10 November
-	// 2026 every player's AI gets the same AIOrdersPerDay.
+	// Per-player AI order limits, set at /admin/users until 10 November 2026.
 	{"users", "ai_orders_per_day"},
+	// Players' own AI trading, dropped on 17 November 2026: the game
+	// setting, the mark on each trade, order and feed row, and the
+	// leaderboard's robot.
+	{"games", "ai_trading"},
+	{"transactions", "source"},
+	{"limit_orders", "source"},
+	{"activity_feed", "source"},
+	{"participants", "uses_ai"},
 	// Company dividend figures from Twelve Data. Players get no dividends,
 	// so the stock page doesn't show them.
 	{"stock_profiles", "forward_div_rate"},
@@ -362,7 +364,21 @@ var droppedColumns = []struct{ table, column string }{
 	{"stock_profiles", "ex_dividend_date"},
 }
 
+// droppedTriggers are triggers taken out of sql/triggers.sql. They go
+// before droppedColumns: SQLite won't drop a column a trigger names.
+var droppedTriggers = []string{
+	// They kept participants.uses_ai, dropped on 17 November 2026.
+	// participants_first_trade replaces the first.
+	"participants_traded",
+	"participants_ai_order",
+}
+
 func runMigrations(db *sql.DB) error {
+	for _, t := range droppedTriggers {
+		if _, err := db.Exec("DROP TRIGGER IF EXISTS " + t); err != nil {
+			return fmt.Errorf("dropping trigger %s: %w", t, err)
+		}
+	}
 	for _, c := range droppedColumns {
 		var n int
 		if err := db.QueryRow(
@@ -434,11 +450,6 @@ func runMigrations(db *sql.DB) error {
 // SeedStocks inserts, so they run after it, from RunSeedMigrations. Tests that
 // don't call it start without them.
 var seedMigrations = []struct{ name, stmt string }{
-	// Rob's first picks, in his order. Admins change them at /admin/picks.
-	{"seed-rob-picks", `INSERT OR IGNORE INTO stock_picks (stock_id, sort_order)
-		SELECT id, CASE symbol WHEN 'V' THEN 1 WHEN 'MSFT' THEN 2 WHEN 'ASML' THEN 3
-			WHEN 'META' THEN 4 WHEN 'NVDA' THEN 5 ELSE 6 END
-		FROM stocks WHERE market = 'sp500' AND symbol IN ('V', 'MSFT', 'ASML', 'META', 'NVDA', 'GOOG')`},
 	// Rob's courses from the CPW site (courses_cpw.go).
 	{"import-cpw-courses", importCPWCourses},
 	{"import-cpw-lessons", importCPWLessons},

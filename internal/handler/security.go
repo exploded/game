@@ -39,10 +39,10 @@ func (sw *statusWriter) WriteHeader(code int) {
 	sw.ResponseWriter.WriteHeader(code)
 }
 
-// Flush passes flushes through, so a stream (MCP's subscriptions/listen)
-// reaches the client as it's written. Without it, chi's Compress finds no
-// Flusher and the stream sits in the server's buffer: Claude's connector got
-// nothing back and retried every 30 seconds (4 November 2026).
+// Flush passes flushes through, so a streamed response reaches the client
+// as it's written. Without it, chi's Compress finds no Flusher and the
+// stream sits in the server's buffer: the MCP connector (removed 17 November
+// 2026) got nothing back and retried every 30 seconds.
 func (sw *statusWriter) Flush() {
 	if f, ok := sw.ResponseWriter.(http.Flusher); ok {
 		f.Flush()

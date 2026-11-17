@@ -28,8 +28,7 @@ import (
 const (
 	traderShare     = 0.6  // players with holdings; the rest sit on their cash
 	limitOrderShare = 0.15 // traders with open limit orders
-	aiShare         = 0.05 // traders whose trades came through their AI (/mcp)
-	popularShare    = 0.5  // holdings picked from Rob's Picks and the Mag 7
+	popularShare    = 0.5  // holdings picked from the Mag 7
 	lobbyMessages   = 2000
 )
 
@@ -183,10 +182,6 @@ func seedPlayers(ctx context.Context, rawDB *sql.DB, loc *time.Location, now tim
 
 			cash, value := g.StartingBalance, g.StartingBalance
 			if trader {
-				source := ""
-				if r.Float64() < aiShare {
-					source = "mcp"
-				}
 				// Spend 60–95% of the cash across 5–15 stocks.
 				picked := pickStocks(r, stocks, popular, 5+r.IntN(11))
 				budget := g.StartingBalance * int64(60+r.IntN(36)) / 100
@@ -223,10 +218,10 @@ func seedPlayers(ctx context.Context, rawDB *sql.DB, loc *time.Location, now tim
 							bc, bf = leftC, leftF
 						}
 						leftC, leftF = leftC-bc, leftF-bf
-						if _, err := st.trade.ExecContext(ctx, pid, s.id, bq, s.close, bt, bc, rate.RateAudUsd, bf, at, source); err != nil {
+						if _, err := st.trade.ExecContext(ctx, pid, s.id, bq, s.close, bt, bc, rate.RateAudUsd, bf, at); err != nil {
 							return err
 						}
-						if _, err := st.activity.ExecContext(ctx, g.ID, userID, fmt.Sprintf("bought %d shares of %s", bq, s.symbol), s.id, at, source); err != nil {
+						if _, err := st.activity.ExecContext(ctx, g.ID, userID, fmt.Sprintf("bought %d shares of %s", bq, s.symbol), s.id, at); err != nil {
 							return err
 						}
 					}
@@ -241,7 +236,7 @@ func seedPlayers(ctx context.Context, rawDB *sql.DB, loc *time.Location, now tim
 				if r.Float64() < limitOrderShare {
 					for range 1 + r.IntN(3) {
 						s := stocks[r.IntN(len(stocks))]
-						if _, err := st.order.ExecContext(ctx, pid, s.id, 1+r.IntN(20), s.close*9/10, g.EndDate, source); err != nil {
+						if _, err := st.order.ExecContext(ctx, pid, s.id, 1+r.IntN(20), s.close*9/10, g.EndDate); err != nil {
 							return err
 						}
 					}
@@ -318,11 +313,11 @@ func prepareSeed(ctx context.Context, tx *sql.Tx) (*seedStmts, error) {
 	}{
 		{&s.participant, `INSERT INTO participants (game_id, user_id, cash_balance, portfolio_value, joined_at) VALUES (?, ?, ?, ?, ?)`},
 		{&s.cash, `UPDATE participants SET cash_balance = ?, portfolio_value = ? WHERE id = ?`},
-		{&s.trade, `INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total, converted_total, exchange_rate_used, fee, created_at, source)
-			VALUES (?, ?, 'buy', ?, ?, ?, ?, ?, ?, ?, ?)`},
-		{&s.activity, `INSERT INTO activity_feed (game_id, user_id, action, detail, stock_id, created_at, source) VALUES (?, ?, 'buy', ?, ?, ?, ?)`},
+		{&s.trade, `INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total, converted_total, exchange_rate_used, fee, created_at)
+			VALUES (?, ?, 'buy', ?, ?, ?, ?, ?, ?, ?)`},
+		{&s.activity, `INSERT INTO activity_feed (game_id, user_id, action, detail, stock_id, created_at) VALUES (?, ?, 'buy', ?, ?, ?)`},
 		{&s.holding, `INSERT INTO holdings (participant_id, stock_id, quantity, avg_cost, cost_basis, current_value, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`},
-		{&s.order, `INSERT INTO limit_orders (participant_id, stock_id, type, quantity, limit_price, expires_at, source) VALUES (?, ?, 'buy', ?, ?, ?, ?)`},
+		{&s.order, `INSERT INTO limit_orders (participant_id, stock_id, type, quantity, limit_price, expires_at) VALUES (?, ?, 'buy', ?, ?, ?)`},
 		{&s.watch, `INSERT OR IGNORE INTO watchlist (user_id, stock_id) VALUES (?, ?)`},
 		{&s.notify, `INSERT INTO notifications (user_id, game_id, type, title, message, is_read, created_at, emailed)
 			VALUES (?, ?, 'order_filled', 'Order filled', 'Your order was filled.', ?, ?, 1)`},
@@ -341,10 +336,10 @@ func prepareSeed(ctx context.Context, tx *sql.Tx) (*seedStmts, error) {
 }
 
 // seedStocks lists the active stocks that have a price, and which of them
-// are popular: Rob's Picks and the Mag 7.
+// are popular: the Mag 7.
 func seedStocks(ctx context.Context, rawDB *sql.DB) (all, popular []seedStock, err error) {
 	rows, err := rawDB.QueryContext(ctx, `SELECT s.id, s.symbol, s.currency, p.close,
-			s.symbol IN ('`+joinQuoted(mag7)+`') OR EXISTS (SELECT 1 FROM stock_picks k WHERE k.stock_id = s.id)
+			s.symbol IN ('`+joinQuoted(mag7)+`')
 		FROM stocks s JOIN stock_prices p ON p.stock_id = s.id
 		WHERE s.is_active = 1 AND p.close > 0
 		  AND p.date = (SELECT MAX(date) FROM stock_prices WHERE stock_id = s.id)

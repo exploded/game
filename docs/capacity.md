@@ -39,7 +39,8 @@ of memory free and 68 GB of disk free; `game` used 80 MB and `game.db` was
 From Caddy's access log and the app's request log, 5–6 November 2026:
 
 - 2,536 requests a day from 145 addresses; busiest minute 149 requests.
-  Most traffic is crawlers on the public Learn pages.
+  Most traffic is crawlers on the public Learn pages (Learn needs a
+  sign-in since 17 November 2026).
 - 12 players in November's game.
 - Median response 2.3 ms, p95 71 ms, worst 1.4 s.
 - An active player makes about 3 game requests per 10 minutes; the busiest
@@ -53,8 +54,7 @@ From Caddy's access log and the app's request log, 5–6 November 2026:
 1. **`seed`** adds made-up players to a copy of `game.db`, with a month of
    what players leave behind: 60% have 5–15 holdings and the trades that
    bought them, some have open orders, and everyone has daily snapshots,
-   interest, notifications and a session. Half the holdings are Rob's Picks
-   or the Mag 7. Addresses are `@example.invalid`.
+   interest, notifications and a session. Half the holdings are the Mag 7. Addresses are `@example.invalid`.
 2. **`jobs`** times the background work on the copy, on one connection and
    2 CPUs, as in production.
 3. **`run`** drives a test server on the copy at a fixed rate, stepping up
@@ -189,8 +189,8 @@ reach monitor.
   players) it would be 6 seconds, and the 3-second wait cuts that short.
   Waiting longer only delays a refusal.
 - Not capped: `/static/` and `/favicon.ico` (cheap, cached), `/health` (the
-  uptime check), and `/mcp` (AI apps hold it open for minutes and it has its
-  own limit of 30 requests a minute per player).
+  uptime check) and `/live/banner` (answered from memory). `/mcp` was too,
+  until AI trading was removed on 17 November 2026.
 
 **With the throttle** (PC, 1,000 players):
 
@@ -257,7 +257,7 @@ Made on 6 November 2026, after the measurements above:
   request rebuilt them while holding the lock (about 100 ms in production;
   since 4 November its slowest 10% took 90 ms and up). Now that request gets
   the old rows and starts the rebuild in the background (`screenRows`). Only
-  the first view after a restart, or after Rob's Picks change, waits.
+  the first view after a restart waits.
 - **Sign-in email first.** The outbox sends `account` email (sign-in links
   and codes) before anything else (`ListDueEmails`), so a link waits at most
   for the batch being sent, about 5 seconds, not behind a game email to
@@ -266,8 +266,8 @@ Made on 6 November 2026, after the measurements above:
 - **Leaderboard query.** Every dashboard, game home, Ranks and API view
   loaded the whole board, looking through each player's trades and orders
   to see who had traded and who used an AI: 128–158 ms at 10,000 players.
-  Now `participants.traded` and `uses_ai`, kept by triggers
-  (`sql/triggers.sql`), answer that; a player's place is a count
+  Now `participants.traded`, kept by a trigger (`sql/triggers.sql`),
+  answers that (`uses_ai` went with AI trading on 17 November 2026); a player's place is a count
   (`CountRanked`, `GetPlayerAhead`: 2 ms at 10,000), and Ranks shows 100 a
   page (`ListLeaderboard`: 1 ms) with the player's own row added when it's
   on another page. At 10,000 players the PC served 80 requests a second

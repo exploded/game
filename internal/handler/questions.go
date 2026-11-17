@@ -85,7 +85,7 @@ func (h *Handler) renderQuestions(w http.ResponseWriter, r *http.Request, errs m
 	if form == nil {
 		form = map[string]string{}
 	}
-	h.render(w, r, "learn/questions", "", learnPage(r, "questions", PageData{
+	h.render(w, r, "learn/questions", "", learnPage("questions", PageData{
 		Title:  "Ask Rob",
 		Items:  questions,
 		Errors: errs,
@@ -199,7 +199,7 @@ func (h *Handler) QuestionPage(w http.ResponseWriter, r *http.Request) {
 		live, _ := h.q.ListLiveNow(r.Context())
 		extra["Live"] = live
 	}
-	h.render(w, r, "learn/question", "", learnPage(r, "questions", PageData{Title: q.Title, Item: q, Extra: extra}))
+	h.render(w, r, "learn/question", "", learnPage("questions", PageData{Title: q.Title, Item: q, Extra: extra}))
 }
 
 // QuestionVote toggles the user's vote. htmx swaps in the new button.
@@ -334,7 +334,7 @@ func (h *Handler) QuestionOnAir(w http.ResponseWriter, r *http.Request) {
 	if isHTMX(r) {
 		queue, _ := h.q.ListLiveQueue(r.Context(), viewerID(r))
 		triggerToast(w, "Marked answered. Voters get an email after the stream.", "success")
-		h.render(w, r, "learn/event", "queue", learnPage(r, "live", PageData{User: user, Item: e, Extra: map[string]any{"Queue": queue}}))
+		h.render(w, r, "learn/event", "queue", learnPage("live", PageData{User: user, Item: e, Extra: map[string]any{"Queue": queue}}))
 		return
 	}
 	setFlashCookie(w, "Marked answered on air. Voters get an email after the stream.", "success")

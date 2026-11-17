@@ -53,7 +53,6 @@ var defaultGame = db.Game{
 	FxFee:              50,
 	LimitOrders:        1,
 	AfterHoursTrading:  1,
-	AiTrading:          1,
 }
 
 // EnsureMonthlyGames creates the games for now's month and the next one if
@@ -104,7 +103,6 @@ func ensureMonthGame(ctx context.Context, q *db.Queries, m Month) error {
 		CreditInterestRate: prev.CreditInterestRate,
 		LimitOrders:        prev.LimitOrders,
 		AfterHoursTrading:  prev.AfterHoursTrading,
-		AiTrading:          prev.AiTrading,
 		Quarter:            sql.NullString{String: m.Key(), Valid: true},
 	})
 	if err != nil {

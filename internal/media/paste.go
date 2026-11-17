@@ -14,8 +14,7 @@ import (
 	"github.com/exploded/game/internal/db"
 )
 
-// Pasted is a video an admin adds by pasting its link: Facebook and
-// Instagram videos (no API without Rob's Meta login), single TikToks before
+// Pasted is a video an admin adds by pasting its link: single TikToks before
 // TikTok is connected, or a YouTube video from another channel.
 type Pasted struct {
 	Platform  string
@@ -28,9 +27,9 @@ type Pasted struct {
 }
 
 // shortLinkHosts hide the video id behind a redirect.
-var shortLinkHosts = map[string]bool{"vm.tiktok.com": true, "vt.tiktok.com": true, "fb.watch": true}
+var shortLinkHosts = map[string]bool{"vm.tiktok.com": true, "vt.tiktok.com": true}
 
-// ExpandShortLink follows a vm.tiktok.com or fb.watch link to the full
+// ExpandShortLink follows a vm.tiktok.com link to the full
 // video link. Other links come back as they are.
 func ExpandShortLink(ctx context.Context, raw string) string {
 	u, err := url.Parse(strings.TrimSpace(raw))

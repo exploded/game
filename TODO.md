@@ -32,7 +32,8 @@ Built on 2026-10-29, merged into `master` and deployed on 2026-10-30.
 - [x] **Rob's 2026 courses** (2026-11-09). The ten courses from Anne and Rob's
   sheet are seeded as drafts (`courses_2026.go`), with covers and "What you'll
   learn" lists. Courses moved to `/learn/courses` and went public (lessons
-  still need an account), and Learn got a front page with graphics.
+  still needed an account; all of Learn needs one since 2026-11-17), and
+  Learn got a front page with graphics.
 - [x] **Vimeo token and plan check** (2026-11-09). Consortium's Vimeo is on
   the paid **Plus** plan, so the courses stay on Vimeo (no Bunny). James's
   token is in his user env (`VIMEO_TOKEN`). All 11 course folders' videos are
@@ -69,15 +70,15 @@ Built on 2026-10-29, merged into `master` and deployed on 2026-10-30.
 
 ## Learn: Rob's videos, live streams and questions (2026-10-30)
 
-Built and deployed on 2026-10-30. `/learn` is public; asking, voting and
-reminders need an account.
+Built and deployed on 2026-10-30. `/learn` was public until 2026-11-17, when
+Rob asked for it to need a sign-in.
 
 - [x] **Watch.** Rob's YouTube channel syncs every 10 minutes (whole channel
   nightly). Claude sorts each video into topics (retirement, super, buying a
   home and so on); admins can retick them. Rows by topic, Shorts, search,
   click-to-play players, related videos, "Ask Rob about this".
-- [x] **Live.** YouTube streams appear by themselves; admins add TikTok,
-  Facebook and Instagram streams or tap "I'm live now". Site-wide "Rob is
+- [x] **Live.** YouTube streams appear by themselves; admins add TikTok
+  streams or tap "I'm live now" (Facebook and Instagram dropped 2026-11-17). Site-wide "Rob is
   live" banner, Remind me, Add to calendar, and Live streams email (L1, L2 in
   `docs/emails.md`).
 - [x] **Live Q&A queue.** The stream page lists the most-voted open questions
@@ -144,9 +145,8 @@ reminders need an account.
   upload to the video's admin page.
 - [ ] **From Rob:** whether the topic list suits him (`/admin/learn/topics`).
   His general advice wording is in; no podcast link is needed (2026-10-30).
-- [ ] **Later:** Facebook and Instagram sync and Facebook live detection
-  through Meta's Graph API (needs Rob's Page connected to a Meta app). TikTok
-  streams still have to be booked by hand. Web push notifications.
+- [ ] **Later:** web push notifications. (Facebook and Instagram are out of
+  Learn since 2026-11-17, so their sync isn't wanted.)
 - [ ] **Check on a phone:** `/learn`, a video, `/learn/live`, and a stream
   page while live.
 
@@ -237,7 +237,7 @@ numbers, limits and how to measure again are in `docs/capacity.md`.
 - [ ] **Revaluation.** 7.7 seconds every 2 minutes in the US session at
   10,000 players (about 6% of the database's time, overnight in Sydney). Look
   up each stock's price once, write in batches and skip unchanged holdings.
-  Before about 30,000 players, or sooner if overseas or AI players grow
+  Before about 30,000 players, or sooner if overseas players grow
   during US hours. Medium; it handles money, so it needs care.
 - [ ] **Queries that read whole tables** (`ExpireOldLimitOrders`,
   `DeleteOldEmails`, `CountLobbyMessages`): fine now, revisit past about
@@ -253,47 +253,24 @@ numbers, limits and how to measure again are in `docs/capacity.md`.
 
 - [ ] **Get listed on Finder** (2026-11-05). Ask Finder to add the share game
   to its share trading games page:
-  https://www.finder.com.au/share-trading/share-trading-games. Check with Rob
-  first, since the listing names Consortium Private Wealth's site.
+  https://www.finder.com.au/share-trading/share-trading-games. Rob agreed on
+  2026-11-17; James to send the request.
 
 ## Ideas for Rob to approve
 
-- [ ] **Drop Facebook and Instagram videos from Learn?** (2026-11-05). Today
-  an admin can paste a Facebook or Instagram video link at `/admin/learn`, and
-  add Facebook and Instagram live streams by hand. Neither platform syncs
-  (that needs Rob's Page connected to a Meta app), neither gives a title or
-  cover, and Rob's videos are mostly on YouTube and TikTok anyway. Removing
-  them would simplify the paste form, the platform filter and the live stream
-  form, and take `www.facebook.com` and `www.instagram.com` out of the CSP's
-  `frame-src`. For Rob to decide whether he posts anything only there.
-
-- [ ] **Learn: public or behind sign-in?** (2026-10-31). Today anyone can
-  read `/learn`: videos, topics, live streams and Ask Rob questions with their
-  answers. Asking, voting and reminders need an account. The sitemap lists the
-  topics, the latest videos and every answered question, so Google can find
-  them. Courses are public too since 2026-11-09 (outlines and lesson titles;
-  playing a lesson needs an account). For Rob to decide:
-  - **Keep it public (as now).** Search engines can index it, so people
-    searching for super, retirement or home-buying questions can land on the
-    site. Answered questions help most, because they're Rob's own words; the
-    videos are on YouTube already.
-  - **Put it behind sign-in.** Everyone who watches has an account and can be
-    emailed, but Google sees only the sign-in page, and a shared video link
-    asks for sign-in first.
-
-- [ ] **Share your result on social media** (2026-10-31). A Share button on
-  the game's home page: the phone's own share sheet on a phone, and Copy link,
-  X, Facebook, LinkedIn and WhatsApp on a computer. Game pages need a sign-in,
-  so the link goes to a public page, `/share/{token}` (random per player per
-  game, and the player can turn it off). The page shows the player's first
-  name, the month, their rank and return since the start in percent, and a
-  **Play The Investor Project** button to sign up. A 1200 × 630 preview image drawn
-  in Go makes the post show as a card. About a day's work. For Rob to decide:
-  - **No dollar amounts**, so a post doesn't read like "$1,120,000" of real
-    money. Optionally the symbols of the three biggest holdings, no amounts.
-  - **First name only**, or the full name.
-  - **Compliance:** CPW is a licensed adviser, and posts showing returns from
-    a site it runs may count as its marketing. The page and image would say
-    "Play money. Not financial advice." CPW's compliance should check first.
-  - **No referral bonus** for sign-ups from a share link, so it doesn't get
-    around the one invite per game.
+- [x] **Rob's answers, 17 November 2026.** Rob dropped Rob's Picks, players'
+  own AI trading (API, MCP connector, OAuth, API keys) and the Bitcoin stocks
+  (IBIT, MSTR and the Crypto chip). Learn needs a sign-in, Facebook and
+  Instagram videos are gone from Learn, Finder can list the game, and a
+  "Share my result" button saw no compliance issue. All built on 17 November
+  2026.
+- [x] **Share my result** (2026-11-17). A button on the game's home page for
+  a ranked player: the phone's share sheet, or the text copied on a computer.
+  The text gives the place, the return since the start in percent and "play
+  money", never holdings, and links to the site's front page (its usual
+  preview card). Built small on purpose.
+- [ ] **Optional: a share page of its own.** The bigger version from
+  2026-10-31: a public `/share/{token}` page (first name, month, rank and
+  return) with a 1200 × 630 preview image drawn in Go, so the post shows the
+  player's result as a card. About a day's work. Only if players use the
+  button.

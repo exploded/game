@@ -590,8 +590,9 @@ func TestDedupeStockNewsHeadlines(t *testing.T) {
 }
 
 // TestTradedFlagsBackfilled: a database from before 6 November 2026 has trades
-// but no traded or uses_ai flags. Opening it fills them in from the trades
-// and orders already stored, so nobody drops off the leaderboard.
+// but no traded flag. Opening it fills it in from the trades already stored,
+// so nobody drops off the leaderboard. One from before 17 November 2026 also
+// has the AI columns and the triggers that name them, which must go.
 func TestTradedFlagsBackfilled(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "old.db")
 	raw, err := sql.Open("sqlite", path)
@@ -599,11 +600,17 @@ func TestTradedFlagsBackfilled(t *testing.T) {
 		t.Fatal(err)
 	}
 	// schema.sql alone has the columns but no triggers, as an old database
-	// has neither.
+	// has neither. The AI columns go back on, as a database from before 17
+	// November 2026 has them.
 	if _, err := raw.Exec(game.Schema); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := raw.Exec(`
+		ALTER TABLE games ADD COLUMN ai_trading INTEGER NOT NULL DEFAULT 1;
+		ALTER TABLE transactions ADD COLUMN source TEXT NOT NULL DEFAULT '';
+		ALTER TABLE limit_orders ADD COLUMN source TEXT NOT NULL DEFAULT '';
+		ALTER TABLE activity_feed ADD COLUMN source TEXT NOT NULL DEFAULT '';
+		ALTER TABLE participants ADD COLUMN uses_ai INTEGER NOT NULL DEFAULT 0;
 		INSERT INTO users (id, email, name, email_token) VALUES (1, 'a@x', 'Ann', 't1'), (2, 'b@x', 'Ben', 't2'), (3, 'c@x', 'Cat', 't3');
 		INSERT INTO games (id, created_by, name, start_date, end_date) VALUES (1, 1, 'Cup', '2026-11-01', '2026-11-30');
 		INSERT INTO participants (id, game_id, user_id, cash_balance) VALUES (1, 1, 1, 0), (2, 1, 2, 0), (3, 1, 3, 0);
@@ -611,24 +618,65 @@ func TestTradedFlagsBackfilled(t *testing.T) {
 		INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total, converted_total, source) VALUES
 			(1, 1, 'buy', 1, 1, 1, 1, ''), (2, 1, 'buy', 1, 1, 1, 1, 'mcp');
 		INSERT INTO limit_orders (participant_id, stock_id, type, quantity, limit_price, source) VALUES (3, 1, 'buy', 1, 1, 'api');
+		-- The triggers that kept uses_ai, which name the columns being dropped.
+		CREATE TRIGGER participants_traded AFTER INSERT ON transactions
+		BEGIN
+			UPDATE participants SET traded = 1, uses_ai = (uses_ai OR NEW.source != '')
+			WHERE id = NEW.participant_id AND (traded = 0 OR (uses_ai = 0 AND NEW.source != ''));
+		END;
+		CREATE TRIGGER participants_ai_order AFTER INSERT ON limit_orders WHEN NEW.source != ''
+		BEGIN
+			UPDATE participants SET uses_ai = 1 WHERE id = NEW.participant_id AND uses_ai = 0;
+		END;
 	`); err != nil {
 		t.Fatal(err)
 	}
 	var before int
-	raw.QueryRow(`SELECT COUNT(*) FROM participants WHERE traded = 1 OR uses_ai = 1`).Scan(&before)
+	raw.QueryRow(`SELECT COUNT(*) FROM participants WHERE traded = 1`).Scan(&before)
 	raw.Close()
 	if before != 0 {
 		t.Fatalf("%d flags set before opening; the test needs a database without triggers", before)
 	}
 
 	d := openTestDBAt(t, path)
-	for id, want := range map[int][2]int{1: {1, 0}, 2: {1, 1}, 3: {0, 1}} {
-		var traded, ai int
-		if err := d.QueryRow(`SELECT traded, uses_ai FROM participants WHERE id = ?`, id).Scan(&traded, &ai); err != nil {
+	for id, want := range map[int]int{1: 1, 2: 1, 3: 0} {
+		var traded int
+		if err := d.QueryRow(`SELECT traded FROM participants WHERE id = ?`, id).Scan(&traded); err != nil {
 			t.Fatal(err)
 		}
-		if traded != want[0] || ai != want[1] {
-			t.Errorf("participant %d: traded %d, uses_ai %d; want %d, %d", id, traded, ai, want[0], want[1])
+		if traded != want {
+			t.Errorf("participant %d: traded %d, want %d", id, traded, want)
 		}
+	}
+	var cols int
+	d.QueryRow(`SELECT (SELECT COUNT(*) FROM pragma_table_info('transactions') WHERE name = 'source')
+		+ (SELECT COUNT(*) FROM pragma_table_info('participants') WHERE name = 'uses_ai')
+		+ (SELECT COUNT(*) FROM pragma_table_info('games') WHERE name = 'ai_trading')`).Scan(&cols)
+	if cols != 0 {
+		t.Errorf("%d AI columns are still there", cols)
+	}
+	var triggers []string
+	rows, err := d.Query(`SELECT name FROM sqlite_master WHERE type = 'trigger' ORDER BY name`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for rows.Next() {
+		var n string
+		rows.Scan(&n)
+		triggers = append(triggers, n)
+	}
+	rows.Close()
+	if got := strings.Join(triggers, " "); got != "participants_first_trade" {
+		t.Errorf("triggers %q, want participants_first_trade", got)
+	}
+
+	// A new trade still puts the player on the board.
+	if _, err := d.Exec(`INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total, converted_total) VALUES (3, 1, 'buy', 1, 1, 1, 1)`); err != nil {
+		t.Fatal(err)
+	}
+	var traded int
+	d.QueryRow(`SELECT traded FROM participants WHERE id = 3`).Scan(&traded)
+	if traded != 1 {
+		t.Error("the trigger didn't mark a new trade")
 	}
 }

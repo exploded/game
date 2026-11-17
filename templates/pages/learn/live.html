@@ -22,7 +22,6 @@
             <span class="text-muted">{{platform .Platform}}{{with .ScheduledAt.String}} &middot; {{until .}}{{end}}</span>
         </a>
         <div class="event-actions">
-            {{if $.User}}
             <form method="POST" action="/learn/live/{{.ID}}/remind">
                 <input type="hidden" name="back" value="/learn/live">
                 {{if index $rem .ID}}
@@ -33,9 +32,6 @@
                 <button type="submit" class="btn btn-sm btn-primary">Remind me</button>
                 {{end}}
             </form>
-            {{else}}
-            <a href="{{index $.Extra "SignIn"}}" class="btn btn-sm btn-primary">Remind me</a>
-            {{end}}
             {{if .ScheduledAt.Valid}}<a href="/learn/live/{{.ID}}/calendar.ics" class="btn btn-sm btn-secondary">Add to calendar</a>{{end}}
         </div>
     </div>

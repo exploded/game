@@ -24,37 +24,6 @@ type ActivityFeed struct {
 	Detail    string
 	StockID   sql.NullInt64
 	CreatedAt string
-	Source    string
-}
-
-type AiOrderDay struct {
-	UserID int64
-	Day    string
-	Orders int64
-}
-
-type ApiIdempotency struct {
-	UserID    int64
-	Key       string
-	Status    int64
-	Response  string
-	CreatedAt string
-}
-
-type ApiToken struct {
-	ID         int64
-	UserID     int64
-	Kind       string
-	Name       string
-	TokenHash  string
-	Prefix     string
-	Scope      string
-	GrantID    sql.NullString
-	ClientID   sql.NullString
-	ExpiresAt  sql.NullString
-	LastUsedAt sql.NullString
-	CreatedAt  string
-	RevokedAt  sql.NullString
 }
 
 type AppSecret struct {
@@ -175,7 +144,6 @@ type Game struct {
 	CreditInterestRate int64
 	LimitOrders        int64
 	AfterHoursTrading  int64
-	AiTrading          int64
 	Quarter            sql.NullString
 	CreatedAt          string
 	UpdatedAt          string
@@ -262,7 +230,6 @@ type LimitOrder struct {
 	ExpiresAt     sql.NullString
 	FilledAt      sql.NullString
 	Kind          string
-	Source        string
 }
 
 type LiveEvent struct {
@@ -331,24 +298,6 @@ type Notification struct {
 	Emailed   int64
 }
 
-type OauthClient struct {
-	ID           string
-	Name         string
-	RedirectUris string
-	CreatedAt    string
-	LastUsedAt   sql.NullString
-}
-
-type OauthCode struct {
-	CodeHash      string
-	ClientID      string
-	UserID        int64
-	Scope         string
-	RedirectUri   string
-	CodeChallenge string
-	ExpiresAt     string
-}
-
 type OauthToken struct {
 	Provider         string
 	Account          string
@@ -367,7 +316,6 @@ type Participant struct {
 	PortfolioValue int64
 	JoinedAt       string
 	Traded         int64
-	UsesAi         int64
 }
 
 type PortfolioSnapshot struct {
@@ -461,13 +409,6 @@ type StockNews struct {
 	PublishedAt int64
 	CreatedAt   string
 	Shown       int64
-}
-
-type StockPick struct {
-	StockID   int64
-	Note      string
-	SortOrder int64
-	CreatedAt string
 }
 
 type StockPrice struct {
@@ -589,7 +530,6 @@ type Transaction struct {
 	ExchangeRateUsed int64
 	Fee              int64
 	CreatedAt        string
-	Source           string
 }
 
 type User struct {

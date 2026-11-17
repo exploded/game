@@ -161,22 +161,6 @@ func TestDeleteAndHide(t *testing.T) {
 	}
 }
 
-func TestVisitorsCanReadQuestions(t *testing.T) {
-	srv, _ := questionServer(t)
-	q := ask(t, srv, "2", "Is super worth it?")
-
-	list := as(srv, "", "GET", "/learn/questions", nil, false)
-	if list.Code != http.StatusOK || !strings.Contains(list.Body.String(), "Is super worth it?") {
-		t.Fatalf("visitor list: %d\n%s", list.Code, list.Body)
-	}
-	if body := list.Body.String(); !strings.Contains(body, "Sign in to ask") || strings.Contains(body, `action="/learn/questions/1/vote"`) {
-		t.Error("a visitor should get sign-in links, not the ask and vote forms")
-	}
-	if w := as(srv, "", "GET", q, nil, false); w.Code != http.StatusOK {
-		t.Errorf("visitor question page: %d", w.Code)
-	}
-}
-
 func TestAnswerWithVideo(t *testing.T) {
 	srv, d := questionServer(t)
 	if _, err := d.Exec(`INSERT INTO videos (id, platform, external_id, url, embed_url, title, published_at)

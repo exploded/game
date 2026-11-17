@@ -59,14 +59,13 @@ func (h *Handler) StocksBrowse(w http.ResponseWriter, r *http.Request) {
 		Item:  game,
 		Items: res.Rows,
 		Extra: map[string]any{
-			"Result":    res,
-			"Filter":    f,
-			"Filters":   screenFilters,
-			"FirstFin":  firstFinFilter,
-			"Sectors":   screenSectors(rows),
-			"Sector":    sector,
-			"Q":         search,
-			"ShowNotes": res.Filter == "picks",
+			"Result":   res,
+			"Filter":   f,
+			"Filters":  screenFilters,
+			"FirstFin": firstFinFilter,
+			"Sectors":  screenSectors(rows),
+			"Sector":   sector,
+			"Q":        search,
 		},
 	}
 	// The same URL serves the page and the list, so caches must tell them
@@ -122,10 +121,6 @@ func (h *Handler) StockDetail(w http.ResponseWriter, r *http.Request) {
 
 	// Rob's videos that talk about this stock (picked by the classifier).
 	robVideos, _ := h.q.ListStockVideos(r.Context(), stock.ID)
-	var pick *db.StockPick
-	if p, err := h.q.GetStockPick(r.Context(), stock.ID); err == nil {
-		pick = &p
-	}
 
 	extra := h.ticketData(r.Context(), game, stock, auth.UserFromContext(r.Context()).ID)
 	extra["Back"] = backLink(r.Referer(), r.Host, gameID, stock.ID)
@@ -133,7 +128,6 @@ func (h *Handler) StockDetail(w http.ResponseWriter, r *http.Request) {
 	extra["Profile"] = profile
 	extra["News"] = news
 	extra["RobVideos"] = robVideos
-	extra["Pick"] = pick
 	extra["Health"], extra["HasHealth"] = profileHealth(stock, profile)
 	extra["Line"] = line
 	if t, _ := extra["Trade"].(*tradeContext); t != nil && t.Holding.Quantity != 0 {

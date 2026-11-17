@@ -96,7 +96,7 @@ func (h *Handler) Leaderboard(w http.ResponseWriter, r *http.Request) {
 	var me *boardRow
 	if playing && !st.Unranked && !slices.ContainsFunc(rows, func(b boardRow) bool { return b.ID == myParticipant.ID }) {
 		me = &boardRow{ListLeaderboardRow: db.ListLeaderboardRow{
-			ID: myParticipant.ID, PortfolioValue: myParticipant.PortfolioValue, UsesAi: myParticipant.UsesAi, UserName: user.Name,
+			ID: myParticipant.ID, PortfolioValue: myParticipant.PortfolioValue, UserName: user.Name,
 		}, Rank: st.Rank}
 	}
 

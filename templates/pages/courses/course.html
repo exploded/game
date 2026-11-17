@@ -15,9 +15,7 @@
         <p class="course-hero-meta">{{len .Items}} lesson{{if ne (len .Items) 1}}s{{end}}{{with index .Extra "Minutes"}} &middot; {{.}} min{{end}}</p>
         {{if .Items}}
         <div class="course-hero-actions">
-            {{if not .User}}
-            <a href="{{index .Extra "SignIn"}}" class="btn btn-primary">Sign in free to watch</a>
-            {{else if $resume}}
+            {{if $resume}}
             <a href="/learn/courses/{{.Item.Slug}}/{{$resume.ID}}?play=1" class="btn btn-primary">{{if index .Extra "Done"}}Carry on: lesson {{index .Extra "ResumeNumber"}}{{else}}Start the course{{end}}</a>
             {{else}}
             <span class="course-finished">&#10003; You've finished this course</span>

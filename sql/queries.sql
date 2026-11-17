@@ -182,8 +182,8 @@ DELETE FROM email_outbox WHERE status != 'pending' AND created_at < datetime('no
 -- =============================================================================
 
 -- name: CreateGame :one
-INSERT INTO games (created_by, name, description, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, ai_trading, quarter)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO games (created_by, name, description, markets, starting_balance, base_currency, max_participants, start_date, end_date, allow_short, trade_fee, fx_fee, referral_bonus_pct, credit_interest_rate, limit_orders, after_hours_trading, quarter)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: GetGame :one
@@ -225,7 +225,7 @@ UPDATE games SET
     name = ?, description = ?, starting_balance = ?,
     base_currency = ?, max_participants = ?, trade_fee = ?, fx_fee = ?, allow_short = ?,
     limit_orders = ?, referral_bonus_pct = ?, credit_interest_rate = ?,
-    after_hours_trading = ?, ai_trading = ?, updated_at = datetime('now')
+    after_hours_trading = ?, updated_at = datetime('now')
 WHERE id = ?;
 
 -- name: CountParticipants :one
@@ -402,13 +402,9 @@ SELECT s.id, s.symbol, s.name, s.market, s.sector, s.currency,
        CAST(COALESCE(p.total_cash, 0) AS INTEGER) AS total_cash,
        CAST(COALESCE(p.total_debt, 0) AS INTEGER) AS total_debt,
        CAST(COALESCE(p.debt_to_equity, 0) AS INTEGER) AS debt_to_equity,
-       CAST(COALESCE(p.current_ratio, 0) AS INTEGER) AS current_ratio,
-       CAST(pk.stock_id IS NOT NULL AS INTEGER) AS is_pick,
-       COALESCE(pk.note, '') AS pick_note,
-       CAST(COALESCE(pk.sort_order, 0) AS INTEGER) AS pick_order
+       CAST(COALESCE(p.current_ratio, 0) AS INTEGER) AS current_ratio
 FROM stocks s
 LEFT JOIN stock_profiles p ON p.stock_id = s.id
-LEFT JOIN stock_picks pk ON pk.stock_id = s.id
 WHERE s.is_active = 1 AND (s.market = ? OR ? = 'both')
   AND EXISTS (SELECT 1 FROM stock_prices sp WHERE sp.stock_id = s.id)
 ORDER BY s.symbol ASC;
@@ -429,31 +425,6 @@ ORDER BY stock_id, date;
 
 -- name: GetStockProfile :one
 SELECT * FROM stock_profiles WHERE stock_id = ?;
-
--- =============================================================================
--- Rob's Picks
--- =============================================================================
-
--- name: ListStockPicks :many
-SELECT pk.stock_id, pk.note, pk.sort_order, s.symbol, s.name
-FROM stock_picks pk
-JOIN stocks s ON s.id = pk.stock_id
-ORDER BY pk.sort_order, s.symbol;
-
--- name: GetStockPick :one
-SELECT * FROM stock_picks WHERE stock_id = ?;
-
--- name: AddStockPick :exec
--- A new pick goes last.
-INSERT INTO stock_picks (stock_id, note, sort_order)
-VALUES (?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM stock_picks))
-ON CONFLICT(stock_id) DO UPDATE SET note = excluded.note;
-
--- name: UpdateStockPick :exec
-UPDATE stock_picks SET note = ?, sort_order = ? WHERE stock_id = ?;
-
--- name: DeleteStockPick :exec
-DELETE FROM stock_picks WHERE stock_id = ?;
 
 -- name: CountStockProfilesWithLogo :one
 -- Logos pages can show: the CSP allows only Twelve Data's two hosts (logoURL
@@ -662,8 +633,8 @@ WHERE g.status = 'active';
 -- =============================================================================
 
 -- name: InsertTransaction :one
-INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total, converted_total, exchange_rate_used, fee, source)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total, converted_total, exchange_rate_used, fee)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: ListParticipantTrades :many
@@ -692,21 +663,21 @@ WHERE p.user_id = ?;
 -- per_share (x 1,000,000, not cents) and day is the ex-date. Label is the
 -- company for a trade or dividend and the friend who signed up for a bonus.
 SELECT t.type AS kind, t.quantity, s.symbol, s.name AS label, t.price, s.currency,
-       t.converted_total AS amount, t.fee, CAST('' AS TEXT) AS day, t.source, t.created_at
+       t.converted_total AS amount, t.fee, CAST('' AS TEXT) AS day, t.created_at
 FROM transactions t
 JOIN stocks s ON s.id = t.stock_id
 WHERE t.participant_id = sqlc.arg(participant_id)
 UNION ALL
-SELECT 'interest', ip.balance, '', '', 0, '', ip.amount, 0, ip.date, '', ip.created_at
+SELECT 'interest', ip.balance, '', '', 0, '', ip.amount, 0, ip.date, ip.created_at
 FROM interest_payments ip
 WHERE ip.participant_id = sqlc.arg(participant_id) AND ip.amount > 0
 UNION ALL
-SELECT 'dividend', dp.shares, s.symbol, s.name, dp.per_share, s.currency, dp.amount, 0, dp.ex_date, '', dp.created_at
+SELECT 'dividend', dp.shares, s.symbol, s.name, dp.per_share, s.currency, dp.amount, 0, dp.ex_date, dp.created_at
 FROM dividend_payments dp
 JOIN stocks s ON s.id = dp.stock_id
 WHERE dp.participant_id = sqlc.arg(participant_id) AND dp.amount != 0
 UNION ALL
-SELECT 'bonus', 0, '', u.name, 0, '', rb.bonus_amount, 0, '', '', rb.created_at
+SELECT 'bonus', 0, '', u.name, 0, '', rb.bonus_amount, 0, '', rb.created_at
 FROM referral_bonuses rb
 JOIN participants p ON p.game_id = rb.game_id AND p.user_id = rb.referrer_id
 JOIN users u ON u.id = rb.referred_id
@@ -794,13 +765,13 @@ SELECT CAST(COALESCE(SUM(amount), 0) AS INTEGER) FROM interest_payments WHERE pa
 -- =============================================================================
 
 -- name: CreateLimitOrder :one
-INSERT INTO limit_orders (participant_id, stock_id, type, quantity, limit_price, expires_at, source)
-VALUES (?, ?, ?, ?, ?, ?, ?)
+INSERT INTO limit_orders (participant_id, stock_id, type, quantity, limit_price, expires_at)
+VALUES (?, ?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: CreateMarketOrder :one
-INSERT INTO limit_orders (participant_id, stock_id, type, quantity, limit_price, kind, source)
-VALUES (?, ?, ?, ?, 0, 'market', ?)
+INSERT INTO limit_orders (participant_id, stock_id, type, quantity, limit_price, kind)
+VALUES (?, ?, ?, ?, 0, 'market')
 RETURNING *;
 
 -- name: GetLimitOrder :one
@@ -991,8 +962,8 @@ SELECT * FROM achievements WHERE key = ?;
 -- =============================================================================
 
 -- name: InsertActivity :exec
-INSERT INTO activity_feed (game_id, user_id, action, detail, stock_id, source)
-VALUES (?, ?, ?, ?, ?, ?);
+INSERT INTO activity_feed (game_id, user_id, action, detail, stock_id)
+VALUES (?, ?, ?, ?, ?);
 
 -- name: ListActivityFeed :many
 SELECT af.*, u.name AS user_name,
@@ -1839,117 +1810,3 @@ ON CONFLICT(provider) DO UPDATE SET
 
 -- name: DeleteOAuthToken :exec
 DELETE FROM oauth_tokens WHERE provider = ?;
-
--- =============================================================================
--- Players' own AI: API keys, OAuth (api.go, oauth.go)
--- =============================================================================
-
--- name: CreateAPIToken :one
-INSERT INTO api_tokens (user_id, kind, name, token_hash, prefix, scope, grant_id, client_id, expires_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING *;
-
--- name: GetAPITokenByHash :one
-SELECT * FROM api_tokens WHERE token_hash = ?;
-
--- name: TouchAPIToken :exec
--- At most once a minute, so an agent's requests don't each write.
-UPDATE api_tokens SET last_used_at = datetime('now')
-WHERE id = ? AND (last_used_at IS NULL OR last_used_at < datetime('now', '-1 minute'));
-
--- name: ListAPIKeys :many
-SELECT * FROM api_tokens
-WHERE user_id = ? AND kind = 'key' AND revoked_at IS NULL
-ORDER BY id DESC;
-
--- name: ListAppConnections :many
--- One row per OAuth connection: its live refresh token, which is replaced
--- each time the app refreshes, so created_at is when it was last active.
-SELECT * FROM api_tokens
-WHERE user_id = ? AND kind = 'refresh' AND revoked_at IS NULL AND expires_at > datetime('now')
-ORDER BY id DESC;
-
--- name: RevokeAPIKey :execrows
-UPDATE api_tokens SET revoked_at = datetime('now')
-WHERE id = ? AND user_id = ? AND kind = 'key' AND revoked_at IS NULL;
-
--- name: RevokeAPIToken :execrows
--- 0 rows means it was revoked already: a refresh token used twice.
-UPDATE api_tokens SET revoked_at = datetime('now') WHERE id = ? AND revoked_at IS NULL;
-
--- name: RevokeGrant :exec
-UPDATE api_tokens SET revoked_at = datetime('now') WHERE grant_id = ? AND revoked_at IS NULL;
-
--- name: RevokeUserGrant :execrows
-UPDATE api_tokens SET revoked_at = datetime('now')
-WHERE grant_id = ? AND user_id = ? AND revoked_at IS NULL;
-
--- name: RevokeUserAPITokens :exec
-UPDATE api_tokens SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL;
-
--- name: DeleteOldAPITokens :exec
--- Expired OAuth tokens, and anything revoked a month ago.
-DELETE FROM api_tokens
-WHERE (expires_at IS NOT NULL AND expires_at < datetime('now', '-1 day'))
-   OR (revoked_at IS NOT NULL AND revoked_at < datetime('now', '-30 days'));
-
--- name: CreateOAuthClient :exec
-INSERT INTO oauth_clients (id, name, redirect_uris) VALUES (?, ?, ?);
-
--- name: GetOAuthClient :one
-SELECT * FROM oauth_clients WHERE id = ?;
-
--- name: TouchOAuthClient :exec
-UPDATE oauth_clients SET last_used_at = datetime('now') WHERE id = ?;
-
--- name: DeleteStaleOAuthClients :exec
--- Registered but never used within a day, or unused for 90 days (refresh
--- tokens last 60). Their tokens and codes go with them.
-DELETE FROM oauth_clients
-WHERE (last_used_at IS NULL AND created_at < datetime('now', '-1 day'))
-   OR last_used_at < datetime('now', '-90 days');
-
--- name: CreateOAuthCode :exec
-INSERT INTO oauth_codes (code_hash, client_id, user_id, scope, redirect_uri, code_challenge, expires_at)
-VALUES (?, ?, ?, ?, ?, ?, ?);
-
--- name: TakeOAuthCode :one
--- Deleted as it's read, so a code works once.
-DELETE FROM oauth_codes WHERE code_hash = ? RETURNING *;
-
--- name: DeleteExpiredOAuthCodes :exec
-DELETE FROM oauth_codes WHERE expires_at < datetime('now');
-
--- name: ClaimIdempotencyKey :execrows
--- 0 rows means the key was used already: GetIdempotency has its response.
-INSERT INTO api_idempotency (user_id, key) VALUES (?, ?)
-ON CONFLICT (user_id, key) DO NOTHING;
-
--- name: GetIdempotency :one
-SELECT * FROM api_idempotency WHERE user_id = ? AND key = ?;
-
--- name: SaveIdempotency :exec
-UPDATE api_idempotency SET status = ?, response = ? WHERE user_id = ? AND key = ?;
-
--- name: ReleaseIdempotencyKey :exec
--- A request that failed before answering, so a retry can run.
-DELETE FROM api_idempotency WHERE user_id = ? AND key = ? AND status = 0;
-
--- name: DeleteOldIdempotency :exec
-DELETE FROM api_idempotency WHERE created_at < datetime('now', '-1 day');
-
--- name: StartAIOrderDay :exec
-INSERT INTO ai_order_days (user_id, day) VALUES (?, ?) ON CONFLICT (user_id, day) DO NOTHING;
-
--- name: ReserveAIOrder :execrows
--- Counts an order against the player's AI's day (after StartAIOrderDay).
--- 0 rows means the day's limit is used up.
-UPDATE ai_order_days SET orders = orders + 1
-WHERE user_id = sqlc.arg(user_id) AND day = sqlc.arg(day) AND orders < sqlc.arg(max_orders);
-
--- name: ReleaseAIOrder :exec
--- An order ReserveAIOrder counted that was then refused.
-UPDATE ai_order_days SET orders = orders - 1 WHERE user_id = ? AND day = ? AND orders > 0;
-
--- name: CountAIOrders :one
-SELECT CAST(COALESCE(SUM(orders), 0) AS INTEGER) FROM ai_order_days WHERE user_id = ? AND day = ?;

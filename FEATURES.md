@@ -24,9 +24,8 @@ and courses.
 
 - Players can buy shares in the S&P 500 (the 500 biggest US companies), plus
   Australian and other overseas companies listed in the US, such as ASML, TSMC,
-  Novo Nordisk and Shopify, and two US Bitcoin shares: the iShares Bitcoin
-  Trust ETF (IBIT) and Strategy (MSTR). SpaceX (SPCX) is in too, though it
-  isn't in the S&P 500 yet.
+  Novo Nordisk and Shopify. SpaceX (SPCX) is in too, though it isn't in the
+  S&P 500 yet.
 - Prices are real, from Twelve Data. While the US market is open, they update
   every 2 minutes. Each evening the day's closing prices are saved.
 - US shares are priced in US dollars. The game converts them to Australian
@@ -41,10 +40,10 @@ and courses.
 The **Stocks** page lists shares with each company's logo, latest price, today's
 move and a small 30-day chart. Quick filters pick a list:
 
-- **Rob's Picks** (the default, chosen by Rob, with his notes)
+- **Biggest** (the default: the 50 biggest companies)
 - **Mag 7** (Apple, Microsoft, Amazon, Nvidia, Alphabet, Meta and Tesla)
-- **Tech**, **Gainers**, **Losers**, **Biggest** and **Most traded**
-- **Aussie**, **International** and **Crypto**
+- **Tech**, **Gainers**, **Losers** and **Most traded**
+- **Aussie** and **International**
 - **Players' favourites** (the shares most held by players in the game)
 - **All A–Z**
 
@@ -95,10 +94,14 @@ different rate for the game. It's paid just after midnight for the day before.
   game started.
 - The player's place on the leaderboard, and how far behind the player above
   they are.
+- **Share my result**, once they're on the leaderboard: their place and
+  percentage return, as play money, through the phone's share sheet or copied
+  on a computer. It never names what they hold.
 - A chart of the portfolio's value across the month.
 - Each share held, with today's move and the overall gain or loss, and a
   **Close position** button.
-- A search box to find a share to buy.
+- A search box to find a share to buy, and, before the first trade, the five
+  biggest companies.
 - **Invite a friend**.
 
 When a game is over, its home page shows the final values from the end of the
@@ -174,17 +177,17 @@ Wizard) and On Fire (Trading Machine).
 
 ## Learn
 
-Learn is open to everyone, signed in or not, and has four tabs. Every Learn
+Learn needs a free account (since 17 November 2026) and has four tabs. Every Learn
 page ends with the licensee's general advice warning.
 
 ### Watch
 
 - Rob's YouTube videos appear by themselves, and his TikTok videos do too once
-  his account is connected. Admins add Facebook and Instagram videos by pasting
-  a link.
+  his account is connected. Admins can add a YouTube or TikTok video by
+  pasting a link. Facebook and Instagram videos aren't offered.
 - Each video is sorted into topics such as retirement, superannuation and buying
   a home. Admins can change a video's topics.
-- Visitors browse by topic, watch Shorts, search, and play videos on the page.
+- Members browse by topic, watch Shorts, search, and play videos on the page.
   Each video page shows related videos and an **Ask Rob about this** button.
 - Videos that discuss a share also appear on that share's page, and the video
   page lists those shares under **Mentioned in this video**. Each opens the
@@ -193,13 +196,11 @@ page ends with the licensee's general advice warning.
 ### Live
 
 - Rob's upcoming and current live streams. YouTube streams appear by
-  themselves; admins add TikTok, Facebook and Instagram streams, or tap **I'm
-  live now**. TikTok streams start when Rob goes live on TikTok and end when
+  themselves; admins add TikTok streams, or tap **I'm live now**. TikTok streams start when Rob goes live on TikTok and end when
   he stops, without anyone tapping anything. Between 6 am and 10 pm, a TikTok
   stream he didn't book shows up too, within about 5 minutes.
 - A "Rob is live" banner shows across the whole site while he's on air.
-- Visitors can add a stream to their calendar, and members can ask for a
-  reminder email.
+- Members can add a stream to their calendar or ask for a reminder email.
 - During a stream, its page lists the most-voted open questions and refreshes
   every 20 seconds. Rob taps **Answered** as he answers each one.
 
@@ -218,7 +219,7 @@ page ends with the licensee's general advice warning.
 ### Courses
 
 - Rob's video courses, with lessons in order, each with a cover picture and a
-  "What you'll learn" list. Anyone can see a course; watching needs an account.
+  "What you'll learn" list.
 - Members mark lessons as done, see their progress through each course, and
   carry on from the first lesson they haven't done.
 - Admins build courses as drafts, fill them from a Vimeo folder (or add lessons
@@ -280,7 +281,6 @@ Admins have an **Admin** menu with these pages:
   currency, fee per trade, referral bonus and interest rate, and turn limit
   orders, short selling and after-hours trading on or off. Starting cash and
   currency are fixed once someone has joined. A game can also be cancelled.
-- **Picks**: choose and order Rob's Picks, with a note on each.
 - **Users**: everyone who has signed up, with their games, trades, join date
   and last visit, sorted by newest, last seen or most trades. Admins can make
   someone an admin, or block them. A blocked person is signed out, can't sign

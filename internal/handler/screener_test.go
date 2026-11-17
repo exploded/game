@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -87,31 +86,26 @@ func TestApplyFilter(t *testing.T) {
 		screenStock(4, "XOM", "Energy", 100, 110, 1, 400), // +10%
 		screenStock(5, "F", "Consumer Discretionary", 100, 100, 9000, 50),
 		screenStock(6, "TSM", "Information Technology", 100, 99, 0, 1200),
-		screenStock(7, "IBIT", "Financials", 100, 100, 0, 0),
+		screenStock(7, "SPCX", "Industrials", 100, 100, 0, 0),
 		screenStock(8, "COIN", "Financials", 100, 100, 0, 90),
 	}
-	rows[2].IsPick, rows[2].PickOrder = 1, 1
-	rows[3].IsPick, rows[3].PickOrder = 1, 2
-	rows[0].IsPick, rows[0].PickOrder = 1, 3
 	before := symbols(rows)
 
 	for _, c := range []struct {
 		f, sector, q string
 		want         string
 	}{
-		{"", "", "", "MSFT XOM AAPL"}, // the default is Rob's Picks, in Rob's order
-		{"picks", "Information Technology", "", "MSFT AAPL"},
+		{"", "", "", "MSFT AAPL TSM XOM BHP COIN F SPCX"}, // the default is Biggest
+		{"big", "Information Technology", "", "MSFT AAPL TSM"},
 		{"mag7", "", "", "MSFT AAPL"},
 		{"tech", "", "", "MSFT AAPL TSM"},
 		{"up", "", "", "XOM AAPL MSFT"},
 		{"down", "", "", "BHP TSM"},
-		{"big", "", "", "MSFT AAPL TSM XOM BHP COIN F IBIT"},
 		{"active", "", "", "F MSFT AAPL BHP XOM"}, // dollar volume, not shares
 		{"aus", "", "", "BHP"},
 		{"intl", "", "", "TSM"},
-		{"crypto", "", "", "COIN IBIT"},
 		{"all", "Energy", "", "XOM"},
-		{"nonsense", "", "", "MSFT XOM AAPL"},
+		{"nonsense", "", "", "MSFT AAPL TSM XOM BHP COIN F SPCX"},
 		// A search ignores the chip and sector. An exact symbol comes first.
 		{"down", "Energy", "f", "F MSFT"},
 		{"up", "", "m", "MSFT XOM TSM"},
@@ -272,9 +266,6 @@ func getStocks(srv http.Handler, query string, headers map[string]string) string
 
 func TestStocksPage(t *testing.T) {
 	srv, q := gameServer(t)
-	if err := q.AddStockPick(context.Background(), db.AddStockPickParams{StockID: 1, Note: "Rockets for everyone"}); err != nil {
-		t.Fatal(err)
-	}
 	// Before the first request, which caches the rows for a minute.
 	if err := q.UpsertStockStatistics(context.Background(), db.UpsertStockStatisticsParams{
 		StockID: 1, Revenue: 500, NetIncome: 100, TrailingPe: 1240, CurrentRatio: 200,
@@ -283,7 +274,7 @@ func TestStocksPage(t *testing.T) {
 	}
 
 	page := getStocks(srv, "", nil)
-	for _, want := range []string{"<html", "Rob&#39;s Picks", `value="picks" class="sr-only" checked`, "ACME", "Rockets for everyone", "US$10.50"} {
+	for _, want := range []string{"<html", "The biggest companies", `value="big" class="sr-only" checked`, "ACME", "US$10.50"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("stocks page doesn't contain %q", want)
 		}
@@ -292,9 +283,6 @@ func TestStocksPage(t *testing.T) {
 	list := getStocks(srv, "?f=all", map[string]string{"HX-Request": "true"})
 	if strings.Contains(list, "<html") || !strings.Contains(list, "Every stock, A–Z") || !strings.Contains(list, "ACME") {
 		t.Errorf("htmx request didn't get just the list:\n%s", list)
-	}
-	if strings.Contains(list, "Rockets for everyone") {
-		t.Error("the note shows outside Rob's Picks")
 	}
 
 	back := getStocks(srv, "?f=all", map[string]string{"HX-Request": "true", "HX-History-Restore-Request": "true"})
@@ -309,7 +297,7 @@ func TestStocksPage(t *testing.T) {
 		}
 	}
 	// The Financials menu is gone, so an old link shows the default chip.
-	if old := getStocks(srv, "?fin=pe", nil); !strings.Contains(old, `value="picks" class="sr-only" checked`) || strings.Contains(old, "screener-explain") {
+	if old := getStocks(srv, "?fin=pe", nil); !strings.Contains(old, `value="big" class="sr-only" checked`) || strings.Contains(old, "screener-explain") {
 		t.Errorf("an old ?fin= link wasn't ignored:\n%s", old)
 	}
 
@@ -319,84 +307,8 @@ func TestStocksPage(t *testing.T) {
 	}
 }
 
-// TestSeedRobPicks: the first picks go in once, in Rob's order, after the
-// stocks are seeded, and a removed pick stays removed.
-func TestSeedRobPicks(t *testing.T) {
-	d := openTestDB(t)
-	if _, err := d.Exec(`INSERT INTO stocks (symbol, name, market) VALUES
-		('GOOG', 'g', 'sp500'), ('NVDA', 'n', 'sp500'), ('META', 'm', 'sp500'),
-		('ASML', 'a', 'sp500'), ('MSFT', 'ms', 'sp500'), ('V', 'v', 'sp500'), ('AAPL', 'ap', 'sp500')`); err != nil {
-		t.Fatal(err)
-	}
-	if err := RunSeedMigrations(d); err != nil {
-		t.Fatal(err)
-	}
-	q := db.New(d)
-	picks, err := q.ListStockPicks(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	var got []string
-	for _, p := range picks {
-		got = append(got, p.Symbol)
-	}
-	if s := strings.Join(got, " "); s != "V MSFT ASML META NVDA GOOG" {
-		t.Errorf("picks %q", s)
-	}
-
-	if err := q.DeleteStockPick(context.Background(), picks[0].StockID); err != nil {
-		t.Fatal(err)
-	}
-	if err := RunSeedMigrations(d); err != nil {
-		t.Fatal(err)
-	}
-	if picks, _ := q.ListStockPicks(context.Background()); len(picks) != 5 {
-		t.Errorf("the seed ran again: %d picks", len(picks))
-	}
-}
-
-func TestAdminPicks(t *testing.T) {
-	d := openTestDB(t)
-	if _, err := d.Exec(`INSERT INTO stocks (id, symbol, name, market) VALUES (1, 'NVDA', 'NVIDIA', 'sp500')`); err != nil {
-		t.Fatal(err)
-	}
-	q := db.New(d)
-	h := New(q, d, loadTestTemplates(t), false, time.UTC)
-	post := func(fn http.HandlerFunc, sid string, form url.Values) *httptest.ResponseRecorder {
-		req := httptest.NewRequest(http.MethodPost, "/admin/picks", strings.NewReader(form.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.SetPathValue("sid", sid)
-		w := httptest.NewRecorder()
-		fn(w, req)
-		return w
-	}
-	pick := func() (db.StockPick, error) { return q.GetStockPick(context.Background(), 1) }
-
-	post(h.AdminPickAdd, "", url.Values{"symbol": {"msft"}})
-	if picks, _ := q.ListStockPicks(context.Background()); len(picks) != 0 {
-		t.Error("added a stock that doesn't exist")
-	}
-	post(h.AdminPickAdd, "", url.Values{"symbol": {" nvda "}, "note": {"AI  chips"}})
-	if p, err := pick(); err != nil || p.Note != "AI chips" {
-		t.Fatalf("after adding: %+v, %v", p, err)
-	}
-	post(h.AdminPickUpdate, "1", url.Values{"note": {strings.Repeat("x", maxPickNote+1)}, "sort_order": {"4"}})
-	if p, _ := pick(); p.Note != "AI chips" {
-		t.Error("saved a note that's too long")
-	}
-	post(h.AdminPickUpdate, "1", url.Values{"note": {"Picks and shovels"}, "sort_order": {"4"}})
-	if p, _ := pick(); p.Note != "Picks and shovels" || p.SortOrder != 4 {
-		t.Errorf("after saving: %+v", p)
-	}
-	post(h.AdminPickDelete, "1", url.Values{})
-	if _, err := pick(); err == nil {
-		t.Error("the pick is still there")
-	}
-}
-
 // A stale list comes back at once while one rebuild runs in the background,
-// so no player waits for it; after clear (Rob's Picks changed) the next
-// request builds the rows afresh.
+// so no player waits for it.
 func TestScreenRowsServeStaleWhileRebuilding(t *testing.T) {
 	d := openTestDB(t)
 	if _, err := d.Exec(`INSERT INTO stocks (id, symbol, name, market, currency) VALUES (1, 'ACME', 'Acme Corp', 'sp500', 'USD');
@@ -446,12 +358,5 @@ func TestScreenRowsServeStaleWhileRebuilding(t *testing.T) {
 	}
 	if got := price(); got != 2000 {
 		t.Errorf("after the rebuild: price %d, want 2000", got)
-	}
-
-	// Rob's Picks changed: the next request doesn't get the old rows.
-	addClose("2026-10-30", 3000)
-	h.screener.clear()
-	if got := price(); got != 3000 {
-		t.Errorf("after clear: price %d, want a fresh 3000", got)
 	}
 }

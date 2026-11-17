@@ -37,7 +37,7 @@
     <p class="learn-lede">Ask anything about money and investing. Vote for the questions you want answered, and Rob takes the top ones on his live streams.</p>
     {{range index $.Extra "Questions"}}
     <div class="settings-card q-card">
-        {{template "vote" (dict "Q" . "User" $.User "SignIn" (index $.Extra "SignIn"))}}
+        {{template "vote" (dict "Q" .)}}
         <div style="min-width:0">
             <a href="/learn/questions/{{.ID}}" class="q-title">{{.Title}}</a>
             <p class="text-muted q-meta">{{.Votes}} vote{{if ne .Votes 1}}s{{end}}{{if .Answer}} &middot; <span style="color:var(--color-success)">{{if .HasVideo}}Answered in a video{{else}}Answered{{end}}</span>{{end}}</p>

@@ -76,7 +76,7 @@ Total are the participant's own figures (cashLedger). */}}
             <td class="c-main">
                 <span class="badge {{if eq .Kind "buy"}}badge-active{{else}}badge-cancelled{{end}}">{{.Kind}}</span>
                 <span class="show-sm">{{.Quantity}}</span> <strong>{{.Symbol}}</strong>
-                <span class="c-sub">{{.Label}}{{if .Source}} &middot; via AI{{end}}</span>
+                <span class="c-sub">{{.Label}}</span>
             </td>
             <td class="num" data-label="at">{{cents .Price}} <span class="text-muted">{{.Currency}}</span></td>
             <td class="num hide-sm">{{.Quantity}}</td>

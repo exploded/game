@@ -33,6 +33,7 @@ card, as the trading apps lead with. */}}
         {{with .Extra.Total}}<span><span class="pill {{.Class}}">{{.Text}} ({{.Pct}})</span> <span class="text-muted">since the start</span></span>{{end}}
     </div>
     {{with .Extra.Standing}}{{if .Unranked}}{{if not $.Extra.Over}}<p class="hero-gap text-muted">You&rsquo;ll join the leaderboard after your first trade.</p>{{end}}{{else if gt .Of 1}}<p class="hero-gap text-muted">{{if .Ahead}}{{cents .Gap}} behind {{.Ahead}}{{else}}You're in the lead{{end}}</p>{{end}}{{end}}
+    {{with .Extra.Share}}<button type="button" class="btn btn-sm btn-secondary hero-share" data-share="{{.}}" data-share-url="{{$.Extra.ShareURL}}">Share my result</button>{{end}}
     {{if .Extra.Snapshots}}<div class="perf-chart"><canvas id="portfolio-chart" role="img" aria-label="Your portfolio's value each day this month"></canvas></div>{{end}}
     <div class="hero-split">
         <div><span class="stat-label">Cash</span><span class="mono">{{cents $pt.CashBalance}}</span></div>
@@ -134,13 +135,13 @@ the US market was closed. The Orders page has them all. */}}
         <li><strong>Buy US shares.</strong> Tap a stock, then Buy.</li>
         <li><strong>Top the leaderboard</strong> when the month ends to win.</li>
     </ol>
-    {{with .Extra.Picks}}
+    {{with .Extra.Starters}}
     <div class="section-header">
-        <h2>Start with Rob's Picks</h2>
+        <h2>The biggest companies</h2>
         <a href="/games/{{$.Item.ID}}/stocks" class="learn-more">All stocks &rsaquo;</a>
     </div>
     <table class="rtable screener">
-        <tbody>{{template "stock-rows" dict "Items" . "Item" $.Item "Extra" (dict "ShowNotes" true)}}</tbody>
+        <tbody>{{template "stock-rows" dict "Items" . "Item" $.Item "Extra" (dict)}}</tbody>
     </table>
     {{end}}
     <div class="search-bar home-search">

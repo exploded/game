@@ -11,7 +11,6 @@
         <h1 class="lesson-h1">{{.Item.Title}}</h1>
         <p class="lesson-meta">Lesson {{index .Extra "Number"}} of {{index .Extra "Count"}}{{if .Item.Minutes}} &middot; {{.Item.Minutes}} min{{end}}</p>
 
-        {{if .User}}
         {{template "player" (dict "Embed" .Item.EmbedUrl "Thumb" $thumb "Title" .Item.Title "Course" $c)}}
         {{/* Shown over the player when the video ends (app.js), in place of
              Vimeo's "More from ..." end screen, which lists other videos. */}}
@@ -26,22 +25,11 @@
                 </span>
             </div>
         </template>
-        {{else}}
-        <div class="player lesson-locked">
-            {{with $thumb}}<img src="{{.}}" alt="">{{else}}<span class="player-art course-tile-{{or $c.Art "generic"}}">{{template "course-cover" $c}}</span>{{end}}
-            <div class="lesson-locked-text">
-                <strong>Sign in to watch</strong>
-                <span>It's free. Enter your email and we'll send you a sign-in link.</span>
-                <a href="{{index .Extra "SignIn"}}" class="btn btn-primary">Sign in free</a>
-            </div>
-        </div>
-        {{end}}
 
         {{range paragraphs .Item.Description}}<p class="lesson-desc">{{.}}</p>{{end}}
 
         <div class="lesson-nav">
             <div>{{with index .Extra "Prev"}}<a href="/learn/courses/{{$c.Slug}}/{{.ID}}?play=1" class="btn btn-sm btn-secondary" title="{{.Title}}">&larr; Previous</a>{{end}}</div>
-            {{if .User}}
             <form method="POST" action="/learn/courses/{{$c.Slug}}/{{.Item.ID}}/complete" id="lesson-done">
                 {{if .Item.Completed}}
                 <input type="hidden" name="done" value="0">
@@ -50,7 +38,6 @@
                 <button type="submit" class="btn btn-primary">{{if index .Extra "Next"}}Mark done, next lesson{{else}}Mark done and finish{{end}}</button>
                 {{end}}
             </form>
-            {{end}}
             <div>{{with index .Extra "Next"}}<a href="/learn/courses/{{$c.Slug}}/{{.ID}}?play=1" class="btn btn-sm btn-secondary" title="{{.Title}}">Next &rarr;</a>{{end}}</div>
         </div>
     </div>

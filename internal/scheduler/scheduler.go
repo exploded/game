@@ -152,16 +152,9 @@ func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, 
 	// 6. Email order fills, game results and the like.
 	notify.Run(ctx, q, m, now, loc)
 
-	// 7. Clean expired sessions and sign-in requests, and the AI
-	// connections' leftovers (handler/oauth.go, api.go).
+	// 7. Clean expired sessions and sign-in requests.
 	q.DeleteExpiredSessions(ctx)
 	q.DeleteOldLoginRequests(ctx)
-	q.DeleteExpiredOAuthCodes(ctx)
-	q.DeleteOldIdempotency(ctx)
-	if utcNow.Minute() == 30 {
-		q.DeleteOldAPITokens(ctx)
-		q.DeleteStaleOAuthClients(ctx)
-	}
 }
 
 // startupBackfill fetches the history of any S&P 500 stock that hasn't had it

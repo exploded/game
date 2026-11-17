@@ -12,7 +12,7 @@ import (
 	"github.com/exploded/game/internal/market"
 )
 
-// Order is one order from a player: from the order ticket, the API or MCP.
+// Order is one order from a player, from the order ticket.
 type Order struct {
 	UserID     int64
 	GameID     int64
@@ -23,7 +23,6 @@ type Order struct {
 	CloseAll   bool   // close the whole position, whatever Quantity says
 	LimitPrice int64  // cents in the stock's currency, limit orders only
 	ExpiresAt  string // YYYY-MM-DD, optional, limit orders only
-	Source     string // "" from the site, "api" or "mcp" from the player's AI
 	DryRun     bool   // work the order out, check it, and place nothing
 }
 
@@ -74,9 +73,6 @@ func (h *Handler) PlaceOrder(ctx context.Context, o Order) (OrderResult, error) 
 	}
 	if game.Status != "active" {
 		return OrderResult{}, refuse("Game is not active")
-	}
-	if o.Source != "" && game.AiTrading == 0 {
-		return OrderResult{}, refuse("AI trading is turned off in this game. Trade on investorproject.au instead.")
 	}
 	stock, err := h.q.GetStock(ctx, o.StockID)
 	if err != nil {
@@ -220,7 +216,6 @@ func (h *Handler) PlaceOrder(ctx context.Context, o Order) (OrderResult, error) 
 		ConvertedTotal:   totalBase,
 		ExchangeRateUsed: exchangeRate,
 		Fee:              fee,
-		Source:           o.Source,
 	})
 	if err != nil {
 		return OrderResult{}, err
@@ -232,7 +227,7 @@ func (h *Handler) PlaceOrder(ctx context.Context, o Order) (OrderResult, error) 
 
 	// Revalue now so the portfolio summary is right straight away.
 	h.revalueParticipant(ctx, participant.ID, game.BaseCurrency)
-	h.InsertTradeActivity(ctx, game.ID, o.UserID, o.Side, stock, quantity, o.Source)
+	h.InsertTradeActivity(ctx, game.ID, o.UserID, o.Side, stock, quantity)
 	go h.CheckAndGrantAchievements(context.Background(), o.UserID, game.ID, participant.ID)
 
 	action := "Bought"
@@ -285,7 +280,6 @@ func (h *Handler) queueMarket(ctx context.Context, o Order, game db.Game, stock 
 		StockID:       stock.ID,
 		Type:          o.Side,
 		Quantity:      res.Quantity,
-		Source:        o.Source,
 	})
 	if err != nil {
 		return OrderResult{}, err
@@ -360,7 +354,6 @@ func (h *Handler) placeLimit(ctx context.Context, o Order, game db.Game, stock d
 		Quantity:      o.Quantity,
 		LimitPrice:    o.LimitPrice,
 		ExpiresAt:     expiry,
-		Source:        o.Source,
 	})
 	if err != nil {
 		return OrderResult{}, err

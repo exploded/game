@@ -34,7 +34,6 @@ game's cash, the bell and the account menu. .Nav is set by render
                     <a href="/games">Past and upcoming games</a>
                     <hr>
                     <a href="/settings">Settings and avatar</a>
-                    <a href="/settings/api">Connect your AI</a>
                     <a href="/help">Help</a>
                     {{if $.User.IsAdmin}}<a href="/admin">Admin</a>{{end}}
                     <form method="POST" action="/logout"><button type="submit">Sign out</button></form>
@@ -43,7 +42,6 @@ game's cash, the bell and the account menu. .Nav is set by render
         </div>
         {{else}}
         <nav class="topbar-public" aria-label="Main">
-            <a href="/learn">Learn</a>
             <a href="/login" class="btn btn-sm btn-primary">Sign in</a>
         </nav>
         {{end}}

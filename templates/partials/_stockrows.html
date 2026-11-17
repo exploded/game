@@ -10,7 +10,6 @@ portfolio. Also served alone by StockSearch for the search there. */}}
                 <a href="/games/{{$.Item.ID}}/stocks/{{.ID}}" class="stretch"><strong>{{.Symbol}}</strong></a>
                 <span class="c-sub">{{.Name}}</span>
                 {{if gt .Held 0}}<span class="badge badge-held">You hold {{.Held}}</span>{{else if lt .Held 0}}<span class="badge badge-held">Short {{.HeldShares}}</span>{{end}}
-                {{if and $.Extra.ShowNotes .PickNote}}<span class="c-sub sc-note">{{.PickNote}}</span>{{end}}
                 {{if .Holders}}<span class="c-sub">{{.Holders}} {{if eq .Holders 1}}player{{else}}players{{end}}</span>{{end}}
                 {{if or .Figure .HasHealth}}<span class="c-sub sc-fin">{{with .Figure}}<span>{{.}}</span>{{end}}{{if .HasHealth}}<span class="badge badge-health" title="Health score: a point each for a profit, positive free cash flow, debt-to-equity under 1, a current ratio over 1 and revenue up on a year earlier">Health {{.Health}}/5</span>{{end}}</span>{{end}}
             </div>

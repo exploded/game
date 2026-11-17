@@ -44,15 +44,15 @@
 
 <div class="settings-card">
     <h2>Add a video by link</h2>
-    <p class="text-muted" style="margin-bottom:12px">For Facebook and Instagram videos, or a TikTok or YouTube video that isn't synced. YouTube titles are looked up for you; type in the title for the others. A pasted TikTok shows a plain cover until the TikTok sync picks it up.</p>
+    <p class="text-muted" style="margin-bottom:12px">For a TikTok or YouTube video that isn't synced. YouTube titles are looked up for you; type in the title for the others. A pasted TikTok shows a plain cover until the TikTok sync picks it up.</p>
     <form method="POST" action="/admin/learn/videos">
         <div class="form-group">
             <label for="url">Video link</label>
-            <input type="url" id="url" name="url" required placeholder="https://www.instagram.com/reel/...">
+            <input type="url" id="url" name="url" required placeholder="https://www.tiktok.com/@rob_goudie/video/...">
         </div>
         <div class="form-row">
             <div class="form-group" style="flex:2">
-                <label for="vtitle">Title (needed for TikTok, Facebook and Instagram)</label>
+                <label for="vtitle">Title (needed for TikTok)</label>
                 <input type="text" id="vtitle" name="title" maxlength="200">
             </div>
             <div class="form-group" style="flex:1">
@@ -70,8 +70,6 @@
         {{$p := index .Extra "Platform"}}
         <option value="youtube"{{if eq $p "youtube"}} selected{{end}}>YouTube</option>
         <option value="tiktok"{{if eq $p "tiktok"}} selected{{end}}>TikTok</option>
-        <option value="facebook"{{if eq $p "facebook"}} selected{{end}}>Facebook</option>
-        <option value="instagram"{{if eq $p "instagram"}} selected{{end}}>Instagram</option>
     </select>
     <input type="search" name="q" value="{{index .Extra "Q"}}" placeholder="Search titles" aria-label="Search titles">
     <button type="submit" class="btn btn-secondary">Filter</button>

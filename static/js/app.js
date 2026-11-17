@@ -441,15 +441,20 @@ document.addEventListener("play", function(e) {
     if (frame) frame.classList.add("playing");
 }, true);
 
-// data-copy on a button: copy the text of the element whose id it names
-// (the API key page's boxes).
+// data-share: the "Share my result" button on a game's home page. Where the
+// browser can share (phones, mostly) it opens the share sheet; elsewhere the
+// text and link are copied, to paste into a post.
 document.addEventListener("click", function(e) {
-    const btn = e.target.closest("[data-copy]");
+    const btn = e.target.closest("[data-share]");
     if (!btn) return;
-    const src = document.getElementById(btn.getAttribute("data-copy"));
-    if (!src) return;
-    const text = src.textContent.trim();
-    const failed = function() { showToast("Couldn't copy. Select the text and copy it yourself.", "error"); };
+    const text = btn.getAttribute("data-share"), url = btn.getAttribute("data-share-url");
+    if (navigator.share) {
+        navigator.share({ text: text, url: url }).catch(function() {});
+        return;
+    }
+    const failed = function() { showToast("Couldn't copy. Take a screenshot to share instead.", "error"); };
     if (!navigator.clipboard) { failed(); return; }
-    navigator.clipboard.writeText(text).then(function() { showToast("Copied", "success"); }, failed);
+    navigator.clipboard.writeText(text + " " + url).then(function() {
+        showToast("Copied. Paste it into your post.", "success");
+    }, failed);
 });

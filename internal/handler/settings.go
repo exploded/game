@@ -61,9 +61,8 @@ func (h *Handler) AccountDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Destroy all sessions, and stop any AI connected to the account.
+	// Destroy all sessions.
 	_ = h.q.DeleteUserSessions(r.Context(), user.ID)
-	_ = h.q.RevokeUserAPITokens(r.Context(), user.ID)
 
 	// Clear session cookie.
 	http.SetCookie(w, &http.Cookie{

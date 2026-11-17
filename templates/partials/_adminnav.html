@@ -2,7 +2,6 @@
 {{- $tab := .Tab -}}
 <nav class="admin-links admin-nav" aria-label="Admin">
     <a href="/admin/games" class="btn btn-primary"{{if eq $tab "games"}} aria-current="page"{{end}}>Games</a>
-    <a href="/admin/picks" class="btn btn-primary"{{if eq $tab "picks"}} aria-current="page"{{end}}>Rob's Picks</a>
     <a href="/admin/users" class="btn btn-primary"{{if eq $tab "users"}} aria-current="page"{{end}}>Users</a>
     <a href="/admin/prices" class="btn btn-primary"{{if eq $tab "prices"}} aria-current="page"{{end}}>Prices</a>
     <a href="/admin/email" class="btn btn-primary"{{if eq $tab "email"}} aria-current="page"{{end}}>Email a Newsletter</a>

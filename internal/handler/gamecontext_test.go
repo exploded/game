@@ -133,6 +133,9 @@ func TestGameHomeIsPortfolio(t *testing.T) {
 		!strings.Contains(body, "join the leaderboard after your first trade") {
 		t.Error("an untraded player's home page doesn't say they're not ranked yet")
 	}
+	if body := getPage(t, srv, "/games/1", "2"); strings.Contains(body, "data-share") {
+		t.Error("an untraded player has a Share my result button")
+	}
 	board := getPage(t, srv, "/games/1/leaderboard", "2")
 	if strings.Contains(board, "<td>Bob") {
 		t.Error("the leaderboard lists a player who hasn't traded")
@@ -152,6 +155,8 @@ func TestGameHomeIsPortfolio(t *testing.T) {
 		`href="/dashboard" class="active" aria-current="page">`, // Home, which the game's home sits under
 		`<span class="rank-place">2nd</span>`,
 		`$1,000.00 behind Bob`,
+		`>Share my result</button>`,
+		`data-share="I&#39;m 2nd of 2 in The Investor Project&#39;s`,
 		`<span class="pill pill-up">&#43;5.00%</span> <span class="c-amt">&#43;$5.00</span>`,   // today
 		`<span class="pill pill-up">&#43;16.67%</span> <span class="c-amt">&#43;$15.00</span>`, // since bought
 		`&#43;$5.00 (0.00%)</span> <span class="text-muted">today`,                             // whole portfolio
@@ -381,20 +386,6 @@ func TestActivityShowsEveryPlayer(t *testing.T) {
 			t.Errorf("page is missing %q", want)
 		}
 	}
-	if strings.Contains(body, `class="ai-badge"`) {
-		t.Error("a trade from the site has the AI badge")
-	}
-
-	// A trade the player's AI placed gets the robot.
-	if err := q.InsertActivity(t.Context(), db.InsertActivityParams{
-		GameID: 1, UserID: 2, Action: "sell", Detail: "sold 1 share of ACME", StockID: nint64(1), Source: "mcp",
-	}); err != nil {
-		t.Fatal(err)
-	}
-	body = getPage(t, srv, "/games/1/activity", "")
-	if !strings.Contains(body, `<strong>Bob</strong><a href="/ai" class="ai-badge"`) {
-		t.Error("an AI trade has no AI badge")
-	}
 }
 
 func TestGameHomeIsRulesForNonPlayers(t *testing.T) {
@@ -423,7 +414,7 @@ func TestRulesPage(t *testing.T) {
 
 // TestStanding: places come from counts, equal values share a place (also
 // across a page of Ranks), players with no trade aren't ranked, blocked
-// players aren't counted, and the triggers keep traded and uses_ai.
+// players aren't counted, and the trigger keeps traded.
 func TestStanding(t *testing.T) {
 	d := openTestDB(t)
 	if _, err := d.Exec(`
@@ -434,11 +425,11 @@ func TestStanding(t *testing.T) {
 		INSERT INTO participants (id, game_id, user_id, cash_balance, portfolio_value) VALUES
 			(1, 1, 1, 0, 300), (2, 1, 2, 0, 200), (3, 1, 3, 0, 200), (4, 1, 4, 0, 100), (5, 1, 5, 0, 400), (6, 1, 6, 0, 250);
 		INSERT INTO stocks (id, symbol, name, market, currency) VALUES (1, 'ACME', 'Acme', 'sp500', 'USD');
-		INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total, converted_total, source) VALUES
-			(1, 1, 'buy', 1, 1, 1, 1, ''), (2, 1, 'buy', 1, 1, 1, 1, ''), (3, 1, 'buy', 1, 1, 1, 1, ''),
-			(4, 1, 'buy', 1, 1, 1, 1, 'mcp'), (6, 1, 'buy', 1, 1, 1, 1, '');
-		INSERT INTO limit_orders (participant_id, stock_id, type, quantity, limit_price, source) VALUES
-			(2, 1, 'buy', 1, 1, 'api'), (1, 1, 'buy', 1, 1, '');
+		INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total, converted_total) VALUES
+			(1, 1, 'buy', 1, 1, 1, 1), (2, 1, 'buy', 1, 1, 1, 1), (3, 1, 'buy', 1, 1, 1, 1),
+			(4, 1, 'buy', 1, 1, 1, 1), (6, 1, 'buy', 1, 1, 1, 1);
+		INSERT INTO limit_orders (participant_id, stock_id, type, quantity, limit_price) VALUES
+			(2, 1, 'buy', 1, 1), (1, 1, 'buy', 1, 1);
 		UPDATE users SET blocked_at = datetime('now') WHERE id = 6;
 	`); err != nil {
 		t.Fatal(err)
@@ -455,11 +446,10 @@ func TestStanding(t *testing.T) {
 		return p
 	}
 
-	// The triggers: a trade puts a player on the board, and a trade or an
-	// order from their AI gives them the robot.
-	for id, want := range map[int64][2]int64{1: {1, 0}, 2: {1, 1}, 3: {1, 0}, 4: {1, 1}, 5: {0, 0}, 6: {1, 0}} {
-		if p := part(id); p.Traded != want[0] || p.UsesAi != want[1] {
-			t.Errorf("participant %d: traded %d, uses_ai %d; want %d, %d", id, p.Traded, p.UsesAi, want[0], want[1])
+	// The trigger: a trade puts a player on the board; an order doesn't.
+	for id, want := range map[int64]int64{1: 1, 2: 1, 3: 1, 4: 1, 5: 0, 6: 1} {
+		if p := part(id); p.Traded != want {
+			t.Errorf("participant %d: traded %d, want %d", id, p.Traded, want)
 		}
 	}
 
@@ -630,7 +620,7 @@ func noAfterHours(t *testing.T, q *db.Queries) {
 		ID: g.ID, Name: g.Name, Description: g.Description,
 		StartingBalance: g.StartingBalance, BaseCurrency: g.BaseCurrency, MaxParticipants: g.MaxParticipants,
 		TradeFee: g.TradeFee, FxFee: g.FxFee, AllowShort: g.AllowShort, LimitOrders: g.LimitOrders,
-		ReferralBonusPct: g.ReferralBonusPct, CreditInterestRate: g.CreditInterestRate, AiTrading: g.AiTrading,
+		ReferralBonusPct: g.ReferralBonusPct, CreditInterestRate: g.CreditInterestRate,
 	}); err != nil {
 		t.Fatal(err)
 	}

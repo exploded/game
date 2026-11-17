@@ -306,13 +306,14 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 		}
 	}
 
-	// A player who holds nothing yet starts from Rob's Picks.
-	var picks []screenRow
+	// A player who holds nothing yet starts from the biggest companies, the
+	// stocks page's first list.
+	var starters []screenRow
 	if len(pf.Rows) == 0 && game.Status == "active" {
 		if rows, err := h.screenRows(ctx, game.Markets); err == nil {
-			picks = applyFilter(rows, defaultFilter, "", "", nil).Rows
-			picks = picks[:min(len(picks), homePicks)]
-			h.markRows(ctx, participant.ID, participant.UserID, picks)
+			starters = applyFilter(rows, defaultFilter, "", "", nil).Rows
+			starters = starters[:min(len(starters), homeStarters)]
+			h.markRows(ctx, participant.ID, participant.UserID, starters)
 		}
 	}
 	sectors, _ := h.q.ListHoldingsBySector(ctx, participant.ID)
@@ -329,6 +330,8 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 			"SessionDay":   sessionDay(pf.Session, marketNow()),
 			"Total":        pf.Total,
 			"Standing":     pf.Standing,
+			"Share":        shareResult(game, pf.Standing, pf.Total, pf.Over),
+			"ShareURL":     siteURL(r),
 			"Interest":     pf.Interest,
 			"Dividends":    pf.Dividends,
 			"InvitesOpen":  invitesOpen(game),
@@ -338,16 +341,16 @@ func (h *Handler) portfolio(w http.ResponseWriter, r *http.Request, game db.Game
 			"Orders":       pf.Orders[:min(len(pf.Orders), homeOrders)],
 			"MoreOrders":   len(pf.Orders) > homeOrders,
 			"Sectors":      sectorShares(sectors),
-			"Picks":        picks,
+			"Starters":     starters,
 			"DaysLeft":     daysLeft(game, time.Now().In(h.loc)),
 		},
 	})
 }
 
-// How many waiting orders and Rob's Picks the home page lists.
+// How many waiting orders and starter stocks the home page lists.
 const (
-	homeOrders = 3
-	homePicks  = 5
+	homeOrders   = 3
+	homeStarters = 5
 )
 
 // sectorShare is one line of the home page's sector breakdown.

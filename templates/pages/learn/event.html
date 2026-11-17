@@ -90,16 +90,12 @@
 
     <aside class="watch-side">
         <h2 class="learn-h2">{{if eq $e.Status "ended"}}Open questions{{else}}Up next: your questions{{end}}</h2>
-        {{if $.User}}
         <form method="POST" action="/learn/questions" class="ask-inline">
             <input type="hidden" name="back" value="/learn/live/{{$e.ID}}">
             <label for="title" class="sr-only">Your question</label>
             <input type="text" id="title" name="title" maxlength="150" required placeholder="Ask Rob a question">
             <button type="submit" class="btn btn-primary">Ask</button>
         </form>
-        {{else}}
-        <p style="margin-bottom:12px"><a href="{{index .Extra "SignIn"}}">Sign in</a> to ask and vote. It's free.</p>
-        {{end}}
         {{template "queue" .}}
     </aside>
 </div>
@@ -112,7 +108,7 @@ with Item (the stream) and Extra.Queue. */}}
 {{define "queue"}}{{$e := .Item}}<div id="queue" class="queue"{{if eq $e.Status "live"}} hx-get="/learn/live/{{$e.ID}}/queue" hx-trigger="every 20s" hx-swap="outerHTML"{{end}}>
     {{range index .Extra "Queue"}}
     <div class="queue-item">
-        {{template "vote" (dict "Q" . "User" $.User "SignIn" (index $.Extra "SignIn"))}}
+        {{template "vote" (dict "Q" .)}}
         <div class="queue-text">
             <a href="/learn/questions/{{.ID}}">{{.Title}}</a>
             <span class="text-muted">{{.UserName}}</span>
@@ -132,7 +128,7 @@ with Item (the stream) and Extra.Queue. */}}
 
 {{/* The Remind me button. . is PageData with Item (the stream) and
 Extra.Reminded. */}}
-{{define "remind"}}{{$e := .Item}}{{if .User}}<form method="POST" action="/learn/live/{{$e.ID}}/remind" hx-post="/learn/live/{{$e.ID}}/remind" hx-swap="outerHTML">
+{{define "remind"}}{{$e := .Item}}<form method="POST" action="/learn/live/{{$e.ID}}/remind" hx-post="/learn/live/{{$e.ID}}/remind" hx-swap="outerHTML">
     {{if index .Extra "Reminded"}}
     <input type="hidden" name="on" value="0">
     <button type="submit" class="btn btn-secondary">&#10003; We'll remind you</button>
@@ -140,4 +136,4 @@ Extra.Reminded. */}}
     <input type="hidden" name="on" value="1">
     <button type="submit" class="btn btn-secondary">Remind me</button>
     {{end}}
-</form>{{else}}<a href="{{index .Extra "SignIn"}}" class="btn btn-secondary">Remind me</a>{{end}}{{end}}
+</form>{{end}}

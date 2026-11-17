@@ -61,7 +61,7 @@ func logoURL(u string) string {
 }
 
 // defaultFilter is the chip the stocks page opens on.
-const defaultFilter = "picks"
+const defaultFilter = "big"
 
 // firstFinFilter is the first chip that tests a company's financials. The
 // stocks page puts a divider before it.
@@ -88,24 +88,14 @@ const screenTTL = time.Minute
 // still gets them and starts a rebuild in the background: a rebuild takes
 // about 100 ms in production, and until 6 November 2026 it held the lock,
 // so whoever came next waited for it. Only a request that finds no rows (the
-// first after a restart, or after clear) waits for a build.
+// first after a restart) waits for a build.
 type screenCache struct {
 	mu       sync.Mutex // guards the fields below
 	at       map[string]time.Time
 	rows     map[string][]screenRow
 	building map[string]bool // a background rebuild is running
-	gen      int             // bumped by clear, so a build begun before it isn't kept
 
 	build sync.Mutex // one build at a time
-}
-
-// clear drops the cached rows, after Rob's Picks change, so the next
-// request builds them afresh.
-func (c *screenCache) clear() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.at, c.rows = nil, nil
-	c.gen++
 }
 
 // screenRows returns every stock in the market with its price, move and
@@ -150,7 +140,6 @@ func (h *Handler) buildScreenRows(ctx context.Context, mkt string) ([]screenRow,
 		c.mu.Unlock()
 		return rows, nil
 	}
-	gen := c.gen
 	c.mu.Unlock()
 
 	stocks, err := h.q.ListScreenerStocks(ctx, db.ListScreenerStocksParams{Market: mkt, Column2: mkt})
@@ -173,12 +162,10 @@ func (h *Handler) buildScreenRows(ctx context.Context, mkt string) ([]screenRow,
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if c.gen == gen { // not cleared while building
-		if c.at == nil {
-			c.at, c.rows = map[string]time.Time{}, map[string][]screenRow{}
-		}
-		c.at[mkt], c.rows[mkt] = time.Now(), rows
+	if c.at == nil {
+		c.at, c.rows = map[string]time.Time{}, map[string][]screenRow{}
 	}
+	c.at[mkt], c.rows[mkt] = time.Now(), rows
 	return rows, nil
 }
 
@@ -243,8 +230,8 @@ func sparkPoints(closes []int64) string {
 // Data /statistics. It stores 0 for a figure Twelve Data didn't send, so
 // every test needs a real value, not just a zero that passes "under 15".
 
-// hasFinancials says whether a stock has figures at all: funds such as IBIT
-// have none.
+// hasFinancials says whether a stock has figures at all: Twelve Data sends
+// none for some, such as new listings.
 func hasFinancials(r screenRow) bool { return r.Revenue != 0 }
 
 // balanceSheetFits says whether debt-to-equity, the current ratio and cash
@@ -332,11 +319,7 @@ var screenFilters = []screenFilter{
 		keep:  func(r screenRow) bool { return r.Watching },
 	},
 	{Key: "all", Label: "All A–Z", Group: "Every stock", Order: "A–Z"},
-	{
-		Key: "picks", Label: "Rob's Picks", Group: "Rob's Picks",
-		keep: func(r screenRow) bool { return r.IsPick == 1 },
-		less: func(a, b screenRow) bool { return a.PickOrder < b.PickOrder },
-	},
+	{Key: "big", Label: "Biggest", Group: "The biggest companies", less: biggerCap, limit: screenBiggest},
 	{
 		Key: "mag7", Label: "Mag 7", Group: "The Magnificent 7",
 		keep: func(r screenRow) bool { return r.Market == "sp500" && mag7[r.Symbol] },
@@ -359,7 +342,6 @@ var screenFilters = []screenFilter{
 		less:  func(a, b screenRow) bool { return a.TodayPct < b.TodayPct },
 		limit: screenTop,
 	},
-	{Key: "big", Label: "Biggest", Group: "The biggest companies", less: biggerCap, limit: screenBiggest},
 	{
 		Key: "active", Label: "Most traded", Group: "Most traded today", Order: "by dollar value",
 		keep:  func(r screenRow) bool { return r.Turnover > 0 },
@@ -374,11 +356,6 @@ var screenFilters = []screenFilter{
 	{
 		Key: "intl", Label: "International", Group: "Overseas companies listed in the US",
 		keep: func(r screenRow) bool { return market.IsOtherUS(r.Symbol, r.Market) },
-		less: biggerCap,
-	},
-	{
-		Key: "crypto", Label: "Crypto", Group: "Bitcoin funds and crypto companies",
-		keep: func(r screenRow) bool { return market.IsCrypto(r.Symbol, r.Market) },
 		less: biggerCap,
 	},
 	{

@@ -79,7 +79,7 @@ func TestTikTokLiveCheckBooked(t *testing.T) {
 		(1, 'tiktok', 'https://www.tiktok.com/@rob_goudie/live', 'Booked now', datetime('now', '+5 minutes'), 'upcoming'),
 		(2, 'tiktok', 'https://www.tiktok.com/@rob_goudie/live', 'Booked earlier', datetime('now', '-90 minutes'), 'upcoming'),
 		(3, 'tiktok', 'https://www.tiktok.com/@rob_goudie/live', 'Booked later', datetime('now', '+3 hours'), 'upcoming'),
-		(4, 'facebook', 'https://www.facebook.com/consortiumpw/live', 'Facebook', datetime('now', '+1 minutes'), 'upcoming')`); err != nil {
+		(4, 'youtube', 'https://www.youtube.com/@ConsortiumPW/live', 'YouTube', datetime('now', '+1 minutes'), 'upcoming')`); err != nil {
 		t.Fatal(err)
 	}
 	tt := &fakeTikTokLive{t: t, status: 4}
