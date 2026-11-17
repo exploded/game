@@ -27,8 +27,8 @@
             {{end}}{{end}}
         </li>
         <li>
-            {{if index .Extra "TikTokPlayer"}}&#10003; TikTok's player is on: TikTok videos play on the site.
-            {{else}}&#10007; TikTok's player is off: TikTok videos show their cover and a Watch on TikTok link. Turn it on once TikTok's player works again (open <a href="https://www.tiktok.com/player/v1/7689568478570843422" target="_blank" rel="noopener">TikTok's test video</a>: if it plays, it's working).{{end}}
+            {{if index .Extra "TikTokPlayer"}}&#10003; TikTok's player is on. It works in some browsers and not others, so each page checks: where TikTok's player fails, its videos show their cover and a Watch on TikTok link instead.
+            {{else}}&#10007; TikTok's player is off: every TikTok video shows its cover and a Watch on TikTok link, even in browsers where TikTok's player works.{{end}}
         </li>
     </ul>
     <div class="btn-group" style="flex-wrap:wrap;margin-top:12px">

@@ -372,8 +372,52 @@ function startPlayer(btn, autoplay) {
         src.searchParams.set("origin", location.origin);
     }
     const frame = playerFrame(src.toString(), btn.getAttribute("data-title"));
+    const out = btn.parentElement.querySelector("template[data-player-out]");
+    if (out && src.hostname === "www.tiktok.com") {
+        watchTikTok(btn, frame, out);
+        return;
+    }
     btn.replaceWith(frame);
     if (end) showCardAtEnd(frame, end);
+}
+
+// watchTikTok loads TikTok's player hidden behind its button, which shows a
+// spinner, and listens to the player's postMessage events. TikTok's player
+// works in some browsers and not others ("Player authentication failed" in
+// Chrome on a PC and Safari on an iPhone since 17 November 2026), so:
+// onPlayerReady shows the player, and onError, onPlayerError or nothing
+// within 12 seconds swaps in the button's "player-out" template, the cover
+// linking to the video on TikTok. Nobody sees TikTok's error.
+function watchTikTok(btn, frame, out) {
+    const origin = "https://www.tiktok.com";
+    btn.classList.add("player-loading");
+    btn.disabled = true;
+    btn.setAttribute("aria-busy", "true");
+    frame.classList.add("player-hidden");
+    btn.before(frame);
+    const timer = setTimeout(fail, 12000);
+    function fail() {
+        clearTimeout(timer);
+        window.removeEventListener("message", onMessage);
+        frame.replaceWith(out.content.firstElementChild.cloneNode(true));
+        btn.remove();
+    }
+    function onMessage(e) {
+        if (e.source !== frame.contentWindow || e.origin !== origin) return;
+        let d = e.data;
+        if (typeof d === "string") {
+            try { d = JSON.parse(d); } catch (_) { return; }
+        }
+        if (!d || !d["x-tiktok-player"]) return;
+        if (d.type === "onError" || d.type === "onPlayerError") {
+            fail();
+        } else if (d.type === "onPlayerReady" && btn.isConnected) {
+            clearTimeout(timer);
+            frame.classList.remove("player-hidden");
+            btn.remove();
+        }
+    }
+    window.addEventListener("message", onMessage);
 }
 
 function playerFrame(src, title) {

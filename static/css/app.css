@@ -1512,7 +1512,21 @@ dialog.confirm form { padding: 20px; }
     border-style: solid; border-width: 11px 0 11px 18px; border-color: transparent transparent transparent #fff;
 }
 .player-start:hover .player-icon, .player-start:focus-visible .player-icon { background: #FF0033; }
-/* A TikTok video while TikTok's player is switched off: its cover links to TikTok. */
+/* TikTok's player loads hidden behind its button, which spins until the
+   player says it's ready (watchTikTok in app.js). */
+.player iframe.player-hidden { opacity: 0; }
+.player-loading { cursor: progress; }
+.player-loading .player-icon, .player-loading:hover .player-icon { background: rgba(0, 0, 0, 0.75); }
+.player-loading .player-icon::after {
+    left: 50%; width: 22px; height: 22px; box-sizing: border-box;
+    border: 3px solid rgba(255, 255, 255, 0.35); border-top-color: #fff; border-radius: 50%;
+    animation: player-spin 0.8s linear infinite;
+}
+@keyframes player-spin {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+/* A TikTok video whose player can't play here (or is switched off): its cover links to TikTok. */
 .player-out { display: block; color: #fff; text-decoration: none; }
 .player-out-label {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); white-space: nowrap;

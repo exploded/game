@@ -154,10 +154,11 @@ func TestLearnPagesRender(t *testing.T) {
 	}
 }
 
-// TestTikTokPlayerSwitch: TikTok's player starts off (it showed every
-// visitor an error from 17 November 2026), and an admin can turn it on.
+// TestTikTokPlayerSwitch: TikTok's player is on by default, with the link
+// to TikTok in a template for app.js to swap in where the player fails, and
+// an admin can switch it off, which shows the link straight away.
 func TestTikTokPlayerSwitch(t *testing.T) {
-	t.Cleanup(func() { tiktokPlayerOn.Store(false) })
+	t.Cleanup(func() { tiktokPlayerOn.Store(true) })
 	srv, d := learnServerDB(t)
 	body := func(user, path string) string {
 		t.Helper()
@@ -167,33 +168,35 @@ func TestTikTokPlayerSwitch(t *testing.T) {
 		}
 		return w.Body.String()
 	}
+	link := `<a href="https://www.tiktok.com/@rob_goudie/video/7301" class="player-start player-out"`
 
-	off := body("", "/learn/v/2")
-	if !strings.Contains(off, `<a href="https://www.tiktok.com/@rob_goudie/video/7301" class="player-start player-out"`) ||
-		strings.Contains(off, `data-play="https://www.tiktok.com/`) {
-		t.Errorf("player off: want a link to TikTok and no player\n%s", off)
+	on := body("", "/learn/v/2")
+	if !strings.Contains(on, `data-play="https://www.tiktok.com/player/v1/7301"`) ||
+		!strings.Contains(on, `<template data-player-out>`+link) {
+		t.Errorf("player on: want TikTok's player with the link in a template\n%s", on)
 	}
-	if yt := body("", "/learn/v/1"); !strings.Contains(yt, `data-play="https://www.youtube-nocookie.com/embed/a?rel=0"`) {
-		t.Error("player off: YouTube should still play")
+	yt := body("", "/learn/v/1")
+	if !strings.Contains(yt, `data-play="https://www.youtube-nocookie.com/embed/a?rel=0"`) || strings.Contains(yt, "data-player-out") {
+		t.Error("YouTube should play, with no TikTok link")
 	}
-	if !strings.Contains(body("1", "/admin/learn"), "Turn TikTok player on") {
-		t.Error("admin page: no button to turn the player on")
+	if !strings.Contains(body("1", "/admin/learn"), "Turn TikTok player off") {
+		t.Error("admin page: no button to turn the player off")
 	}
 
-	if w := as(srv, "2", "POST", "/admin/learn/tiktok/player", url.Values{"on": {"1"}}, false); w.Code != http.StatusForbidden {
+	if w := as(srv, "2", "POST", "/admin/learn/tiktok/player", url.Values{"on": {"0"}}, false); w.Code != http.StatusForbidden {
 		t.Errorf("a player turning the switch: %d", w.Code)
 	}
-	if w := as(srv, "1", "POST", "/admin/learn/tiktok/player", url.Values{"on": {"1"}}, false); w.Code != http.StatusSeeOther {
-		t.Fatalf("turn on: %d", w.Code)
+	if w := as(srv, "1", "POST", "/admin/learn/tiktok/player", url.Values{"on": {"0"}}, false); w.Code != http.StatusSeeOther {
+		t.Fatalf("turn off: %d", w.Code)
 	}
-	if on := body("", "/learn/v/2"); !strings.Contains(on, `data-play="https://www.tiktok.com/player/v1/7301"`) || strings.Contains(on, "player-out") {
-		t.Errorf("player on: want TikTok's player\n%s", on)
+	if off := body("", "/learn/v/2"); !strings.Contains(off, link) || strings.Contains(off, `data-play="https://www.tiktok.com/`) {
+		t.Errorf("player off: want a link to TikTok and no player\n%s", off)
 	}
 
 	// The switch is stored, so a restart keeps it.
-	tiktokPlayerOn.Store(false)
+	tiktokPlayerOn.Store(true)
 	loadTikTokPlayer(t.Context(), db.New(d))
-	if !tiktokPlayerOn.Load() {
+	if tiktokPlayerOn.Load() {
 		t.Error("the switch wasn't stored")
 	}
 }
