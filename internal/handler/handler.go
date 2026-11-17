@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -36,6 +37,7 @@ type Handler struct {
 
 func New(q *db.Queries, rawDB *sql.DB, pages PageTemplates, production bool, loc *time.Location) *Handler {
 	displayLoc = loc
+	loadTikTokPlayer(context.Background(), q)
 	return &Handler{
 		rawDB:      rawDB,
 		q:          q,

@@ -442,6 +442,7 @@ func main() {
 			r.Post("/lessons/{lid}/delete", h.AdminLessonDelete)
 			r.Get("/learn", h.AdminLearn)
 			r.Post("/learn/sync", h.AdminLearnSync)
+			r.Post("/learn/tiktok/player", h.AdminTikTokPlayer)
 			r.Post("/learn/videos", h.AdminLearnPaste)
 			r.Get("/learn/videos/{vid}", h.AdminLearnVideo)
 			r.Post("/learn/videos/{vid}", h.AdminLearnVideoUpdate)

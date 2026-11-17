@@ -11,7 +11,7 @@
         <h1 class="lesson-h1">{{.Item.Title}}</h1>
         <p class="lesson-meta">Lesson {{index .Extra "Number"}} of {{index .Extra "Count"}}{{if .Item.Minutes}} &middot; {{.Item.Minutes}} min{{end}}</p>
 
-        {{template "player" (dict "Embed" .Item.EmbedUrl "Thumb" $thumb "Title" .Item.Title "Course" $c)}}
+        {{template "player" (dict "Embed" .Item.EmbedUrl "Thumb" $thumb "Title" .Item.Title "Course" $c "Watch" .Item.VideoUrl)}}
         {{/* Shown over the player when the video ends (app.js), in place of
              Vimeo's "More from ..." end screen, which lists other videos. */}}
         <template id="lesson-end">

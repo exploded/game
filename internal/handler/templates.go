@@ -251,6 +251,9 @@ func LoadTemplates(fsys fs.FS, static *Static) (PageTemplates, error) {
 			return fmt.Sprintf("/learn/thumb/%d", id)
 		},
 		"embedAt": embedAt,
+		// playerOff is true for a TikTok embed while TikTok's player is
+		// switched off (tiktokplayer.go).
+		"playerOff": playerOff,
 		// percent is part as a whole percent of whole, 0 when whole is 0.
 		"percent": func(part, whole int64) int64 {
 			if whole <= 0 {

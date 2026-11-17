@@ -15,9 +15,9 @@
 
         {{if ne $e.Status "cancelled"}}
             {{with $v}}
-            {{template "player" (dict "Embed" .EmbedUrl "Thumb" (thumb .ThumbUrl .ID) "Title" $title "Vertical" .Vertical)}}
+            {{template "player" (dict "Embed" .EmbedUrl "Thumb" (thumb .ThumbUrl .ID) "Title" $title "Vertical" .Vertical "Watch" .Url)}}
             {{else}}{{if $e.EmbedUrl}}
-            {{template "player" (dict "Embed" $e.EmbedUrl "Thumb" "" "Title" $title "Vertical" false)}}
+            {{template "player" (dict "Embed" $e.EmbedUrl "Thumb" "" "Title" $title "Vertical" false "Watch" $e.Url)}}
             {{end}}{{end}}
         {{end}}
 

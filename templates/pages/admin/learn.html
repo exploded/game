@@ -26,6 +26,10 @@
                 TikTok isn't connected yet. Rob needs to sign in to TikTok once.
             {{end}}{{end}}
         </li>
+        <li>
+            {{if index .Extra "TikTokPlayer"}}&#10003; TikTok's player is on: TikTok videos play on the site.
+            {{else}}&#10007; TikTok's player is off: TikTok videos show their cover and a Watch on TikTok link. Turn it on once TikTok's player works again (open <a href="https://www.tiktok.com/player/v1/7689568478570843422" target="_blank" rel="noopener">TikTok's test video</a>: if it plays, it's working).{{end}}
+        </li>
     </ul>
     <div class="btn-group" style="flex-wrap:wrap;margin-top:12px">
         <form method="POST" action="/admin/learn/sync"><button type="submit" class="btn btn-primary">Sync now</button></form>
@@ -34,6 +38,8 @@
         <a href="/admin/learn/tiktok/connect" class="btn btn-secondary">{{if index .Extra "TikTok"}}Reconnect{{else}}Connect{{end}} TikTok</a>
         {{if index .Extra "TikTok"}}<form method="POST" action="/admin/learn/tiktok/disconnect" data-confirm="Disconnect TikTok? Its videos stay."><button type="submit" class="btn btn-secondary">Disconnect TikTok</button></form>{{end}}
         {{end}}
+        {{if index .Extra "TikTokPlayer"}}<form method="POST" action="/admin/learn/tiktok/player" data-confirm="Turn TikTok's player off? TikTok videos will link to TikTok instead."><input type="hidden" name="on" value="0"><button type="submit" class="btn btn-secondary">Turn TikTok player off</button></form>
+        {{else}}<form method="POST" action="/admin/learn/tiktok/player"><input type="hidden" name="on" value="1"><button type="submit" class="btn btn-secondary">Turn TikTok player on</button></form>{{end}}
     </div>
     {{with index .Extra "Counts"}}
     <p class="text-muted" style="margin-top:12px">

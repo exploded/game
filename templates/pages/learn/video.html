@@ -6,7 +6,7 @@
 
 <div class="watch">
     <div class="watch-main">
-        {{template "player" (dict "Embed" (index .Extra "Embed") "Thumb" (thumb $v.ThumbUrl $v.ID) "Title" $v.Title "Vertical" $v.Vertical)}}
+        {{template "player" (dict "Embed" (index .Extra "Embed") "Thumb" (thumb $v.ThumbUrl $v.ID) "Title" $v.Title "Vertical" $v.Vertical "Watch" $v.Url)}}
 
         <h1 class="watch-title">{{$v.Title}}</h1>
         <p class="text-muted watch-meta">

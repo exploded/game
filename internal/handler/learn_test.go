@@ -99,6 +99,7 @@ Line two.', 'https://i.ytimg.com/vi/a/mqdefault.jpg', '2026-10-01 00:00:00', 725
 		r.Get("/learn/live", h.AdminLearnLive)
 		r.Post("/learn/live", h.AdminLearnLiveCreate)
 		r.Post("/learn/live/{eid}/{action}", h.AdminLearnLiveAction)
+		r.Post("/learn/tiktok/player", h.AdminTikTokPlayer)
 	})
 	return r, d
 }
@@ -150,6 +151,50 @@ func TestLearnPagesRender(t *testing.T) {
 	}
 	if w := as(srv, "", "GET", "/learn/thumb/2", nil, false); w.Header().Get("Content-Type") != "image/svg+xml" {
 		t.Errorf("a missing cover should fall back to the placeholder, got %q", w.Header().Get("Content-Type"))
+	}
+}
+
+// TestTikTokPlayerSwitch: TikTok's player starts off (it showed every
+// visitor an error from 17 November 2026), and an admin can turn it on.
+func TestTikTokPlayerSwitch(t *testing.T) {
+	t.Cleanup(func() { tiktokPlayerOn.Store(false) })
+	srv, d := learnServerDB(t)
+	body := func(user, path string) string {
+		t.Helper()
+		w := as(srv, user, "GET", path, nil, false)
+		if w.Code != http.StatusOK {
+			t.Fatalf("%s: %d", path, w.Code)
+		}
+		return w.Body.String()
+	}
+
+	off := body("", "/learn/v/2")
+	if !strings.Contains(off, `<a href="https://www.tiktok.com/@rob_goudie/video/7301" class="player-start player-out"`) ||
+		strings.Contains(off, `data-play="https://www.tiktok.com/`) {
+		t.Errorf("player off: want a link to TikTok and no player\n%s", off)
+	}
+	if yt := body("", "/learn/v/1"); !strings.Contains(yt, `data-play="https://www.youtube-nocookie.com/embed/a?rel=0"`) {
+		t.Error("player off: YouTube should still play")
+	}
+	if !strings.Contains(body("1", "/admin/learn"), "Turn TikTok player on") {
+		t.Error("admin page: no button to turn the player on")
+	}
+
+	if w := as(srv, "2", "POST", "/admin/learn/tiktok/player", url.Values{"on": {"1"}}, false); w.Code != http.StatusForbidden {
+		t.Errorf("a player turning the switch: %d", w.Code)
+	}
+	if w := as(srv, "1", "POST", "/admin/learn/tiktok/player", url.Values{"on": {"1"}}, false); w.Code != http.StatusSeeOther {
+		t.Fatalf("turn on: %d", w.Code)
+	}
+	if on := body("", "/learn/v/2"); !strings.Contains(on, `data-play="https://www.tiktok.com/player/v1/7301"`) || strings.Contains(on, "player-out") {
+		t.Errorf("player on: want TikTok's player\n%s", on)
+	}
+
+	// The switch is stored, so a restart keeps it.
+	tiktokPlayerOn.Store(false)
+	loadTikTokPlayer(t.Context(), db.New(d))
+	if !tiktokPlayerOn.Load() {
+		t.Error("the switch wasn't stored")
 	}
 }
 
@@ -262,7 +307,7 @@ func TestPastStreams(t *testing.T) {
 	// Rob saved it and posted it: the stream gets a player and is listed.
 	recording("4", "https://www.tiktok.com/@rob_goudie/video/7301")
 	stream = page("/learn/live/4")
-	for _, s := range []string{"Recorded 5 Nov 2026", `data-play="https://www.tiktok.com/player/v1/7301"`, `href="https://www.tiktok.com/@rob_goudie/video/7301"`, "Watch on TikTok"} {
+	for _, s := range []string{"Recorded 5 Nov 2026", `class="player-start player-out"`, `href="https://www.tiktok.com/@rob_goudie/video/7301"`, "Watch on TikTok"} {
 		if !strings.Contains(stream, s) {
 			t.Errorf("stream with a recording: no %q", s)
 		}

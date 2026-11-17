@@ -102,10 +102,19 @@ ListTopics rows. */}}
 {{/* A player that loads only when tapped, so a page of videos doesn't load a
 dozen third-party players. . is a dict with Embed, Thumb, Title and
 Vertical, and optionally Course: a course row whose picture shows when
-there's no thumbnail. */}}
+there's no thumbnail. Watch is the video's own page on its site: while an
+admin has TikTok's player switched off (playerOff, tiktokplayer.go), a TikTok
+video is its cover linking there instead, so nobody sees TikTok's error. */}}
 {{define "player"}}<div class="player{{if .Vertical}} player-tall{{end}}">
+    {{if and (playerOff .Embed) .Watch}}
+    <a href="{{.Watch}}" class="player-start player-out" target="_blank" rel="noopener" aria-label="Watch {{.Title}} on TikTok">
+        {{with .Thumb}}<img src="{{.}}" alt="">{{end}}
+        <span class="player-out-label">Watch on TikTok &#8599;</span>
+    </a>
+    {{else}}
     <button type="button" class="player-start" data-play="{{.Embed}}" data-title="{{.Title}}" aria-label="Play {{.Title}}">
         {{with .Thumb}}<img src="{{.}}" alt="">{{else}}{{with .Course}}<span class="player-art course-tile-{{or .Art "generic"}}">{{template "course-cover" .}}</span>{{end}}{{end}}
         <span class="player-icon" aria-hidden="true"></span>
     </button>
+    {{end}}
 </div>{{end}}

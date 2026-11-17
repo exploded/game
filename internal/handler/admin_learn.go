@@ -40,6 +40,7 @@ func (h *Handler) AdminLearn(w http.ResponseWriter, r *http.Request) {
 	extra := map[string]any{
 		"Platform": platform, "Q": q, "Page": page,
 		"Counts": counts, "Status": h.media.Status(),
+		"TikTokPlayer": tiktokPlayerOn.Load(),
 	}
 	if tok, err := h.q.GetOAuthToken(ctx, "tiktok"); err == nil {
 		extra["TikTok"] = tok
