@@ -52,6 +52,10 @@
                     <label><input type="radio" name="cc-credits" value="1" data-cc="credits"><span>Yearly</span></label>
                 </div>
             </div>
+            <div class="form-group">
+                <label for="cc-inflation">Inflation a year, for today&rsquo;s dollars</label>
+                <div class="mcalc-field"><input id="cc-inflation" type="text" inputmode="decimal" autocomplete="off" value="2.50" data-cc="inflation"><span class="mcalc-unit mcalc-unit-end">%</span></div>
+            </div>
 
             <h2 class="mcalc-kicker mcalc-kicker-gap">Compare with starting later</h2>
             <div class="form-group">
@@ -109,11 +113,29 @@
         <p>Your first deposit goes in today, and each regular deposit at the end of its day, week, fortnight, month or year. Interest builds up on your balance every day and is added to it monthly or yearly. Once it&rsquo;s added, it earns interest too: that&rsquo;s the interest on interest. The rate stays the same the whole time.</p>
     </section>
 
-    <div class="mcalc-fine">
-        <p><strong>Important:</strong> Results are estimates in future dollars. They aren&rsquo;t adjusted for inflation and don&rsquo;t allow for tax, fees or changes in the interest rate. Real returns go up and down, and aren&rsquo;t guaranteed.</p>
-        <p>This calculator is general in nature only and does not constitute personal financial advice. It doesn&rsquo;t take your objectives, financial situation or needs into account.</p>
-        <p>The figures you enter stay on your device. They aren&rsquo;t sent to us or saved.</p>
-    </div>
 </div>
+
+<section class="calc-about" aria-labelledby="about-title">
+    <h2 id="about-title">About this calculator</h2>
+    <h3>What it&rsquo;s for</h3>
+    <p>It shows how a first deposit and regular deposits could grow at a steady interest rate, how much of the end balance is interest earned on interest, and what starting later would cost.</p>
+    <h3>What it leaves out, and what that means</h3>
+    <ul>
+        <li><strong>Rate changes.</strong> The rate stays the same every year. Savings rates change and investment returns rise and fall, so a real balance will differ.</li>
+        <li><strong>Tax.</strong> Interest is usually taxable income, so after tax you&rsquo;d keep less of it.</li>
+        <li><strong>Fees.</strong> Any account or investment fees would lower the balance.</li>
+        <li><strong>Inflation.</strong> The main results are future dollars. The today&rsquo;s-dollars figure shows what the balance might buy now.</li>
+    </ul>
+    <h3>Assumptions, and why we use them</h3>
+    <dl class="calc-assume">
+        <div><dt>Interest rate <span>5.00% a year &middot; you can change it</span></dt><dd>A round example rate. Savings accounts, term deposits and investments all pay different amounts, so enter the rate you expect.</dd></div>
+        <div><dt>Inflation, for today&rsquo;s dollars <span>2.50% a year &middot; you can change it</span></dt><dd>The middle of the Reserve Bank of Australia&rsquo;s 2&ndash;3% target for inflation, and the rate ASIC sets as the default for calculators like this one.</dd></div>
+        <div><dt>When money goes in <span>Built in</span></dt><dd>The first deposit goes in today; each regular deposit at the end of its period. This is how Moneysmart&rsquo;s compound interest calculator works, and slightly understates the balance if you deposit earlier.</dd></div>
+        <div><dt>How interest is added <span>Monthly &middot; you can change it</span></dt><dd>Interest builds up each day and is added monthly or yearly, as most bank accounts do.</dd></div>
+        <div><dt>Deposits and timeframe <span>$10,000, then $200 a month for 20 years &middot; you can change them</span></dt><dd>Example figures to show how the calculator works. Replace them with your own.</dd></div>
+    </dl>
+    {{template "calc-important" .}}
+</section>
+{{template "calc-device" .}}
 <script src="{{asset "js/compound.js"}}"></script>
 {{end}}

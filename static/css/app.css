@@ -2273,3 +2273,29 @@ polyline.fc-line-none, polyline.fc-line-a, polyline.fc-line-b { fill: none; }
     .course-grid .tool-card .course-card-body { padding: 2px 2px 2px 0; }
     .course-grid .tool-card .tool-card-go { display: none; }
 }
+
+/* "About this calculator" (.calc-about), under every calculator: purpose,
+   limitations, assumptions and why, and the statement ASIC's relief requires
+   (calc-important in partials/_tools.html). Outside each calculator's own
+   wrapper, so it looks the same on all six. */
+.calc-about { max-width: 1080px; margin: 28px auto 0; padding: 20px 22px; border-radius: 16px; background: var(--color-surface); border: 1px solid var(--color-border); }
+.calc-about h2 { font-size: 18px; margin-bottom: 4px; }
+.calc-about h3 { font-size: 14px; font-weight: 600; margin: 18px 0 6px; }
+.calc-about p, .calc-about li { color: #C9CCD6; font-size: 14px; line-height: 1.6; }
+.calc-about ul { padding-left: 18px; display: grid; gap: 6px; }
+.calc-about li strong { color: var(--color-text); }
+.calc-assume { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0 24px; }
+.calc-assume > div { padding: 10px 0; border-top: 1px solid var(--color-border); }
+.calc-assume dt { font-size: 14px; font-weight: 600; }
+.calc-assume dt span { display: block; margin-top: 1px; font-size: 12px; font-weight: 500; color: var(--color-primary-link); }
+.calc-assume dd { margin-top: 4px; color: var(--color-text-muted); font-size: 13px; line-height: 1.55; }
+.calc-important { margin-top: 18px; padding: 12px 16px; border-radius: 10px; border-left: 3px solid #D9A064; background: rgba(217, 160, 100, 0.08); }
+.calc-important p { color: var(--color-text); font-size: 13.5px; }
+.calc-important p + p { margin-top: 6px; color: #C9CCD6; }
+.calc-about-narrow, .calc-about-narrow + .calc-device { max-width: 760px; }
+.calc-device { max-width: 1080px; margin: 12px auto 0; color: var(--color-text-muted); font-size: 12px; text-align: center; }
+.scalc-assume-note { margin: -6px 0 12px; }
+@media (max-width: 767px) {
+    .calc-about { padding: 16px; }
+    .calc-assume { grid-template-columns: 1fr; }
+}

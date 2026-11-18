@@ -24,19 +24,33 @@
                 <label for="sc-return">Assumed total investment return a year</label>
                 <div class="mcalc-field"><input id="sc-return" type="text" inputmode="decimal" autocomplete="off" value="9.0" data-sc="return"><span class="mcalc-unit mcalc-unit-end">%</span></div>
             </div>
+            <h2 class="mcalc-kicker mcalc-kicker-gap">Model assumptions</h2>
+            <p class="mcalc-note scalc-assume-note">Change any of these. &ldquo;About this calculator&rdquo; below explains each default.</p>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="sc-ctax">Contribution tax</label>
+                    <div class="mcalc-field"><input id="sc-ctax" type="text" inputmode="decimal" autocomplete="off" value="15.0" data-sc="ctax"><span class="mcalc-unit mcalc-unit-end">%</span></div>
+                </div>
+                <div class="form-group">
+                    <label for="sc-income">Income part of return</label>
+                    <div class="mcalc-field"><input id="sc-income" type="text" inputmode="decimal" autocomplete="off" value="3.0" data-sc="income"><span class="mcalc-unit mcalc-unit-end">%</span></div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="sc-itax">Tax on investment income</label>
+                    <div class="mcalc-field"><input id="sc-itax" type="text" inputmode="decimal" autocomplete="off" value="15.0" data-sc="itax"><span class="mcalc-unit mcalc-unit-end">%</span></div>
+                </div>
+                <div class="form-group">
+                    <label for="sc-wage">Wage growth, for today&rsquo;s dollars</label>
+                    <div class="mcalc-field"><input id="sc-wage" type="text" inputmode="decimal" autocomplete="off" value="3.7" data-sc="wage"><span class="mcalc-unit mcalc-unit-end">%</span></div>
+                </div>
+            </div>
             <p class="mcalc-error" data-out="error" hidden></p>
-
-            <h2 class="mcalc-kicker mcalc-kicker-gap">Fixed model assumptions</h2>
-            <dl class="mcalc-sums">
-                <div><dt>Contribution tax</dt><dd>15.0%</dd></div>
-                <div><dt>Income component of return</dt><dd>3.0%</dd></div>
-                <div><dt>Tax on investment income</dt><dd>15.0%</dd></div>
-                <div><dt>Inflation a year</dt><dd>2.6%</dd></div>
-            </dl>
         </section>
 
         <section class="mcalc-results" aria-label="Results" aria-live="polite">
-            <p class="scalc-intro">Each scenario contributes for 20 years, then remains invested until age 60. Main results show future dollars; inflation-adjusted purchasing power appears underneath.</p>
+            <p class="scalc-intro">Each scenario contributes for 20 years, then remains invested until age 60. Main results show future dollars; what that buys in today&rsquo;s dollars appears underneath.</p>
             <h2 class="mcalc-kicker scalc-results-title">Projected future value at age 60</h2>
             <div class="scalc-cards">
                 <div class="scalc-card scalc-c20">
@@ -76,13 +90,33 @@
 
     <section class="scalc-how">
         <h2 class="mcalc-kicker">How the model works</h2>
-        <p>The main graph shows projected future dollar amounts to demonstrate the effect of starting early. The smaller figures beneath the results show equivalent purchasing power after allowing for fixed inflation of 2.6% p.a.</p>
+        <p>The main graph shows projected future dollar amounts to demonstrate the effect of starting early. The smaller figures beneath the results show the same amounts in today&rsquo;s dollars, discounted by the wage growth rate you set (3.7% a year unless you change it).</p>
     </section>
-
-    <div class="mcalc-fine">
-        <p><strong>Important:</strong> This calculator provides general illustrative information only and is not personal financial advice. Main results are future dollar amounts and are not inflation adjusted. Returns are not guaranteed. The calculator does not allow for fees, insurance premiums, contribution caps or changes to superannuation and tax law.</p>
-        <p>The figures you enter stay on your device. They aren&rsquo;t sent to us or saved.</p>
-    </div>
 </div>
+
+<section class="calc-about" aria-labelledby="about-title">
+    <h2 id="about-title">About this calculator</h2>
+    <h3>What it&rsquo;s for</h3>
+    <p>It shows how a small extra concessional (before-tax) contribution to super could grow by age 60, and how much the starting age matters. Three people put in the same weekly amount for 20 years, starting at 20, 30 and 40, and their balances are compared at 60. It illustrates the effect of time; it doesn&rsquo;t estimate your own super balance.</p>
+    <h3>What it leaves out, and what that means</h3>
+    <ul>
+        <li><strong>Fees and insurance premiums.</strong> Both come out of a real super account, so real balances would be lower.</li>
+        <li><strong>Contribution caps.</strong> Concessional contributions have a yearly cap, which includes your employer&rsquo;s contributions. Amounts over it are taxed more, so large weekly amounts may not work as shown.</li>
+        <li><strong>A steady return.</strong> The same return is used every year. Real returns rise and fall, aren&rsquo;t guaranteed, and the order of good and bad years changes the result.</li>
+        <li><strong>Changes to super and tax law.</strong> The rules may change over the 40 years shown.</li>
+        <li><strong>Your other super.</strong> Only the extra contributions are shown, not your existing balance or your employer&rsquo;s contributions.</li>
+    </ul>
+    <h3>Assumptions, and why we use them</h3>
+    <dl class="calc-assume">
+        <div><dt>Return a year <span>9.0% &middot; you can change it</span></dt><dd>A long-run return for a growth-style super investment option before fees. It&rsquo;s higher than a cautious option would earn: try 6% or 7% to see a more cautious result.</dd></div>
+        <div><dt>Contribution tax <span>15% &middot; you can change it</span></dt><dd>The tax most people pay on concessional contributions as they go into super. People with income over $250,000 a year can pay more.</dd></div>
+        <div><dt>Income part of return <span>3.0% &middot; you can change it</span></dt><dd>The part of the return that arrives as income (dividends, interest and rent) and is taxed each year. The rest is growth in value, which isn&rsquo;t taxed here. 3% is about the income a diversified growth option earns.</dd></div>
+        <div><dt>Tax on investment income <span>15% &middot; you can change it</span></dt><dd>The tax rate on super earnings while you&rsquo;re building your balance. Franking credits often lower the tax actually paid, so this is a cautious figure.</dd></div>
+        <div><dt>Wage growth, for today&rsquo;s dollars <span>3.7% &middot; you can change it</span></dt><dd>Future amounts are discounted by this rate to show them in today&rsquo;s dollars. 3.7% is ASIC&rsquo;s default for super calculators, based on wage growth in the government&rsquo;s 2023 Intergenerational Report.</dd></div>
+        <div><dt>Weekly contributions for 20 years, valued at 60</dt><dd>The scenario this calculator compares. Each contribution is added at the end of its week. Age 60 is when most people can first get their super (preservation age).</dd></div>
+    </dl>
+    {{template "calc-important" .}}
+</section>
+{{template "calc-device" .}}
 <script src="{{asset "js/super.js"}}"></script>
 {{end}}

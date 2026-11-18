@@ -124,7 +124,8 @@
             rate: num(field("rate")) / 100,
             credits: credits ? Number(credits.value) : 12,
             years: num(field("years")),
-            delay: num(field("delay"))
+            delay: num(field("delay")),
+            inflation: num(field("inflation")) / 100
         };
     }
 
@@ -136,6 +137,7 @@
         if (p.initial <= 0 && p.deposit <= 0) return "Enter a first deposit, a regular deposit or both.";
         if (!(p.rate >= 0 && p.rate <= 0.3)) return "Enter an interest rate between 0% and 30%.";
         if (!(p.years >= 1 && p.years <= 60) || p.years % 1) return "Enter a whole number of years from 1 to 60.";
+        if (!(p.inflation >= 0 && p.inflation <= 0.15)) return "Enter inflation between 0% and 15%.";
         if (p.delay % 1 || p.delay < 0 || (p.delay > 0 && p.delay >= p.years)) {
             return "Enter a later start of fewer whole years than you're saving for (0 to leave it out).";
         }
@@ -154,7 +156,10 @@
         var res = calc(p), e = res.end;
         var interest = e.onDeposits + e.onInterest;
         out("balance").textContent = money.format(e.balance);
-        out("balance-note").textContent = "After " + years(p.years) + ", in future dollars";
+        // Today's dollars, as ASIC's calculator relief requires for amounts 2 or
+        // more years away: the balance / (1 + inflation)^years.
+        out("balance-note").textContent = "After " + years(p.years) + ", in future dollars. About " +
+            money.format(e.balance / Math.pow(1 + p.inflation, p.years)) + " in today’s dollars.";
         out("deposits").textContent = money.format(e.deposits);
         out("on-deposits").textContent = money.format(e.onDeposits);
         out("on-interest").textContent = money.format(e.onInterest);
@@ -166,7 +171,8 @@
             out("later-title").textContent = "If you started " + years(p.delay) + " later";
             out("later-value").textContent = money.format(res.laterEnd.balance);
             out("later-note").textContent = money.format(gap) + " less, though you'd deposit " +
-                money.format(e.deposits - res.laterEnd.deposits) + " less.";
+                money.format(e.deposits - res.laterEnd.deposits) + " less. About " +
+                money.format(res.laterEnd.balance / Math.pow(1 + p.inflation, p.years)) + " in today’s dollars.";
         }
 
         var banner = "";

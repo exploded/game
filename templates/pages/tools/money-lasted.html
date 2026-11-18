@@ -128,11 +128,25 @@
     </ul>
   </div>
 
-  <footer class="warning-box">
-    <p class="gaw">The information provided in this article is general in nature only and does not constitute personal financial advice.</p>
-    <p>The results describe what happened in the past with the assumptions shown. They're not a forecast.</p>
-  </footer>
 </div>
 </div>
+
+<section class="calc-about calc-about-narrow" aria-labelledby="about-title">
+    <h2 id="about-title">About this calculator</h2>
+    <h3>What it&rsquo;s for</h3>
+    <p>It runs a retirement plan (a starting balance, yearly spending and a mix of shares and bonds) through every start month in US share market history since 1871, and shows how often the money would have lasted. It describes what happened in the past with the assumptions shown. It isn&rsquo;t a forecast.</p>
+    <h3>What it leaves out, and what that means</h3>
+    <p>See &ldquo;Keep in mind&rdquo; above: it uses the US market rather than Australia&rsquo;s, past returns don&rsquo;t predict future ones, and tax and the Age Pension are left out. Each of these could make a real plan last longer or run out sooner.</p>
+    <h3>Assumptions, and why we use them</h3>
+    <dl class="calc-assume">
+        <div><dt>Market history <span>January 1871 to October 2026 &middot; built in</span></dt><dd>Robert Shiller&rsquo;s US data, the longest monthly record of share prices, dividends, bond yields and inflation, including the Great Depression, the 1970s and 2008.</dd></div>
+        <div><dt>Shares and bonds <span>100% shares &middot; you can change it</span></dt><dd>Shares are the US S&amp;P Composite with dividends reinvested; bonds are 10-year US government bonds, worked out from their yield. The mix is rebalanced every month.</dd></div>
+        <div><dt>Spending rises with inflation <span>Built in</span></dt><dd>So the money buys the same each year. All balances are in today&rsquo;s dollars, after US inflation.</dd></div>
+        <div><dt>Yearly fees <span>0.5% &middot; you can change it</span></dt><dd>About what a low-cost diversified fund and platform charge together.</dd></div>
+        <div><dt>Balance, spending and years <span>$1,000,000, $40,000 and 30 years &middot; you can change them</span></dt><dd>Example figures: $40,000 is 4% of the balance, the well-known &ldquo;4% rule&rdquo; from US research, and 30 years is a common length for a retirement.</dd></div>
+    </dl>
+    {{template "calc-important" .}}
+</section>
+{{template "calc-device" .}}
 <script type="module" src="{{asset "js/money-lasted.js"}}"></script>
 {{end}}

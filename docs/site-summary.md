@@ -259,9 +259,9 @@ they can check them (see Admin tools). Admins can also delete any message.
 Learn needs a free account (since 17 November 2026; until then anyone could
 read it). A signed-out visitor who follows a Learn link signs in first and
 lands on the page they wanted. Its front page (`/learn`) has a
-headline over an open-book drawing, then Rob's courses as picture cards, the
-top questions, the video topics as tiles with icons, and the latest videos. It
-has four tabs, which also show on the course pages:
+headline over an open-book drawing, then Rob's courses as picture cards, three
+calculators, the top questions, the video topics as tiles with icons, and the
+latest videos. It has five tabs, which also show on the course pages:
 
 - **Ask Rob**: members post questions and vote for the ones they want answered.
   Rob answers in writing, with a video, or live on air, and the asker and
@@ -288,6 +288,34 @@ has four tabs, which also show on the course pages:
   Consortium's Vimeo account and play on the site.
 
 Every Learn page ends with the licensee's general advice warning.
+
+### Calculators
+
+The fifth Learn tab (`/tools`, since 18 November 2026) has six calculators,
+grouped under Investing, Retirement and super, and Home loans, plus links to
+Moneysmart's calculators for super, the Age Pension, tax and budgeting:
+
+- **Compound interest calculator**: how regular saving grows, and what
+  starting later costs.
+- **Managed fund fee calculator**: two funds' fees compared with no fees.
+- **Would your money have lasted?**: a retirement plan run through every
+  start month of the US share market since 1871.
+- **When can I stop working?**: years of work by savings rate, with an
+  Australian mode that allows for super being locked until 60.
+- **Start Early: Extra Super Calculator** (from Rob's spreadsheet): the same
+  weekly super contribution started at 20, 30 or 40, compared at 60.
+- **Mortgage Freedom Calculator** (from Rob's spreadsheet): what extra
+  repayments save in interest and time.
+
+Everything is worked out in the member's browser: nothing they type is sent to
+the site or saved. Each calculator ends with "About this calculator": what
+it's for, what it leaves out, every assumption with its default and why it's
+reasonable, and the statement ASIC's calculator relief requires (that it isn't
+meant to be relied on for decisions about a financial product, and to consider
+advice from a licensee). Every assumption can be changed, except a few built
+into how the calculator works. Results more than 2 years away are also shown
+in today's dollars: at 2.5% inflation for the general calculators, and at
+ASIC's 3.7% wage growth for the super one.
 
 ## Emails
 
@@ -412,6 +440,21 @@ Rob's answers to the open questions:
 - **Finder**: Rob is happy for the game to be listed.
 
 ## Things still to decide or do
+
+- **Compliance check of the calculators**: before the site is launched,
+  Consortium's compliance person should check all six against ASIC's relief:
+  Instrument 2026/41 for general calculators and 2022/603 for super ones (due
+  to be repealed on 1 July 2027). Points to settle: whether the mortgage
+  calculator needs the relief at all (home loans are credit, not a financial
+  product); whether "When can I stop working?" should discount at ASIC's 3.7%
+  wage growth, since it works in today's dollars after inflation; the super
+  calculator valuing at 60 where ASIC's default retirement age is 67; and the
+  wording of each default's "why".
+- **Rob to check the calculators' wording**: what was added to his two
+  spreadsheets ("Without the extra", the $0-extra banner, the "same $20,800"
+  line), the "About this calculator" text, and the super calculator now
+  showing today's dollars at 3.7% (his sheet used 2.6%; set it to 2.6% to see
+  his figures).
 
 - **Legal review of the 17 November 2026 legal pages**: after Rob's
   changes, the Terms, Privacy Policy, Help and About were reworded and sent

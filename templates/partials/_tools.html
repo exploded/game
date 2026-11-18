@@ -2,6 +2,18 @@
 like Learn's course cards (partials/_learnart.html): inline SVG coloured from
 CSS, each card tinted by --tile (.tool-tile-{slug} in app.css). */}}
 
+{{/* The statement ASIC's calculator relief requires on every calculator
+(Instrument 2026/41 s 8(1)(e)(v); 2022/603 s 7(1)(f)(v) for super ones),
+inside each page's "About this calculator" (.calc-about), with the
+licensee's general advice line. Keep the wording identical on every page. */}}
+{{define "calc-important"}}<div class="calc-important">
+    <p><strong>Important:</strong> This calculator is not intended to be relied on for the purposes of making a decision about a financial product. Before you make a financial decision, consider getting advice from a licensed financial adviser (the holder of an Australian financial services licence).</p>
+    <p>It is general in nature only and does not constitute personal financial advice. It doesn&rsquo;t take your objectives, financial situation or needs into account.</p>
+</div>{{end}}
+
+{{/* Under each calculator: what happens to the figures typed in. */}}
+{{define "calc-device"}}<p class="calc-device">The figures you enter stay on your device. They aren&rsquo;t sent to us or saved. You can print this page or save it as a PDF to keep your results.</p>{{end}}
+
 {{/* A calculator's picture: its icon over a faint rising line, on the course
 cards' soft panel. The argument is the calculator's slug. */}}
 {{define "tool-art"}}<span class="course-art" aria-hidden="true">

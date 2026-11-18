@@ -217,11 +217,32 @@
     </div>
   </section>
 
-  <footer class="warning-box">
-    <p class="gaw">The information provided in this article is general in nature only and does not constitute personal financial advice.</p>
-    <p>The results are estimates from the assumptions shown. Past returns don't predict future ones.</p>
-  </footer>
 </div>
 </div>
+
+<section class="calc-about calc-about-narrow" aria-labelledby="about-title">
+    <h2 id="about-title">About this calculator</h2>
+    <h3>What it&rsquo;s for</h3>
+    <p>It shows how your savings rate affects how many years you&rsquo;d need to work before your savings could cover your spending. &ldquo;Add your super&rdquo; adds an Australian estimate of the earliest age that could work, allowing for super being locked until 60.</p>
+    <h3>What it leaves out, and what that means</h3>
+    <ul>
+        <li><strong>The Age Pension.</strong> Leaving it out makes the answer cautious, as many people get some pension from Age Pension age.</li>
+        <li><strong>Tax outside super.</strong> Tax on investment earnings outside super would make savings grow more slowly.</li>
+        <li><strong>Voluntary contributions and caps.</strong> Extra super contributions, the contribution caps and the transfer balance cap aren&rsquo;t modelled.</li>
+        <li><strong>A steady return.</strong> Returns are the same every year. Real returns rise and fall, and a fall soon after you stop working can make money run out sooner.</li>
+    </ul>
+    <h3>Assumptions, and why we use them</h3>
+    <dl class="calc-assume">
+        <div><dt>Real return <span>5% a year &middot; you can change it</span></dt><dd>The return after inflation. About what a diversified growth investment has earned over the long run, in super (after the fund&rsquo;s tax) and outside it.</dd></div>
+        <div><dt>Withdrawal rate <span>4% &middot; you can change it</span></dt><dd>The share of your savings taken out in the first year without work, so you need 25 times a year&rsquo;s spending. It comes from US research; Australian research suggests a lower rate, such as 3.5%, is more cautious.</dd></div>
+        <div><dt>Employer super <span>12% of salary &middot; you can change it</span></dt><dd>The Super Guarantee rate set by law.</dd></div>
+        <div><dt>Contributions tax <span>15% &middot; you can change it</span></dt><dd>The tax most people pay on employer contributions as they go into super.</dd></div>
+        <div><dt>Preservation age <span>60 &middot; built in</span></dt><dd>Set by law: the age super unlocks for anyone born after 30 June 1964.</dd></div>
+        <div><dt>Today&rsquo;s dollars <span>Built in</span></dt><dd>All figures are in today&rsquo;s dollars, because the returns are after inflation, and pay and spending stay the same in real terms. Savings are added at the end of each working year.</dd></div>
+        <div><dt>Your pay, spending and balances <span>Example figures &middot; you can change them</span></dt><dd>Shown to explain how the calculator works. Replace them with your own.</dd></div>
+    </dl>
+    {{template "calc-important" .}}
+</section>
+{{template "calc-device" .}}
 <script type="module" src="{{asset "js/stop-working.js"}}"></script>
 {{end}}

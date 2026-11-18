@@ -44,6 +44,10 @@
                 </div>
             </div>
 
+            <div class="form-group">
+                <label for="fc-inflation">Inflation a year, for today&rsquo;s dollars</label>
+                <div class="mcalc-field"><input id="fc-inflation" type="text" inputmode="decimal" autocomplete="off" value="2.50" data-fc="inflation"><span class="mcalc-unit mcalc-unit-end">%</span></div>
+            </div>
             {{template "fc-fees" dict "K" "a" "Name" "A" "Ongoing" "1.50"}}
             {{template "fc-fees" dict "K" "b" "Name" "B" "Ongoing" "0.20"}}
             <p class="mcalc-note">A fund&rsquo;s product disclosure statement (PDS) lists its fees. Add its management fees and costs together for the ongoing fee.</p>
@@ -82,12 +86,31 @@
         <p>Your balance earns the return you enter, a little each day, and all of it is reinvested. Each day the ongoing fee (a percentage of your balance) and a share of the yearly dollar fee come out. The fee on contributions comes out of each regular contribution, not the starting amount, which is taken to be after any establishment fee.</p>
     </section>
 
-    <div class="mcalc-fine">
-        <p><strong>Important:</strong> Results are estimates in future dollars, before tax and not adjusted for inflation. They leave out buy/sell spreads, performance fees, switching and exit fees, and brokerage. Real returns go up and down and aren&rsquo;t guaranteed, so use this to compare fees, not to predict a balance.</p>
-        <p>This calculator is general in nature only and does not constitute personal financial advice. It doesn&rsquo;t take your objectives, financial situation or needs into account.</p>
-        <p>The figures you enter stay on your device. They aren&rsquo;t sent to us or saved.</p>
-    </div>
 </div>
+
+<section class="calc-about" aria-labelledby="about-title">
+    <h2 id="about-title">About this calculator</h2>
+    <h3>What it&rsquo;s for</h3>
+    <p>It compares how two funds&rsquo; fees could affect the same investment over time, against paying no fees at all. Use it to compare fees, not to predict a balance.</p>
+    <h3>What it leaves out, and what that means</h3>
+    <ul>
+        <li><strong>Other costs.</strong> Buy/sell spreads, performance fees, switching and exit fees, and brokerage aren&rsquo;t included, so real costs can be higher than shown.</li>
+        <li><strong>Different returns.</strong> Both funds earn the same return before fees. Real funds earn different returns, which can matter more or less than their fees.</li>
+        <li><strong>A steady return.</strong> The same return is used every year. Real returns rise and fall and aren&rsquo;t guaranteed.</li>
+        <li><strong>Tax.</strong> Results are before tax, which would lower every balance.</li>
+        <li><strong>Inflation.</strong> The main results are future dollars. The today&rsquo;s-dollars figures show what the balances might buy now.</li>
+    </ul>
+    <h3>Assumptions, and why we use them</h3>
+    <dl class="calc-assume">
+        <div><dt>Return before fees <span>7.00% a year &middot; you can change it</span></dt><dd>A round example of a long-run return for a diversified growth investment. It&rsquo;s the same for both funds, so the comparison shows the effect of fees alone.</dd></div>
+        <div><dt>Fund A and Fund B fees <span>1.50% and 0.20% a year &middot; you can change them</span></dt><dd>Examples of a higher-fee fund and a low-fee index fund. Enter the fees from each fund&rsquo;s product disclosure statement (PDS).</dd></div>
+        <div><dt>Inflation, for today&rsquo;s dollars <span>2.50% a year &middot; you can change it</span></dt><dd>The middle of the Reserve Bank of Australia&rsquo;s 2&ndash;3% target for inflation, and the rate ASIC sets as the default for calculators like this one.</dd></div>
+        <div><dt>How returns and fees apply <span>Built in</span></dt><dd>Returns are earned and fees taken out a little each day, and all returns are reinvested, as Moneysmart&rsquo;s managed funds fee calculator assumes.</dd></div>
+        <div><dt>Investment and timeframe <span>$50,000, then $500 a month for 20 years &middot; you can change them</span></dt><dd>Example figures to show how the calculator works. Replace them with your own.</dd></div>
+    </dl>
+    {{template "calc-important" .}}
+</section>
+{{template "calc-device" .}}
 <script src="{{asset "js/fees.js"}}"></script>
 {{end}}
 
@@ -117,6 +140,7 @@
     <dl class="mcalc-sums">
         <div><dt>Fees paid</dt><dd data-out="{{.K}}-paid">&ndash;</dd></div>
         <div><dt>Effect of fees</dt><dd data-out="{{.K}}-effect">&ndash;</dd></div>
+        <div><dt>In today&rsquo;s dollars</dt><dd data-out="{{.K}}-today">&ndash;</dd></div>
     </dl>
 </div>
 {{end}}

@@ -92,9 +92,30 @@
 
     <div class="mcalc-fine">
         <p><strong>Important:</strong> This calculator provides an estimate for a principal-and-interest loan with a constant rate. It excludes fees, offset accounts, redraws, rate changes and lender-specific timing or rounding. Confirm actual figures with the lender.</p>
-        <p>This calculator is general in nature only and does not constitute personal financial advice. It doesn&rsquo;t take your objectives, financial situation or needs into account.</p>
-        <p>The figures you enter stay on your device. They aren&rsquo;t sent to us or saved.</p>
     </div>
 </div>
+
+<section class="calc-about" aria-labelledby="about-title">
+    <h2 id="about-title">About this calculator</h2>
+    <h3>What it&rsquo;s for</h3>
+    <p>It estimates how extra regular repayments on a principal-and-interest home loan could cut the total interest you pay and the time it takes to own your home. It compares your loan with and without the extra amount.</p>
+    <h3>What it leaves out, and what that means</h3>
+    <ul>
+        <li><strong>Rate changes.</strong> The rate stays the same for the whole loan. Real rates change, so your actual interest and payoff date will differ.</li>
+        <li><strong>Fees, offset accounts and redraw.</strong> Fees add to the cost; an offset account or redrawing money changes the balance interest is charged on.</li>
+        <li><strong>Your lender&rsquo;s timing and rounding.</strong> Most lenders work out interest daily and charge it monthly. Results can differ by a little from your lender&rsquo;s figures.</li>
+        <li><strong>Future dollars.</strong> Totals are the dollars you&rsquo;d pay over the years, not adjusted for inflation.</li>
+    </ul>
+    <h3>Assumptions, and why we use them</h3>
+    <dl class="calc-assume">
+        <div><dt>Interest rate <span>6.00% &middot; you can change it</span></dt><dd>A round figure close to the variable rates Australian lenders charge. Enter your own loan&rsquo;s rate for a closer estimate.</dd></div>
+        <div><dt>Loan term <span>30 years &middot; you can change it</span></dt><dd>The most common term for an Australian home loan.</dd></div>
+        <div><dt>Loan amount and extra repayment <span>$650,000 and $175 &middot; you can change them</span></dt><dd>Example figures to show how the calculator works. Replace them with your own.</dd></div>
+        <div><dt>Repayment <span>Worked out for you</span></dt><dd>The usual principal-and-interest formula: the same repayment each time pays off the loan exactly at the end of the term. Interest is charged on the balance at each repayment.</dd></div>
+        <div><dt>The rate never changes</dt><dd>So the effect of the extra repayments can be seen on its own. This is the main limitation above.</dd></div>
+    </dl>
+    {{template "calc-important" .}}
+</section>
+{{template "calc-device" .}}
 <script src="{{asset "js/mortgage.js"}}"></script>
 {{end}}

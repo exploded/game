@@ -10,19 +10,25 @@
 //   weekly as (1 + that)^(1/52) - 1.
 // - Contributions are paid at the end of each week for 20 years (an
 //   annuity), then the balance grows yearly until age 60.
-// - The inflation-adjusted figure divides by (1 + 2.6%)^(age - 20): today's
+// - The today's-dollars figure divides by (1 + rate)^(age - 20): today's
 //   dollars for someone who is 20 now, as in the sheet.
+// The sheet fixed four assumptions (15% contribution tax, a 3% income part
+// taxed at 15%, 2.6% inflation). Since 18 November 2026 the viewer can change
+// all four, as ASIC's super calculator relief requires (Instrument 2022/603
+// s 7(1)(d)), and the today's-dollars rate defaults to ASIC's 3.7% (wage
+// growth) instead of the sheet's 2.6%.
 (function () {
     "use strict";
 
-    // The sheet's fixed assumptions (Calculator!F6, F8, I6, I8).
-    var CONTRIB_TAX = 0.15, INCOME_PART = 0.03, INCOME_TAX = 0.15, INFLATION = 0.026;
+    // The default assumptions: the sheet's (Calculator!F6, F8, I8), and
+    // ASIC's 3.7% for today's dollars. The page's inputs override them.
+    var DEFAULTS = { contribTax: 0.15, incomePart: 0.03, incomeTax: 0.15, wage: 0.037 };
     var YEARS = 20, FROM = 20, TO = 60, STARTS = [20, 30, 40];
 
     // balanceAt is one scenario's balance at an age, in future dollars.
-    function balanceAt(weekly, ret, start, age) {
-        var c = weekly * (1 - CONTRIB_TAX);
-        var r = ret - INCOME_PART * INCOME_TAX;
+    function balanceAt(weekly, ret, a, start, age) {
+        var c = weekly * (1 - a.contribTax);
+        var r = ret - a.incomePart * a.incomeTax;
         var w = Math.pow(1 + r, 1 / 52) - 1;
         if (age <= start) return 0;
         var paying = Math.min(age - start, YEARS);
@@ -31,21 +37,24 @@
         return saved * Math.pow(1 + r, age - start - paying);
     }
 
-    function real(value, age) {
-        return value / Math.pow(1 + INFLATION, age - FROM);
+    function real(value, a, age) {
+        return value / Math.pow(1 + a.wage, age - FROM);
     }
 
-    function calc(weekly, ret) {
+    // calc runs the three scenarios. a holds the assumptions (DEFAULTS'
+    // keys); any left out take the default.
+    function calc(weekly, ret, a) {
+        a = Object.assign({}, DEFAULTS, a || {});
         return STARTS.map(function (start) {
             var path = [];
-            for (var age = FROM; age <= TO; age++) path.push(balanceAt(weekly, ret, start, age));
+            for (var age = FROM; age <= TO; age++) path.push(balanceAt(weekly, ret, a, start, age));
             var atEnd = path[path.length - 1];
-            return { start: start, path: path, value: atEnd, real: real(atEnd, TO) };
+            return { start: start, path: path, value: atEnd, real: real(atEnd, a, TO) };
         });
     }
 
     if (typeof module !== "undefined") {
-        module.exports = { calc: calc };
+        module.exports = { calc: calc, DEFAULTS: DEFAULTS };
         return;
     }
 
@@ -64,29 +73,36 @@
         return s === "" ? NaN : parseFloat(s);
     }
 
+    var pct = function (name) { return num(root.querySelector('[data-sc="' + name + '"]')) / 100; };
+
     function update() {
         var weekly = num(weeklyInput), ret = num(returnInput) / 100;
         if (isNaN(weekly)) weekly = 0;
+        var a = { contribTax: pct("ctax"), incomePart: pct("income"), incomeTax: pct("itax"), wage: pct("wage") };
         var err = "";
         if (weekly > 2000) err = "Enter a weekly contribution of $2,000 or less.";
         else if (!(ret >= 0 && ret <= 0.2)) err = "Enter a return between 0% and 20%.";
+        else if (!(a.contribTax >= 0 && a.contribTax <= 0.5)) err = "Enter a contribution tax between 0% and 50%.";
+        else if (!(a.incomePart >= 0 && a.incomePart <= ret)) err = "Enter an income part between 0% and the total return.";
+        else if (!(a.incomeTax >= 0 && a.incomeTax <= 0.5)) err = "Enter a tax on investment income between 0% and 50%.";
+        else if (!(a.wage >= 0 && a.wage <= 0.1)) err = "Enter wage growth between 0% and 10%.";
         var errEl = out("error");
         root.classList.toggle("mcalc-invalid", !!err);
         errEl.hidden = !err;
         errEl.textContent = err;
         if (err) return;
 
-        var res = calc(weekly, ret);
+        var res = calc(weekly, ret, a);
         res.forEach(function (s) {
             out("v" + s.start).textContent = money.format(s.value);
-            out("r" + s.start).textContent = "Approx. " + money.format(s.real) + " inflation adjusted";
+            out("r" + s.start).textContent = "About " + money.format(s.real) + " in today’s dollars";
         });
         var put = weekly * 52 * YEARS;
         var times = res[2].value > 0 ? res[0].value / res[2].value : 0;
         var banner = "Enter a weekly amount to compare the three scenarios.";
         if (weekly > 0) {
             banner = "Each scenario puts in the same " + money.format(put) + " (" +
-                money.format(put * (1 - CONTRIB_TAX)) + " after contribution tax).";
+                money.format(put * (1 - a.contribTax)) + " after contribution tax).";
             // A return at or below the tax drag leaves nothing to compound.
             if (times >= 1.05) banner += " Starting at 20 instead of 40 ends with " + times.toFixed(1) + " times as much at 60.";
         }

@@ -109,7 +109,8 @@
             contribution: orZero(num(field("contribution"))),
             perYear: Number(field("freq").value),
             years: num(field("years")),
-            ret: num(field("return")) / 100
+            ret: num(field("return")) / 100,
+            inflation: num(field("inflation")) / 100
         };
         var funds = [readFund("a"), readFund("b")];
 
@@ -118,6 +119,7 @@
         else if (p.initial <= 0 && p.contribution <= 0) err = "Enter a starting amount, a regular contribution or both.";
         else if (!(p.years >= 1 && p.years <= 60) || p.years % 1) err = "Enter a whole number of years from 1 to 60.";
         else if (!(p.ret >= 0 && p.ret <= 0.2)) err = "Enter a return between 0% and 20%.";
+        else if (!(p.inflation >= 0 && p.inflation <= 0.15)) err = "Enter inflation between 0% and 15%.";
         else if (funds.some(function (f) { return f.ongoing > 0.1 || f.entry > 0.1; })) err = "Enter fees of 10% or less.";
         else if (funds.some(function (f) { return f.fixed > 100000; })) err = "Enter a yearly dollar fee of $100,000 or less.";
         var errEl = out("error");
@@ -128,12 +130,17 @@
 
         var res = calc(p, funds);
         out("none").textContent = money.format(res.noneEnd.balance);
-        out("none-note").textContent = "Put in " + money.format(res.noneEnd.contributed) + " over " + years(p.years);
+        // Today's dollars, as ASIC's calculator relief requires for amounts 2 or
+        // more years away: the balance / (1 + inflation)^years.
+        var today = function (v) { return v / Math.pow(1 + p.inflation, p.years); };
+        out("none-note").textContent = "Put in " + money.format(res.noneEnd.contributed) + " over " + years(p.years) +
+            ". About " + money.format(today(res.noneEnd.balance)) + " in today’s dollars.";
         ["a", "b"].forEach(function (k, i) {
             var f = res.funds[i];
             out(k + "-balance").textContent = money.format(f.end.balance);
             out(k + "-paid").textContent = money.format(f.end.paid);
             out(k + "-effect").textContent = money.format(f.effect);
+            out(k + "-today").textContent = money.format(today(f.end.balance));
         });
 
         var a = res.funds[0], b = res.funds[1];
