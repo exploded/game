@@ -29,6 +29,17 @@
 </section>
 {{end}}
 
+{{with index $.Extra "Calculators"}}
+<section class="learn-section">
+    <div class="learn-section-head">
+        <h2 class="learn-h2">Calculators</h2>
+        <a href="/tools" class="learn-more">All {{index $.Extra "CalculatorCount"}} &rarr;</a>
+    </div>
+    <p class="learn-lede">Run your own numbers on saving, retirement and home loans. What you type stays on your device.</p>
+    <div class="course-row">{{range .}}{{template "tool-card" .}}{{end}}</div>
+</section>
+{{end}}
+
 <section class="learn-section learn-ask">
     <div class="learn-section-head">
         <h2 class="learn-h2">Ask Rob</h2>

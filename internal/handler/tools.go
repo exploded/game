@@ -2,10 +2,53 @@ package handler
 
 import "net/http"
 
+// calculator is one of our calculators, as a card on /tools and the front of
+// Learn (tool-card in partials/_tools.html).
+type calculator struct {
+	Slug  string // its page is /tools/{Slug}; also its card's art and colour
+	Title string
+	Blurb string
+	Group string // the heading it sits under on /tools
+}
+
+// calculators lists every calculator in the order /tools shows them. The
+// first three are the ones the front of Learn shows.
+var calculators = []calculator{
+	{"compound", "Compound interest calculator", "See how regular saving grows when your interest earns interest, and what starting later costs.", "Investing"},
+	{"stop-working", "When can I stop working?", "Find out how many years of work your savings rate means, with super’s preservation age.", "Retirement and super"},
+	{"mortgage", "Mortgage Freedom Calculator", "See how small extra repayments save interest and pay off your loan sooner.", "Home loans"},
+	{"fees", "Managed fund fee calculator", "Compare two funds’ fees and see how much they take from your balance over time.", "Investing"},
+	{"money-lasted", "Would your money have lasted?", "Run a retirement plan through every start month of the US share market since 1871.", "Investing"},
+	{"super", "Start Early: Extra Super Calculator", "See how a small extra weekly contribution could grow by 60 if you start at 20, 30 or 40.", "Retirement and super"},
+}
+
+// calculatorGroup is one heading on /tools and its calculators.
+type calculatorGroup struct {
+	Name  string
+	Tools []calculator
+}
+
+// calculatorGroups sorts calculators under their headings, in the order each
+// heading first appears.
+func calculatorGroups() []calculatorGroup {
+	var groups []calculatorGroup
+	at := map[string]int{}
+	for _, c := range calculators {
+		i, ok := at[c.Group]
+		if !ok {
+			i = len(groups)
+			at[c.Group] = i
+			groups = append(groups, calculatorGroup{Name: c.Group})
+		}
+		groups[i].Tools = append(groups[i].Tools, c)
+	}
+	return groups
+}
+
 // MortgageCalculator is Rob's Mortgage Freedom Calculator, rebuilt from his
-// spreadsheet (.local/calculators, August 2026). It's a hidden mock-up for
-// Rob to review: nothing links to it, and search engines are asked to skip
-// it. All the maths runs in the browser (static/js/mortgage.js). The figures
+// spreadsheet (.local/calculators, August 2026). Since 18 November 2026 the
+// calculators are a Learn tab (James's call); search engines are still asked
+// to skip them. All the maths runs in the browser (static/js/mortgage.js). The figures
 // a visitor types are never sent to the server, so nothing about their loan
 // is stored or logged.
 func (h *Handler) MortgageCalculator(w http.ResponseWriter, r *http.Request) {
@@ -39,12 +82,15 @@ func (h *Handler) MoneyLastedCalculator(w http.ResponseWriter, r *http.Request) 
 	h.render(w, r, "tools/money-lasted", "", PageData{Title: "Would your money have lasted?"})
 }
 
-// Tools is the calculators' home page: ours, then links to Moneysmart's for
-// the sums we leave to it (super, pension and tax, whose rules change every
-// year). Hidden like the calculators.
+// Tools is the calculators' home page and Learn's Calculators tab: ours, by
+// heading, then links to Moneysmart's for the sums we leave to it (super,
+// pension and tax, whose rules change every year).
 func (h *Handler) Tools(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Robots-Tag", "noindex, nofollow")
-	h.render(w, r, "tools/index", "", PageData{Title: "Calculators"})
+	h.render(w, r, "tools/index", "", learnPage("tools", PageData{
+		Title: "Calculators",
+		Extra: map[string]any{"Groups": calculatorGroups(), "Count": len(calculators)},
+	}))
 }
 
 // CompoundCalculator is our compound interest calculator, built to the

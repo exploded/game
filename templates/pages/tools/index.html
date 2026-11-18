@@ -1,70 +1,40 @@
 {{template "base" .}}
 
 {{define "content"}}
-{{/* The calculators' home page. Hidden like the calculators themselves:
-     signed in only, nothing links here yet, noindex. Moneysmart's links are
-     for the sums we chose not to build, mostly super and tax, whose rules
-     change every year. */}}
-<div class="mcalc tools">
-    <header class="mcalc-head">
-        <h1>Calculators</h1>
-        <p class="mcalc-lead">Try the numbers yourself. Everything you type stays on your device.</p>
-    </header>
+{{/* The calculators' home page, Learn's Calculators tab (since 18 November
+     2026). The cards come from calculators in tools.go, drawn by
+     partials/_tools.html. Moneysmart's links are for the sums we chose not to
+     build, mostly super and tax, whose rules change every year. */}}
+{{template "learntabs" .}}
+{{template "tools-hero" .}}
 
-    <h2 class="mcalc-kicker">Investing</h2>
-    <div class="tools-grid">
-        <a class="mcalc-card tools-card" href="/tools/compound">
-            <h3>Compound interest calculator</h3>
-            <p>See how regular saving grows when your interest earns interest, and what starting later costs.</p>
-        </a>
-        <a class="mcalc-card tools-card" href="/tools/fees">
-            <h3>Managed fund fee calculator</h3>
-            <p>Compare two funds&rsquo; fees and see how much they take from your balance over time.</p>
-        </a>
-        <a class="mcalc-card tools-card" href="/tools/money-lasted">
-            <h3>Would your money have lasted?</h3>
-            <p>Run a retirement plan through every start month of the US share market since 1871.</p>
-        </a>
+{{range index .Extra "Groups"}}
+<section class="learn-section">
+    <h2 class="learn-h2">{{.Name}}</h2>
+    <div class="course-grid">{{range .Tools}}{{template "tool-card" .}}{{end}}</div>
+</section>
+{{end}}
+
+<section class="learn-section tools-ms">
+    <div class="tools-ms-head">
+        <span class="topic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.5l8 3v6.2c0 5-3.5 8.3-8 9.8-4.5-1.5-8-4.8-8-9.8V5.5z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></span>
+        <div>
+            <h2 class="learn-h2">More calculators on Moneysmart</h2>
+            <p class="tools-ms-lead">Moneysmart is the Australian Government&rsquo;s free money guidance website, run by ASIC. Its calculators keep up with super, pension and tax rules as they change.</p>
+        </div>
     </div>
+    <ul class="tools-ms-list">
+        <li><a href="https://moneysmart.gov.au/how-super-works/superannuation-calculator" target="_blank" rel="noopener"><strong>Superannuation calculator</strong><span>What your super might be when you retire</span></a></li>
+        <li><a href="https://moneysmart.gov.au/plan-for-your-retirement/retirement-planner" target="_blank" rel="noopener"><strong>Retirement planner</strong><span>Your retirement income from super and the Age Pension</span></a></li>
+        <li><a href="https://moneysmart.gov.au/grow-your-super/super-contributions-optimiser" target="_blank" rel="noopener"><strong>Super contributions optimiser</strong><span>Whether extra contributions before or after tax suit you</span></a></li>
+        <li><a href="https://moneysmart.gov.au/grow-your-super/employer-contributions-calculator" target="_blank" rel="noopener"><strong>Employer contributions calculator</strong><span>Check you&rsquo;re being paid the right super</span></a></li>
+        <li><a href="https://moneysmart.gov.au/plan-for-your-retirement/super-and-pension-age-calculator" target="_blank" rel="noopener"><strong>Super and pension age calculator</strong><span>When you can get your super and the Age Pension</span></a></li>
+        <li><a href="https://moneysmart.gov.au/retirement-income-sources/account-based-pension-calculator" target="_blank" rel="noopener"><strong>Account-based pension calculator</strong><span>How long your super pension might last</span></a></li>
+        <li><a href="https://moneysmart.gov.au/work-and-tax/income-tax-calculator" target="_blank" rel="noopener"><strong>Income tax calculator</strong><span>Your Australian income tax</span></a></li>
+        <li><a href="https://moneysmart.gov.au/budgeting/budget-planner" target="_blank" rel="noopener"><strong>Budget planner</strong><span>Where your money goes, and where you could save</span></a></li>
+    </ul>
+    <p class="tools-ms-all"><a href="https://moneysmart.gov.au/" target="_blank" rel="noopener">See everything on Moneysmart &rarr;</a></p>
+</section>
 
-    <h2 class="mcalc-kicker tools-gap">Retirement and super</h2>
-    <div class="tools-grid">
-        <a class="mcalc-card tools-card" href="/tools/stop-working">
-            <h3>When can I stop working?</h3>
-            <p>Find out how many years of work your savings rate means, with super&rsquo;s preservation age.</p>
-        </a>
-        <a class="mcalc-card tools-card" href="/tools/super">
-            <h3>Start Early: Extra Super Calculator</h3>
-            <p>See how a small extra weekly contribution could grow by 60 if you start at 20, 30 or 40.</p>
-        </a>
-    </div>
-
-    <h2 class="mcalc-kicker tools-gap">Home loans</h2>
-    <div class="tools-grid">
-        <a class="mcalc-card tools-card" href="/tools/mortgage">
-            <h3>Mortgage Freedom Calculator</h3>
-            <p>See how small extra repayments save interest and pay off your loan sooner.</p>
-        </a>
-    </div>
-
-    <section class="mcalc-card tools-ms">
-        <h2 class="mcalc-kicker">More calculators on Moneysmart</h2>
-        <p class="tools-ms-lead">Moneysmart is the Australian Government&rsquo;s free money guidance website, run by ASIC. Its calculators keep up with super, pension and tax rules as they change.</p>
-        <ul class="tools-ms-list">
-            <li><a href="https://moneysmart.gov.au/how-super-works/superannuation-calculator" target="_blank" rel="noopener">Superannuation calculator</a> <span>What your super might be when you retire</span></li>
-            <li><a href="https://moneysmart.gov.au/plan-for-your-retirement/retirement-planner" target="_blank" rel="noopener">Retirement planner</a> <span>Your retirement income from super and the Age Pension</span></li>
-            <li><a href="https://moneysmart.gov.au/grow-your-super/super-contributions-optimiser" target="_blank" rel="noopener">Super contributions optimiser</a> <span>Whether extra contributions before or after tax suit you</span></li>
-            <li><a href="https://moneysmart.gov.au/grow-your-super/employer-contributions-calculator" target="_blank" rel="noopener">Employer contributions calculator</a> <span>Check you&rsquo;re being paid the right super</span></li>
-            <li><a href="https://moneysmart.gov.au/plan-for-your-retirement/super-and-pension-age-calculator" target="_blank" rel="noopener">Super and pension age calculator</a> <span>When you can get your super and the Age Pension</span></li>
-            <li><a href="https://moneysmart.gov.au/retirement-income-sources/account-based-pension-calculator" target="_blank" rel="noopener">Account-based pension calculator</a> <span>How long your super pension might last</span></li>
-            <li><a href="https://moneysmart.gov.au/work-and-tax/income-tax-calculator" target="_blank" rel="noopener">Income tax calculator</a> <span>Your Australian income tax</span></li>
-            <li><a href="https://moneysmart.gov.au/budgeting/budget-planner" target="_blank" rel="noopener">Budget planner</a> <span>Where your money goes, and where you could save</span></li>
-        </ul>
-        <p class="tools-ms-all"><a href="https://moneysmart.gov.au/" target="_blank" rel="noopener">See everything on Moneysmart</a></p>
-    </section>
-
-    <div class="mcalc-fine">
-        <p>These calculators are general in nature only and do not constitute personal financial advice. They don&rsquo;t take your objectives, financial situation or needs into account. The Investor Project isn&rsquo;t responsible for Moneysmart&rsquo;s calculators or content.</p>
-    </div>
-</div>
+<p class="learn-disclaimer">These calculators are general in nature only and do not constitute personal financial advice. They don&rsquo;t take your objectives, financial situation or needs into account. The Investor Project isn&rsquo;t responsible for Moneysmart&rsquo;s calculators or content.</p>
 {{end}}

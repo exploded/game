@@ -72,7 +72,7 @@ func navTab(path string) string {
 		}
 	case path == "/dashboard":
 		return "home"
-	case under("/learn"), under("/courses"):
+	case under("/learn"), under("/courses"), under("/tools"):
 		return "learn"
 	case path == "/lobby":
 		return "chat"

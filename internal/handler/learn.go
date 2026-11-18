@@ -90,6 +90,7 @@ func (h *Handler) LearnHome(w http.ResponseWriter, r *http.Request) {
 	extra := map[string]any{
 		"Topics": topics, "Socials": robSocials, "Courses": courses,
 		"Latest": latest, "Questions": questions,
+		"Calculators": calculators[:3], "CalculatorCount": len(calculators),
 	}
 	if upcoming, _ := h.q.ListUpcomingLive(ctx); len(upcoming) > 0 {
 		extra["Next"] = upcoming[0]

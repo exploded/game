@@ -1,0 +1,57 @@
+{{/* The calculators' cards and hero, on /tools and the front of Learn. Drawn
+like Learn's course cards (partials/_learnart.html): inline SVG coloured from
+CSS, each card tinted by --tile (.tool-tile-{slug} in app.css). */}}
+
+{{/* A calculator's picture: its icon over a faint rising line, on the course
+cards' soft panel. The argument is the calculator's slug. */}}
+{{define "tool-art"}}<span class="course-art" aria-hidden="true">
+    <svg class="course-art-bg" viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice"><path d="M0 78L22 70L40 74L62 58L80 64L102 46L120 52L142 30L160 24"/></svg>
+    <svg class="course-art-icon" viewBox="0 0 24 24">{{if eq . "compound"}}<path d="M4 21v-3M9 21v-6M14 21v-9M19 21V8"/><path d="M3 13C9 13 14 10 20 3"/><path d="M15 3h5v5"/>
+    {{else if eq . "fees"}}<circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><path d="M19.5 4.5l-15 15"/>
+    {{else if eq . "money-lasted"}}<path d="M5.5 2.5h13M5.5 21.5h13"/><path d="M7.5 2.5c0 5 9 5.5 9 9.5s-9 4.5-9 9.5M16.5 2.5c0 5-9 5.5-9 9.5s9 4.5 9 9.5"/><path d="M9.5 19.5h5"/>
+    {{else if eq . "stop-working"}}<circle cx="16.5" cy="7" r="3"/><path d="M2.5 20l6-9.5 4 4.5 2.5-3 6.5 8z"/>
+    {{else if eq . "super"}}<path d="M7.2 13c-.3-.8-.4-1.6-.4-2.5 0-3.2 2.2-7 5.2-7s5.2 3.8 5.2 7c0 .9-.1 1.7-.4 2.5"/><path d="M2.5 13h19M3.5 13c1 4.6 4.4 7.5 8.5 7.5s7.5-2.9 8.5-7.5"/><path d="M7 15.5l4 2.5M17 15.5l-4 2.5"/>
+    {{else if eq . "mortgage"}}<path d="M3 11l9-8 9 8"/><path d="M5 9.3V21h14V9.3"/><circle cx="12" cy="13.5" r="2.3"/><path d="M12 15.8V19"/>
+    {{else}}<rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M8 6.5h8M8.5 11h.1M12 11h.1M15.5 11h.1M8.5 14.5h.1M12 14.5h.1M15.5 14.5h.1M8.5 18h.1M12 18h3.5"/>{{end}}</svg>
+</span>{{end}}
+
+{{/* One calculator as a card. . is a calculator (tools.go). */}}
+{{define "tool-card"}}<a href="/tools/{{.Slug}}" class="course-card tool-card tool-tile-{{.Slug}}">
+    {{template "tool-art" .Slug}}
+    <span class="course-card-body">
+        <span class="course-card-title">{{.Title}}</span>
+        <span class="tool-card-blurb">{{.Blurb}}</span>
+        <span class="tool-card-go">Open calculator &rarr;</span>
+    </span>
+</a>{{end}}
+
+{{/* The top of /tools: a headline over a calculator and a rising line, in
+Learn's hero. . is PageData. */}}
+{{define "tools-hero"}}<section class="learn-hero tools-hero">
+    <svg class="learn-hero-art" viewBox="0 0 400 220" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">
+        <g class="home-candles">
+            <path d="M40 150v40M80 140v45M120 120v50M160 125v45M350 60v45"/>
+            <rect x="35" y="160" width="10" height="20"/><rect x="75" y="150" width="10" height="25"/>
+            <rect x="115" y="130" width="10" height="28"/><rect x="155" y="135" width="10" height="22"/>
+            <rect x="345" y="70" width="10" height="24"/>
+        </g>
+        <g class="tools-calc" transform="translate(66 22) scale(0.72)">
+            <rect class="body" x="196" y="46" width="104" height="148" rx="14"/>
+            <rect class="screen" x="210" y="60" width="76" height="30" rx="5"/>
+            <path class="digits" d="M244 75h32"/>
+            <g class="keys">
+                <rect x="210" y="102" width="20" height="18" rx="4"/><rect x="238" y="102" width="20" height="18" rx="4"/><rect x="266" y="102" width="20" height="18" rx="4"/>
+                <rect x="210" y="128" width="20" height="18" rx="4"/><rect x="238" y="128" width="20" height="18" rx="4"/><rect x="266" y="128" width="20" height="18" rx="4"/>
+                <rect x="210" y="154" width="20" height="18" rx="4"/><rect x="238" y="154" width="20" height="18" rx="4"/>
+            </g>
+            <rect class="equals" x="266" y="154" width="20" height="18" rx="4"/>
+        </g>
+        <path class="home-hero-line" d="M306 170L322 152L334 158L350 128L366 112"/>
+        <path class="home-hero-head" d="M358 108L376 100L372 120Z"/>
+    </svg>
+    <div class="learn-hero-text">
+        <p class="home-kicker">Saving &middot; Investing &middot; Retirement &middot; Home loans</p>
+        <h1>Run your own <span class="home-hl">numbers</span></h1>
+        <p class="home-sub">{{index .Extra "Count"}} free calculators. Change the figures and watch the answer move. What you type stays on your device: nothing is sent to us or saved.</p>
+    </div>
+</section>{{end}}

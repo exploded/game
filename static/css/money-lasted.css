@@ -306,3 +306,7 @@
 /* The artifact host hid [hidden] elements with !important; the site has no
    such rule, so .panel { display: grid } would show both of a tab's panels. */
 .ml [hidden] { display: none !important; }
+/* The site's "<- Calculators" link (.tools-back in app.css) keeps its muted look. */
+.ml .tools-back { margin-bottom: 8px; font-size: 13px; }
+.ml .tools-back a { color: var(--muted); text-decoration: none; }
+.ml .tools-back a:hover { color: var(--text); }
