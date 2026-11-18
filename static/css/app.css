@@ -2081,3 +2081,136 @@ span.lesson-thumb { display: block; overflow: hidden; }
 @media (scripting: none) { .intro-play { display: none; } }
 @media (max-width: 767px) { .intro-play { width: 60px; height: 60px; margin: -30px 0 0 -30px; } .intro-play::after { margin: -11px 0 0 -6px; border-width: 11px 0 11px 19px; } }
 .ai-app { font-size: 1rem; margin: 18px 0 6px; }
+
+/* ============================================================
+   Calculators (/tools/...). The .mcalc styles are the mortgage
+   page's (mortgage.js) and the super page (.scalc, super.js)
+   shares them. Laid out from Rob's spreadsheets: inputs, then
+   results, then the chart.
+   ============================================================ */
+.mcalc { --mc-teal: #19C3C3; --mc-base: #8C9BB8; --mc-green: #35C27A; max-width: 1080px; margin: 0 auto; }
+.mcalc-head { margin-bottom: 20px; }
+.mcalc-head h1 { font-size: 28px; letter-spacing: -0.5px; }
+.mcalc-lead { margin-top: 6px; font-size: 15px; color: #C9CCD6; }
+.mcalc-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px; align-items: start; }
+.mcalc-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; }
+.mcalc-kicker { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 12px; }
+.mcalc-kicker-gap { margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--color-border); }
+.mcalc-label { display: block; margin-bottom: 4px; font-size: 11px; font-weight: 500; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+/* The input boxes: a $ or % inside the box, 16px text so iOS doesn't zoom. */
+.mcalc-field { display: flex; align-items: center; height: 44px; background: var(--color-surface-3); border: 1px solid var(--color-border); border-radius: var(--radius); transition: border-color 0.15s; }
+.mcalc-field:focus-within { border-color: var(--color-primary); }
+.mcalc .mcalc-field input { flex: 1; min-width: 0; height: 100%; padding: 0 12px; border: 0; background: transparent; font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.mcalc .mcalc-field input:focus { outline: none; }
+.mcalc-unit { padding-left: 12px; color: var(--color-text-muted); font-size: 15px; }
+.mcalc-unit + input { padding-left: 4px !important; }
+.mcalc-unit-end { padding: 0 12px 0 0; font-size: 13px; }
+.mcalc-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 3px; border-radius: 10px; background: var(--color-surface-3); }
+.mcalc .mcalc-seg label { margin: 0; cursor: pointer; text-transform: none; letter-spacing: 0; font-size: 13px; }
+/* The radios are hidden inside their labels; .form-group input would make them full width. */
+.mcalc .mcalc-seg label { position: relative; }
+.mcalc .mcalc-seg input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; pointer-events: none; }
+.mcalc-seg span { display: block; padding: 9px 4px; border-radius: 8px; text-align: center; font-size: 13px; font-weight: 600; color: var(--color-text-muted); }
+.mcalc-seg input:checked + span { background: #007994; color: #fff; }
+.mcalc-seg input:focus-visible + span { outline: 2px solid var(--color-primary); outline-offset: 1px; }
+.mcalc-slider { width: 100%; margin-top: 12px; accent-color: var(--mc-teal); }
+.mcalc-sums { margin-top: 4px; }
+.mcalc-sums > div { display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--color-border); }
+.mcalc-sums dt { color: var(--color-text-muted); }
+.mcalc-sums dd { font-weight: 600; font-variant-numeric: tabular-nums; }
+.mcalc-sums > div:last-child dd { color: var(--mc-teal); }
+.mcalc-error { margin-top: 8px; color: var(--color-danger); font-size: 13px; }
+.mcalc-invalid .mcalc-results, .mcalc-invalid .mcalc-chart-card { opacity: 0.35; }
+
+.mcalc-results { display: flex; flex-direction: column; gap: 16px; }
+.mcalc-big { background: linear-gradient(135deg, #14233F, var(--color-surface) 70%); }
+.mcalc-big-value { font-size: 44px; font-weight: 700; letter-spacing: -1px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.mcalc-note { margin-top: 6px; color: var(--color-text-muted); font-size: 13px; }
+.mcalc-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.mcalc-tile { padding: 16px; }
+.mcalc-tile .mcalc-kicker { margin-bottom: 8px; }
+.mcalc-tile-value { font-size: 20px; font-weight: 700; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.mcalc-green { color: var(--mc-green); }
+.mcalc-teal { color: var(--mc-teal); }
+.mcalc-why { color: #C9CCD6; font-size: 14px; text-align: center; }
+.mcalc-banner { padding: 14px 18px; border-radius: 12px; background: rgba(53, 194, 122, 0.12); border: 1px solid rgba(53, 194, 122, 0.35); color: var(--mc-green); font-size: 15px; font-weight: 600; text-align: center; }
+
+.mcalc-chart-card { margin-top: 16px; }
+.mcalc-chart-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
+.mcalc-legend { display: flex; gap: 16px; list-style: none; margin-bottom: 12px; font-size: 12px; color: var(--color-text-muted); }
+.mcalc-legend li { display: flex; align-items: center; gap: 6px; }
+.mcalc-swatch { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.mcalc-legend .mcalc-swatch { margin-right: 0; }
+.mcalc-swatch-base { background: var(--mc-base); }
+.mcalc-swatch-extra { background: var(--mc-teal); }
+/* touch-action: pan-y leaves vertical swipes to the page, as on the stock chart. */
+.mcalc-chart { position: relative; min-height: 220px; touch-action: pan-y; user-select: none; }
+.mcalc-chart svg { display: block; }
+.mc-grid { stroke: var(--color-border); stroke-width: 1; }
+.mc-axis { fill: var(--color-text-muted); font-size: 11px; font-family: inherit; }
+.mc-line { fill: none; stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+.mc-line-base { stroke: var(--mc-base); }
+.mc-line-extra { stroke: var(--mc-teal); }
+.mc-gap { fill: var(--mc-teal); fill-opacity: 0.12; stroke: none; }
+.mc-dot { fill: var(--mc-teal); stroke: var(--color-surface); stroke-width: 2; }
+.mc-label { fill: var(--mc-teal); font-size: 12px; font-weight: 600; font-family: inherit; paint-order: stroke; stroke: var(--color-surface); stroke-width: 5px; stroke-linejoin: round; }
+.mc-guide { stroke: var(--color-text-muted); stroke-dasharray: 3 3; }
+.mc-dot-base { fill: var(--mc-base); }
+.mc-dot-extra { fill: var(--mc-teal); }
+.mc-tip { position: absolute; top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--color-surface-3); border: 1px solid var(--color-border); font-size: 12px; white-space: nowrap; pointer-events: none; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4); }
+.mc-tip strong { display: block; margin-bottom: 2px; }
+
+.mcalc-tagline { margin: 24px 0 16px; text-align: center; font-size: 17px; font-weight: 600; }
+.mcalc-fine { padding: 14px 18px; border-radius: 12px; background: var(--color-surface); color: var(--color-text-muted); font-size: 12px; line-height: 1.6; }
+.mcalc-fine p + p { margin-top: 8px; }
+
+@media (max-width: 860px) {
+    .mcalc-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 767px) {
+    .mcalc-head h1 { font-size: 24px; }
+    .mcalc-card { padding: 16px; }
+    .mcalc-big-value { font-size: 36px; }
+    .mcalc-tiles { grid-template-columns: 1fr 1fr; }
+    .mcalc-tiles > :last-child { grid-column: 1 / -1; }
+    .mcalc-tile-value { font-size: 18px; }
+}
+
+/* Start Early: Extra Super Calculator (/tools/super, super.js). The three
+   scenarios keep the spreadsheet's blue, teal and orange, lifted for the
+   dark background. */
+.scalc { --sc-20: #4C9BE8; --sc-30: #19C3C3; --sc-40: #F08A45; }
+.scalc-intro { color: #C9CCD6; font-size: 14px; }
+.scalc .mcalc-sums > div:last-child dd { color: inherit; }
+.scalc .mcalc-slider { accent-color: var(--sc-20); }
+.scalc-results-title { margin: 0; }
+.scalc-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.scalc-card { padding: 16px; border-radius: 12px; background: var(--color-surface); border: 1px solid var(--color-border); border-top: 4px solid var(--sc); }
+.scalc-c20 { --sc: var(--sc-20); }
+.scalc-c30 { --sc: var(--sc-30); }
+.scalc-c40 { --sc: var(--sc-40); }
+.scalc-card h3 { font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--sc); }
+.scalc-span { margin-top: 2px; font-size: 12px; color: var(--color-text-muted); }
+.scalc-value { margin-top: 10px; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.scalc-real { margin-top: 6px; font-size: 12px; color: var(--color-text-muted); }
+.scalc .mcalc-banner { background: rgba(76, 155, 232, 0.12); border-color: rgba(76, 155, 232, 0.35); color: #9CC8F2; font-weight: 500; font-size: 14px; }
+.scalc-sw20 { background: var(--sc-20); }
+.scalc-sw30 { background: var(--sc-30); }
+.scalc-sw40 { background: var(--sc-40); }
+.scalc-line20 { stroke: var(--sc-20); fill: var(--sc-20); }
+.scalc-line30 { stroke: var(--sc-30); fill: var(--sc-30); }
+.scalc-line40 { stroke: var(--sc-40); fill: var(--sc-40); }
+polyline.scalc-line20, polyline.scalc-line30, polyline.scalc-line40 { fill: none; }
+.scalc-dot { stroke: var(--color-surface); stroke-width: 2; }
+.scalc-hover { stroke: none; }
+.scalc-how { margin: 24px 0 16px; color: #C9CCD6; font-size: 14px; line-height: 1.6; }
+@media (max-width: 1023px) {
+    .scalc-value { font-size: 22px; }
+}
+@media (max-width: 767px) {
+    .scalc-cards { grid-template-columns: 1fr; }
+    .scalc-card { display: grid; grid-template-columns: 1fr auto; column-gap: 12px; align-items: baseline; }
+    .scalc-card h3, .scalc-span { grid-column: 1; }
+    .scalc-value { grid-column: 2; grid-row: 1 / 3; align-self: center; margin-top: 0; font-size: 24px; }
+    .scalc-real { grid-column: 1 / -1; }
+}

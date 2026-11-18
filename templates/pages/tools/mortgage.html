@@ -1,0 +1,99 @@
+{{template "base" .}}
+
+{{define "content"}}
+{{/* Rob's Mortgage Freedom Calculator spreadsheet (August 2026) as a page.
+     Hidden: nothing links here. The inputs have no form and no names, so
+     nothing can be submitted: mortgage.js does the sums in the browser. */}}
+<div class="mcalc" data-mcalc>
+    <header class="mcalc-head">
+        <h1>Mortgage Freedom Calculator</h1>
+        <p class="mcalc-lead">See how small extra repayments can save interest and give you years of freedom.</p>
+    </header>
+
+    <div class="mcalc-grid">
+        <section class="mcalc-card mcalc-inputs" aria-label="Your loan">
+            <h2 class="mcalc-kicker">Your home loan</h2>
+            <div class="form-group">
+                <label for="mc-loan">Loan amount</label>
+                <div class="mcalc-field"><span class="mcalc-unit">$</span><input id="mc-loan" type="text" inputmode="numeric" autocomplete="off" value="650,000" data-mc="loan" data-money></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="mc-rate">Interest rate</label>
+                    <div class="mcalc-field"><input id="mc-rate" type="text" inputmode="decimal" autocomplete="off" value="6.00" data-mc="rate"><span class="mcalc-unit mcalc-unit-end">%</span></div>
+                </div>
+                <div class="form-group">
+                    <label for="mc-term">Loan term</label>
+                    <div class="mcalc-field"><input id="mc-term" type="text" inputmode="numeric" autocomplete="off" value="30" data-mc="term"><span class="mcalc-unit mcalc-unit-end">years</span></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <span class="mcalc-label" id="mc-freq-label">Repayment frequency</span>
+                <div class="mcalc-seg" role="radiogroup" aria-labelledby="mc-freq-label">
+                    <label><input type="radio" name="mc-freq" value="52" data-mc="freq"><span>Weekly</span></label>
+                    <label><input type="radio" name="mc-freq" value="26" data-mc="freq" checked><span>Fortnightly</span></label>
+                    <label><input type="radio" name="mc-freq" value="12" data-mc="freq"><span>Monthly</span></label>
+                </div>
+            </div>
+
+            <h2 class="mcalc-kicker mcalc-kicker-gap">Small regular action</h2>
+            <div class="form-group">
+                <label for="mc-extra">Extra each repayment</label>
+                <div class="mcalc-field"><span class="mcalc-unit">$</span><input id="mc-extra" type="text" inputmode="numeric" autocomplete="off" value="175" data-mc="extra" data-money></div>
+                <input class="mcalc-slider" type="range" min="0" max="1000" step="25" value="175" aria-label="Extra each repayment" data-mc-slider>
+            </div>
+            <dl class="mcalc-sums">
+                <div><dt>Regular repayment</dt><dd data-out="regular">&ndash;</dd></div>
+                <div><dt>Total each repayment</dt><dd data-out="total">&ndash;</dd></div>
+            </dl>
+            <p class="mcalc-error" data-out="error" hidden></p>
+        </section>
+
+        <section class="mcalc-results" aria-label="Results" aria-live="polite">
+            <div class="mcalc-card mcalc-big">
+                <h2 class="mcalc-kicker">Total interest paid</h2>
+                <div class="mcalc-big-value" data-out="interest">&ndash;</div>
+                <p class="mcalc-note">Estimated interest under your current repayment plan</p>
+                <p class="mcalc-note" data-out="interest-base"></p>
+            </div>
+            <div class="mcalc-tiles">
+                <div class="mcalc-card mcalc-tile">
+                    <h2 class="mcalc-kicker">Interest saved</h2>
+                    <div class="mcalc-tile-value mcalc-green" data-out="saved">&ndash;</div>
+                </div>
+                <div class="mcalc-card mcalc-tile">
+                    <h2 class="mcalc-kicker">Time saved</h2>
+                    <div class="mcalc-tile-value mcalc-teal" data-out="time">&ndash;</div>
+                </div>
+                <div class="mcalc-card mcalc-tile">
+                    <h2 class="mcalc-kicker">Mortgage-free date</h2>
+                    <div class="mcalc-tile-value" data-out="date">&ndash;</div>
+                </div>
+            </div>
+            <p class="mcalc-why">Every extra dollar reduces the balance that future interest is calculated on.</p>
+            <p class="mcalc-banner" data-out="banner">&nbsp;</p>
+        </section>
+    </div>
+
+    <section class="mcalc-card mcalc-chart-card" aria-labelledby="mc-chart-title">
+        <div class="mcalc-chart-head">
+            <h2 class="mcalc-kicker" id="mc-chart-title">Your path to mortgage freedom</h2>
+            <ul class="mcalc-legend">
+                <li><span class="mcalc-swatch mcalc-swatch-base"></span>Original loan</li>
+                <li><span class="mcalc-swatch mcalc-swatch-extra"></span>With extra payments</li>
+            </ul>
+        </div>
+        <div class="mcalc-chart" data-out="chart" role="img" aria-label="Mortgage balance over time, with and without extra repayments"></div>
+        <p class="mcalc-note">The teal line reaches $0 sooner. That gap is the time you get back by making extra repayments.</p>
+    </section>
+
+    <p class="mcalc-tagline">Small actions. Less interest. More time for building wealth and enjoying life.</p>
+
+    <div class="mcalc-fine">
+        <p><strong>Important:</strong> This calculator provides an estimate for a principal-and-interest loan with a constant rate. It excludes fees, offset accounts, redraws, rate changes and lender-specific timing or rounding. Confirm actual figures with the lender.</p>
+        <p>This calculator is general in nature only and does not constitute personal financial advice. It doesn&rsquo;t take your objectives, financial situation or needs into account.</p>
+        <p>The figures you enter stay on your device. They aren&rsquo;t sent to us or saved.</p>
+    </div>
+</div>
+<script src="{{asset "js/mortgage.js"}}"></script>
+{{end}}

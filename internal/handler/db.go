@@ -312,6 +312,11 @@ var onceMigrations = []struct{ name, stmt string }{
 		DROP TABLE IF EXISTS oauth_clients;
 		DROP TABLE IF EXISTS api_idempotency;
 		DROP TABLE IF EXISTS ai_order_days`},
+	// TikTok sent a stream title starting with U+FFFC (a sticker's place
+	// holder), which showed as a box in the live banner on 18 November
+	// 2026. media.cleanTitle drops it now; this cleans titles already stored.
+	{"strip-fffc-live-titles", `UPDATE live_events SET title = trim(replace(title, char(65532), ''))
+		WHERE instr(title, char(65532)) > 0`},
 }
 
 // droppedColumns are columns taken out of schema.sql. Older databases still

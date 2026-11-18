@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/exploded/game/internal/db"
 )
@@ -105,12 +106,27 @@ func (t *tiktokLive) room(ctx context.Context, user string) (room tiktokRoom, st
 	}
 	room = tiktokRoom{
 		live:  out.Data.LiveRoom.Status == tiktokRoomLive,
-		title: strings.Join(strings.Fields(out.Data.LiveRoom.Title), " "),
+		title: cleanTitle(out.Data.LiveRoom.Title),
 	}
 	if room.live && out.Data.LiveRoom.StartTime > 0 {
 		room.started = time.Unix(out.Data.LiveRoom.StartTime, 0)
 	}
 	return room, resp.StatusCode, nil
+}
+
+// cleanTitle tidies a stream title from TikTok: it drops characters that
+// don't print, such as the U+FFFC placeholder TikTok leaves where a sticker
+// or emoji was (it showed as a box before "Podcast recording"), and collapses
+// spaces.
+func cleanTitle(s string) string {
+	s = strings.Map(func(r rune) rune {
+		if r == 0xFFFC || r == 0xFFFD || unicode.Is(unicode.Co, r) ||
+			(!unicode.IsPrint(r) && !unicode.IsSpace(r) && r != 0x200D && !unicode.Is(unicode.Variation_Selector, r)) {
+			return -1
+		}
+		return r
+	}, s)
+	return strings.Join(strings.Fields(s), " ")
 }
 
 // tiktokUser is the account in a TikTok link (rob_goudie in

@@ -1,0 +1,87 @@
+{{template "base" .}}
+
+{{define "content"}}
+{{/* Rob's "Start Early: Extra Super Calculator" spreadsheet (August 2026) as
+     a page. Hidden: nothing links here. As on the mortgage page, the inputs
+     have no form and no names: super.js does the sums in the browser. It
+     shares the mortgage page's .mcalc styles. */}}
+<div class="mcalc scalc" data-scalc>
+    <header class="mcalc-head">
+        <h1>Start Early: Extra Super Calculator</h1>
+        <p class="mcalc-lead">See how a small weekly concessional contribution could grow by age 60.</p>
+    </header>
+
+    <div class="mcalc-grid">
+        <section class="mcalc-card mcalc-inputs" aria-label="Your inputs">
+            <h2 class="mcalc-kicker">Your inputs</h2>
+            <div class="form-group">
+                <label for="sc-weekly">Extra concessional contribution per week</label>
+                <div class="mcalc-field"><span class="mcalc-unit">$</span><input id="sc-weekly" type="text" inputmode="decimal" autocomplete="off" value="20" data-sc="weekly"></div>
+                <input class="mcalc-slider" type="range" min="0" max="200" step="5" value="20" aria-label="Extra concessional contribution per week" data-sc-slider>
+            </div>
+            <div class="form-group">
+                <label for="sc-return">Assumed total investment return a year</label>
+                <div class="mcalc-field"><input id="sc-return" type="text" inputmode="decimal" autocomplete="off" value="9.0" data-sc="return"><span class="mcalc-unit mcalc-unit-end">%</span></div>
+            </div>
+            <p class="mcalc-error" data-out="error" hidden></p>
+
+            <h2 class="mcalc-kicker mcalc-kicker-gap">Fixed model assumptions</h2>
+            <dl class="mcalc-sums">
+                <div><dt>Contribution tax</dt><dd>15.0%</dd></div>
+                <div><dt>Income component of return</dt><dd>3.0%</dd></div>
+                <div><dt>Tax on investment income</dt><dd>15.0%</dd></div>
+                <div><dt>Inflation a year</dt><dd>2.6%</dd></div>
+            </dl>
+        </section>
+
+        <section class="mcalc-results" aria-label="Results" aria-live="polite">
+            <p class="scalc-intro">Each scenario contributes for 20 years, then remains invested until age 60. Main results show future dollars; inflation-adjusted purchasing power appears underneath.</p>
+            <h2 class="mcalc-kicker scalc-results-title">Projected future value at age 60</h2>
+            <div class="scalc-cards">
+                <div class="scalc-card scalc-c20">
+                    <h3>Start at age 20</h3>
+                    <p class="scalc-span">Contribute from age 20 to 40</p>
+                    <div class="scalc-value" data-out="v20">&ndash;</div>
+                    <p class="scalc-real" data-out="r20"></p>
+                </div>
+                <div class="scalc-card scalc-c30">
+                    <h3>Start at age 30</h3>
+                    <p class="scalc-span">Contribute from age 30 to 50</p>
+                    <div class="scalc-value" data-out="v30">&ndash;</div>
+                    <p class="scalc-real" data-out="r30"></p>
+                </div>
+                <div class="scalc-card scalc-c40">
+                    <h3>Start at age 40</h3>
+                    <p class="scalc-span">Contribute from age 40 to 60</p>
+                    <div class="scalc-value" data-out="v40">&ndash;</div>
+                    <p class="scalc-real" data-out="r40"></p>
+                </div>
+            </div>
+            <p class="mcalc-banner" data-out="banner">&nbsp;</p>
+        </section>
+    </div>
+
+    <section class="mcalc-card mcalc-chart-card" aria-labelledby="sc-chart-title">
+        <div class="mcalc-chart-head">
+            <h2 class="mcalc-kicker" id="sc-chart-title">The power of starting early</h2>
+            <ul class="mcalc-legend">
+                <li><span class="mcalc-swatch scalc-sw20"></span>Start age 20</li>
+                <li><span class="mcalc-swatch scalc-sw30"></span>Start age 30</li>
+                <li><span class="mcalc-swatch scalc-sw40"></span>Start age 40</li>
+            </ul>
+        </div>
+        <div class="mcalc-chart" data-out="chart" role="img" aria-label="Projected future value of extra super contributions by age, for starting at 20, 30 and 40"></div>
+    </section>
+
+    <section class="scalc-how">
+        <h2 class="mcalc-kicker">How the model works</h2>
+        <p>The main graph shows projected future dollar amounts to demonstrate the effect of starting early. The smaller figures beneath the results show equivalent purchasing power after allowing for fixed inflation of 2.6% p.a.</p>
+    </section>
+
+    <div class="mcalc-fine">
+        <p><strong>Important:</strong> This calculator provides general illustrative information only and is not personal financial advice. Main results are future dollar amounts and are not inflation adjusted. Returns are not guaranteed. The calculator does not allow for fees, insurance premiums, contribution caps or changes to superannuation and tax law.</p>
+        <p>The figures you enter stay on your device. They aren&rsquo;t sent to us or saved.</p>
+    </div>
+</div>
+<script src="{{asset "js/super.js"}}"></script>
+{{end}}
