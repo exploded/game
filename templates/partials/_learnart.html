@@ -108,8 +108,8 @@ TikTok's player works in some browsers and not others (from 17 November 2026
 it says "Player authentication failed" in Chrome on a PC and Safari on an
 iPhone, but plays in Firefox and in Chrome on an iPhone). So a TikTok video's
 button carries a "player-out" link in a template: app.js (watchTikTok) keeps
-the player hidden until it reports it's ready, and swaps in the link if it
-reports an error or stays silent. While an admin has TikTok's player switched
+the player hidden until it's ready, and swaps in the link if it reports an
+error. While an admin has TikTok's player switched
 off (playerOff, tiktokplayer.go), the link shows straight away. */}}
 {{define "player"}}<div class="player{{if .Vertical}} player-tall{{end}}">
     {{if and (playerOff .Embed) .Watch}}

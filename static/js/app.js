@@ -383,19 +383,33 @@ function startPlayer(btn, autoplay) {
 
 // watchTikTok loads TikTok's player hidden behind its button, which shows a
 // spinner, and listens to the player's postMessage events. TikTok's player
-// works in some browsers and not others ("Player authentication failed" in
-// Chrome on a PC and Safari on an iPhone since 17 November 2026), so:
-// onPlayerReady shows the player, and onError, onPlayerError or nothing
-// within 12 seconds swaps in the button's "player-out" template, the cover
-// linking to the video on TikTok. Nobody sees TikTok's error.
+// works in some browsers and not others: since 17 November 2026 it answers
+// Chrome on a PC and Safari on an iPhone with "Player authentication
+// failed", judging by the user agent alone (Chrome claiming to be Firefox
+// plays). A failing player posts onError and onPlayerError about a second
+// in, and either swaps in the button's "player-out" template, the cover
+// linking to the video on TikTok, at any time. A working player posts
+// onPlayerReady only when it autoplays; loaded without autoplay (iPhones
+// and iPads) it posts nothing. So the player shows on onPlayerReady, or 2
+// seconds after its frame loads with no error, or after 15 seconds
+// whatever happens. Nobody sees TikTok's error.
 function watchTikTok(btn, frame, out) {
     const origin = "https://www.tiktok.com";
     btn.classList.add("player-loading");
     btn.disabled = true;
     btn.setAttribute("aria-busy", "true");
     frame.classList.add("player-hidden");
+    let timer = setTimeout(show, 15000);
+    frame.addEventListener("load", function() {
+        clearTimeout(timer);
+        timer = setTimeout(show, 2000);
+    }, { once: true });
     btn.before(frame);
-    const timer = setTimeout(fail, 12000);
+    function show() {
+        clearTimeout(timer);
+        frame.classList.remove("player-hidden");
+        btn.remove();
+    }
     function fail() {
         clearTimeout(timer);
         window.removeEventListener("message", onMessage);
@@ -412,9 +426,7 @@ function watchTikTok(btn, frame, out) {
         if (d.type === "onError" || d.type === "onPlayerError") {
             fail();
         } else if (d.type === "onPlayerReady" && btn.isConnected) {
-            clearTimeout(timer);
-            frame.classList.remove("player-hidden");
-            btn.remove();
+            show();
         }
     }
     window.addEventListener("message", onMessage);
