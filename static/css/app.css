@@ -2214,3 +2214,60 @@ polyline.scalc-line20, polyline.scalc-line30, polyline.scalc-line40 { fill: none
     .scalc-value { grid-column: 2; grid-row: 1 / 3; align-self: center; margin-top: 0; font-size: 24px; }
     .scalc-real { grid-column: 1 / -1; }
 }
+
+/* Compound interest (/tools/compound, .ccalc, compound.js) and managed fund
+   fees (/tools/fees, .fcalc, fees.js), on the shared .mcalc styles. */
+.ccalc, .fcalc { --cc-dep: #8C9BB8; --cc-later: #F08A45; --fc-a: #F08A45; --fc-b: #19C3C3; }
+.ccalc [hidden], .fcalc [hidden] { display: none !important; }
+.mcalc .mcalc-select { height: 44px; font-size: 16px; font-weight: 600; }
+.mcalc-seg-2 { grid-template-columns: repeat(2, 1fr); }
+.mcalc-kicker .mcalc-swatch { width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; }
+.ccalc .mcalc-legend, .fcalc .mcalc-legend { flex-wrap: wrap; gap: 6px 14px; }
+.cc-sw-dep { background: var(--cc-dep); }
+.cc-sw-int { background: var(--mc-teal); }
+.cc-sw-ii { background: var(--mc-green); }
+.cc-sw-later { background: var(--cc-later); }
+.cc-band-dep { fill: var(--cc-dep); fill-opacity: 0.45; }
+.cc-band-int { fill: var(--mc-teal); fill-opacity: 0.55; }
+.cc-band-ii { fill: var(--mc-green); fill-opacity: 0.75; }
+.cc-line-later { stroke: var(--cc-later); stroke-dasharray: 7 5; stroke-width: 2.5; }
+.cc-later .mcalc-kicker { margin-bottom: 6px; }
+.fc-sw-none { background: var(--mc-base); }
+.fc-sw-a { background: var(--fc-a); }
+.fc-sw-b { background: var(--fc-b); }
+.fc-line-none { stroke: var(--mc-base); fill: var(--mc-base); }
+.fc-line-a { stroke: var(--fc-a); fill: var(--fc-a); }
+.fc-line-b { stroke: var(--fc-b); fill: var(--fc-b); }
+polyline.fc-line-none, polyline.fc-line-a, polyline.fc-line-b { fill: none; }
+.fc-line-none { stroke-dasharray: 7 5; }
+.fc-gap { fill: var(--fc-a); fill-opacity: 0.1; stroke: none; }
+.fc-dot { stroke: none; stroke-dasharray: none; }
+/* Three small boxes side by side at every width; labels that wrap keep the
+   boxes level. */
+.mcalc .fc-fees { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 8px; }
+.fc-funds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.fc-fund { padding: 16px; border-top: 4px solid var(--fc); }
+.fc-fund-a { --fc: var(--fc-a); }
+.fc-fund-b { --fc: var(--fc-b); }
+.fc-fund h3 { font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fc); }
+.fc-value { margin: 8px 0 6px; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.fcalc .mcalc-sums > div:last-child dd { color: var(--fc); }
+.fcalc .mcalc-banner { background: rgba(25, 195, 195, 0.1); border-color: rgba(25, 195, 195, 0.35); color: var(--mc-teal); }
+@media (max-width: 1023px) { .fc-value { font-size: 22px; } }
+
+/* The calculators' home page (/tools). */
+.tools-back { margin-bottom: 8px; font-size: 13px; }
+.tools-back a { color: var(--color-text-muted); }
+.tools-gap { margin-top: 24px; }
+.tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.tools-card { display: block; color: inherit; text-decoration: none; transition: border-color 0.15s; }
+.tools-card:hover { border-color: var(--mc-teal); text-decoration: none; }
+.tools-card h3 { font-size: 16px; margin-bottom: 6px; }
+.tools-card p { color: var(--color-text-muted); font-size: 14px; line-height: 1.5; }
+.tools-ms { margin: 28px 0 16px; }
+.tools-ms-lead { color: #C9CCD6; font-size: 14px; line-height: 1.6; margin-bottom: 12px; }
+.tools-ms-list { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 4px 24px; }
+.tools-ms-list li { padding: 8px 0; border-top: 1px solid var(--color-border); font-size: 14px; }
+.tools-ms-list a { font-weight: 600; }
+.tools-ms-list span { display: block; color: var(--color-text-muted); font-size: 13px; }
+.tools-ms-all { margin-top: 12px; font-size: 14px; }

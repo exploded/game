@@ -1,0 +1,119 @@
+{{template "base" .}}
+
+{{define "content"}}
+{{/* Compound interest calculator: our own, built to the assumptions
+     Moneysmart states for its one. Hidden: only /tools links here. As on the
+     other calculators, the inputs have no form and no names (bar the radio
+     group): compound.js does the sums in the browser. */}}
+<div class="mcalc ccalc" data-ccalc>
+    <header class="mcalc-head">
+        <p class="tools-back"><a href="/tools">&larr; Calculators</a></p>
+        <h1>Compound interest calculator</h1>
+        <p class="mcalc-lead">See how regular saving grows when your interest earns interest too, and what waiting costs.</p>
+    </header>
+
+    <div class="mcalc-grid">
+        <section class="mcalc-card mcalc-inputs" aria-label="Your savings">
+            <h2 class="mcalc-kicker">Your savings</h2>
+            <div class="form-group">
+                <label for="cc-initial">First deposit (today)</label>
+                <div class="mcalc-field"><span class="mcalc-unit">$</span><input id="cc-initial" type="text" inputmode="numeric" autocomplete="off" value="10,000" data-cc="initial" data-money></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="cc-deposit">Regular deposit</label>
+                    <div class="mcalc-field"><span class="mcalc-unit">$</span><input id="cc-deposit" type="text" inputmode="numeric" autocomplete="off" value="200" data-cc="deposit" data-money></div>
+                </div>
+                <div class="form-group">
+                    <label for="cc-freq">Every</label>
+                    <select id="cc-freq" class="mcalc-select" data-cc="freq">
+                        <option value="365">Day</option>
+                        <option value="52">Week</option>
+                        <option value="26">Fortnight</option>
+                        <option value="12" selected>Month</option>
+                        <option value="1">Year</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="cc-rate">Interest rate a year</label>
+                    <div class="mcalc-field"><input id="cc-rate" type="text" inputmode="decimal" autocomplete="off" value="5.00" data-cc="rate"><span class="mcalc-unit mcalc-unit-end">%</span></div>
+                </div>
+                <div class="form-group">
+                    <label for="cc-years">Save for</label>
+                    <div class="mcalc-field"><input id="cc-years" type="text" inputmode="numeric" autocomplete="off" value="20" data-cc="years"><span class="mcalc-unit mcalc-unit-end">years</span></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <span class="mcalc-label" id="cc-credits-label">Interest credited</span>
+                <div class="mcalc-seg mcalc-seg-2" role="radiogroup" aria-labelledby="cc-credits-label">
+                    <label><input type="radio" name="cc-credits" value="12" data-cc="credits" checked><span>Monthly</span></label>
+                    <label><input type="radio" name="cc-credits" value="1" data-cc="credits"><span>Yearly</span></label>
+                </div>
+            </div>
+
+            <h2 class="mcalc-kicker mcalc-kicker-gap">Compare with starting later</h2>
+            <div class="form-group">
+                <label for="cc-delay">Start this many years later</label>
+                <div class="mcalc-field"><input id="cc-delay" type="text" inputmode="numeric" autocomplete="off" value="5" data-cc="delay"><span class="mcalc-unit mcalc-unit-end">years</span></div>
+                <p class="mcalc-note">The same deposits every <span data-out="freq-word">month</span>, just starting later. Enter 0 to leave it out.</p>
+            </div>
+            <p class="mcalc-error" data-out="error" hidden></p>
+        </section>
+
+        <section class="mcalc-results" aria-label="Results" aria-live="polite">
+            <div class="mcalc-card mcalc-big">
+                <h2 class="mcalc-kicker">Your balance</h2>
+                <div class="mcalc-big-value" data-out="balance">&ndash;</div>
+                <p class="mcalc-note" data-out="balance-note"></p>
+            </div>
+            <div class="mcalc-tiles">
+                <div class="mcalc-card mcalc-tile">
+                    <h2 class="mcalc-kicker"><span class="mcalc-swatch cc-sw-dep"></span>You deposit</h2>
+                    <div class="mcalc-tile-value" data-out="deposits">&ndash;</div>
+                </div>
+                <div class="mcalc-card mcalc-tile">
+                    <h2 class="mcalc-kicker"><span class="mcalc-swatch cc-sw-int"></span>Interest on deposits</h2>
+                    <div class="mcalc-tile-value mcalc-teal" data-out="on-deposits">&ndash;</div>
+                </div>
+                <div class="mcalc-card mcalc-tile">
+                    <h2 class="mcalc-kicker"><span class="mcalc-swatch cc-sw-ii"></span>Interest on interest</h2>
+                    <div class="mcalc-tile-value mcalc-green" data-out="on-interest">&ndash;</div>
+                </div>
+            </div>
+            <div class="mcalc-card cc-later" data-out="later" hidden>
+                <h2 class="mcalc-kicker"><span class="mcalc-swatch cc-sw-later"></span><span data-out="later-title">If you started later</span></h2>
+                <div class="mcalc-tile-value" data-out="later-value">&ndash;</div>
+                <p class="mcalc-note" data-out="later-note"></p>
+            </div>
+            <p class="mcalc-banner" data-out="banner">&nbsp;</p>
+        </section>
+    </div>
+
+    <section class="mcalc-card mcalc-chart-card" aria-labelledby="cc-chart-title">
+        <div class="mcalc-chart-head">
+            <h2 class="mcalc-kicker" id="cc-chart-title">How your balance builds</h2>
+            <ul class="mcalc-legend">
+                <li><span class="mcalc-swatch cc-sw-dep"></span>Deposits</li>
+                <li><span class="mcalc-swatch cc-sw-int"></span>Interest on deposits</li>
+                <li><span class="mcalc-swatch cc-sw-ii"></span>Interest on interest</li>
+                <li><span class="mcalc-swatch cc-sw-later"></span>Starting later</li>
+            </ul>
+        </div>
+        <div class="mcalc-chart" data-out="chart" role="img" aria-label="Balance over time, split into deposits, interest on deposits and interest on interest, with a line for starting later"></div>
+    </section>
+
+    <section class="scalc-how">
+        <h2 class="mcalc-kicker">How it works</h2>
+        <p>Your first deposit goes in today, and each regular deposit at the end of its day, week, fortnight, month or year. Interest builds up on your balance every day and is added to it monthly or yearly. Once it&rsquo;s added, it earns interest too: that&rsquo;s the interest on interest. The rate stays the same the whole time.</p>
+    </section>
+
+    <div class="mcalc-fine">
+        <p><strong>Important:</strong> Results are estimates in future dollars. They aren&rsquo;t adjusted for inflation and don&rsquo;t allow for tax, fees or changes in the interest rate. Real returns go up and down, and aren&rsquo;t guaranteed.</p>
+        <p>This calculator is general in nature only and does not constitute personal financial advice. It doesn&rsquo;t take your objectives, financial situation or needs into account.</p>
+        <p>The figures you enter stay on your device. They aren&rsquo;t sent to us or saved.</p>
+    </div>
+</div>
+<script src="{{asset "js/compound.js"}}"></script>
+{{end}}

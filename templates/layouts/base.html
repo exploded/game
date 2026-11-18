@@ -41,6 +41,8 @@
         }
     </style>
     <link rel="stylesheet" href="{{asset "css/app.css"}}">
+    {{/* A page's own stylesheet, if it has one (the calculators under /tools). */}}
+    {{block "head" .}}{{end}}
     <meta name="csrf-token" content="{{.CSRFToken}}">
     <!-- htmx 4. The config must come before the script. noSwap keeps error
          responses (4xx/5xx) out of the page, as htmx 2 did; app.js toasts them. -->

@@ -1,0 +1,137 @@
+{{template "base" .}}
+
+{{define "head"}}<link rel="stylesheet" href="{{asset "css/money-lasted.css"}}">{{end}}
+
+{{define "content"}}
+{{/* Would your money have lasted? Ported on 18 November 2026 from James's prototype
+     (C:\Projects\go\investor-tools). Hidden: nothing links here.
+     money-lasted.js does the sums in the browser; nothing typed is sent or
+     saved. The forms have no action and their inputs no names. */}}
+<div class="ml" data-tool data-data="{{asset "data/shiller.json"}}">
+<div class="page">
+
+  <div>
+    <h1>Would your money have lasted?</h1>
+    <p class="lede">Run a retirement plan through every stretch of US share market history since 1871, and see how often the money lasted.</p>
+  </div>
+
+  <form class="card" id="plan" novalidate>
+    <div class="fields">
+      <div class="field">
+        <label for="balance">Starting balance</label>
+        <div class="input-wrap"><span class="unit pre">$</span><input id="balance" class="has-pre money" type="text" inputmode="numeric" value="1,000,000" autocomplete="off"></div>
+        <p class="hint">What you have invested on the day you stop working.</p>
+      </div>
+      <div class="field">
+        <label for="spending">Yearly spending</label>
+        <div class="input-wrap"><span class="unit pre">$</span><input id="spending" class="has-pre money" type="text" inputmode="numeric" value="40,000" autocomplete="off"></div>
+        <p class="hint" id="spending-hint">In today's dollars. It rises with inflation every year.</p>
+      </div>
+      <div class="field">
+        <div class="field-row"><label for="years">Years</label><output id="years-out" for="years">30 years</output></div>
+        <input type="range" id="years" min="10" max="50" step="1" value="30">
+        <p class="hint">How long the money has to last.</p>
+      </div>
+      <div class="field">
+        <div class="field-row"><label for="shares">Shares and bonds</label><output id="shares-out" for="shares">100% shares</output></div>
+        <input type="range" id="shares" min="0" max="100" step="5" value="100">
+        <p class="hint">The split between shares and government bonds, rebalanced every month.</p>
+      </div>
+      <div class="field">
+        <label for="fees">Yearly fees</label>
+        <div class="input-wrap"><input id="fees" class="has-post" type="number" inputmode="decimal" min="0" max="5" step="0.05" value="0.5"><span class="unit post">%</span></div>
+        <p class="hint">Investment and platform fees, as a share of the balance each year.</p>
+      </div>
+    </div>
+    <p class="example-note">These are example figures. Replace them with your own. Nothing you type leaves this page.</p>
+  </form>
+
+  <section class="card" aria-live="polite">
+    <p class="headline" id="headline">Your money lasted in <span class="big good">1,444 of 1,510</span> historical periods (96%)</p>
+    <div class="meter" aria-hidden="true"><div class="ok" id="meter-ok" style="width:96%"></div><div class="bad" id="meter-bad" style="width:4%"></div></div>
+    <div class="meter-legend"><span class="l-ok">Lasted <b id="n-ok">1,444</b></span><span class="l-bad">Ran out <b id="n-bad">66</b></span></div>
+    <p class="tested" id="tested"></p>
+  </section>
+
+  <div class="stats">
+    <div class="card stat">
+      <span class="eyebrow">Worst start date</span>
+      <span class="value" id="worst-date">Sep 1929</span>
+      <p id="worst-what"></p>
+    </div>
+    <div class="card stat">
+      <span class="eyebrow">Median ending balance</span>
+      <span class="value" id="median-end">$0</span>
+      <p>Half the periods ended above this, and half below. A period that ran out counts as $0.</p>
+    </div>
+    <div class="card stat">
+      <span class="eyebrow">Low point of the typical path</span>
+      <span class="value" id="median-min">$0</span>
+      <p id="median-what"></p>
+    </div>
+  </div>
+
+  <figure class="card">
+    <h2>Your plan in every period</h2>
+    <p class="hint" id="chart-sub"></p>
+    <div class="legend">
+      <span><i class="swatch faint-ok"></i>Lasted</span>
+      <span><i class="swatch faint-bad"></i>Ran out</span>
+      <span><i class="swatch band"></i>Middle 80% of periods</span>
+      <span><i class="swatch median"></i>Typical path (median each month)</span>
+      <span><i class="swatch worst"></i>Worst period</span>
+    </div>
+    <div class="chart-wrap" id="chart-wrap">
+      <canvas id="paths" role="img" aria-label="Line chart of the balance over time for every historical start month."></canvas>
+    </div>
+    <p class="callout"><strong>Sequence risk.</strong> The same average return can end very differently depending on when the bad years arrive. A fall early on, while you're taking money out, leaves a smaller balance to recover, so the money runs out sooner than if the same fall came late.</p>
+  </figure>
+
+  <figure class="card">
+    <h2>How every start date ended</h2>
+    <p class="hint" id="ends-sub"></p>
+    <div class="chart-wrap" id="ends-wrap">
+      <canvas id="ends" role="img" aria-label="Chart of the ending balance for each start month."></canvas>
+    </div>
+    <div class="pick-row">
+      <p class="pick" id="pick-readout" aria-live="polite">Tap or point at a start date to draw it on the chart above.</p>
+      <button type="button" class="link-btn" id="pick-clear" hidden>Clear</button>
+    </div>
+  </figure>
+
+  <div class="card">
+    <h2>Named start years</h2>
+    <p class="hint" style="margin-top:4px">Your plan, started in January of each year. Tap one to show it on the chart.</p>
+    <ul class="named" id="named"></ul>
+  </div>
+
+  <div class="prose">
+    <h2>How the test works</h2>
+    <p>The test starts the plan in every month from January 1871 that has a full run of history after it, and steps through it month by month:</p>
+    <ul>
+      <li>Take out a month's spending at the start of the month. Spending rises with inflation, so it buys the same each year.</li>
+      <li>Apply that month's <strong>real return</strong>: the return after inflation is taken out. For shares, that's the US S&amp;P Composite index with dividends reinvested. For bonds, it's worked out from the 10-year US government bond yield.</li>
+      <li>Take off a month's fees.</li>
+    </ul>
+    <p>The money <strong>lasted</strong> if it paid every month's spending for the whole period. Balances on the chart are in today's dollars, so a line that ends at the starting balance has kept its buying power.</p>
+    <p class="hint">Data: Robert Shiller's <a href="https://shillerdata.com/" rel="noopener">US stock market data</a>, January 1871 to October 2026. The idea comes from <a href="https://firecalc.com/" rel="noopener">FIRECalc</a>.</p>
+  </div>
+
+  <div class="prose">
+    <h2>Keep in mind</h2>
+    <ul>
+      <li><strong>This is the US market.</strong> Australian shares and bonds have their own history, and an Australian investor also faces currency moves.</li>
+      <li>The 4% rule comes from US history. Australian research suggests a lower withdrawal rate has been needed to last as often here.</li>
+      <li>Past returns don't predict future ones. The next 30 years could be better or worse than any period in the record.</li>
+      <li>Tax and the Age Pension are left out. For a plan that includes the Age Pension, try Moneysmart's <a href="https://moneysmart.gov.au/retirement-income/retirement-planner" rel="noopener">retirement planner</a>.</li>
+    </ul>
+  </div>
+
+  <footer class="warning-box">
+    <p class="gaw">The information provided in this article is general in nature only and does not constitute personal financial advice.</p>
+    <p>The results describe what happened in the past with the assumptions shown. They're not a forecast.</p>
+  </footer>
+</div>
+</div>
+<script type="module" src="{{asset "js/money-lasted.js"}}"></script>
+{{end}}

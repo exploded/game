@@ -310,11 +310,16 @@ func main() {
 		r.Get("/contact", h.ContactPage)
 		r.With(contactLimiter.Middleware).Post("/contact", h.ContactSubmit)
 
-		// Calculators from Rob's spreadsheets. Hidden mock-ups: not linked
-		// from anywhere until Rob signs them off. They work in the browser
+		// Calculators (Rob's spreadsheets and our own). Hidden mock-ups: only
+		// /tools links to them until Rob signs them off. They work in the browser
 		// only, so nothing typed into them reaches the server.
+		r.Get("/tools", h.Tools)
 		r.Get("/tools/mortgage", h.MortgageCalculator)
 		r.Get("/tools/super", h.SuperCalculator)
+		r.Get("/tools/stop-working", h.StopWorkingCalculator)
+		r.Get("/tools/money-lasted", h.MoneyLastedCalculator)
+		r.Get("/tools/compound", h.CompoundCalculator)
+		r.Get("/tools/fees", h.FeesCalculator)
 
 		// Games: one per month, created by the scheduler. Admins change
 		// their settings under /admin/games.

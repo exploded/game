@@ -1,0 +1,317 @@
+/* When can I stop working? (/tools/stop-working). The prototype's styles, every rule scoped
+   under .sw so they can't touch the rest of the site, then the
+   adjustments for sitting inside the site's layout. */
+/* Layout: one phone-width column (max 720px). Answer first, then chart and
+     table, then assumptions. Single dark look matching investorproject.au. */
+.sw {
+    --bg: #0A0E17;
+    --surface: #111722;
+    --surface-2: #161D2A;
+    --border: #2A2F38;
+    --text: #FFFFFF;
+    --muted: #878A9B;
+    --primary: #00B4C9;
+    --green: #02C77A;
+    --red: #FF3B69;
+    --warning: #FFB11A;
+    --ochre: #D9A064;
+    --radius: 8px;
+    --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color-scheme: dark;
+  }
+.sw, .sw * { box-sizing: border-box; }
+.sw {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+.sw .page {
+    max-width: 720px;
+    margin: 0 auto;
+    padding-block: 20px 48px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: grid;
+    gap: 24px;
+  }
+.sw a { color: var(--primary); text-underline-offset: 2px; }
+.sw a:hover { color: var(--text); }
+.sw :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.sw .num { font-variant-numeric: tabular-nums; }
+.sw .muted { color: var(--muted); }/* Header */
+.sw .site {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+.sw .site img { width: 32px; height: 32px; }
+.sw .site .name { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+.sw .site .crumb { color: var(--muted); font-size: 14px; }
+.sw .site .pill {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--warning);
+    border: 1px solid color-mix(in srgb, var(--warning) 45%, transparent);
+    border-radius: 999px;
+    padding: 2px 10px;
+  }
+.sw h1 {
+    font-size: clamp(1.9rem, 7vw, 2.6rem);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    font-weight: 800;
+    margin: 0;
+    text-wrap: balance;
+  }
+.sw h2 { font-size: 1.15rem; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.sw h3 { font-size: 1rem; margin: 0; }
+.sw p { margin: 0; }
+.sw .lede { color: var(--muted); font-size: 1.05rem; max-width: 60ch; margin-top: 8px; }/* Mode switch */
+.sw .modes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    padding: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) + 4px);
+  }
+.sw .modes button {
+    font: inherit;
+    font-weight: 600;
+    font-size: 15px;
+    min-height: 44px;
+    border: 0;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+  }
+.sw .modes button[aria-selected="true"] { background: var(--primary); color: var(--bg); }
+.sw .modes button:not([aria-selected="true"]):hover { color: var(--text); }
+.sw .panel { display: grid; gap: 20px; }
+.sw .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    min-width: 0;
+  }/* Slider */
+.sw .rate-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.sw .rate-row label { font-weight: 600; font-size: 1.05rem; }
+.sw .rate-row output { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; color: var(--primary); }
+.sw .hint { color: var(--muted); font-size: 14px; }
+.sw input[type="range"] {
+    --pct: 50%;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 44px;
+    margin: 12px 0 0;
+    background: transparent;
+    cursor: pointer;
+  }
+.sw input[type="range"]::-webkit-slider-runnable-track {
+    height: 10px;
+    border-radius: 999px;
+    background: linear-gradient(to right, var(--primary) var(--pct), var(--border) var(--pct));
+  }
+.sw input[type="range"]::-moz-range-track {
+    height: 10px;
+    border-radius: 999px;
+    background: linear-gradient(to right, var(--primary) var(--pct), var(--border) var(--pct));
+  }
+.sw input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 34px;
+    height: 34px;
+    margin-top: -12px;
+    border-radius: 50%;
+    background: var(--text);
+    border: 6px solid var(--primary);
+    box-shadow: 0 2px 10px rgb(0 0 0 / 0.5);
+  }
+.sw input[type="range"]::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--text);
+    border: 6px solid var(--primary);
+    box-shadow: 0 2px 10px rgb(0 0 0 / 0.5);
+  }
+.sw input[type="range"]:focus-visible { outline: none; }
+.sw input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 40%, transparent); }
+.sw .scale { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; }/* The answer */
+.sw .answer-block {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    display: grid;
+    gap: 6px;
+  }
+.sw .answer-lead { color: var(--muted); font-weight: 500; }
+.sw .answer {
+    font-size: clamp(2.8rem, 13vw, 4.6rem);
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+    text-wrap: balance;
+  }
+.sw .answer .big { color: var(--primary); }
+.sw .answer.small { font-size: clamp(2rem, 9vw, 3rem); }
+.sw .answer-sub { color: var(--muted); max-width: 60ch; }
+.sw .answer-sub strong { color: var(--text); font-weight: 600; }/* Charts */
+.sw figure { margin: 0; }
+.sw .chart-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.sw .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.sw .legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw .legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.sw .legend i.dash { height: 0; border-top: 2px dashed var(--text); border-radius: 0; width: 16px; }
+.sw svg.chart { display: block; width: 100%; overflow: visible; }
+.sw svg.chart text { fill: var(--muted); font-family: var(--font); font-size: 12px; font-variant-numeric: tabular-nums; }
+.sw svg.chart .grid { stroke: var(--border); stroke-width: 1; }
+.sw figcaption { color: var(--muted); font-size: 13px; margin-top: 8px; }/* Table */
+.sw table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.sw th, .sw td { text-align: left; padding: 10px 4px; border-bottom: 1px solid var(--border); }
+.sw th { font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.sw td:last-child, .sw th:last-child { text-align: right; }
+.sw tr.current td { color: var(--primary); font-weight: 700; }
+.sw tbody tr:last-child td { border-bottom: 0; }
+.sw .split { display: grid; gap: 20px; }
+@media (min-width: 640px) {
+.sw .split { grid-template-columns: 1.4fr 1fr; align-items: start; } }
+/* Assumptions */
+.sw details.assumptions { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.sw details.assumptions summary {
+    cursor: pointer;
+    padding: 16px 20px;
+    font-weight: 600;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: baseline;
+    flex-wrap: wrap;
+  }
+.sw details.assumptions summary::-webkit-details-marker { display: none; }
+.sw details.assumptions summary::after { content: "Change"; color: var(--primary); font-size: 14px; font-weight: 600; }
+.sw details[open].assumptions summary::after { content: "Hide"; }
+.sw details.assumptions summary .sum-values { color: var(--muted); font-weight: 400; font-size: 14px; flex: 1 1 auto; }
+.sw .assume-body { padding: 0 20px 20px; display: grid; gap: 18px; }
+.sw .fields { display: grid; gap: 16px; }
+@media (min-width: 560px) {
+.sw .fields { grid-template-columns: 1fr 1fr; } }
+
+.sw .field { display: grid; gap: 4px; align-content: start; min-width: 0; }
+.sw .field label { font-weight: 600; font-size: 15px; }
+.sw .field .hint { font-size: 13px; }
+.sw .input-wrap { position: relative; display: flex; align-items: center; }
+.sw .input-wrap .unit {
+    position: absolute;
+    color: var(--muted);
+    font-size: 16px;
+    pointer-events: none;
+  }
+.sw .input-wrap .unit.pre { left: 12px; }
+.sw .input-wrap .unit.post { right: 12px; }
+.sw .field input {
+    width: 100%;
+    font: inherit;
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    min-height: 48px;
+    padding: 10px 12px;
+  }
+.sw .field input.has-pre { padding-left: 26px; }
+.sw .field input.has-post { padding-right: 30px; }
+.sw .field input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 30%, transparent); }
+.sw .field input[aria-invalid="true"] { border-color: var(--red); }
+.sw .fixed { font-size: 14px; color: var(--muted); }
+.sw .fixed strong { color: var(--text); font-weight: 600; }
+.sw .example-note {
+    font-size: 13px;
+    color: var(--warning);
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+  }/* Two parts */
+.sw .parts { display: grid; gap: 12px; margin-top: 16px; }
+@media (min-width: 560px) {
+.sw .parts { grid-template-columns: 1fr 1fr; } }
+
+.sw .part {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: grid;
+    gap: 6px;
+    align-content: start;
+  }
+.sw .part-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sw .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.sw .chip {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+.sw .chip.ok { color: var(--green); background: color-mix(in srgb, var(--green) 14%, transparent); }
+.sw .chip.bad { color: var(--red); background: color-mix(in srgb, var(--red) 14%, transparent); }
+.sw .chip.na { color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, transparent); }
+.sw .part p { font-size: 14px; color: var(--muted); }
+.sw .part p strong { color: var(--text); font-weight: 600; }
+.sw .note-warn { font-size: 14px; color: var(--warning); margin-top: 12px; }/* Prose */
+.sw .prose { display: grid; gap: 10px; max-width: 65ch; }
+.sw .prose p, .sw .prose li { color: var(--muted); }
+.sw .prose strong { color: var(--text); font-weight: 600; }
+.sw .prose ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.sw .callout {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    background: color-mix(in srgb, var(--primary) 6%, var(--surface));
+  }
+.sw .warning-box {
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+    font-size: 14px;
+    color: var(--muted);
+    display: grid;
+    gap: 8px;
+  }
+.sw .warning-box .gaw {
+    color: var(--text);
+    font-weight: 500;
+    border-left: 3px solid var(--ochre);
+    padding-left: 12px;
+  }
+@media (prefers-reduced-motion: no-preference) {
+.sw .modes button { transition: background-color 0.15s, color 0.15s; }
+  }
+
+
+
+/* Inside the site: main.container already pads the sides, and the
+   site's table rules mustn't leak in. */
+.sw { background: transparent; }
+.sw .page { padding: 0 0 24px; }
+.sw tr:hover td { background: none; }
+.sw th, .sw td { font-size: inherit; }
+.sw th { font-size: 12px; }
+/* The artifact host hid [hidden] elements with !important; the site has no
+   such rule, so .panel { display: grid } would show both of a tab's panels. */
+.sw [hidden] { display: none !important; }

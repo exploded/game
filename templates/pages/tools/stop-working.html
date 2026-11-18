@@ -1,0 +1,226 @@
+{{template "base" .}}
+
+{{define "head"}}<link rel="stylesheet" href="{{asset "css/stop-working.css"}}">{{end}}
+
+{{define "content"}}
+{{/* When can I stop working? Ported on 18 November 2026 from James's prototype
+     (C:\Projects\go\investor-tools). Hidden: nothing links here.
+     stop-working.js does the sums in the browser; nothing typed is sent or
+     saved. The forms have no action and their inputs no names. */}}
+<div class="sw" data-tool>
+<div class="page">
+
+  <div>
+    <h1>When can I stop working?</h1>
+    <p class="lede">How much of your pay you save decides how many years you need to work. Move the slider to see how.</p>
+  </div>
+
+  <div class="modes" role="tablist" aria-label="Calculator mode">
+    <button type="button" role="tab" id="tab-simple" aria-controls="panel-simple" aria-selected="true">Savings rate</button>
+    <button type="button" role="tab" id="tab-super" aria-controls="panel-super" aria-selected="false" tabindex="-1">Add your super</button>
+  </div>
+
+  <!-- Simple mode -->
+  <section class="panel" id="panel-simple" role="tabpanel" aria-labelledby="tab-simple">
+    <div class="card">
+      <div class="rate-row">
+        <label for="rate">Savings rate</label>
+        <output id="rate-out" for="rate" class="num">50%</output>
+      </div>
+      <p class="hint">The share of your take-home pay you invest each year.</p>
+      <input type="range" id="rate" min="5" max="90" step="1" value="50" aria-describedby="simple-sub">
+      <div class="scale"><span>5%</span><span>90%</span></div>
+
+      <div class="answer-block" aria-live="polite">
+        <p class="answer-lead">Your savings cover your spending after</p>
+        <p class="answer" id="simple-answer">About <span class="big">17</span> years</p>
+        <p class="answer-sub" id="simple-sub">At a 50% savings rate, it takes 16.6 years for your savings to reach 25 times a year's spending.</p>
+      </div>
+    </div>
+
+    <div class="split">
+      <figure class="card">
+        <div class="chart-head">
+          <h2>Years of work by savings rate</h2>
+        </div>
+        <svg class="chart" id="curve" role="img" aria-label="Line chart of years until savings cover spending, for savings rates from 5% to 90%."></svg>
+        <figcaption>The curve is steepest at low savings rates: going from 10% to 20% cuts more years than going from 60% to 70%.</figcaption>
+      </figure>
+
+      <div class="card">
+        <table>
+          <caption class="hint" style="caption-side: bottom; text-align: left; padding-top: 10px;">Years until savings cover a year's spending at the withdrawal rate.</caption>
+          <thead><tr><th scope="col">Savings rate</th><th scope="col">Years</th></tr></thead>
+          <tbody id="rate-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <details class="assumptions" id="simple-assumptions">
+      <summary>Assumptions <span class="sum-values" id="simple-sum"></span></summary>
+      <div class="assume-body">
+        <div class="fields">
+          <div class="field">
+            <label for="s-return">Real return</label>
+            <div class="input-wrap">
+              <input id="s-return" class="has-post" type="number" inputmode="decimal" step="0.1" min="-5" max="15" value="5" data-sync="r">
+              <span class="unit post">%</span>
+            </div>
+            <p class="hint">The yearly return on your investments after inflation is taken out.</p>
+          </div>
+          <div class="field">
+            <label for="s-withdraw">Withdrawal rate</label>
+            <div class="input-wrap">
+              <input id="s-withdraw" class="has-post" type="number" inputmode="decimal" step="0.1" min="1" max="10" value="4" data-sync="w">
+              <span class="unit post">%</span>
+            </div>
+            <p class="hint">The share of your savings you take out in your first year without work. At 4%, you need 25 times a year's spending.</p>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <div class="prose">
+      <h2>How it works</h2>
+      <p>Your savings rate does two jobs at once. A higher rate means you invest more each year, and it also means you live on less, so you need a smaller pile to stop.</p>
+      <p>The model starts from nothing. Each year you invest your savings at the end of the year, and they grow at the real return. You can stop when your savings reach a year's spending divided by the withdrawal rate. Because both sides depend on your pay, the dollar amount drops out and only the rate matters.</p>
+      <p>The model assumes the same return every year. Real markets rise and fall, and the order of good and bad years matters. It leaves out tax, super and the Age Pension. For an Australian version with super, switch to <a href="#" data-goto="super">Add your super</a>.</p>
+      <p class="hint">The method comes from Mr Money Mustache's <a href="https://www.mrmoneymustache.com/2012/01/13/the-shockingly-simple-math-behind-early-retirement/" rel="noopener">The Shockingly Simple Math Behind Early Retirement</a> (2012).</p>
+    </div>
+  </section>
+
+  <!-- Australian mode -->
+  <section class="panel" id="panel-super" role="tabpanel" aria-labelledby="tab-super" hidden>
+    <div class="callout prose">
+      <p><strong>Super is locked until preservation age:</strong> 60 for anyone born after 30 June 1964. So stopping early has two parts. In the <strong>bridge years</strong>, from when you stop until 60, you live on money invested outside super. <strong>From 60</strong>, your super and anything left outside super have to support your spending at the withdrawal rate.</p>
+    </div>
+
+    <form class="card" id="super-form" novalidate>
+      <div class="fields">
+        <div class="field">
+          <label for="age">Your age</label>
+          <div class="input-wrap"><input id="age" type="number" inputmode="numeric" min="16" max="80" step="1" value="35"></div>
+        </div>
+        <div class="field">
+          <label for="salary">Salary before tax</label>
+          <div class="input-wrap"><span class="unit pre">$</span><input id="salary" class="has-pre money" type="text" inputmode="numeric" value="112,000" autocomplete="off"></div>
+          <p class="hint">A year's pay before tax. Your employer's super is worked out from this.</p>
+        </div>
+        <div class="field">
+          <label for="takehome">Take-home pay</label>
+          <div class="input-wrap"><span class="unit pre">$</span><input id="takehome" class="has-pre money" type="text" inputmode="numeric" value="85,000" autocomplete="off"></div>
+          <p class="hint">A year's pay after tax.</p>
+        </div>
+        <div class="field">
+          <label for="spending">Yearly spending</label>
+          <div class="input-wrap"><span class="unit pre">$</span><input id="spending" class="has-pre money" type="text" inputmode="numeric" value="55,000" autocomplete="off"></div>
+          <p class="hint">What you spend in a year. The plan keeps this the same after you stop.</p>
+        </div>
+        <div class="field">
+          <label for="outside">Invested outside super</label>
+          <div class="input-wrap"><span class="unit pre">$</span><input id="outside" class="has-pre money" type="text" inputmode="numeric" value="50,000" autocomplete="off"></div>
+          <p class="hint">Shares, funds and cash you could spend before 60. Leave out your home.</p>
+        </div>
+        <div class="field">
+          <label for="super">Super balance</label>
+          <div class="input-wrap"><span class="unit pre">$</span><input id="super" class="has-pre money" type="text" inputmode="numeric" value="90,000" autocomplete="off"></div>
+        </div>
+      </div>
+      <p class="example-note" style="margin-top:16px">These are example figures. Replace them with your own. Nothing you type leaves this page.</p>
+    </form>
+
+    <div class="card">
+      <div class="answer-block" style="margin-top:0;padding-top:0;border-top:0" aria-live="polite">
+        <p class="answer-lead" id="super-lead">The earliest age where both parts work</p>
+        <p class="answer" id="super-answer">At age <span class="big">52</span></p>
+        <p class="answer-sub" id="super-sub"></p>
+      </div>
+      <div class="parts">
+        <div class="part" id="part-bridge"></div>
+        <div class="part" id="part-retired"></div>
+      </div>
+      <p class="note-warn" id="super-warn" hidden></p>
+    </div>
+
+    <figure class="card">
+      <div class="chart-head">
+        <h2>Your balances by age</h2>
+        <div class="legend">
+          <span><i style="background:var(--primary)"></i>Super</span>
+          <span><i style="background:var(--ochre)"></i>Outside super</span>
+          <span><i class="dash"></i>Needed from 60</span>
+        </div>
+      </div>
+      <svg class="chart" id="bars" role="img" aria-label="Bar chart of super and outside-super balances by age."></svg>
+      <figcaption id="bars-caption">In today's dollars. After 60, spending comes from money outside super first, then from super.</figcaption>
+    </figure>
+
+    <details class="assumptions" id="super-assumptions">
+      <summary>Assumptions <span class="sum-values" id="super-sum"></span></summary>
+      <div class="assume-body">
+        <div class="fields">
+          <div class="field">
+            <label for="a-return">Real return outside super</label>
+            <div class="input-wrap">
+              <input id="a-return" class="has-post" type="number" inputmode="decimal" step="0.1" min="-5" max="15" value="5" data-sync="r">
+              <span class="unit post">%</span>
+            </div>
+            <p class="hint">After inflation, before tax. Tax on these earnings isn't modelled.</p>
+          </div>
+          <div class="field">
+            <label for="a-super-return">Real return in super</label>
+            <div class="input-wrap">
+              <input id="a-super-return" class="has-post" type="number" inputmode="decimal" step="0.1" min="-5" max="15" value="5" data-sync="rs">
+              <span class="unit post">%</span>
+            </div>
+            <p class="hint">After inflation and after the fund's tax on earnings.</p>
+          </div>
+          <div class="field">
+            <label for="a-withdraw">Withdrawal rate</label>
+            <div class="input-wrap">
+              <input id="a-withdraw" class="has-post" type="number" inputmode="decimal" step="0.1" min="1" max="10" value="4" data-sync="w">
+              <span class="unit post">%</span>
+            </div>
+            <p class="hint">The share of your savings you take out in the first year from 60.</p>
+          </div>
+          <div class="field">
+            <label for="a-sg">Employer super</label>
+            <div class="input-wrap">
+              <input id="a-sg" class="has-post" type="number" inputmode="decimal" step="0.5" min="0" max="30" value="12" data-sync="sg">
+              <span class="unit post">%</span>
+            </div>
+            <p class="hint">The Super Guarantee: 12% of salary before tax.</p>
+          </div>
+          <div class="field">
+            <label for="a-ct">Contributions tax</label>
+            <div class="input-wrap">
+              <input id="a-ct" class="has-post" type="number" inputmode="decimal" step="0.5" min="0" max="45" value="15" data-sync="ct">
+              <span class="unit post">%</span>
+            </div>
+            <p class="hint">Taken from employer super as it goes into the fund.</p>
+          </div>
+        </div>
+        <p class="fixed">Fixed: <strong>preservation age 60</strong>, the age super unlocks for anyone born after 30 June 1964. All figures are in today's dollars, and pay and spending stay the same in real terms. Savings and super are added at the end of each working year.</p>
+      </div>
+    </details>
+
+    <div class="prose">
+      <h2>What this leaves out</h2>
+      <ul>
+        <li><strong>The Age Pension.</strong> Leaving it out makes the answer cautious: from Age Pension age, many people get some pension on top of their savings.</li>
+        <li>Income tax on investment earnings outside super.</li>
+        <li>Voluntary super contributions, the contribution caps and the transfer balance cap.</li>
+        <li>Ups and downs in the market. Returns are the same every year.</li>
+      </ul>
+      <p>For the full picture, including the Age Pension, try Moneysmart's <a href="https://moneysmart.gov.au/retirement-income/retirement-planner" rel="noopener">retirement planner</a>.</p>
+    </div>
+  </section>
+
+  <footer class="warning-box">
+    <p class="gaw">The information provided in this article is general in nature only and does not constitute personal financial advice.</p>
+    <p>The results are estimates from the assumptions shown. Past returns don't predict future ones.</p>
+  </footer>
+</div>
+</div>
+<script type="module" src="{{asset "js/stop-working.js"}}"></script>
+{{end}}

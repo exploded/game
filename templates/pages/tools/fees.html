@@ -1,0 +1,122 @@
+{{template "base" .}}
+
+{{define "content"}}
+{{/* Managed fund fee calculator: our own, built to the assumptions Moneysmart
+     states for its one. Hidden: only /tools links here. The inputs have no
+     form and no names: fees.js does the sums in the browser. */}}
+<div class="mcalc fcalc" data-fcalc>
+    <header class="mcalc-head">
+        <p class="tools-back"><a href="/tools">&larr; Calculators</a></p>
+        <h1>Managed fund fee calculator</h1>
+        <p class="mcalc-lead">Compare two funds&rsquo; fees and see how much they cost you over time, including the returns the fees would have earned.</p>
+    </header>
+
+    <div class="mcalc-grid">
+        <section class="mcalc-card mcalc-inputs" aria-label="Your investment">
+            <h2 class="mcalc-kicker">Your investment</h2>
+            <div class="form-group">
+                <label for="fc-initial">Starting amount</label>
+                <div class="mcalc-field"><span class="mcalc-unit">$</span><input id="fc-initial" type="text" inputmode="numeric" autocomplete="off" value="50,000" data-fc="initial" data-money></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="fc-contribution">Regular contribution</label>
+                    <div class="mcalc-field"><span class="mcalc-unit">$</span><input id="fc-contribution" type="text" inputmode="numeric" autocomplete="off" value="500" data-fc="contribution" data-money></div>
+                </div>
+                <div class="form-group">
+                    <label for="fc-freq">Every</label>
+                    <select id="fc-freq" class="mcalc-select" data-fc="freq">
+                        <option value="52">Week</option>
+                        <option value="26">Fortnight</option>
+                        <option value="12" selected>Month</option>
+                        <option value="1">Year</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="fc-return">Return a year before fees</label>
+                    <div class="mcalc-field"><input id="fc-return" type="text" inputmode="decimal" autocomplete="off" value="7.00" data-fc="return"><span class="mcalc-unit mcalc-unit-end">%</span></div>
+                </div>
+                <div class="form-group">
+                    <label for="fc-years">Invest for</label>
+                    <div class="mcalc-field"><input id="fc-years" type="text" inputmode="numeric" autocomplete="off" value="20" data-fc="years"><span class="mcalc-unit mcalc-unit-end">years</span></div>
+                </div>
+            </div>
+
+            {{template "fc-fees" dict "K" "a" "Name" "A" "Ongoing" "1.50"}}
+            {{template "fc-fees" dict "K" "b" "Name" "B" "Ongoing" "0.20"}}
+            <p class="mcalc-note">A fund&rsquo;s product disclosure statement (PDS) lists its fees. Add its management fees and costs together for the ongoing fee.</p>
+            <p class="mcalc-error" data-out="error" hidden></p>
+        </section>
+
+        <section class="mcalc-results" aria-label="Results" aria-live="polite">
+            <div class="mcalc-card mcalc-big">
+                <h2 class="mcalc-kicker"><span class="mcalc-swatch fc-sw-none"></span>With no fees at all</h2>
+                <div class="mcalc-big-value" data-out="none">&ndash;</div>
+                <p class="mcalc-note" data-out="none-note"></p>
+            </div>
+            <div class="fc-funds">
+                {{template "fc-fund" dict "K" "a" "Name" "A"}}
+                {{template "fc-fund" dict "K" "b" "Name" "B"}}
+            </div>
+            <p class="mcalc-why">The effect of fees is how much more you&rsquo;d have with no fees: the fees themselves, plus the returns they would have earned.</p>
+            <p class="mcalc-banner" data-out="banner">&nbsp;</p>
+        </section>
+    </div>
+
+    <section class="mcalc-card mcalc-chart-card" aria-labelledby="fc-chart-title">
+        <div class="mcalc-chart-head">
+            <h2 class="mcalc-kicker" id="fc-chart-title">What fees take over time</h2>
+            <ul class="mcalc-legend">
+                <li><span class="mcalc-swatch fc-sw-none"></span>No fees</li>
+                <li><span class="mcalc-swatch fc-sw-a"></span>Fund A</li>
+                <li><span class="mcalc-swatch fc-sw-b"></span>Fund B</li>
+            </ul>
+        </div>
+        <div class="mcalc-chart" data-out="chart" role="img" aria-label="Balance over time with no fees, in Fund A and in Fund B"></div>
+    </section>
+
+    <section class="scalc-how">
+        <h2 class="mcalc-kicker">How it works</h2>
+        <p>Your balance earns the return you enter, a little each day, and all of it is reinvested. Each day the ongoing fee (a percentage of your balance) and a share of the yearly dollar fee come out. The fee on contributions comes out of each regular contribution, not the starting amount, which is taken to be after any establishment fee.</p>
+    </section>
+
+    <div class="mcalc-fine">
+        <p><strong>Important:</strong> Results are estimates in future dollars, before tax and not adjusted for inflation. They leave out buy/sell spreads, performance fees, switching and exit fees, and brokerage. Real returns go up and down and aren&rsquo;t guaranteed, so use this to compare fees, not to predict a balance.</p>
+        <p>This calculator is general in nature only and does not constitute personal financial advice. It doesn&rsquo;t take your objectives, financial situation or needs into account.</p>
+        <p>The figures you enter stay on your device. They aren&rsquo;t sent to us or saved.</p>
+    </div>
+</div>
+<script src="{{asset "js/fees.js"}}"></script>
+{{end}}
+
+{{/* One fund's fee inputs and its result card. */}}
+{{define "fc-fees"}}
+<h2 class="mcalc-kicker mcalc-kicker-gap"><span class="mcalc-swatch fc-sw-{{.K}}"></span>Fund {{.Name}} fees</h2>
+<div class="form-row fc-fees">
+    <div class="form-group">
+        <label for="fc-{{.K}}-ongoing">Ongoing, a year</label>
+        <div class="mcalc-field"><input id="fc-{{.K}}-ongoing" type="text" inputmode="decimal" autocomplete="off" value="{{.Ongoing}}" data-fc="{{.K}}-ongoing"><span class="mcalc-unit mcalc-unit-end">%</span></div>
+    </div>
+    <div class="form-group">
+        <label for="fc-{{.K}}-entry">On contributions</label>
+        <div class="mcalc-field"><input id="fc-{{.K}}-entry" type="text" inputmode="decimal" autocomplete="off" value="0" data-fc="{{.K}}-entry"><span class="mcalc-unit mcalc-unit-end">%</span></div>
+    </div>
+    <div class="form-group">
+        <label for="fc-{{.K}}-fixed">Dollar fee, a year</label>
+        <div class="mcalc-field"><span class="mcalc-unit">$</span><input id="fc-{{.K}}-fixed" type="text" inputmode="numeric" autocomplete="off" value="0" data-fc="{{.K}}-fixed" data-money></div>
+    </div>
+</div>
+{{end}}
+
+{{define "fc-fund"}}
+<div class="mcalc-card fc-fund fc-fund-{{.K}}">
+    <h3>Fund {{.Name}}</h3>
+    <div class="fc-value" data-out="{{.K}}-balance">&ndash;</div>
+    <dl class="mcalc-sums">
+        <div><dt>Fees paid</dt><dd data-out="{{.K}}-paid">&ndash;</dd></div>
+        <div><dt>Effect of fees</dt><dd data-out="{{.K}}-effect">&ndash;</dd></div>
+    </dl>
+</div>
+{{end}}
