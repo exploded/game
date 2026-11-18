@@ -175,7 +175,7 @@ open them, and they took a phone's whole screen many times over. */}}
     <div class="vlist" style="max-width:640px">
         {{range .}}
         <a href="/learn/v/{{.ID}}" class="vcard{{if .Vertical}} vcard-tall{{end}}">
-            <span class="vthumb"><img src="{{thumb .ThumbUrl .ID}}" alt="" loading="lazy">{{with duration .DurationSeconds}}<span class="vbadge">{{.}}</span>{{end}}</span>
+            <span class="vthumb"><img src="{{.ThumbUrl}}" alt="" loading="lazy">{{with duration .DurationSeconds}}<span class="vbadge">{{.}}</span>{{end}}</span>
             <span><span class="vtitle">{{.Title}}</span><span class="vmeta">{{day .PublishedAt}}</span></span>
         </a>
         {{end}}

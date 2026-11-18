@@ -18,11 +18,11 @@ func TestEmbedURL(t *testing.T) {
 		"https://www.youtube.com/watch?v=bad\"id":                         "",
 		"https://vimeo.com/channels/staffpicks":                           "",
 		"https://youtu.be/":                                               "",
-		"https://www.tiktok.com/@rob_goudie/video/7301234567890123456":    "https://www.tiktok.com/player/v1/7301234567890123456?rel=0&description=1",
-		"https://www.tiktok.com/@rob_goudie/video/notanumber":             "",
-		// Facebook and Instagram were dropped on 17 November 2026.
-		"https://www.facebook.com/consortiumpw/videos/123456789/": "",
-		"https://www.instagram.com/reel/C1a2B3c4D5e/":             "",
+		// Facebook and Instagram were dropped on 17 November 2026, TikTok
+		// on 18 November 2026.
+		"https://www.tiktok.com/@rob_goudie/video/7301234567890123456": "",
+		"https://www.facebook.com/consortiumpw/videos/123456789/":      "",
+		"https://www.instagram.com/reel/C1a2B3c4D5e/":                  "",
 	} {
 		got, ok := embedURL(in)
 		if got != want || ok != (want != "") {
@@ -33,9 +33,8 @@ func TestEmbedURL(t *testing.T) {
 
 func TestParseVideoVertical(t *testing.T) {
 	for in, want := range map[string]bool{
-		"https://youtube.com/shorts/dQw4w9WgXcQ":                       true,
-		"https://www.youtube.com/watch?v=dQw4w9WgXcQ":                  false,
-		"https://www.tiktok.com/@rob_goudie/video/7301234567890123456": true,
+		"https://youtube.com/shorts/dQw4w9WgXcQ":      true,
+		"https://www.youtube.com/watch?v=dQw4w9WgXcQ": false,
 	} {
 		v, ok := parseVideo(in)
 		if !ok || v.Vertical != want {

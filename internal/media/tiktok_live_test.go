@@ -85,7 +85,7 @@ func TestTikTokLiveCheckBooked(t *testing.T) {
 	tt := &fakeTikTokLive{t: t, status: 4}
 	srv := httptest.NewServer(tt)
 	defer srv.Close()
-	s := media.NewTestService(q, m, nil, nil, nil)
+	s := media.NewTestService(q, m, nil, nil)
 	s.UseTikTokLiveServer(srv.URL)
 	ctx := context.Background()
 	// 2:01 am: the all-day check isn't due, so only booked streams are checked.
@@ -179,7 +179,7 @@ func TestTikTokLiveCheckAllDay(t *testing.T) {
 	tt := &fakeTikTokLive{t: t, status: 4, title: "  Budget\nQ&A ", start: began.Unix()}
 	srv := httptest.NewServer(tt)
 	defer srv.Close()
-	s := media.NewTestService(q, m, nil, nil, nil)
+	s := media.NewTestService(q, m, nil, nil)
 	s.UseTikTokLiveServer(srv.URL)
 	ctx := context.Background()
 	at := func(hour, minute int) time.Time { return time.Date(2026, 10, 31, hour, minute, 0, 0, time.UTC) }

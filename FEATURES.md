@@ -182,9 +182,10 @@ page ends with the licensee's general advice warning.
 
 ### Watch
 
-- Rob's YouTube videos appear by themselves, and his TikTok videos do too once
-  his account is connected. Admins can add a YouTube or TikTok video by
-  pasting a link. Facebook and Instagram videos aren't offered.
+- Videos from Consortium's YouTube channel, Shorts included, appear by
+  themselves. Admins can add a YouTube video from another channel by pasting
+  a link. TikTok, Facebook and Instagram videos aren't offered: Rob's TikToks
+  are also YouTube Shorts, and TikTok's player doesn't play in many browsers.
 - Each video is sorted into topics such as retirement, superannuation and buying
   a home. Admins can change a video's topics.
 - Members browse by topic, watch Shorts, search, and play videos on the page.
@@ -294,6 +295,5 @@ Admins have an **Admin** menu with these pages:
   everyone who opted in.
 - **Courses**: build, edit, publish and delete courses and lessons.
 - **Learn**: sync videos, add a video by pasting its link, edit each video's
-  topics, pin or hide videos, manage topics, schedule live streams, and connect
-  TikTok.
+  topics, pin or hide videos, manage topics, and schedule live streams.
 - **Messages**: read and delete Contact form messages.

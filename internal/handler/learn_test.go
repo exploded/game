@@ -36,7 +36,7 @@ func learnServerDB(t *testing.T) (http.Handler, *sql.DB) {
 			(1, 'youtube', 'a', 'https://www.youtube.com/watch?v=a', 'https://www.youtube-nocookie.com/embed/a?rel=0', 'Salary sacrifice explained', 'Line one.
 
 Line two.', 'https://i.ytimg.com/vi/a/mqdefault.jpg', '2026-10-01 00:00:00', 725, 0, 1),
-			(2, 'tiktok', '7301', 'https://www.tiktok.com/@rob_goudie/video/7301', 'https://www.tiktok.com/player/v1/7301', 'Super tip', '', '', '2026-10-02 00:00:00', 40, 1, 0),
+			(2, 'youtube', 'b', 'https://www.youtube.com/shorts/b', 'https://www.youtube-nocookie.com/embed/b?rel=0', 'Super tip', '', 'https://i.ytimg.com/vi/b/hqdefault.jpg', '2026-10-02 00:00:00', 40, 1, 0),
 			(3, 'youtube', 'c', 'https://www.youtube.com/watch?v=c', 'https://www.youtube-nocookie.com/embed/c?rel=0', 'Retirement income', '', '', '2026-09-01 00:00:00', 900, 0, 0);
 		INSERT INTO video_topics (video_id, topic_id) SELECT v.id, t.id FROM videos v, topics t WHERE t.slug = 'super';
 		INSERT INTO live_events (id, platform, url, embed_url, title, scheduled_at, status, source) VALUES
@@ -77,7 +77,6 @@ Line two.', 'https://i.ytimg.com/vi/a/mqdefault.jpg', '2026-10-01 00:00:00', 725
 	r.Get("/learn/videos", h.LearnVideos)
 	r.Get("/learn/topics/{slug}", h.LearnTopic)
 	r.Get("/learn/v/{vid}", h.LearnVideo)
-	r.Get("/learn/thumb/{vid}", h.LearnThumb)
 	r.Get("/learn/live", h.LearnLive)
 	r.Get("/learn/live/{eid}", h.LearnLiveEvent)
 	r.Get("/learn/live/{eid}/queue", h.LearnLiveQueue)
@@ -99,7 +98,6 @@ Line two.', 'https://i.ytimg.com/vi/a/mqdefault.jpg', '2026-10-01 00:00:00', 725
 		r.Get("/learn/live", h.AdminLearnLive)
 		r.Post("/learn/live", h.AdminLearnLiveCreate)
 		r.Post("/learn/live/{eid}/{action}", h.AdminLearnLiveAction)
-		r.Post("/learn/tiktok/player", h.AdminTikTokPlayer)
 	})
 	return r, d
 }
@@ -148,56 +146,6 @@ func TestLearnPagesRender(t *testing.T) {
 	w := as(srv, "", "GET", "/learn/live/1/calendar.ics", nil, false)
 	if body := w.Body.String(); !strings.Contains(body, "BEGIN:VEVENT\r\n") || !strings.Contains(body, `SUMMARY:Rob live on YouTube: Thursday Q&A`) {
 		t.Errorf("calendar file:\n%s", body)
-	}
-	if w := as(srv, "", "GET", "/learn/thumb/2", nil, false); w.Header().Get("Content-Type") != "image/svg+xml" {
-		t.Errorf("a missing cover should fall back to the placeholder, got %q", w.Header().Get("Content-Type"))
-	}
-}
-
-// TestTikTokPlayerSwitch: TikTok's player is on by default, with the link
-// to TikTok in a template for app.js to swap in where the player fails, and
-// an admin can switch it off, which shows the link straight away.
-func TestTikTokPlayerSwitch(t *testing.T) {
-	t.Cleanup(func() { tiktokPlayerOn.Store(true) })
-	srv, d := learnServerDB(t)
-	body := func(user, path string) string {
-		t.Helper()
-		w := as(srv, user, "GET", path, nil, false)
-		if w.Code != http.StatusOK {
-			t.Fatalf("%s: %d", path, w.Code)
-		}
-		return w.Body.String()
-	}
-	link := `<a href="https://www.tiktok.com/@rob_goudie/video/7301" class="player-start player-out"`
-
-	on := body("", "/learn/v/2")
-	if !strings.Contains(on, `data-play="https://www.tiktok.com/player/v1/7301"`) ||
-		!strings.Contains(on, `<template data-player-out>`+link) {
-		t.Errorf("player on: want TikTok's player with the link in a template\n%s", on)
-	}
-	yt := body("", "/learn/v/1")
-	if !strings.Contains(yt, `data-play="https://www.youtube-nocookie.com/embed/a?rel=0"`) || strings.Contains(yt, "data-player-out") {
-		t.Error("YouTube should play, with no TikTok link")
-	}
-	if !strings.Contains(body("1", "/admin/learn"), "Turn TikTok player off") {
-		t.Error("admin page: no button to turn the player off")
-	}
-
-	if w := as(srv, "2", "POST", "/admin/learn/tiktok/player", url.Values{"on": {"0"}}, false); w.Code != http.StatusForbidden {
-		t.Errorf("a player turning the switch: %d", w.Code)
-	}
-	if w := as(srv, "1", "POST", "/admin/learn/tiktok/player", url.Values{"on": {"0"}}, false); w.Code != http.StatusSeeOther {
-		t.Fatalf("turn off: %d", w.Code)
-	}
-	if off := body("", "/learn/v/2"); !strings.Contains(off, link) || strings.Contains(off, `data-play="https://www.tiktok.com/`) {
-		t.Errorf("player off: want a link to TikTok and no player\n%s", off)
-	}
-
-	// The switch is stored, so a restart keeps it.
-	tiktokPlayerOn.Store(true)
-	loadTikTokPlayer(t.Context(), db.New(d))
-	if tiktokPlayerOn.Load() {
-		t.Error("the switch wasn't stored")
 	}
 }
 
@@ -301,16 +249,23 @@ func TestPastStreams(t *testing.T) {
 			t.Errorf("stream with no recording: no %q", s)
 		}
 	}
-	for _, s := range []string{"Watch on TikTok", "Go live now", "data-play"} {
+	for _, s := range []string{"Go live now", "data-play"} {
 		if strings.Contains(stream, s) {
 			t.Errorf("stream with no recording: has %q", s)
 		}
 	}
 
-	// Rob saved it and posted it: the stream gets a player and is listed.
+	// TikTok videos aren't taken (18 November 2026).
 	recording("4", "https://www.tiktok.com/@rob_goudie/video/7301")
+	if strings.Contains(page("/learn/live/4"), "Recorded 5 Nov") {
+		t.Error("a TikTok link was taken as a recording")
+	}
+
+	// Rob saved it and posted it as a Short (video 2, already in the
+	// library): the stream gets a player and is listed.
+	recording("4", "https://www.youtube.com/shorts/b")
 	stream = page("/learn/live/4")
-	for _, s := range []string{"Recorded 5 Nov 2026", `class="player-start player-out"`, `href="https://www.tiktok.com/@rob_goudie/video/7301"`, "Watch on TikTok"} {
+	for _, s := range []string{"Recorded 5 Nov 2026", `data-play="https://www.youtube-nocookie.com/embed/b?rel=0"`} {
 		if !strings.Contains(stream, s) {
 			t.Errorf("stream with a recording: no %q", s)
 		}
@@ -321,8 +276,8 @@ func TestPastStreams(t *testing.T) {
 
 	// A video can be the recording of one stream only, and YouTube's
 	// streams get theirs from the sync.
-	recording("6", "https://www.tiktok.com/@rob_goudie/video/7301")
-	recording("3", "https://www.tiktok.com/@rob_goudie/video/7301")
+	recording("6", "https://www.youtube.com/shorts/b")
+	recording("3", "https://www.youtube.com/shorts/b")
 	var six, three sql.NullInt64
 	d.QueryRow("SELECT video_id FROM live_events WHERE id = 6").Scan(&six)
 	d.QueryRow("SELECT video_id FROM live_events WHERE id = 3").Scan(&three)

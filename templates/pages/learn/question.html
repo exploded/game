@@ -21,7 +21,7 @@
 <div class="settings-card answer-card">
     <h2>Answer{{with .AnsweredByName}} from {{.}}{{end}}</h2>
     {{with index $.Extra "VideoEmbed"}}
-    {{template "player" (dict "Embed" . "Thumb" (thumb $.Item.VideoThumbUrl $.Item.AnswerVideoID.Int64) "Title" $.Item.VideoTitle "Vertical" $.Item.VideoVertical "Watch" $.Item.VideoUrl)}}
+    {{template "player" (dict "Embed" . "Thumb" $.Item.VideoThumbUrl "Title" $.Item.VideoTitle "Vertical" $.Item.VideoVertical)}}
     <p class="text-muted" style="margin:8px 0 12px">
         <a href="/learn/v/{{$.Item.AnswerVideoID.Int64}}{{if $.Item.AnswerSeconds}}?t={{$.Item.AnswerSeconds}}{{end}}">{{$.Item.VideoTitle}}</a>{{if $.Item.AnswerSeconds}}, from {{mmss $.Item.AnswerSeconds}}{{end}}
     </p>

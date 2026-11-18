@@ -1255,15 +1255,6 @@ func (q *Queries) DeleteLobbyMessage(ctx context.Context, id int64) error {
 	return err
 }
 
-const deleteOAuthToken = `-- name: DeleteOAuthToken :exec
-DELETE FROM oauth_tokens WHERE provider = ?
-`
-
-func (q *Queries) DeleteOAuthToken(ctx context.Context, provider string) error {
-	_, err := q.db.ExecContext(ctx, deleteOAuthToken, provider)
-	return err
-}
-
 const deleteOldEmails = `-- name: DeleteOldEmails :exec
 DELETE FROM email_outbox WHERE status != 'pending' AND created_at < datetime('now', '-90 days')
 `
@@ -2002,25 +1993,6 @@ func (q *Queries) GetNewsThumb(ctx context.Context, newsID int64) (GetNewsThumbR
 	return i, err
 }
 
-const getOAuthToken = `-- name: GetOAuthToken :one
-SELECT provider, account, access_token, refresh_token, access_expires_at, refresh_expires_at, updated_at FROM oauth_tokens WHERE provider = ?
-`
-
-func (q *Queries) GetOAuthToken(ctx context.Context, provider string) (OauthToken, error) {
-	row := q.db.QueryRowContext(ctx, getOAuthToken, provider)
-	var i OauthToken
-	err := row.Scan(
-		&i.Provider,
-		&i.Account,
-		&i.AccessToken,
-		&i.RefreshToken,
-		&i.AccessExpiresAt,
-		&i.RefreshExpiresAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const getParticipant = `-- name: GetParticipant :one
 SELECT id, game_id, user_id, cash_balance, portfolio_value, joined_at, traded FROM participants WHERE id = ?
 `
@@ -2497,22 +2469,6 @@ func (q *Queries) GetVideoByExternalID(ctx context.Context, arg GetVideoByExtern
 		&i.ClassifiedAt,
 		&i.CreatedAt,
 	)
-	return i, err
-}
-
-const getVideoThumb = `-- name: GetVideoThumb :one
-SELECT content_type, data FROM video_thumbs WHERE video_id = ?
-`
-
-type GetVideoThumbRow struct {
-	ContentType string
-	Data        []byte
-}
-
-func (q *Queries) GetVideoThumb(ctx context.Context, videoID int64) (GetVideoThumbRow, error) {
-	row := q.db.QueryRowContext(ctx, getVideoThumb, videoID)
-	var i GetVideoThumbRow
-	err := row.Scan(&i.ContentType, &i.Data)
 	return i, err
 }
 
@@ -6933,17 +6889,15 @@ SELECT v.id, v.platform, v.title, v.url, v.thumb_url, v.published_at, v.hidden, 
        CAST(COALESCE((SELECT GROUP_CONCAT(t.name, ', ') FROM video_topics vt JOIN topics t ON t.id = vt.topic_id
                       WHERE vt.video_id = v.id), '') AS TEXT) AS topic_names
 FROM videos v
-WHERE (CAST(?1 AS TEXT) = '' OR v.platform = ?1)
-  AND (CAST(?2 AS TEXT) = '' OR v.title LIKE '%' || ?2 || '%')
+WHERE CAST(?1 AS TEXT) = '' OR v.title LIKE '%' || ?1 || '%'
 ORDER BY v.published_at DESC
-LIMIT ?4 OFFSET ?3
+LIMIT ?3 OFFSET ?2
 `
 
 type ListVideosAdminParams struct {
-	Platform string
-	Q        string
-	Off      int64
-	Lim      int64
+	Q   string
+	Off int64
+	Lim int64
 }
 
 type ListVideosAdminRow struct {
@@ -6961,14 +6915,9 @@ type ListVideosAdminRow struct {
 	TopicNames   string
 }
 
-// The admin list. Platform ” means every platform.
+// The admin list.
 func (q *Queries) ListVideosAdmin(ctx context.Context, arg ListVideosAdminParams) ([]ListVideosAdminRow, error) {
-	rows, err := q.db.QueryContext(ctx, listVideosAdmin,
-		arg.Platform,
-		arg.Q,
-		arg.Off,
-		arg.Lim,
-	)
+	rows, err := q.db.QueryContext(ctx, listVideosAdmin, arg.Q, arg.Off, arg.Lim)
 	if err != nil {
 		return nil, err
 	}
@@ -7524,39 +7473,6 @@ type SaveNewsThumbParams struct {
 // An empty data records a picture that couldn't be had.
 func (q *Queries) SaveNewsThumb(ctx context.Context, arg SaveNewsThumbParams) error {
 	_, err := q.db.ExecContext(ctx, saveNewsThumb, arg.NewsID, arg.ContentType, arg.Data)
-	return err
-}
-
-const saveOAuthToken = `-- name: SaveOAuthToken :exec
-INSERT INTO oauth_tokens (provider, account, access_token, refresh_token, access_expires_at, refresh_expires_at)
-VALUES (?, ?, ?, ?, ?, ?)
-ON CONFLICT(provider) DO UPDATE SET
-    account = excluded.account,
-    access_token = excluded.access_token,
-    refresh_token = excluded.refresh_token,
-    access_expires_at = excluded.access_expires_at,
-    refresh_expires_at = excluded.refresh_expires_at,
-    updated_at = datetime('now')
-`
-
-type SaveOAuthTokenParams struct {
-	Provider         string
-	Account          string
-	AccessToken      string
-	RefreshToken     string
-	AccessExpiresAt  string
-	RefreshExpiresAt string
-}
-
-func (q *Queries) SaveOAuthToken(ctx context.Context, arg SaveOAuthTokenParams) error {
-	_, err := q.db.ExecContext(ctx, saveOAuthToken,
-		arg.Provider,
-		arg.Account,
-		arg.AccessToken,
-		arg.RefreshToken,
-		arg.AccessExpiresAt,
-		arg.RefreshExpiresAt,
-	)
 	return err
 }
 
@@ -8674,22 +8590,6 @@ func (q *Queries) UpsertVideo(ctx context.Context, arg UpsertVideoParams) (int64
 	var id int64
 	err := row.Scan(&id)
 	return id, err
-}
-
-const upsertVideoThumb = `-- name: UpsertVideoThumb :exec
-INSERT INTO video_thumbs (video_id, content_type, data) VALUES (?, ?, ?)
-ON CONFLICT(video_id) DO UPDATE SET content_type = excluded.content_type, data = excluded.data
-`
-
-type UpsertVideoThumbParams struct {
-	VideoID     int64
-	ContentType string
-	Data        []byte
-}
-
-func (q *Queries) UpsertVideoThumb(ctx context.Context, arg UpsertVideoThumbParams) error {
-	_, err := q.db.ExecContext(ctx, upsertVideoThumb, arg.VideoID, arg.ContentType, arg.Data)
-	return err
 }
 
 const upsertYouTubeLiveEvent = `-- name: UpsertYouTubeLiveEvent :exec

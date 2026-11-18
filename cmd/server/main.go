@@ -146,7 +146,8 @@ func main() {
 	h.SetMailer(mailer)
 	go mailer.Run(ctx)
 
-	// Learn: syncs Rob's YouTube and TikTok and sorts videos into topics.
+	// Learn: syncs the YouTube channel, watches for Rob live on TikTok and
+	// sorts videos into topics.
 	// Each part is off until its keys are in .env.
 	med := media.New(queries, mailer, loc)
 	h.SetMedia(med)
@@ -381,7 +382,6 @@ func main() {
 		r.Get("/learn/courses/{slug}/{lid}", h.LessonPage)
 		// Their pictures and files: nothing outside the signed-in site uses
 		// them (no email or link preview does).
-		r.Get("/learn/thumb/{vid}", h.LearnThumb)
 		r.Get("/learn/live/{eid}/calendar.ics", h.LearnLiveCalendar)
 		r.Get("/learn/lesson-thumb/{lid}", h.LessonThumb)
 		r.Get("/learn/course-cover/{cid}", h.CourseCover)
@@ -453,7 +453,6 @@ func main() {
 			r.Post("/lessons/{lid}/delete", h.AdminLessonDelete)
 			r.Get("/learn", h.AdminLearn)
 			r.Post("/learn/sync", h.AdminLearnSync)
-			r.Post("/learn/tiktok/player", h.AdminTikTokPlayer)
 			r.Post("/learn/videos", h.AdminLearnPaste)
 			r.Get("/learn/videos/{vid}", h.AdminLearnVideo)
 			r.Post("/learn/videos/{vid}", h.AdminLearnVideoUpdate)
@@ -466,9 +465,6 @@ func main() {
 			r.Get("/learn/live", h.AdminLearnLive)
 			r.Post("/learn/live", h.AdminLearnLiveCreate)
 			r.Post("/learn/live/{eid}/{action}", h.AdminLearnLiveAction)
-			r.Get("/learn/tiktok/connect", h.AdminTikTokConnect)
-			r.Get("/learn/tiktok/callback", h.AdminTikTokCallback)
-			r.Post("/learn/tiktok/disconnect", h.AdminTikTokDisconnect)
 			r.Post("/email", h.AdminEmailSend)
 			r.Post("/messages/{mid}/read", h.AdminMarkMessageRead)
 			r.Post("/messages/{mid}/delete", h.AdminDeleteMessage)

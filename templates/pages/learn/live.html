@@ -58,9 +58,8 @@
         {{range .}}
         <a href="/learn/live/{{.ID}}" class="vcard{{if .Vertical}} vcard-tall{{end}}">
             <span class="vthumb">
-                <img src="{{thumb .ThumbUrl .RecVideoID}}" alt="" loading="lazy" decoding="async">
+                <img src="{{.ThumbUrl}}" alt="" loading="lazy" decoding="async">
                 {{with duration .DurationSeconds}}<span class="vbadge">{{.}}</span>{{end}}
-                {{if ne .Platform "youtube"}}<span class="vplatform vplatform-{{.Platform}}">{{platform .Platform}}</span>{{end}}
             </span>
             <span class="vtitle">{{streamTitle .Title .Status}}</span>
             <span class="vmeta">{{day .StartedAt}}{{with .Answered}} &middot; {{.}} question{{if ne . 1}}s{{end}} answered{{end}}</span>

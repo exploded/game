@@ -164,6 +164,9 @@ func lessonIndex(lessons []db.ListLessonsRow, id string) int {
 	return -1
 }
 
+// placeholderThumb is shown for a lesson with no thumbnail.
+const placeholderThumb = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 9"><rect width="16" height="9" fill="#1C2230"/><path d="M6.5 2.75v3.5L9.5 4.5z" fill="#878A9B"/></svg>`
+
 // LessonThumb serves a lesson's thumbnail, copied in from Vimeo.
 func (h *Handler) LessonThumb(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseInt(r.PathValue("lid"), 10, 64)

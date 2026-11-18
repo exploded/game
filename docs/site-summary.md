@@ -267,11 +267,13 @@ has four tabs, which also show on the course pages:
   Rob answers in writing, with a video, or live on air, and the asker and
   everyone who voted get the answer by email. During a live stream, the stream
   page shows the most-voted questions.
-- **Videos**: Rob's YouTube videos (and TikTok, once TikTok approves the
-  connection), sorted into topics such as retirement, superannuation and buying
-  a home. Members can search, browse by topic, and watch without leaving the
-  site. Videos come from YouTube and TikTok only (Facebook and Instagram were
-  dropped on 17 November 2026). A video lists the shares Rob mentions in it ("Mentioned in this
+- **Videos**: Consortium's YouTube videos and Shorts, from all its advisers,
+  sorted into topics such as retirement, superannuation and buying a home.
+  Members can search, browse by topic, and watch without leaving the site.
+  Videos come from YouTube only: Facebook and Instagram were dropped on 17
+  November 2026, and TikTok on 18 November 2026 (every TikTok is also a
+  YouTube Short, and TikTok's player doesn't play in Chrome on a computer or
+  Safari on an iPhone). TikTok is still used for Rob's live streams. A video lists the shares Rob mentions in it ("Mentioned in this
   video"); each opens that share in this month's game, after signing in.
   Shares Rob talks about link back to his videos.
 - **Live**: Rob's upcoming and current live streams. A "Rob is live" banner
@@ -330,9 +332,9 @@ Admins (Rob and the site team) get an **Admin** menu with:
 - **Email**: write a newsletter, send a test to yourself, then send it to
   everyone who opted in.
 - **Courses**: build, edit, publish and remove courses and lessons.
-- **Learn**: sync videos, add a YouTube or TikTok video by pasting its link,
-  edit topics, hide or pin videos, turn off a video's share links, schedule
-  live streams, and connect TikTok.
+- **Learn**: sync videos, add a YouTube video by pasting its link, edit
+  topics, hide or pin videos, turn off a video's share links, and schedule
+  live streams.
 - **Messages**: read and delete Contact form messages.
 - **Lobby**: the lobby messages moderation blocked, with how many are waiting.
   For each one an admin can **Unblock** it (it's posted for everyone), delete it,
@@ -438,7 +440,6 @@ Rob's answers to the open questions:
   channel too.
 - **Weekly summary email and "we miss you" email**: planned, not built. The
   Weekly summary choice stays hidden on Settings until the email exists.
-- **TikTok**: waiting on TikTok to approve the app.
 - **Players who already qualify** for Social Player or Market Watcher get the
   badge the next time they join a game or add to a watchlist, not straight
   away.

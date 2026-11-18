@@ -298,16 +298,6 @@ type Notification struct {
 	Emailed   int64
 }
 
-type OauthToken struct {
-	Provider         string
-	Account          string
-	AccessToken      string
-	RefreshToken     string
-	AccessExpiresAt  string
-	RefreshExpiresAt string
-	UpdatedAt        string
-}
-
 type Participant struct {
 	ID             int64
 	GameID         int64
@@ -580,12 +570,6 @@ type Video struct {
 type VideoStock struct {
 	VideoID int64
 	StockID int64
-}
-
-type VideoThumb struct {
-	VideoID     int64
-	ContentType string
-	Data        []byte
 }
 
 type VideoTopic struct {

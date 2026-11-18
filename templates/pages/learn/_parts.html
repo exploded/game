@@ -4,9 +4,8 @@
 fields). */}}
 {{define "videocard"}}<a href="/learn/v/{{.ID}}" class="vcard{{if .Vertical}} vcard-tall{{end}}">
     <span class="vthumb">
-        <img src="{{thumb .ThumbUrl .ID}}" alt="" loading="lazy" decoding="async">
+        <img src="{{.ThumbUrl}}" alt="" loading="lazy" decoding="async">
         {{with duration .DurationSeconds}}<span class="vbadge">{{.}}</span>{{end}}
-        {{if ne .Platform "youtube"}}<span class="vplatform vplatform-{{.Platform}}">{{platform .Platform}}</span>{{end}}
     </span>
     <span class="vtitle">{{.Title}}</span>
     <span class="vmeta">{{day .PublishedAt}}</span>

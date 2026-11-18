@@ -17,29 +17,11 @@
     <ul class="admin-status">
         <li>{{if $st.YouTube}}&#10003; YouTube syncs every 10 minutes, and the whole channel nightly.{{else}}&#10007; YouTube is off. Set <code>YOUTUBE_API_KEY</code> in <code>.env</code>.{{end}}</li>
         <li>{{if $st.Claude}}&#10003; Claude sorts new videos into topics.{{else}}&#10007; Topics are off. Set <code>ANTHROPIC_API_KEY</code> in <code>.env</code>, or tick topics by hand.{{end}}</li>
-        <li>
-            {{if not $st.TikTok}}&#10007; TikTok is off. Set <code>TIKTOK_CLIENT_KEY</code> and <code>TIKTOK_CLIENT_SECRET</code> in <code>.env</code>.
-            {{else}}{{with index .Extra "TikTok"}}
-                &#10003; TikTok connected{{with .Account}} as {{.}}{{end}}. Syncs hourly.
-                {{if index $.Extra "TikTokExpiring"}}<strong style="color:var(--color-warning)">The connection expires {{day .RefreshExpiresAt}}: connect again before then.</strong>{{end}}
-            {{else}}
-                TikTok isn't connected yet. Rob needs to sign in to TikTok once.
-            {{end}}{{end}}
-        </li>
-        <li>
-            {{if index .Extra "TikTokPlayer"}}&#10003; TikTok's player is on. It works in some browsers and not others, so each page checks: where TikTok's player fails, its videos show their cover and a Watch on TikTok link instead.
-            {{else}}&#10007; TikTok's player is off: every TikTok video shows its cover and a Watch on TikTok link, even in browsers where TikTok's player works.{{end}}
-        </li>
+        <li>TikTok videos aren't synced: each is also a YouTube Short, and TikTok's player won't play in many browsers. TikTok is checked only for Rob going live (<a href="/admin/learn/live">Live streams</a>).</li>
     </ul>
     <div class="btn-group" style="flex-wrap:wrap;margin-top:12px">
         <form method="POST" action="/admin/learn/sync"><button type="submit" class="btn btn-primary">Sync now</button></form>
         <form method="POST" action="/admin/learn/sync"><input type="hidden" name="full" value="1"><button type="submit" class="btn btn-secondary">Re-read every video</button></form>
-        {{if $st.TikTok}}
-        <a href="/admin/learn/tiktok/connect" class="btn btn-secondary">{{if index .Extra "TikTok"}}Reconnect{{else}}Connect{{end}} TikTok</a>
-        {{if index .Extra "TikTok"}}<form method="POST" action="/admin/learn/tiktok/disconnect" data-confirm="Disconnect TikTok? Its videos stay."><button type="submit" class="btn btn-secondary">Disconnect TikTok</button></form>{{end}}
-        {{end}}
-        {{if index .Extra "TikTokPlayer"}}<form method="POST" action="/admin/learn/tiktok/player" data-confirm="Turn TikTok's player off? TikTok videos will link to TikTok instead."><input type="hidden" name="on" value="0"><button type="submit" class="btn btn-secondary">Turn TikTok player off</button></form>
-        {{else}}<form method="POST" action="/admin/learn/tiktok/player"><input type="hidden" name="on" value="1"><button type="submit" class="btn btn-secondary">Turn TikTok player on</button></form>{{end}}
     </div>
     {{with index .Extra "Counts"}}
     <p class="text-muted" style="margin-top:12px">
@@ -50,15 +32,15 @@
 
 <div class="settings-card">
     <h2>Add a video by link</h2>
-    <p class="text-muted" style="margin-bottom:12px">For a TikTok or YouTube video that isn't synced. YouTube titles are looked up for you; type in the title for the others. A pasted TikTok shows a plain cover until the TikTok sync picks it up.</p>
+    <p class="text-muted" style="margin-bottom:12px">For a YouTube video from another channel. Its title is looked up for you unless you type one in.</p>
     <form method="POST" action="/admin/learn/videos">
         <div class="form-group">
             <label for="url">Video link</label>
-            <input type="url" id="url" name="url" required placeholder="https://www.tiktok.com/@rob_goudie/video/...">
+            <input type="url" id="url" name="url" required placeholder="https://www.youtube.com/watch?v=...">
         </div>
         <div class="form-row">
             <div class="form-group" style="flex:2">
-                <label for="vtitle">Title (needed for TikTok)</label>
+                <label for="vtitle">Title (optional)</label>
                 <input type="text" id="vtitle" name="title" maxlength="200">
             </div>
             <div class="form-group" style="flex:1">
@@ -71,12 +53,6 @@
 </div>
 
 <form method="GET" action="/admin/learn" class="learn-search">
-    <select name="platform" aria-label="Platform" data-autosubmit>
-        <option value="">All platforms</option>
-        {{$p := index .Extra "Platform"}}
-        <option value="youtube"{{if eq $p "youtube"}} selected{{end}}>YouTube</option>
-        <option value="tiktok"{{if eq $p "tiktok"}} selected{{end}}>TikTok</option>
-    </select>
     <input type="search" name="q" value="{{index .Extra "Q"}}" placeholder="Search titles" aria-label="Search titles">
     <button type="submit" class="btn btn-secondary">Filter</button>
 </form>
@@ -87,7 +63,7 @@
     <tbody>
     {{range .Items}}
     <tr>
-        <td class="c-main"><a href="/admin/learn/videos/{{.ID}}" class="stretch">{{.Title}}</a> <span class="text-muted">{{platform .Platform}}{{if .Vertical}} short{{end}}</span></td>
+        <td class="c-main"><a href="/admin/learn/videos/{{.ID}}" class="stretch">{{.Title}}</a>{{if .Vertical}} <span class="text-muted">Short</span>{{end}}</td>
         <td data-label="Topics">{{if .TopicNames}}{{.TopicNames}}{{else if .ClassifiedAt.Valid}}<span class="text-muted">None</span>{{else}}<span class="text-muted">Waiting</span>{{end}}</td>
         <td data-label="Posted">{{day .PublishedAt}}</td>
         <td class="c-end">{{if .LiveStatus}}<span style="color:var(--color-danger)">{{.LiveStatus}}</span>{{else if .Hidden}}Hidden{{else if .Featured}}Pinned{{else}}Shown{{end}}</td>
@@ -100,8 +76,8 @@
 </div>
 
 <div class="pagination">
-    {{with index .Extra "Prev"}}<a href="?page={{.}}&platform={{index $.Extra "Platform"}}&q={{index $.Extra "Q"}}" class="btn btn-sm btn-secondary">&larr; Newer</a>{{end}}
+    {{with index .Extra "Prev"}}<a href="?page={{.}}&q={{index $.Extra "Q"}}" class="btn btn-sm btn-secondary">&larr; Newer</a>{{end}}
     <span class="text-muted">Page {{index .Extra "Page"}}</span>
-    {{with index .Extra "Next"}}<a href="?page={{.}}&platform={{index $.Extra "Platform"}}&q={{index $.Extra "Q"}}" class="btn btn-sm btn-secondary">Older &rarr;</a>{{end}}
+    {{with index .Extra "Next"}}<a href="?page={{.}}&q={{index $.Extra "Q"}}" class="btn btn-sm btn-secondary">Older &rarr;</a>{{end}}
 </div>
 {{end}}

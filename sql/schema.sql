@@ -665,9 +665,10 @@ CREATE TABLE IF NOT EXISTS lesson_progress (
 );
 
 --------------------------------------------------------------------------------
--- Learn: Rob's videos and live streams from YouTube and TikTok, sorted into
--- topics. internal/media syncs them and asks Claude
--- which topics each video belongs to. Videos are embedded, never served.
+-- Learn: Consortium's YouTube videos and Rob's live streams (YouTube and
+-- TikTok), sorted into topics. internal/media syncs the YouTube channel and
+-- asks Claude which topics each video belongs to. Videos are embedded, never
+-- served.
 --------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS topics (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -679,13 +680,13 @@ CREATE TABLE IF NOT EXISTS topics (
 
 CREATE TABLE IF NOT EXISTS videos (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
-    platform         TEXT    NOT NULL,                 -- 'youtube' | 'tiktok'
+    platform         TEXT    NOT NULL,                 -- 'youtube' (TikTok's were dropped 18 November 2026)
     external_id      TEXT    NOT NULL,                 -- the platform's id for the video
     url              TEXT    NOT NULL,                 -- the video on the platform
     embed_url        TEXT    NOT NULL,                 -- the player (handler/video.go)
     title            TEXT    NOT NULL,
     description      TEXT    NOT NULL DEFAULT '',
-    thumb_url        TEXT    NOT NULL DEFAULT '',      -- '' when the cover is in video_thumbs
+    thumb_url        TEXT    NOT NULL DEFAULT '',      -- the cover on YouTube's servers
     published_at     TEXT    NOT NULL,                 -- UTC, 'YYYY-MM-DD HH:MM:SS'
     duration_seconds INTEGER NOT NULL DEFAULT 0,
     vertical         INTEGER NOT NULL DEFAULT 0,       -- 1 = a short (9:16)
@@ -700,14 +701,6 @@ CREATE TABLE IF NOT EXISTS videos (
     UNIQUE(platform, external_id)
 );
 CREATE INDEX IF NOT EXISTS idx_videos_published ON videos(hidden, published_at DESC);
-
--- Covers for platforms whose image links expire (TikTok), served from
--- /learn/thumb/{id}.
-CREATE TABLE IF NOT EXISTS video_thumbs (
-    video_id     INTEGER PRIMARY KEY REFERENCES videos(id) ON DELETE CASCADE,
-    content_type TEXT    NOT NULL,
-    data         BLOB    NOT NULL
-);
 
 CREATE TABLE IF NOT EXISTS video_topics (
     video_id INTEGER NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
@@ -767,17 +760,6 @@ CREATE TABLE IF NOT EXISTS tiktok_live_checks (
     event_id    INTEGER                          -- the stream it found on air, or started or ended
 );
 CREATE INDEX IF NOT EXISTS idx_tiktok_live_checks_account ON tiktok_live_checks(account, id);
-
--- OAuth tokens for the platforms Rob connects (TikTok).
-CREATE TABLE IF NOT EXISTS oauth_tokens (
-    provider           TEXT PRIMARY KEY,
-    account            TEXT NOT NULL DEFAULT '',       -- the connected account's display name
-    access_token       TEXT NOT NULL,
-    refresh_token      TEXT NOT NULL,
-    access_expires_at  TEXT NOT NULL,                  -- UTC
-    refresh_expires_at TEXT NOT NULL,                  -- UTC
-    updated_at         TEXT NOT NULL DEFAULT (datetime('now'))
-);
 
 -- Small values background jobs keep between runs (the YouTube uploads
 -- playlist, whether the backfill finished, the last database backup's date).

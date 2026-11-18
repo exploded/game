@@ -317,6 +317,17 @@ var onceMigrations = []struct{ name, stmt string }{
 	// 2026. media.cleanTitle drops it now; this cleans titles already stored.
 	{"strip-fffc-live-titles", `UPDATE live_events SET title = trim(replace(title, char(65532), ''))
 		WHERE instr(title, char(65532)) > 0`},
+	// TikTok's player wouldn't play in Chrome on a PC or Safari on an
+	// iPhone, and every TikTok of Rob's is also a YouTube Short, so on 18
+	// November 2026 (Anne agreed) short videos come from YouTube only and
+	// TikTok is used just for spotting Rob's live streams. The TikTok
+	// videos go (their topics, stocks and thumbs cascade; a question or
+	// stream pointing at one keeps no video), and with them the cached
+	// covers, the TikTok sign-in and the player switch.
+	{"drop-tiktok-videos", `DELETE FROM videos WHERE platform = 'tiktok';
+		DROP TABLE IF EXISTS video_thumbs;
+		DROP TABLE IF EXISTS oauth_tokens;
+		DELETE FROM media_state WHERE key = 'tiktok_player'`},
 }
 
 // droppedColumns are columns taken out of schema.sql. Older databases still

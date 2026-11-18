@@ -324,7 +324,7 @@ func (s *Service) saveYouTubeVideo(ctx context.Context, v ytVideo, vertical bool
 	if vertical {
 		sizes = []string{"standard", "high", "medium", "default"}
 	}
-	thumb := ""
+	thumb := "https://i.ytimg.com/vi/" + v.ID + "/mqdefault.jpg" // YouTube makes one for every video
 	for _, size := range sizes {
 		if t, ok := v.Snippet.Thumbnails[size]; ok && t.URL != "" {
 			thumb = t.URL

@@ -1,7 +1,8 @@
 // Package media keeps the Learn hub's videos and live streams up to date. It
-// syncs Rob's YouTube channel and TikTok account, asks Claude which topics
-// each video belongs to, spots Rob going live on TikTok, and emails people
-// about live streams. The scheduler
+// syncs Consortium's YouTube channel (Shorts included), asks Claude which
+// topics each video belongs to, spots Rob going live on TikTok, and emails
+// people about live streams. TikTok's videos aren't synced: each is also a
+// YouTube Short, and TikTok's player wouldn't play in many browsers. The scheduler
 // runs it every minute; each job is skipped when its keys aren't set.
 package media
 
@@ -25,12 +26,10 @@ type Service struct {
 	loc    *time.Location
 
 	yt       *YouTube // nil without YOUTUBE_API_KEY
-	tt       *TikTok  // nil without TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET
 	ttLive   *tiktokLive
 	classify Classifier // nil without ANTHROPIC_API_KEY
 
 	ytRunning       atomic.Bool
-	ttRunning       atomic.Bool
 	ttLiveRunning   atomic.Bool
 	classifyRunning atomic.Bool
 }
@@ -48,9 +47,6 @@ func New(q *db.Queries, m *mail.Mailer, loc *time.Location) *Service {
 	} else {
 		slog.Info("YouTube sync off: set YOUTUBE_API_KEY")
 	}
-	if key, secret := os.Getenv("TIKTOK_CLIENT_KEY"), os.Getenv("TIKTOK_CLIENT_SECRET"); key != "" && secret != "" {
-		s.tt = NewTikTok(key, secret)
-	}
 	if os.Getenv("ANTHROPIC_API_KEY") != "" {
 		s.classify = NewClaude(os.Getenv("CLAUDE_MODEL"))
 	} else {
@@ -61,7 +57,7 @@ func New(q *db.Queries, m *mail.Mailer, loc *time.Location) *Service {
 
 // Status says which jobs are configured, for the admin page.
 type Status struct {
-	YouTube, TikTok, Claude bool
+	YouTube, Claude bool
 }
 
 // Status reports which jobs have their keys.
@@ -69,15 +65,7 @@ func (s *Service) Status() Status {
 	if s == nil {
 		return Status{}
 	}
-	return Status{YouTube: s.yt != nil, TikTok: s.tt != nil, Claude: s.classify != nil}
-}
-
-// TikTok returns the TikTok client, or nil when TikTok isn't configured.
-func (s *Service) TikTok() *TikTok {
-	if s == nil {
-		return nil
-	}
-	return s.tt
+	return Status{YouTube: s.yt != nil, Claude: s.classify != nil}
 }
 
 // Run does whatever is due at now. The syncs and the classifier run in the
@@ -99,9 +87,6 @@ func (s *Service) Run(ctx context.Context, now time.Time) {
 			s.background(&s.ytRunning, "youtube live check", func() error { return s.checkYouTubeLive(ctx) })
 		}
 	}
-	if s.tt != nil && utc.Minute() == 15 {
-		s.background(&s.ttRunning, "tiktok sync", func() error { return s.syncTikTok(ctx) })
-	}
 	s.background(&s.ttLiveRunning, "tiktok live check", func() error { return s.checkTikTokLive(ctx, now) })
 	if s.classify != nil {
 		s.background(&s.classifyRunning, "classify videos", func() error { return s.classifyPending(ctx) })
@@ -110,17 +95,13 @@ func (s *Service) Run(ctx context.Context, now time.Time) {
 	s.mailOnAirAnswers(ctx)
 }
 
-// SyncNow starts the YouTube and TikTok syncs (full YouTube sync when full
-// is true) without waiting for the schedule.
+// SyncNow starts the YouTube sync (a full one when full is true) without waiting for the schedule.
 func (s *Service) SyncNow(ctx context.Context, full bool) {
 	if s == nil {
 		return
 	}
 	if s.yt != nil {
 		s.background(&s.ytRunning, "youtube sync", func() error { return s.syncYouTube(ctx, full) })
-	}
-	if s.tt != nil {
-		s.background(&s.ttRunning, "tiktok sync", func() error { return s.syncTikTok(ctx) })
 	}
 }
 

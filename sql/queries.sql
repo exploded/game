@@ -1582,15 +1582,14 @@ WHERE vs.stock_id = ? AND v.hidden = 0 AND v.hide_stocks = 0 AND v.live_status =
 ORDER BY v.published_at DESC
 LIMIT 6;
 
--- The admin list. Platform '' means every platform.
+-- The admin list.
 -- name: ListVideosAdmin :many
 SELECT v.id, v.platform, v.title, v.url, v.thumb_url, v.published_at, v.hidden, v.featured,
        v.vertical, v.live_status, v.classified_at,
        CAST(COALESCE((SELECT GROUP_CONCAT(t.name, ', ') FROM video_topics vt JOIN topics t ON t.id = vt.topic_id
                       WHERE vt.video_id = v.id), '') AS TEXT) AS topic_names
 FROM videos v
-WHERE (CAST(sqlc.arg(platform) AS TEXT) = '' OR v.platform = sqlc.arg(platform))
-  AND (CAST(sqlc.arg(q) AS TEXT) = '' OR v.title LIKE '%' || sqlc.arg(q) || '%')
+WHERE CAST(sqlc.arg(q) AS TEXT) = '' OR v.title LIKE '%' || sqlc.arg(q) || '%'
 ORDER BY v.published_at DESC
 LIMIT sqlc.arg(lim) OFFSET sqlc.arg(off);
 
@@ -1615,13 +1614,6 @@ DELETE FROM videos WHERE platform = ? AND external_id = ?;
 
 -- name: ListPlatformVideoIDs :many
 SELECT id, external_id FROM videos WHERE platform = ?;
-
--- name: UpsertVideoThumb :exec
-INSERT INTO video_thumbs (video_id, content_type, data) VALUES (?, ?, ?)
-ON CONFLICT(video_id) DO UPDATE SET content_type = excluded.content_type, data = excluded.data;
-
--- name: GetVideoThumb :one
-SELECT content_type, data FROM video_thumbs WHERE video_id = ?;
 
 -- YouTube streams still upcoming or live, for the sync to re-check.
 -- name: ListLiveYouTubeVideoIDs :many
@@ -1793,20 +1785,3 @@ SELECT event_id FROM live_reminders WHERE user_id = ?;
 
 -- name: ListLiveReminderUserIDs :many
 SELECT user_id FROM live_reminders WHERE event_id = ?;
-
--- name: GetOAuthToken :one
-SELECT * FROM oauth_tokens WHERE provider = ?;
-
--- name: SaveOAuthToken :exec
-INSERT INTO oauth_tokens (provider, account, access_token, refresh_token, access_expires_at, refresh_expires_at)
-VALUES (?, ?, ?, ?, ?, ?)
-ON CONFLICT(provider) DO UPDATE SET
-    account = excluded.account,
-    access_token = excluded.access_token,
-    refresh_token = excluded.refresh_token,
-    access_expires_at = excluded.access_expires_at,
-    refresh_expires_at = excluded.refresh_expires_at,
-    updated_at = datetime('now');
-
--- name: DeleteOAuthToken :exec
-DELETE FROM oauth_tokens WHERE provider = ?;

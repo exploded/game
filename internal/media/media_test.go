@@ -161,7 +161,7 @@ func TestYouTubeSync(t *testing.T) {
 	defer srv.Close()
 	yt := media.NewYouTube("key", "@ConsortiumPW")
 	yt.UseTestServer(srv.URL, srv.URL+"/shorts/")
-	s := media.NewTestService(q, m, yt, nil, nil)
+	s := media.NewTestService(q, m, yt, nil)
 	ctx := context.Background()
 
 	if err := media.SyncYouTube(s, ctx, true); err != nil {
@@ -276,7 +276,7 @@ func TestClassifyKeepsAdminTopics(t *testing.T) {
 		t.Fatal(err)
 	}
 	k := &keywordClassifier{}
-	s := media.NewTestService(q, m, nil, nil, k)
+	s := media.NewTestService(q, m, nil, k)
 	if err := media.ClassifyPending(s, context.Background()); err != nil {
 		t.Fatal(err)
 	}
@@ -320,7 +320,7 @@ func TestLiveEmails(t *testing.T) {
 		at(3*time.Hour), at(10*time.Minute), at(-time.Minute), at(-time.Minute), at(-3*time.Hour), at(-2*time.Hour)); err != nil {
 		t.Fatal(err)
 	}
-	s := media.NewTestService(q, m, nil, nil, nil)
+	s := media.NewTestService(q, m, nil, nil)
 	media.NotifyLive(s, context.Background(), now)
 	media.NotifyLive(s, context.Background(), now) // nothing twice
 
@@ -370,7 +370,7 @@ func TestOnAirAnswersWaitForTheRecording(t *testing.T) {
 		INSERT INTO question_votes (question_id, user_id) VALUES (1, 3), (2, 3)`); err != nil {
 		t.Fatal(err)
 	}
-	s := media.NewTestService(q, m, nil, nil, nil)
+	s := media.NewTestService(q, m, nil, nil)
 	media.MailOnAirAnswers(s, context.Background())
 	if got := outbox(t, d); len(got) != 2 {
 		t.Fatalf("emails before the YouTube recording: %v; want the TikTok question's 2", got)
@@ -388,77 +388,6 @@ func TestOnAirAnswersWaitForTheRecording(t *testing.T) {
 	d.QueryRow("SELECT answer_video_id, answer_seconds FROM questions WHERE id = 1").Scan(&vid, &secs)
 	if vid.Int64 != 5 || secs != 300 {
 		t.Errorf("question 1 answer video = (%v, %d), want (5, 300)", vid, secs)
-	}
-}
-
-func TestTikTokSync(t *testing.T) {
-	_, q, m := openDB(t)
-	var refreshed bool
-	mux := http.NewServeMux()
-	mux.HandleFunc("POST /oauth/token/", func(w http.ResponseWriter, r *http.Request) {
-		r.ParseForm()
-		if r.Form.Get("grant_type") != "refresh_token" || r.Form.Get("refresh_token") != "old-refresh" || r.Form.Get("client_secret") != "secret" {
-			t.Errorf("token request: %v", r.Form)
-		}
-		refreshed = true
-		json.NewEncoder(w).Encode(map[string]any{
-			"access_token": "new-access", "expires_in": 86400,
-			"refresh_token": "new-refresh", "refresh_expires_in": 31536000,
-		})
-	})
-	var srvURL string
-	mux.HandleFunc("POST /video/list/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Authorization") != "Bearer new-access" {
-			t.Errorf("video list auth = %q", r.Header.Get("Authorization"))
-		}
-		json.NewEncoder(w).Encode(map[string]any{
-			"data": map[string]any{
-				"videos": []any{
-					map[string]any{"id": "7301", "create_time": 1761800000, "title": "", "video_description": "Super tip #1\nmore", "duration": 40, "width": 1080, "height": 1920, "cover_image_url": srvURL + "/cover.png", "share_url": "https://www.tiktok.com/@rob_goudie/video/7301"},
-					map[string]any{"id": "7302", "create_time": 1761700000, "title": "Budgeting", "duration": 55, "width": 1080, "height": 1920},
-				},
-				"cursor": 1761700000000, "has_more": false,
-			},
-			"error": map[string]any{"code": "ok"},
-		})
-	})
-	mux.HandleFunc("GET /cover.png", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("\x89PNG\r\n\x1a\n0000IHDR"))
-	})
-	srv := httptest.NewServer(mux)
-	defer srv.Close()
-	srvURL = srv.URL
-
-	if err := q.SaveOAuthToken(context.Background(), db.SaveOAuthTokenParams{
-		Provider: "tiktok", Account: "Rob", AccessToken: "old-access", RefreshToken: "old-refresh",
-		AccessExpiresAt:  time.Now().Add(-time.Hour).UTC().Format(time.DateTime),
-		RefreshExpiresAt: time.Now().Add(300 * 24 * time.Hour).UTC().Format(time.DateTime),
-	}); err != nil {
-		t.Fatal(err)
-	}
-	tt := media.NewTikTok("key", "secret")
-	tt.UseTestServer(srv.URL)
-	s := media.NewTestService(q, m, nil, tt, nil)
-	if err := media.SyncTikTok(s, context.Background()); err != nil {
-		t.Fatal(err)
-	}
-	if !refreshed {
-		t.Error("the expired access token wasn't refreshed")
-	}
-	tok, _ := q.GetOAuthToken(context.Background(), "tiktok")
-	if tok.AccessToken != "new-access" || tok.RefreshToken != "new-refresh" || tok.Account != "Rob" {
-		t.Errorf("stored token = %+v", tok)
-	}
-	v, err := q.GetVideoByExternalID(context.Background(), db.GetVideoByExternalIDParams{Platform: "tiktok", ExternalID: "7301"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if v.Title != "Super tip #1" || v.Vertical != 1 || !strings.Contains(v.EmbedUrl, "/player/v1/7301") {
-		t.Errorf("video = %+v", v)
-	}
-	thumb, err := q.GetVideoThumb(context.Background(), v.ID)
-	if err != nil || thumb.ContentType != "image/png" {
-		t.Errorf("cover = (%q, %v), want a cached PNG", thumb.ContentType, err)
 	}
 }
 

@@ -243,19 +243,7 @@ func LoadTemplates(fsys fs.FS, static *Static) (PageTemplates, error) {
 			return t.In(displayLoc).Format("2006-01-02T15:04")
 		},
 		"platform": media.PlatformName,
-		// thumb is a video's cover: the platform's image, or the cached copy.
-		"thumb": func(thumbURL string, id int64) string {
-			if thumbURL != "" {
-				return thumbURL
-			}
-			return fmt.Sprintf("/learn/thumb/%d", id)
-		},
-		"embedAt": embedAt,
-		// playerOff is true for a TikTok embed while TikTok's player is
-		// switched off (tiktokplayer.go).
-		"playerOff": playerOff,
-		// isTikTok is true for TikTok's embedded player.
-		"isTikTok": isTikTok,
+		"embedAt":  embedAt,
 		// percent is part as a whole percent of whole, 0 when whole is 0.
 		"percent": func(part, whole int64) int64 {
 			if whole <= 0 {

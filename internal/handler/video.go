@@ -10,17 +10,16 @@ import (
 
 // videoFrameSrc lists the players lessons and Learn videos can embed. The
 // CSP's frame-src uses it, so a page can't embed anything else.
-const videoFrameSrc = "https://www.youtube-nocookie.com https://player.vimeo.com https://iframe.mediadelivery.net " +
-	"https://www.tiktok.com"
+const videoFrameSrc = "https://www.youtube-nocookie.com https://player.vimeo.com https://iframe.mediadelivery.net"
 
 var videoID = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
 
 // pastedVideo is a video link an admin pasted, worked out.
 type pastedVideo struct {
-	Platform string // youtube, vimeo, bunny or tiktok
+	Platform string // youtube, vimeo or bunny
 	ID       string // the platform's id for the video
 	Embed    string // the player URL
-	Vertical bool   // a short-form (9:16) link: a YouTube Short or TikTok
+	Vertical bool   // a YouTube Short (9:16)
 }
 
 // embedURL turns a video link pasted by an admin into its player URL. It
@@ -31,10 +30,9 @@ func embedURL(raw string) (string, bool) {
 }
 
 // parseVideo works out a pasted link. It takes YouTube (watch, youtu.be,
-// shorts, live, embed), Vimeo (including unlisted links with a hash), Bunny
-// Stream and TikTok video links (Rob dropped Facebook and Instagram on 17
-// November 2026). Short links that hide the id (vm.tiktok.com) have to be
-// followed first.
+// shorts, live, embed), Vimeo (including unlisted links with a hash) and
+// Bunny Stream links. Facebook and Instagram went on 17 November 2026, and
+// TikTok on 18 November 2026: its player wouldn't play in many browsers.
 func parseVideo(raw string) (pastedVideo, bool) {
 	u, err := url.Parse(strings.TrimSpace(raw))
 	if err != nil || (u.Scheme != "https" && u.Scheme != "http") {
@@ -90,19 +88,6 @@ func parseVideo(raw string) (pastedVideo, bool) {
 		// Bunny Stream: /embed/{library}/{video} or /play/{library}/{video}
 		if len(parts) == 3 && (parts[0] == "embed" || parts[0] == "play") && ok(parts[1], parts[2]) {
 			return pastedVideo{"bunny", parts[2], "https://iframe.mediadelivery.net/embed/" + parts[1] + "/" + parts[2], false}, true
-		}
-	case "tiktok.com":
-		// tiktok.com/@user/video/{id}, /player/v1/{id}, /embed/v2/{id}
-		var id string
-		switch {
-		case len(parts) == 3 && strings.HasPrefix(parts[0], "@") && parts[1] == "video":
-			id = parts[2]
-		case len(parts) == 3 && parts[0] == "player" && parts[1] == "v1",
-			len(parts) == 3 && parts[0] == "embed" && parts[1] == "v2":
-			id = parts[2]
-		}
-		if digits(id) && ok(id) {
-			return pastedVideo{"tiktok", id, media.TikTokEmbedURL(id), true}, true
 		}
 	}
 	return pastedVideo{}, false

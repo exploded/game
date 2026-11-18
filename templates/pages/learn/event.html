@@ -15,9 +15,9 @@
 
         {{if ne $e.Status "cancelled"}}
             {{with $v}}
-            {{template "player" (dict "Embed" .EmbedUrl "Thumb" (thumb .ThumbUrl .ID) "Title" $title "Vertical" .Vertical "Watch" .Url)}}
+            {{template "player" (dict "Embed" .EmbedUrl "Thumb" .ThumbUrl "Title" $title "Vertical" .Vertical)}}
             {{else}}{{if $e.EmbedUrl}}
-            {{template "player" (dict "Embed" $e.EmbedUrl "Thumb" "" "Title" $title "Vertical" false "Watch" $e.Url)}}
+            {{template "player" (dict "Embed" $e.EmbedUrl "Thumb" "" "Title" $title "Vertical" false)}}
             {{end}}{{end}}
         {{end}}
 
@@ -69,9 +69,9 @@
             <form method="POST" action="/admin/learn/live/{{$e.ID}}/recording" class="settings-card" style="margin-bottom:12px">
                 <div class="form-group">
                     <label for="rec-url">Recording</label>
-                    <input type="url" id="rec-url" name="url" placeholder="https://www.tiktok.com/@rob_goudie/video/…" value="{{with $v}}{{.Url}}{{end}}">
+                    <input type="url" id="rec-url" name="url" placeholder="https://www.youtube.com/watch?v=…" value="{{with $v}}{{.Url}}{{end}}">
                 </div>
-                <p class="text-muted" style="margin-bottom:12px">TikTok doesn't keep live streams for viewers. If Rob saved this one and posted it to TikTok or YouTube, paste the video's link here and the stream goes back on the Live page with a player. Leave it empty to take the recording off. Then point each question he answered at the video, from its own page.</p>
+                <p class="text-muted" style="margin-bottom:12px">TikTok doesn't keep live streams for viewers. If Rob saved this one and posted it to YouTube, paste the video's link here and the stream goes back on the Live page with a player. Leave it empty to take the recording off. Then point each question he answered at the video, from its own page.</p>
                 <button type="submit" class="btn btn-primary">Save recording</button>
             </form>
             {{end}}

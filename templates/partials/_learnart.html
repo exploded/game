@@ -102,30 +102,10 @@ ListTopics rows. */}}
 {{/* A player that loads only when tapped, so a page of videos doesn't load a
 dozen third-party players. . is a dict with Embed, Thumb, Title and
 Vertical, and optionally Course: a course row whose picture shows when
-there's no thumbnail. Watch is the video's own page on its site.
-
-TikTok's player works in some browsers and not others (from 17 November 2026
-it says "Player authentication failed" in Chrome on a PC and Safari on an
-iPhone, but plays in Firefox and in Chrome on an iPhone). So a TikTok video's
-button carries a "player-out" link in a template: app.js (watchTikTok) keeps
-the player hidden until it's ready, and swaps in the link if it reports an
-error. While an admin has TikTok's player switched
-off (playerOff, tiktokplayer.go), the link shows straight away. */}}
+there's no thumbnail. */}}
 {{define "player"}}<div class="player{{if .Vertical}} player-tall{{end}}">
-    {{if and (playerOff .Embed) .Watch}}
-    {{template "player-out" .}}
-    {{else}}
     <button type="button" class="player-start" data-play="{{.Embed}}" data-title="{{.Title}}" aria-label="Play {{.Title}}">
         {{with .Thumb}}<img src="{{.}}" alt="">{{else}}{{with .Course}}<span class="player-art course-tile-{{or .Art "generic"}}">{{template "course-cover" .}}</span>{{end}}{{end}}
         <span class="player-icon" aria-hidden="true"></span>
     </button>
-    {{if and (isTikTok .Embed) .Watch}}<template data-player-out>{{template "player-out" .}}</template>{{end}}
-    {{end}}
 </div>{{end}}
-
-{{/* A TikTok video's cover linking to the video on TikTok, in place of
-TikTok's player when it can't play here. */}}
-{{define "player-out"}}<a href="{{.Watch}}" class="player-start player-out" target="_blank" rel="noopener" aria-label="Watch {{.Title}} on TikTok">
-        {{with .Thumb}}<img src="{{.}}" alt="">{{end}}
-        <span class="player-out-label">Watch on TikTok &#8599;</span>
-    </a>{{end}}

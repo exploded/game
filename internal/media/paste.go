@@ -14,131 +14,69 @@ import (
 	"github.com/exploded/game/internal/db"
 )
 
-// Pasted is a video an admin adds by pasting its link: single TikToks before
-// TikTok is connected, or a YouTube video from another channel.
+// Pasted is a video an admin adds by pasting its link: a YouTube video from
+// another channel, or a stream recording.
 type Pasted struct {
-	Platform  string
-	ID        string // the platform's id
-	URL       string // the link as pasted (after following a short link)
+	ID        string // YouTube's id
+	URL       string // the link as pasted
 	Embed     string
 	Vertical  bool
-	Title     string // "" to look it up (YouTube and TikTok)
+	Title     string // "" to look it up
 	Published time.Time
 }
 
-// shortLinkHosts hide the video id behind a redirect.
-var shortLinkHosts = map[string]bool{"vm.tiktok.com": true, "vt.tiktok.com": true}
-
-// ExpandShortLink follows a vm.tiktok.com link to the full
-// video link. Other links come back as they are.
-func ExpandShortLink(ctx context.Context, raw string) string {
-	u, err := url.Parse(strings.TrimSpace(raw))
-	if err != nil || !shortLinkHosts[strings.ToLower(u.Hostname())] {
-		return raw
-	}
+// youTubeTitle asks YouTube's oEmbed for a video's title.
+func youTubeTitle(ctx context.Context, link string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://www.youtube.com/oembed?format=json&url="+url.QueryEscape(link), nil)
 	if err != nil {
-		return raw
-	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; TheInvestorProject)")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return raw
-	}
-	resp.Body.Close()
-	return resp.Request.URL.String()
-}
-
-// oEmbed asks YouTube or TikTok for a video's title and cover.
-func oEmbed(ctx context.Context, platform, link string) (title, thumb string, err error) {
-	var endpoint string
-	switch platform {
-	case "youtube":
-		endpoint = "https://www.youtube.com/oembed?format=json&url="
-	case "tiktok":
-		endpoint = "https://www.tiktok.com/oembed?url="
-	default:
-		return "", "", errors.New("no oEmbed for " + platform)
-	}
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint+url.QueryEscape(link), nil)
-	if err != nil {
-		return "", "", err
+		return "", err
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return "", "", fmt.Errorf("oembed: %s", resp.Status)
+		return "", fmt.Errorf("oembed: %s", resp.Status)
 	}
 	var out struct {
-		Title        string `json:"title"`
-		ThumbnailURL string `json:"thumbnail_url"`
+		Title string `json:"title"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return "", "", err
+		return "", err
 	}
-	return out.Title, out.ThumbnailURL, nil
+	return out.Title, nil
 }
 
-// AddPasted stores a pasted video and returns its id. Its topics are picked
-// on the next classifier run.
+// AddPasted stores a pasted YouTube video and returns its id. Its topics are
+// picked on the next classifier run.
 func (s *Service) AddPasted(ctx context.Context, p Pasted) (int64, error) {
 	title := strings.TrimSpace(p.Title)
-	var cover string
-	if title == "" || p.Platform == "tiktok" {
-		// TikTok's oEmbed stopped giving a title or cover (seen 2026-11-05),
-		// so a pasted TikTok needs a typed title and gets its cover only once
-		// the TikTok sync lists it.
-		t, c, err := oEmbed(ctx, p.Platform, p.URL)
+	if title == "" {
+		t, err := youTubeTitle(ctx, p.URL)
 		if err != nil {
-			slog.Warn("oembed lookup", "platform", p.Platform, "video", p.ID, "error", err)
-			if title == "" {
-				return 0, errors.New("couldn't look up the video's title; type one in")
-			}
+			slog.Warn("oembed lookup", "video", p.ID, "error", err)
+			return 0, errors.New("couldn't look up the video's title; type one in")
 		}
-		if err == nil && c == "" && p.Platform == "tiktok" {
-			slog.Info("oembed gave no cover", "platform", p.Platform, "video", p.ID)
-		}
-		if title == "" {
-			title = t
-		}
-		cover = c
+		title = t
 	}
 	if title == "" {
 		return 0, errors.New("type in a title for the video")
-	}
-	thumbURL := ""
-	if p.Platform == "youtube" {
-		thumbURL = "https://i.ytimg.com/vi/" + p.ID + "/mqdefault.jpg"
 	}
 	published := p.Published
 	if published.IsZero() {
 		published = time.Now()
 	}
-	id, err := s.q.UpsertVideo(ctx, db.UpsertVideoParams{
-		Platform:    p.Platform,
+	return s.q.UpsertVideo(ctx, db.UpsertVideoParams{
+		Platform:    "youtube",
 		ExternalID:  p.ID,
 		Url:         p.URL,
 		EmbedUrl:    p.Embed,
 		Title:       title,
-		ThumbUrl:    thumbURL,
+		ThumbUrl:    "https://i.ytimg.com/vi/" + p.ID + "/mqdefault.jpg",
 		PublishedAt: sqlTime(published),
 		Vertical:    boolInt(p.Vertical),
 	})
-	if err != nil {
-		return 0, err
-	}
-	if cover != "" && thumbURL == "" {
-		// TikTok's cover links expire, so keep a copy.
-		if err := s.cacheThumb(ctx, id, cover); err != nil {
-			slog.Warn("cache pasted cover", "platform", p.Platform, "video", p.ID, "error", err)
-		}
-	}
-	return id, nil
 }

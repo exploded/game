@@ -86,9 +86,11 @@ Rob asked for it to need a sign-in.
   an email with a link to that moment once the recording is in.
 - [x] **Questions moved into Learn** (`/questions` redirects), with topics,
   and answers can be a video from a given time.
-- [x] **TikTok through TikTok's API.** Rob connects once from `/admin/learn`;
-  the access token refreshes itself and lasts a year. Covers are cached
-  because TikTok's links expire after six hours.
+- [x] ~~**TikTok through TikTok's API.**~~ Removed on 18 November 2026 with
+  Anne's agreement: TikTok's player didn't play in Chrome on a PC or Safari
+  on an iPhone, and every TikTok is also a YouTube Short, so short videos
+  come from YouTube only. The TikTok app (Login Kit, Display API) and its
+  keys are no longer used; TikTok is only checked for Rob going live.
 - [x] **TikTok streams start and end by themselves** (2026-10-31). From 15
   minutes before a booked TikTok stream until 2 hours after, the site asks
   TikTok's own live endpoint every minute whether Rob is live (no login or
@@ -120,9 +122,8 @@ Rob asked for it to need a sign-in.
   them to YouTube, and it works (2026-11-10). TikTok doesn't
   keep a live stream for viewers, so the site can't show one afterwards.
   After each stream, Rob saves the replay (TikTok lets the host download it
-  for 90 days) and posts it to TikTok or YouTube as an ordinary video. Once
-  the TikTok app is approved and connected, the sync adds it to the site by
-  itself (YouTube already does). Then, on the stream's page on the site, an
+  for 90 days) and posts it to YouTube as an ordinary video, and the sync
+  adds it to the site by itself. Then, on the stream's page on the site, an
   admin pastes the video's link under **Admin: run this stream → Recording**,
   which puts the stream back on the Live page with a player. Rob also has to
   link each question he answered in the stream to that video by hand, on the
@@ -132,17 +133,6 @@ Rob asked for it to need a sign-in.
   shows new videos and the next stream.
 - [x] **Go live:** `YOUTUBE_API_KEY` and `ANTHROPIC_API_KEY` are in the server
   `.env` (2026-10-30).
-- [ ] **TikTok app:** approved on 10 November 2026, with the redirect
-  `https://investorproject.au/admin/learn/tiktok/callback`. Registered at
-  developers.tiktok.com (Login Kit, Display API), passed TikTok's app review, set `TIKTOK_CLIENT_KEY` and
-  `TIKTOK_CLIENT_SECRET`, then Rob clicks **Connect TikTok**. Reconnect
-  before the year is up; the admin page warns 30 days ahead.
-- [ ] **Pasted TikToks have no cover** (2026-11-05). TikTok's oEmbed no
-  longer gives a title or cover, so a TikTok pasted at `/admin/learn` needs a
-  typed title and shows a plain cover. Once the TikTok app is approved and
-  connected, the sync adds the missing covers by itself (videos 63427 and
-  63430 on prod). Check they appear then; if the app is refused, add a cover
-  upload to the video's admin page.
 - [ ] **From Rob:** whether the topic list suits him (`/admin/learn/topics`).
   His general advice wording is in; no podcast link is needed (2026-10-30).
 - [ ] **Later:** web push notifications. (Facebook and Instagram are out of

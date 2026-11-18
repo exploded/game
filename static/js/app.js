@@ -372,64 +372,8 @@ function startPlayer(btn, autoplay) {
         src.searchParams.set("origin", location.origin);
     }
     const frame = playerFrame(src.toString(), btn.getAttribute("data-title"));
-    const out = btn.parentElement.querySelector("template[data-player-out]");
-    if (out && src.hostname === "www.tiktok.com") {
-        watchTikTok(btn, frame, out);
-        return;
-    }
     btn.replaceWith(frame);
     if (end) showCardAtEnd(frame, end);
-}
-
-// watchTikTok loads TikTok's player hidden behind its button, which shows a
-// spinner, and listens to the player's postMessage events. TikTok's player
-// works in some browsers and not others: since 17 November 2026 it answers
-// Chrome on a PC and Safari on an iPhone with "Player authentication
-// failed", judging by the user agent alone (Chrome claiming to be Firefox
-// plays). A failing player posts onError and onPlayerError about a second
-// in, and either swaps in the button's "player-out" template, the cover
-// linking to the video on TikTok, at any time. A working player posts
-// onPlayerReady only when it autoplays; loaded without autoplay (iPhones
-// and iPads) it posts nothing. So the player shows on onPlayerReady, or 2
-// seconds after its frame loads with no error, or after 15 seconds
-// whatever happens. Nobody sees TikTok's error.
-function watchTikTok(btn, frame, out) {
-    const origin = "https://www.tiktok.com";
-    btn.classList.add("player-loading");
-    btn.disabled = true;
-    btn.setAttribute("aria-busy", "true");
-    frame.classList.add("player-hidden");
-    let timer = setTimeout(show, 15000);
-    frame.addEventListener("load", function() {
-        clearTimeout(timer);
-        timer = setTimeout(show, 2000);
-    }, { once: true });
-    btn.before(frame);
-    function show() {
-        clearTimeout(timer);
-        frame.classList.remove("player-hidden");
-        btn.remove();
-    }
-    function fail() {
-        clearTimeout(timer);
-        window.removeEventListener("message", onMessage);
-        frame.replaceWith(out.content.firstElementChild.cloneNode(true));
-        btn.remove();
-    }
-    function onMessage(e) {
-        if (e.source !== frame.contentWindow || e.origin !== origin) return;
-        let d = e.data;
-        if (typeof d === "string") {
-            try { d = JSON.parse(d); } catch (_) { return; }
-        }
-        if (!d || !d["x-tiktok-player"]) return;
-        if (d.type === "onError" || d.type === "onPlayerError") {
-            fail();
-        } else if (d.type === "onPlayerReady" && btn.isConnected) {
-            show();
-        }
-    }
-    window.addEventListener("message", onMessage);
 }
 
 function playerFrame(src, title) {

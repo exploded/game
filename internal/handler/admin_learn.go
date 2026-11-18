@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"crypto/subtle"
 	"database/sql"
 	"encoding/json"
 	"net/http"
@@ -11,13 +10,11 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/db"
 	"github.com/exploded/game/internal/media"
 )
 
-// The Learn admin pages: the video library, topics, live streams and the
-// TikTok connection.
+// The Learn admin pages: the video library, topics and live streams.
 
 const adminLearnPerPage = 50
 
@@ -25,28 +22,18 @@ const adminLearnPerPage = 50
 // paste a link.
 func (h *Handler) AdminLearn(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	platform := r.URL.Query().Get("platform")
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	page = max(page, 1)
 	videos, err := h.q.ListVideosAdmin(ctx, db.ListVideosAdminParams{
-		Platform: platform, Q: q, Lim: adminLearnPerPage, Off: int64((page - 1) * adminLearnPerPage),
+		Q: q, Lim: adminLearnPerPage, Off: int64((page - 1) * adminLearnPerPage),
 	})
 	if err != nil {
 		h.serverError(w, "list videos", err)
 		return
 	}
 	counts, _ := h.q.CountVideosByPlatform(ctx)
-	extra := map[string]any{
-		"Platform": platform, "Q": q, "Page": page,
-		"Counts": counts, "Status": h.media.Status(),
-		"TikTokPlayer": tiktokPlayerOn.Load(),
-	}
-	if tok, err := h.q.GetOAuthToken(ctx, "tiktok"); err == nil {
-		extra["TikTok"] = tok
-		extra["TikTokExpires"] = parseUTC(tok.RefreshExpiresAt)
-		extra["TikTokExpiring"] = time.Until(parseUTC(tok.RefreshExpiresAt)) < 30*24*time.Hour
-	}
+	extra := map[string]any{"Q": q, "Page": page, "Counts": counts, "Status": h.media.Status()}
 	if page > 1 {
 		extra["Prev"] = page - 1
 	}
@@ -56,10 +43,10 @@ func (h *Handler) AdminLearn(w http.ResponseWriter, r *http.Request) {
 	h.render(w, r, "admin/learn", "", PageData{Title: "Learn", Items: videos, Extra: extra})
 }
 
-// AdminLearnSync starts the YouTube and TikTok syncs now.
+// AdminLearnSync starts the YouTube sync now.
 func (h *Handler) AdminLearnSync(w http.ResponseWriter, r *http.Request) {
-	if !h.media.Status().YouTube && !h.media.Status().TikTok {
-		setFlashCookie(w, "Nothing to sync: set YOUTUBE_API_KEY (and the TikTok keys) in .env.", "error")
+	if !h.media.Status().YouTube {
+		setFlashCookie(w, "Nothing to sync: set YOUTUBE_API_KEY in .env.", "error")
 	} else {
 		h.media.SyncNow(context.WithoutCancel(r.Context()), r.FormValue("full") == "1")
 		setFlashCookie(w, "Sync started. New videos appear in a minute or two; topics follow as Claude sorts them.", "success")
@@ -67,18 +54,18 @@ func (h *Handler) AdminLearnSync(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin/learn", http.StatusSeeOther)
 }
 
-// AdminLearnPaste adds a video from a pasted link.
+// AdminLearnPaste adds a YouTube video from a pasted link.
 func (h *Handler) AdminLearnPaste(w http.ResponseWriter, r *http.Request) {
-	link := media.ExpandShortLink(r.Context(), r.FormValue("url"))
+	link := strings.TrimSpace(r.FormValue("url"))
 	v, ok := parseVideo(link)
-	if !ok || v.Platform == "vimeo" || v.Platform == "bunny" {
-		setFlashCookie(w, "Paste a YouTube or TikTok video link.", "error")
+	if !ok || v.Platform != "youtube" {
+		setFlashCookie(w, "Paste a YouTube video link.", "error")
 		http.Redirect(w, r, "/admin/learn", http.StatusSeeOther)
 		return
 	}
 	published, _ := time.ParseInLocation("2006-01-02", r.FormValue("published"), displayLoc)
 	id, err := h.media.AddPasted(r.Context(), media.Pasted{
-		Platform: v.Platform, ID: v.ID, URL: strings.TrimSpace(link), Embed: v.Embed,
+		ID: v.ID, URL: link, Embed: v.Embed,
 		Vertical: v.Vertical, Title: r.FormValue("title"), Published: published,
 	})
 	if err != nil {
@@ -480,27 +467,21 @@ func (h *Handler) setRecording(r *http.Request, e db.LiveEvent) (msg, bad string
 		}
 		return "Recording taken off.", ""
 	}
-	link = media.ExpandShortLink(ctx, link)
 	v, ok := parseVideo(link)
-	if !ok || (v.Platform != "youtube" && v.Platform != "tiktok") {
-		return "", "Paste a YouTube or TikTok video link."
+	if !ok || v.Platform != "youtube" {
+		return "", "Paste a YouTube video link."
 	}
 	var videoID int64
-	if got, err := h.q.GetVideoByExternalID(ctx, db.GetVideoByExternalIDParams{Platform: v.Platform, ExternalID: v.ID}); err == nil {
+	if got, err := h.q.GetVideoByExternalID(ctx, db.GetVideoByExternalIDParams{Platform: "youtube", ExternalID: v.ID}); err == nil {
 		videoID = got.ID
 	} else {
 		published := time.Now()
 		if t := parseUTC(e.StartedAt.String); !t.IsZero() {
 			published = t
 		}
-		p := media.Pasted{
-			Platform: v.Platform, ID: v.ID, URL: link, Embed: v.Embed, Vertical: v.Vertical, Published: published,
-		}
-		if v.Platform == "tiktok" {
-			// TikTok gives no title for a pasted video; YouTube's is looked up.
-			p.Title = streamTitle(e.Title, e.Status) + ", " + published.In(displayLoc).Format("2 Jan 2006")
-		}
-		id, err := h.media.AddPasted(ctx, p)
+		id, err := h.media.AddPasted(ctx, media.Pasted{
+			ID: v.ID, URL: link, Embed: v.Embed, Vertical: v.Vertical, Published: published,
+		})
 		if err != nil {
 			return "", "Couldn't add the video: " + err.Error() + "."
 		}
@@ -513,61 +494,4 @@ func (h *Handler) setRecording(r *http.Request, e db.LiveEvent) (msg, bad string
 		return "", "Couldn't attach the recording: " + err.Error() + "."
 	}
 	return "Recording attached. Point each question Rob answered at it from the question's page.", ""
-}
-
-// TikTok connection. The callback URL must be registered with the TikTok
-// app exactly: BASE_URL + /admin/learn/tiktok/callback.
-const tiktokStateCookie = "tiktok_state"
-
-func tiktokRedirect(r *http.Request) string { return siteURL(r) + "/admin/learn/tiktok/callback" }
-
-// AdminTikTokConnect sends Rob to TikTok to allow the app to read his
-// videos.
-func (h *Handler) AdminTikTokConnect(w http.ResponseWriter, r *http.Request) {
-	tt := h.media.TikTok()
-	if tt == nil {
-		setFlashCookie(w, "Set TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET in .env first.", "error")
-		http.Redirect(w, r, "/admin/learn", http.StatusSeeOther)
-		return
-	}
-	state, err := auth.RandomHex(16)
-	if err != nil {
-		h.serverError(w, "tiktok state", err)
-		return
-	}
-	http.SetCookie(w, &http.Cookie{
-		Name: tiktokStateCookie, Value: state, Path: "/admin/learn/tiktok",
-		MaxAge: 600, HttpOnly: true, Secure: SecurityHeadersProd, SameSite: http.SameSiteLaxMode,
-	})
-	http.Redirect(w, r, tt.AuthURL(tiktokRedirect(r), state), http.StatusSeeOther)
-}
-
-// AdminTikTokCallback is where TikTok sends Rob back.
-func (h *Handler) AdminTikTokCallback(w http.ResponseWriter, r *http.Request) {
-	c, err := r.Cookie(tiktokStateCookie)
-	http.SetCookie(w, &http.Cookie{Name: tiktokStateCookie, Value: "", Path: "/admin/learn/tiktok", MaxAge: -1})
-	state := r.URL.Query().Get("state")
-	switch {
-	case r.URL.Query().Get("error") != "":
-		setFlashCookie(w, "TikTok said: "+r.URL.Query().Get("error_description"), "error")
-	case err != nil || state == "" || subtle.ConstantTimeCompare([]byte(c.Value), []byte(state)) != 1:
-		setFlashCookie(w, "That TikTok sign-in didn't match. Try Connect TikTok again.", "error")
-	default:
-		if err := h.media.ConnectTikTok(r.Context(), r.URL.Query().Get("code"), tiktokRedirect(r)); err != nil {
-			setFlashCookie(w, "Couldn't connect TikTok: "+err.Error(), "error")
-		} else {
-			setFlashCookie(w, "TikTok connected. Rob's videos are syncing now.", "success")
-		}
-	}
-	http.Redirect(w, r, "/admin/learn", http.StatusSeeOther)
-}
-
-// AdminTikTokDisconnect forgets the TikTok tokens. Synced videos stay.
-func (h *Handler) AdminTikTokDisconnect(w http.ResponseWriter, r *http.Request) {
-	if err := h.q.DeleteOAuthToken(r.Context(), "tiktok"); err != nil {
-		h.serverError(w, "disconnect tiktok", err)
-		return
-	}
-	setFlashCookie(w, "TikTok disconnected. Its videos stay in the library.", "success")
-	http.Redirect(w, r, "/admin/learn", http.StatusSeeOther)
 }
