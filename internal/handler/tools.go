@@ -20,6 +20,8 @@ var calculators = []calculator{
 	{"fees", "Managed fund fee calculator", "Compare two funds’ fees and see how much they take from your balance over time.", "Investing"},
 	{"money-lasted", "Would your money have lasted?", "Run a retirement plan through every start month of the US share market since 1871.", "Investing"},
 	{"super", "Start Early: Extra Super Calculator", "See how a small extra weekly contribution could grow by 60 if you start at 20, 30 or 40.", "Retirement and super"},
+	{"co-contribution", "Super Co-contribution Calculator", "See how much the government could add to your super, up to $500, when you put in after-tax money.", "Retirement and super"},
+	{"spouse-contribution", "Spouse Contribution Calculator", "See the tax offset, up to $540, for putting money into your spouse’s super.", "Retirement and super"},
 	{"fhss", "First Home Super Saver Calculator", "See how saving your first-home deposit through super compares with saving in a bank.", "Buying a home"},
 }
 
@@ -124,6 +126,22 @@ func (h *Handler) FHSSCalculator(w http.ResponseWriter, r *http.Request) {
 		Title: "First Home Super Saver Calculator",
 		Extra: map[string]any{"Years": years},
 	})
+}
+
+// CoContributionCalculator estimates the government co-contribution for
+// 2026–27, and SpouseContributionCalculator the spouse contribution tax
+// offset (Rob's ideas, November 2026). Both share static/js/contrib-calc.js,
+// whose LAW holds the year's thresholds. Hidden from search engines and
+// browser-only, like MortgageCalculator.
+func (h *Handler) CoContributionCalculator(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("X-Robots-Tag", "noindex, nofollow")
+	h.render(w, r, "tools/co-contribution", "", PageData{Title: "Super Co-contribution Calculator"})
+}
+
+// SpouseContributionCalculator: see CoContributionCalculator.
+func (h *Handler) SpouseContributionCalculator(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("X-Robots-Tag", "noindex, nofollow")
+	h.render(w, r, "tools/spouse-contribution", "", PageData{Title: "Spouse Contribution Calculator"})
 }
 
 // FeesCalculator is our managed fund fee calculator, built to the assumptions

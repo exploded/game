@@ -1,0 +1,109 @@
+{{template "base" .}}
+
+{{define "content"}}
+{{/* Spouse contribution tax offset calculator: Rob's idea, our sums
+     (contrib-calc.js, with the 2026–27 rules in LAW). The panel under the
+     results is the spouse's own co-contribution, from the same sums as
+     /tools/co-contribution: information, not a recommendation. The inputs
+     have no form and no names, and nothing is sent. Change the "2026–27"
+     wording here when LAW changes. */}}
+<div class="mcalc kcalc" data-kcalc-spouse>
+    <header class="mcalc-head">
+        <p class="tools-back"><a href="/tools">&larr; Calculators</a></p>
+        <h1>Spouse Contribution Calculator</h1>
+        <p class="mcalc-lead">Put money into your spouse&rsquo;s super and you may get a tax offset of up to $540. See what you could get for 2026&ndash;27.</p>
+    </header>
+
+    <div class="mcalc-grid">
+        <section class="mcalc-card mcalc-inputs" aria-label="Your figures">
+            <h2 class="mcalc-kicker">Your figures for 2026&ndash;27</h2>
+            <div class="form-group">
+                <label for="kc-income">Your spouse&rsquo;s income for the year</label>
+                <div class="mcalc-field"><span class="mcalc-unit">$</span><input id="kc-income" type="text" inputmode="numeric" autocomplete="off" value="30,000" data-k="income" data-money></div>
+                <details class="kc-what">
+                    <summary>What counts as their income</summary>
+                    <p>Add up their assessable income (wages and other taxable income), any reportable fringe benefits and any reportable employer super contributions, such as salary sacrifice. Their payment summary or income statement shows the last two.</p>
+                </details>
+            </div>
+            <div class="form-group">
+                <label for="kc-contributed">What you&rsquo;ll put into their super</label>
+                <div class="mcalc-field"><span class="mcalc-unit">$</span><input id="kc-contributed" type="text" inputmode="numeric" autocomplete="off" value="3,000" data-k="contributed" data-money></div>
+                <p class="mcalc-note">After-tax money you pay into their fund as a spouse contribution. You can&rsquo;t claim it as a tax deduction.</p>
+            </div>
+
+            <h2 class="mcalc-kicker mcalc-kicker-gap">Check these apply</h2>
+            <ul class="kc-checks">
+                <li><label><input type="checkbox" checked data-elig data-why="you have to be married or in a de facto relationship, and not living apart permanently."><span>We&rsquo;re married or de facto, and not living apart permanently</span></label></li>
+                <li><label><input type="checkbox" checked data-elig data-why="you both have to be Australian residents."><span>We&rsquo;re both Australian residents</span></label></li>
+                <li><label><input type="checkbox" checked data-elig data-why="your spouse has to be under 75 when you make the contribution."><span>My spouse is under 75</span></label></li>
+                <li><label><input type="checkbox" checked data-elig data-why="your spouse&rsquo;s total super balance has to be under $2.1 million on 30 June 2026."><span>Their total super balance was under $2.1&nbsp;million on 30 June 2026</span></label></li>
+                <li><label><input type="checkbox" checked data-elig data-why="your spouse&rsquo;s after-tax contributions have to stay within their $130,000 non-concessional cap."><span>Their after-tax contributions this year stay under $130,000</span></label></li>
+            </ul>
+            <p class="mcalc-error" data-out="error" hidden></p>
+        </section>
+
+        <section class="mcalc-results" aria-label="Results" aria-live="polite">
+            <div class="mcalc-card mcalc-big">
+                <h2 class="mcalc-kicker">Your tax offset</h2>
+                <div class="mcalc-big-value" data-out="offset">&ndash;</div>
+                <p class="mcalc-note" data-out="offset-note"></p>
+            </div>
+            <div class="kc-tiles">
+                <div class="mcalc-card mcalc-tile">
+                    <h2 class="mcalc-kicker">Counts towards it, at most</h2>
+                    <div class="mcalc-tile-value mcalc-teal" data-out="best">&ndash;</div>
+                    <p class="mcalc-note" data-out="best-note"></p>
+                </div>
+                <div class="mcalc-card mcalc-tile">
+                    <h2 class="mcalc-kicker">What it costs you</h2>
+                    <div class="mcalc-tile-value mcalc-green" data-out="cost">&ndash;</div>
+                    <p class="mcalc-note" data-out="cost-note"></p>
+                </div>
+            </div>
+            <p class="mcalc-banner kc-banner" data-out="banner">&nbsp;</p>
+            <div class="mcalc-card kc-co" data-out="co-panel" hidden>
+                <h2 class="mcalc-kicker">Your spouse&rsquo;s own co-contribution</h2>
+                <p data-out="co-text"></p>
+                <p class="mcalc-note">You can get the offset and your spouse the co-contribution in the same year. <a href="/tools/co-contribution">Work out the co-contribution &rarr;</a></p>
+            </div>
+        </section>
+    </div>
+
+    <section class="mcalc-card mcalc-chart-card" aria-labelledby="kc-chart-title">
+        <div class="mcalc-chart-head">
+            <h2 class="mcalc-kicker" id="kc-chart-title">The most offset, by your spouse&rsquo;s income</h2>
+        </div>
+        <div class="mcalc-chart" data-out="chart" role="img" aria-label="The most tax offset at each income of your spouse: $540 up to $37,000, falling to nothing at $40,000, with a dot for your result"></div>
+    </section>
+
+    <section class="scalc-how">
+        <h2 class="mcalc-kicker">How it works</h2>
+        <p>You pay after-tax money into your spouse&rsquo;s super fund as a spouse contribution. When you lodge your tax return, you claim a tax offset of 18% of up to $3,000 of it, so up to $540. If your spouse earns over $37,000, the $3,000 falls by a dollar for each dollar over, to nothing at $40,000. The offset reduces the tax you pay. It isn&rsquo;t refunded if it&rsquo;s more than your tax.</p>
+    </section>
+</div>
+
+<section class="calc-about" aria-labelledby="about-title">
+    <h2 id="about-title">About this calculator</h2>
+    <h3>What it&rsquo;s for</h3>
+    <p>It estimates the tax offset you could claim for 2026&ndash;27 for putting money into your spouse&rsquo;s super, how much of it counts, and what it costs you after the offset. It also shows whether your spouse might get the government co-contribution on money they put in themselves.</p>
+    <h3>What it leaves out, and what that means</h3>
+    <ul>
+        <li><strong>Your own tax.</strong> The offset can only reduce tax you pay. If your tax for the year is less than the offset, you get less than shown.</li>
+        <li><strong>Their income is one figure.</strong> The calculator takes your spouse&rsquo;s income as you type it. If you leave something out, the estimate could be too high.</li>
+        <li><strong>Contribution splitting.</strong> Moving some of your before-tax contributions to your spouse&rsquo;s super is a different arrangement and doesn&rsquo;t count towards this offset.</li>
+        <li><strong>Only this year.</strong> It doesn&rsquo;t show what the money could grow to. The ATO decides what you can claim.</li>
+        <li><strong>The conditions are yours to check.</strong> The calculator relies on the boxes you tick. The ATO&rsquo;s page on spouse contributions has the full rules.</li>
+    </ul>
+    <h3>Assumptions, and why we use them</h3>
+    <dl class="calc-assume">
+        <div><dt>Offset rate <span>18% of up to $3,000 &middot; fixed by law</span></dt><dd>So the most is $540 a year. These figures haven&rsquo;t changed since 1 July 2017.</dd></div>
+        <div><dt>Spouse&rsquo;s income limits <span>$37,000 and $40,000 &middot; fixed by law</span></dt><dd>The $3,000 falls by $1 for each dollar of income over $37,000, so there&rsquo;s no offset from $40,000.</dd></div>
+        <div><dt>Co-contribution panel <span>2026&ndash;27 thresholds &middot; fixed by law</span></dt><dd>Uses the same sums as our <a href="/tools/co-contribution">co-contribution calculator</a>, on your spouse&rsquo;s income.</dd></div>
+        <div><dt>Your figures <span>$30,000 income, $3,000 put in &middot; you can change them</span></dt><dd>Example figures to show how the calculator works. Replace them with your own.</dd></div>
+    </dl>
+    {{template "calc-important" .}}
+</section>
+{{template "calc-device" .}}
+<script src="{{asset "js/contrib-calc.js"}}"></script>
+<script src="{{asset "js/spouse-contribution.js"}}"></script>
+{{end}}

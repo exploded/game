@@ -1,0 +1,103 @@
+{{template "base" .}}
+
+{{define "content"}}
+{{/* Super co-contribution calculator: Rob's idea, our sums (contrib-calc.js,
+     with the 2026–27 rules in LAW). As on the other calculators, the inputs
+     have no form and no names: the sums run in the browser and nothing is
+     sent. Change the "2026–27" wording here when LAW changes. */}}
+<div class="mcalc kcalc" data-kcalc-co>
+    <header class="mcalc-head">
+        <p class="tools-back"><a href="/tools">&larr; Calculators</a></p>
+        <h1>Super Co-contribution Calculator</h1>
+        <p class="mcalc-lead">Put after-tax money into your super, and the government may add up to $500. See what you could get for 2026&ndash;27.</p>
+    </header>
+
+    <div class="mcalc-grid">
+        <section class="mcalc-card mcalc-inputs" aria-label="Your figures">
+            <h2 class="mcalc-kicker">Your figures for 2026&ndash;27</h2>
+            <div class="form-group">
+                <label for="kc-income">Your total income for the year</label>
+                <div class="mcalc-field"><span class="mcalc-unit">$</span><input id="kc-income" type="text" inputmode="numeric" autocomplete="off" value="45,000" data-k="income" data-money></div>
+                <details class="kc-what">
+                    <summary>What counts as income</summary>
+                    <p>Add up your assessable income (wages and other taxable income), any reportable fringe benefits and any reportable employer super contributions, such as salary sacrifice. Your payment summary or income statement shows the last two. If you run a business, take off its allowable deductions.</p>
+                </details>
+            </div>
+            <div class="form-group">
+                <label for="kc-contributed">After-tax money you&rsquo;ll put into your super</label>
+                <div class="mcalc-field"><span class="mcalc-unit">$</span><input id="kc-contributed" type="text" inputmode="numeric" autocomplete="off" value="1,000" data-k="contributed" data-money></div>
+                <p class="mcalc-note">Money from your take-home pay or savings that you don&rsquo;t claim as a tax deduction.</p>
+            </div>
+
+            <h2 class="mcalc-kicker mcalc-kicker-gap">Check these apply to you</h2>
+            <ul class="kc-checks">
+                <li><label><input type="checkbox" checked data-elig data-why="at least 10% of your income has to come from work or running a business."><span>At least 10% of my income is from work or running a business</span></label></li>
+                <li><label><input type="checkbox" checked data-elig data-why="you have to be under 71 on 30 June 2027."><span>I&rsquo;ll be under 71 on 30 June 2027</span></label></li>
+                <li><label><input type="checkbox" checked data-elig data-why="your total super balance has to be under $2.1 million on 30 June 2026."><span>My total super balance was under $2.1&nbsp;million on 30 June 2026</span></label></li>
+                <li><label><input type="checkbox" checked data-elig data-why="your after-tax contributions have to stay within the $130,000 non-concessional cap."><span>My after-tax contributions this year stay under $130,000</span></label></li>
+                <li><label><input type="checkbox" checked data-elig data-why="you have to lodge a 2026–27 tax return."><span>I&rsquo;ll lodge a tax return for 2026&ndash;27</span></label></li>
+                <li><label><input type="checkbox" checked data-elig data-why="temporary residents can&rsquo;t get it, unless they&rsquo;re New Zealand citizens or hold certain visas."><span>I&rsquo;m not a temporary resident, or I&rsquo;m a New Zealand citizen</span></label></li>
+            </ul>
+            <p class="mcalc-error" data-out="error" hidden></p>
+        </section>
+
+        <section class="mcalc-results" aria-label="Results" aria-live="polite">
+            <div class="mcalc-card mcalc-big">
+                <h2 class="mcalc-kicker">The government could add</h2>
+                <div class="mcalc-big-value" data-out="amount">&ndash;</div>
+                <p class="mcalc-note" data-out="amount-note"></p>
+            </div>
+            <div class="kc-tiles">
+                <div class="mcalc-card mcalc-tile">
+                    <h2 class="mcalc-kicker">The most at your income</h2>
+                    <div class="mcalc-tile-value mcalc-green" data-out="max">&ndash;</div>
+                    <p class="mcalc-note" data-out="max-note"></p>
+                </div>
+                <div class="mcalc-card mcalc-tile">
+                    <h2 class="mcalc-kicker">Put in this to get it</h2>
+                    <div class="mcalc-tile-value mcalc-teal" data-out="best">&ndash;</div>
+                    <p class="mcalc-note">The government adds 50 cents for each dollar, up to the most.</p>
+                </div>
+            </div>
+            <p class="mcalc-banner kc-banner" data-out="banner">&nbsp;</p>
+        </section>
+    </div>
+
+    <section class="mcalc-card mcalc-chart-card" aria-labelledby="kc-chart-title">
+        <div class="mcalc-chart-head">
+            <h2 class="mcalc-kicker" id="kc-chart-title">The most you could get, by income</h2>
+        </div>
+        <div class="mcalc-chart" data-out="chart" role="img" aria-label="The most co-contribution at each income: $500 up to $49,293, falling to nothing at $64,293, with a dot for your result"></div>
+    </section>
+
+    <section class="scalc-how">
+        <h2 class="mcalc-kicker">How it works</h2>
+        <p>You put after-tax money into your super fund, and your fund tells the ATO. Once you lodge your tax return, the ATO works out your co-contribution and pays it into your super. You don&rsquo;t need to apply, but your money has to reach your fund by 30 June 2027 to count for 2026&ndash;27. It pays 50 cents for each dollar you put in, up to $500 for incomes up to $49,293. Above that, the most falls by about 3.3 cents for each extra dollar of income, to nothing at $64,293.</p>
+    </section>
+</div>
+
+<section class="calc-about" aria-labelledby="about-title">
+    <h2 id="about-title">About this calculator</h2>
+    <h3>What it&rsquo;s for</h3>
+    <p>It estimates the government co-contribution you could get for 2026&ndash;27 on after-tax money you put into your super, and how much you&rsquo;d need to put in to get the most for your income.</p>
+    <h3>What it leaves out, and what that means</h3>
+    <ul>
+        <li><strong>Your income is one figure.</strong> The calculator takes your total income as you type it. If you leave something out, such as reportable employer super, the estimate could be too high.</li>
+        <li><strong>The ATO decides.</strong> The ATO works out the real amount from your tax return and what your fund reports. It may differ from this estimate.</li>
+        <li><strong>Only this year.</strong> It doesn&rsquo;t show what the money could grow to. The thresholds change each 1 July.</li>
+        <li><strong>The conditions are yours to check.</strong> The calculator relies on the boxes you tick. The ATO&rsquo;s page has the full rules, including which visa holders can get it.</li>
+    </ul>
+    <h3>Assumptions, and why we use them</h3>
+    <dl class="calc-assume">
+        <div><dt>Income thresholds <span>$49,293 and $64,293 &middot; fixed by law for 2026&ndash;27</span></dt><dd>Set by the government each year and indexed to wages. The full $500 is paid up to the lower threshold and nothing from the higher one up.</dd></div>
+        <div><dt>Rate and most paid <span>50 cents a dollar, up to $500 &middot; fixed by law</span></dt><dd>Above the lower threshold the $500 falls by 3.333 cents for each dollar of income.</dd></div>
+        <div><dt>Rounding and least paid <span>Up to the next 5 cents, at least $20 &middot; fixed by law</span></dt><dd>As the ATO pays it: an amount under $20 is paid as $20.</dd></div>
+        <div><dt>Your figures <span>$45,000 income, $1,000 put in &middot; you can change them</span></dt><dd>Example figures to show how the calculator works. Replace them with your own.</dd></div>
+    </dl>
+    <p>To check your own figures, use the ATO&rsquo;s <a href="https://www.ato.gov.au/calculators-and-tools/super-co-contribution-calculator" target="_blank" rel="noopener">super co-contribution calculator</a>. The <a href="/tools/spouse-contribution">spouse contribution calculator</a> shows the tax offset for putting money into a spouse&rsquo;s super.</p>
+    {{template "calc-important" .}}
+</section>
+{{template "calc-device" .}}
+<script src="{{asset "js/contrib-calc.js"}}"></script>
+<script src="{{asset "js/co-contribution.js"}}"></script>
+{{end}}

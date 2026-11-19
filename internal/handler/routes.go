@@ -131,6 +131,8 @@ func (h *Handler) Routes(static *Static, csrfSecret []byte, throttle *Throttle) 
 		r.Get("/tools/compound", h.CompoundCalculator)
 		r.Get("/tools/fees", h.FeesCalculator)
 		r.Get("/tools/fhss", h.FHSSCalculator)
+		r.Get("/tools/co-contribution", h.CoContributionCalculator)
+		r.Get("/tools/spouse-contribution", h.SpouseContributionCalculator)
 
 		// Games: one per month, created by the scheduler. Admins change
 		// their settings under /admin/games.
