@@ -53,6 +53,12 @@ var listingTypes = map[string]bool{
 // listing can appear in the list a week or two before its first trade.
 const listingMaxChecks = 15
 
+// listingMaxLookups caps the /statistics calls (50 credits each) one check
+// makes, so a burst of new listings can't spend a large part of a day's
+// credits. Those left over are looked up on later days, least-checked first. A
+// var so tests can lower it.
+var listingMaxLookups = 20
+
 // listingWindow is how long after first appearing a listing is still new.
 const listingWindow = 30 * 24 * time.Hour
 
@@ -115,6 +121,9 @@ func (f *Fetcher) CheckListings(ctx context.Context, q *db.Queries, today string
 	})
 	if err != nil {
 		return nil, err
+	}
+	if len(toCheck) > listingMaxLookups {
+		toCheck = toCheck[:listingMaxLookups]
 	}
 	for _, l := range toCheck {
 		var st tdStatistics

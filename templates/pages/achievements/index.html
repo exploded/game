@@ -14,7 +14,7 @@
         <div class="achievement-info">
             <h3>{{.Name}}</h3>
             <p>{{.Description}}</p>
-            {{if $earnedAt}}<span class="text-muted" style="font-size:0.75rem">Earned {{$earnedAt}}</span>{{end}}
+            {{if $earnedAt}}<span class="text-muted" style="font-size:0.75rem">Earned {{day $earnedAt}}</span>{{end}}
         </div>
     </div>
     {{end}}

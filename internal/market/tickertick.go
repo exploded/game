@@ -26,7 +26,7 @@ const (
 	tickertickMaxRetries  = 2                // retry attempts per stock on 429
 	tickertickFetchLimit  = 50               // stories asked for per ticker; most are filtered out
 	tickertickKeepRows    = 60               // stories kept per stock, shown or not
-	tickertickSkipAge     = 4 * time.Hour    // skip stocks fetched within this window
+	tickertickSkipAge     = 2 * time.Hour    // skip stocks fetched within this window (half the 4-hour run interval, so a busy stock isn't skipped every other run)
 	tickertickHTTPTimeout = 15 * time.Second
 	newsFilterMaxFails    = 3 // filter failures in a row that end the run
 )

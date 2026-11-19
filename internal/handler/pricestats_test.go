@@ -31,7 +31,7 @@ func TestPriceStatsPollsOnlyWhileOpen(t *testing.T) {
 	}
 	open := renderPriceStats(t, ps)
 	for _, want := range []string{
-		`hx-get="/games/3/stocks/7/price"`, `hx-trigger="every 60s"`,
+		`hx-get="/games/3/stocks/7/price"`, `hx-trigger="price-poll"`, `data-price-poll`,
 		"$343.83", "-$3.27 (-0.94%)", "text-red", "Market open", "As of 10:42 am ET",
 		`data-date="2026-10-29"`, `data-c="34383"`,
 	} {

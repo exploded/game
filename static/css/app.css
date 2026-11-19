@@ -176,8 +176,8 @@ a.game-bar-stats:hover .game-bar-label { color: var(--color-text); }
 .btn:hover { text-decoration: none; filter: brightness(1.15); }
 .btn-primary { background: #007994; color: #fff; }
 .btn-primary:hover { background: var(--color-primary-hover); }
-.btn-success, .btn-buy { background: var(--color-success); color: #fff; }
-.btn-success:hover, .btn-buy:hover { opacity: 0.9; }
+.btn-buy { background: var(--color-success); color: #fff; }
+.btn-buy:hover { opacity: 0.9; }
 .btn-danger, .btn-sell { background: var(--color-danger); color: #fff; }
 .btn-danger:hover, .btn-sell:hover { opacity: 0.9; }
 /* A button that's off, including one hx-disable turns off while its request
@@ -1696,23 +1696,6 @@ dialog.confirm form { padding: 20px; }
     .screener .sc-logo { width: 28px; height: 28px; }
 }
 
-/* Connect your AI (/settings/api): text to paste, each with a Copy button,
-   and the lists of keys and connected apps. */
-.copy-box { display: flex; gap: 8px; align-items: flex-start; margin: 8px 0 14px; }
-.copy-box pre {
-    flex: 1; min-width: 0; margin: 0; padding: 10px 12px;
-    background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: var(--radius);
-    font-family: var(--font-mono); font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere;
-}
-.copy-box .btn { flex: none; }
-.key-new { border-color: var(--color-success); }
-.key-list { list-style: none; padding: 0; margin: 0; }
-.key-list li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--color-border); }
-.key-list li:first-child { border-top: 0; }
-.key-list .text-muted { font-size: 12px; }
-.ai-steps { margin: 4px 0 8px 20px; }
-.ai-steps li { margin-bottom: 4px; }
-
 /* The home page (/dashboard), from Rob's mockup: a hero over a rising chart,
    three big tiles (three across on every screen, as in the mockup), the intro
    video in a card over faint candles, three points and a quote. Each tile
@@ -1980,7 +1963,6 @@ span.lesson-thumb { display: block; overflow: hidden; }
 .lesson-side { display: flex; flex-direction: column; gap: 6px; }
 .lesson-desc { margin-bottom: 12px; line-height: 1.6; }
 .lesson-nav { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; margin-top: 16px; }
-.lesson-locked > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.35; filter: blur(2px); }
 .lesson-locked-text {
     position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 8px; padding: 16px; text-align: center; background: radial-gradient(circle, rgba(10, 14, 23, 0.55), rgba(10, 14, 23, 0.85));
@@ -2054,7 +2036,6 @@ span.lesson-thumb { display: block; overflow: hidden; }
 .intro-frame.playing .intro-play { display: none; }
 @media (scripting: none) { .intro-play { display: none; } }
 @media (max-width: 767px) { .intro-play { width: 60px; height: 60px; margin: -30px 0 0 -30px; } .intro-play::after { margin: -11px 0 0 -6px; border-width: 11px 0 11px 19px; } }
-.ai-app { font-size: 1rem; margin: 18px 0 6px; }
 
 /* ============================================================
    Calculators (/tools/...). The .mcalc styles are the mortgage

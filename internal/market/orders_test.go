@@ -92,7 +92,7 @@ func notificationTitle(d *sql.DB) string {
 func TestQueuedMarketOrderWaitsWhileClosed(t *testing.T) {
 	q, d := ordersDB(t, sessionToday(t), "buy", 5)
 	setMarketOpen(t, false)
-	ProcessLimitOrders(t.Context(), q)
+	ProcessLimitOrders(t.Context(), q, d)
 	if s := orderStatus(t, d); s != "open" {
 		t.Errorf("status = %q while the market is closed, want open", s)
 	}
@@ -104,7 +104,7 @@ func TestQueuedMarketOrderWaitsForTodaysPrice(t *testing.T) {
 	sessionToday(t)
 	q, d := ordersDB(t, "2020-01-02", "buy", 5)
 	setMarketOpen(t, true)
-	ProcessLimitOrders(t.Context(), q)
+	ProcessLimitOrders(t.Context(), q, d)
 	if s := orderStatus(t, d); s != "open" {
 		t.Errorf("status = %q with only a stale price, want open", s)
 	}
@@ -113,7 +113,7 @@ func TestQueuedMarketOrderWaitsForTodaysPrice(t *testing.T) {
 func TestQueuedMarketOrderFillsAtTheOpen(t *testing.T) {
 	q, d := ordersDB(t, sessionToday(t), "buy", 5)
 	setMarketOpen(t, true)
-	ProcessLimitOrders(t.Context(), q)
+	ProcessLimitOrders(t.Context(), q, d)
 
 	if s := orderStatus(t, d); s != "filled" {
 		t.Fatalf("status = %q, want filled", s)
@@ -164,13 +164,13 @@ func TestLimitOrderWaitsWhileClosed(t *testing.T) {
 	q, d := ordersDB(t, sessionToday(t), "buy", 5)
 	id := limitOrder(t, q, "buy", 1100)
 	setMarketOpen(t, false)
-	ProcessLimitOrders(t.Context(), q)
+	ProcessLimitOrders(t.Context(), q, d)
 	if s := statusOf(t, d, id); s != "open" {
 		t.Fatalf("status = %q while the market is closed, want open", s)
 	}
 
 	setMarketOpen(t, true)
-	ProcessLimitOrders(t.Context(), q)
+	ProcessLimitOrders(t.Context(), q, d)
 	if s := statusOf(t, d, id); s != "filled" {
 		t.Errorf("status = %q once the market opened, want filled", s)
 	}
@@ -183,7 +183,7 @@ func TestLimitOrderWaitsForTodaysPrice(t *testing.T) {
 	q, d := ordersDB(t, "2020-01-02", "buy", 5)
 	id := limitOrder(t, q, "buy", 1100)
 	setMarketOpen(t, true)
-	ProcessLimitOrders(t.Context(), q)
+	ProcessLimitOrders(t.Context(), q, d)
 	if s := statusOf(t, d, id); s != "open" {
 		t.Errorf("status = %q with only a stale price, want open", s)
 	}
@@ -192,7 +192,7 @@ func TestLimitOrderWaitsForTodaysPrice(t *testing.T) {
 func TestQueuedBuyCancelledWithoutCash(t *testing.T) {
 	q, d := ordersDB(t, sessionToday(t), "buy", 1000) // $10,500 against $1,000 cash
 	setMarketOpen(t, true)
-	ProcessLimitOrders(t.Context(), q)
+	ProcessLimitOrders(t.Context(), q, d)
 
 	if s := orderStatus(t, d); s != "cancelled" {
 		t.Errorf("status = %q, want cancelled", s)
@@ -207,7 +207,7 @@ func TestQueuedBuyCancelledWithoutCash(t *testing.T) {
 func TestQueuedSellCanGoShort(t *testing.T) {
 	q, d := ordersDB(t, sessionToday(t), "sell", 3)
 	setMarketOpen(t, true)
-	ProcessLimitOrders(t.Context(), q)
+	ProcessLimitOrders(t.Context(), q, d)
 
 	if s := orderStatus(t, d); s != "filled" {
 		t.Fatalf("status = %q, want filled", s)

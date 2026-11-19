@@ -56,10 +56,26 @@ func (h *Handler) monthCards(ctx context.Context, userID int64) []gameCard {
 func (h *Handler) GamesList(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 
+	// Past games take three queries however many there are, not two each.
 	finished, _ := h.q.ListFinishedGames(r.Context(), db.ListFinishedGamesParams{Limit: 200, Offset: 0})
+	players := map[int64]int64{}
+	if counts, err := h.q.CountFinishedGamePlayers(r.Context()); err == nil {
+		for _, c := range counts {
+			players[c.GameID] = c.Players
+		}
+	}
+	mine := map[int64]db.Participant{}
+	if ps, err := h.q.ListUserFinishedParticipants(r.Context(), user.ID); err == nil {
+		for _, p := range ps {
+			mine[p.GameID] = p
+		}
+	}
 	past := make([]gameCard, len(finished))
 	for i, g := range finished {
-		past[i] = h.gameCard(r.Context(), g, "", user.ID)
+		past[i] = gameCard{Game: g, Players: players[g.ID]}
+		if p, ok := mine[g.ID]; ok {
+			past[i].Participant = &p
+		}
 	}
 
 	h.render(w, r, "games/list", "", PageData{

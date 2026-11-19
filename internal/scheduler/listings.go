@@ -9,16 +9,23 @@ import (
 	"time"
 
 	"github.com/exploded/game/internal/db"
+	"github.com/exploded/game/internal/jobs"
 	"github.com/exploded/game/internal/mail"
 	"github.com/exploded/game/internal/market"
 )
 
 var listingsRunning atomic.Bool
 
-// listingsCheckedFor is the New York date of the last good new-listings
-// check, and listingsTriedAt when the last one started (Unix seconds).
-var listingsCheckedFor atomic.Value
+// listingsTriedAt is when the last new-listings check started (Unix
+// seconds).
 var listingsTriedAt atomic.Int64
+
+// listingsDayKey is the media_state row holding the New York date of the
+// last good new-listings check. It's kept in the database, not memory, so a
+// restart or deploy doesn't run the check again: each run spends a
+// 50-credit /statistics call and one of its 15 tries on every pending
+// listing.
+const listingsDayKey = "listings_day"
 
 // listingsHourUTC is the hour from which the new-listings check runs each
 // New York weekday: after the splits check and well before the open, so a
@@ -38,7 +45,7 @@ func maybeCheckListings(ctx context.Context, q *db.Queries, rawDB *sql.DB, m *ma
 		return
 	}
 	today := ny.Format(time.DateOnly)
-	if done, _ := listingsCheckedFor.Load().(string); done == today {
+	if done, _ := q.GetMediaState(ctx, listingsDayKey); done == today {
 		return
 	}
 	if now.Sub(time.Unix(listingsTriedAt.Load(), 0)) < dailyRetry {
@@ -48,18 +55,18 @@ func maybeCheckListings(ctx context.Context, q *db.Queries, rawDB *sql.DB, m *ma
 		return
 	}
 	listingsTriedAt.Store(now.Unix())
-	go func() {
+	jobs.Go("new listings", func() {
 		defer listingsRunning.Store(false)
 		found, err := market.NewFetcher(q, rawDB).CheckListings(ctx, q, today)
 		if err != nil {
 			slog.Error("new listings", "error", err)
-		} else {
-			listingsCheckedFor.Store(today)
+		} else if err := q.SetMediaState(ctx, db.SetMediaStateParams{Key: listingsDayKey, Value: today}); err != nil {
+			slog.Error("new listings: record day", "error", err)
 		}
 		if len(found) > 0 {
 			tellAdmins(ctx, q, m, found)
 		}
-	}()
+	})
 }
 
 // newListingEmail is the data for new_listing.tmpl.

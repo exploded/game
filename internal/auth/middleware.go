@@ -23,7 +23,7 @@ func RequireAuth(queries *db.Queries, next http.Handler) http.Handler {
 			return
 		}
 
-		session, err := queries.GetSession(r.Context(), cookie.Value)
+		session, err := queries.GetSession(r.Context(), SessionKey(cookie.Value))
 		if err != nil {
 			http.SetCookie(w, &http.Cookie{
 				Name: "session", Value: "", Path: "/", MaxAge: -1,
@@ -75,7 +75,7 @@ func OptionalAuth(queries *db.Queries, next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		session, err := queries.GetSession(r.Context(), cookie.Value)
+		session, err := queries.GetSession(r.Context(), SessionKey(cookie.Value))
 		if err != nil {
 			next.ServeHTTP(w, r)
 			return

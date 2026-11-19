@@ -11,6 +11,7 @@ import (
 
 	"github.com/exploded/game/internal/backup"
 	"github.com/exploded/game/internal/db"
+	"github.com/exploded/game/internal/jobs"
 	"github.com/exploded/game/internal/mail"
 	"github.com/exploded/game/internal/market"
 	"github.com/exploded/game/internal/media"
@@ -67,7 +68,7 @@ func EnableLoadTestRevalue(production bool) bool {
 func Start(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, m *mail.Mailer, med *media.Service, bk *backup.Uploader, news market.NewsFilter) {
 	// Kick off historical backfill in the background if no prices exist yet.
 	// Runs once at startup, independent of the hour gate used for daily updates.
-	go startupBackfill(ctx, q, rawDB)
+	jobs.Go("startup backfill", func() { startupBackfill(ctx, q, rawDB) })
 
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
@@ -76,6 +77,11 @@ func Start(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location
 	if only := os.Getenv("TWELVEDATA_SYMBOLS"); only != "" {
 		slog.Info("Twelve Data jobs limited by TWELVEDATA_SYMBOLS", "symbols", only)
 	}
+	beat(time.Now())
+	var up uploader // stays nil, not a nil *backup.Uploader, when backups are off
+	if bk != nil {
+		up = bk
+	}
 
 	for {
 		select {
@@ -83,79 +89,133 @@ func Start(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location
 			slog.Info("scheduler stopped")
 			return
 		case <-ticker.C:
-			run(ctx, q, rawDB, loc, m, news)
-			med.Run(ctx, time.Now())
-			maybeBackup(ctx, q, bk, time.Now().In(loc))
+			now := time.Now()
+			beat(now)
+			// Each part recovers its own panic, so one bad run can't stop
+			// the loop or the parts after it.
+			run(ctx, q, rawDB, loc, m, news, now)
+			jobs.Run("learn jobs", func() { med.Run(ctx, time.Now()) })
+			jobs.Run("database backup", func() { maybeBackup(ctx, q, up, time.Now().In(loc)) })
 		}
 	}
 }
 
-func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, m *mail.Mailer, news market.NewsFilter) {
-	now := time.Now()
+// heartbeat is when the scheduler's loop last ticked (Unix seconds), for
+// /health: a loop that has stopped or hung reads as down.
+var heartbeat atomic.Int64
+
+func beat(now time.Time) { heartbeat.Store(now.Unix()) }
+
+// Heartbeat is when the scheduler last ticked, zero before it starts.
+func Heartbeat() time.Time {
+	n := heartbeat.Load()
+	if n == 0 {
+		return time.Time{}
+	}
+	return time.Unix(n, 0)
+}
+
+// Slots for the jobs that run once in a window rather than every minute.
+// A tick can be late (time.Ticker drops ticks while the loop is busy), so
+// each runs on the first tick in its window, not only on its exact minute.
+var (
+	newsSlot     jobs.Slot // every 4 hours from 00:00 UTC
+	profilesSlot jobs.Slot // 23:00 UTC on weekdays
+)
+
+// newsSlotAt names the news window now (UTC) falls in, or "" outside one:
+// the first half hour of every fourth hour.
+func newsSlotAt(utc time.Time) string {
+	if utc.Hour()%4 != 0 || utc.Minute() >= 30 {
+		return ""
+	}
+	return utc.Format("2006-01-02 15")
+}
+
+// run does one minute's work. now is the tick's time.
+func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, m *mail.Mailer, news market.NewsFilter, now time.Time) {
 	today := now.In(loc).Format("2006-01-02")
 
 	// 1. Make sure this month's game and the next exist, pay yesterday's
 	// interest on cash, then advance game statuses. Interest comes first so a
 	// game's last day is paid before the game finishes. A game that finishes
 	// gives Champion and Podium Finish to its top players.
-	market.EnsureMonthlyGames(ctx, q, now.In(loc))
-	if err := market.CreditInterest(ctx, q, rawDB, now.In(loc)); err != nil {
-		slog.Error("credit interest", "error", err)
-	}
-	q.AdvancePendingGames(ctx, today)
-	if err := q.CancelOrdersInExpiredGames(ctx, today); err != nil {
-		slog.Error("cancel orders in ended games", "error", err)
-	}
-	finished, err := q.FinishExpiredGames(ctx, today)
-	if err != nil {
-		slog.Error("finish expired games", "error", err)
-	}
-	for _, g := range finished {
-		market.AwardPlaces(ctx, q, g)
-	}
+	jobs.Run("games", func() {
+		market.EnsureMonthlyGames(ctx, q, now.In(loc))
+		if err := market.CreditInterest(ctx, q, rawDB, now.In(loc)); err != nil {
+			slog.Error("credit interest", "error", err)
+		}
+		q.AdvancePendingGames(ctx, today)
+		if err := q.CancelOrdersInExpiredGames(ctx, today); err != nil {
+			slog.Error("cancel orders in ended games", "error", err)
+		}
+		finished, err := q.FinishExpiredGames(ctx, today)
+		if err != nil {
+			slog.Error("finish expired games", "error", err)
+		}
+		for _, g := range finished {
+			market.AwardPlaces(ctx, q, g)
+		}
+	})
 
 	// 2. Fetch prices (skip weekends; use UTC for market hours).
 	utcNow := now.UTC()
-	weekday := utcNow.Weekday()
-	if weekday != time.Saturday && weekday != time.Sunday {
-		maybeFetchPrices(ctx, q, rawDB, utcNow)
+	jobs.Run("prices", func() {
+		weekday := utcNow.Weekday()
+		if weekday != time.Saturday && weekday != time.Sunday {
+			maybeFetchPrices(ctx, q, rawDB, utcNow)
 
-		// Refresh week-old company profiles after the daily prices, well
-		// clear of the US session so it doesn't hold up intraday quotes.
-		if utcNow.Hour() == 23 && utcNow.Minute() == 0 {
-			go refreshProfiles(ctx, q, rawDB)
+			// Refresh week-old company profiles after the daily prices, well
+			// clear of the US session so it doesn't hold up intraday quotes.
+			if slot := hourSlot(utcNow, 23); profilesSlot.Due(slot) {
+				profilesSlot.Done(slot)
+				jobs.Go("profile refresh", func() { refreshProfiles(ctx, q, rawDB) })
+			}
 		}
-	}
-	maybeFetchQuotes(ctx, q, rawDB, now)
-	maybeCheckSplits(ctx, q, rawDB, now) // and dividends
-	maybeCheckListings(ctx, q, rawDB, m, now)
-	if utcNow.Minute()%15 == 0 {
-		go fetchRates(ctx, q, rawDB)
-	}
+		maybeFetchQuotes(ctx, q, rawDB, now)
+		maybeCheckSplits(ctx, q, rawDB, now) // and dividends
+		maybeCheckListings(ctx, q, rawDB, m, now)
+		if utcNow.Minute()%15 == 0 {
+			jobs.Go("exchange rate", func() { fetchRates(ctx, q, rawDB) })
+		}
+	})
 
 	// 3-4. Process limit orders and revalue portfolios only when prices changed.
-	if loadTestRevalue.Load() && now.Minute()%quoteEveryMinutes == 0 {
-		SignalPricesChanged()
-	}
-	if pricesChanged.Swap(false) {
-		slog.Info("prices changed, processing orders and revaluing portfolios")
-		market.ProcessLimitOrders(ctx, q)
-		if err := market.RevaluePortfolios(ctx, q); err != nil {
-			slog.Error("revalue portfolios", "error", err)
+	jobs.Run("orders and revaluation", func() {
+		if loadTestRevalue.Load() && now.Minute()%quoteEveryMinutes == 0 {
+			SignalPricesChanged()
 		}
-	}
+		if pricesChanged.Swap(false) {
+			slog.Info("prices changed, processing orders and revaluing portfolios")
+			market.ProcessLimitOrders(ctx, q, rawDB)
+			if err := market.RevaluePortfolios(ctx, q, rawDB); err != nil {
+				slog.Error("revalue portfolios", "error", err)
+			}
+		}
+	})
 
-	// 5. Refresh news from TickerTick (every 4 hours, on the hour).
-	if utcNow.Minute() == 0 && utcNow.Hour()%4 == 0 {
-		maybeFetchNews(ctx, q, rawDB, news)
+	// 5. Refresh news from TickerTick (every 4 hours, from the hour).
+	if slot := newsSlotAt(utcNow); newsSlot.Due(slot) {
+		newsSlot.Done(slot)
+		jobs.Run("news", func() { maybeFetchNews(ctx, q, rawDB, news) })
 	}
 
 	// 6. Email order fills, game results and the like.
-	notify.Run(ctx, q, m, now, loc)
+	jobs.Run("game emails", func() { notify.Run(ctx, q, m, now, loc) })
 
 	// 7. Clean expired sessions and sign-in requests.
-	q.DeleteExpiredSessions(ctx)
-	q.DeleteOldLoginRequests(ctx)
+	jobs.Run("clean sessions", func() {
+		q.DeleteExpiredSessions(ctx)
+		q.DeleteOldLoginRequests(ctx)
+	})
+}
+
+// hourSlot names the day when t is in hour h, or "" otherwise.
+func hourSlot(t time.Time, h int) string {
+	if t.Hour() != h {
+		return ""
+	}
+	return t.Format(time.DateOnly)
 }
 
 // startupBackfill fetches the history of any S&P 500 stock that hasn't had it
@@ -205,7 +265,7 @@ func maybeCheckSplits(ctx context.Context, q *db.Queries, rawDB *sql.DB, now tim
 		return
 	}
 	splitsTriedAt.Store(now.Unix())
-	go func() {
+	jobs.Go("splits and dividends", func() {
 		defer splitsRunning.Store(false)
 		f := market.NewFetcher(q, rawDB)
 		n, err := f.CheckSplits(ctx, q, today)
@@ -222,7 +282,7 @@ func maybeCheckSplits(ctx context.Context, q *db.Queries, rawDB *sql.DB, now tim
 		if n > 0 || paid > 0 {
 			SignalPricesChanged()
 		}
-	}()
+	})
 }
 
 // backupHour is the hour in TIMEZONE from which the daily backup runs.
@@ -236,10 +296,17 @@ const backupRetry = time.Hour
 // backup, so a restart or deploy doesn't upload that day's backup again.
 const backupDayKey = "backup_day"
 
+// uploader uploads the database backup (*backup.Uploader; tests fake it).
+type uploader interface {
+	Upload(ctx context.Context, day string) (int64, error)
+	Bucket() string
+}
+
 // maybeBackup uploads a snapshot of the database to S3 once a day, from
 // backupHour in TIMEZONE (now is in it). It runs in the background: a
-// 300 MB database takes a minute or so to copy, compress and upload.
-func maybeBackup(ctx context.Context, q *db.Queries, bk *backup.Uploader, now time.Time) {
+// 300 MB database takes a minute or so to copy, compress and upload. bk is
+// nil when backups are off.
+func maybeBackup(ctx context.Context, q *db.Queries, bk uploader, now time.Time) {
 	if bk == nil || now.Hour() < backupHour {
 		return
 	}
@@ -254,7 +321,7 @@ func maybeBackup(ctx context.Context, q *db.Queries, bk *backup.Uploader, now ti
 		return
 	}
 	backupTriedAt.Store(now.Unix())
-	go func() {
+	jobs.Go("database backup", func() {
 		defer backupRunning.Store(false)
 		start := time.Now()
 		size, err := bk.Upload(ctx, today)
@@ -267,7 +334,7 @@ func maybeBackup(ctx context.Context, q *db.Queries, bk *backup.Uploader, now ti
 		}
 		slog.Info("database backup uploaded", "bucket", bk.Bucket(), "key", backup.Key(today),
 			"bytes", size, "took", time.Since(start).Round(time.Second))
-	}()
+	})
 }
 
 // dailyRetry is how long after a daily fetch that saved nothing it's tried
@@ -329,7 +396,7 @@ func maybeFetchQuotes(ctx context.Context, q *db.Queries, rawDB *sql.DB, now tim
 	if !quotesRunning.CompareAndSwap(false, true) {
 		return // previous run still waiting for credits
 	}
-	go func() {
+	jobs.Go("intraday quotes", func() {
 		defer quotesRunning.Store(false)
 		fetcher := market.NewFetcher(q, rawDB)
 		saved, err := fetcher.FetchQuotes(ctx, q, ny.Format("2006-01-02"))
@@ -339,7 +406,7 @@ func maybeFetchQuotes(ctx context.Context, q *db.Queries, rawDB *sql.DB, now tim
 		if saved > 0 {
 			SignalPricesChanged()
 		}
-	}()
+	})
 }
 
 // inUSSession reports whether now falls on a weekday between 9:30 and 16:10
@@ -390,13 +457,13 @@ func maybeFetchNews(ctx context.Context, q *db.Queries, rawDB *sql.DB, news mark
 		return
 	}
 	slog.Info("starting scheduled TickerTick news refresh")
-	go func() {
+	jobs.Go("news refresh", func() {
 		defer newsRunning.Store(false)
 		fetcher := market.NewFetcher(q, rawDB)
 		if err := fetcher.FetchTickerTickNews(ctx, q, market.TickerTickMarket, news); err != nil {
 			slog.Error("scheduled tickertick news refresh", "error", err)
 		}
-	}()
+	})
 }
 
 func isSameDay(timestamp, today string) bool {

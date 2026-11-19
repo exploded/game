@@ -252,3 +252,57 @@ func TestTikTokLiveCheckAllDay(t *testing.T) {
 		t.Errorf("emails: %v, want none", got)
 	}
 }
+
+// TestTikTokLiveRefusedChecks: while TikTok refuses checks, the checks for
+// a live stream back off for 10 minutes after each refusal, and a stream no
+// check has found on air for 30 minutes is ended at its last sighting.
+func TestTikTokLiveRefusedChecks(t *testing.T) {
+	d, q, m := openDB(t)
+	if _, err := d.Exec(`INSERT INTO live_events (id, platform, url, title, scheduled_at, started_at, status) VALUES
+		(1, 'tiktok', 'https://www.tiktok.com/@rob_goudie/live', 'On now', datetime('now', '-1 hour'), datetime('now', '-1 hour'), 'live');
+		INSERT INTO tiktok_live_checks (checked_at, account, booked, result, http_status, event_id)
+		VALUES (datetime('now', '-5 minutes'), 'rob_goudie', 1, 'live', 200, 1)`); err != nil {
+		t.Fatal(err)
+	}
+	tt := &fakeTikTokLive{t: t, code: http.StatusTooManyRequests}
+	srv := httptest.NewServer(tt)
+	defer srv.Close()
+	s := media.NewTestService(q, m, nil, nil)
+	s.UseTikTokLiveServer(srv.URL)
+	ctx := context.Background()
+
+	// Refused, but seen on air 5 minutes ago: still live.
+	if err := media.CheckTikTokLive(s, ctx, time.Now()); err == nil {
+		t.Fatal("a refused check didn't fail")
+	}
+	if got := liveStatuses(t, d); got != "live" {
+		t.Errorf("after one refusal: %s, want live", got)
+	}
+	// The next minutes don't ask TikTok at all.
+	for range 3 {
+		media.CheckTikTokLive(s, ctx, time.Now())
+	}
+	if n := tt.count(); n != 1 {
+		t.Errorf("%d requests while backing off, want 1", n)
+	}
+
+	// 40 minutes later (the log moved back): the back-off is over, TikTok
+	// refuses again, and the stream hasn't been seen for over 30 minutes,
+	// so it ends at its last sighting.
+	if _, err := d.Exec(`UPDATE tiktok_live_checks SET checked_at = datetime(checked_at, '-40 minutes')`); err != nil {
+		t.Fatal(err)
+	}
+	media.CheckTikTokLive(s, ctx, time.Now())
+	if n := tt.count(); n != 2 {
+		t.Errorf("%d requests after the back-off, want 2", n)
+	}
+	if got := liveStatuses(t, d); got != "ended" {
+		t.Fatalf("not seen for 45 minutes: %s, want ended", got)
+	}
+	var ended, lastLive string
+	d.QueryRow("SELECT ended_at FROM live_events WHERE id = 1").Scan(&ended)
+	d.QueryRow("SELECT MAX(checked_at) FROM tiktok_live_checks WHERE result = 'live' AND event_id = 1").Scan(&lastLive)
+	if ended != lastLive {
+		t.Errorf("ended_at = %q, want the last sighting %q", ended, lastLive)
+	}
+}

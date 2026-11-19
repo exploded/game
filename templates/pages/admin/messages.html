@@ -22,7 +22,7 @@
         <tbody>
             {{range .Items}}
             <tr class="{{if eq .IsRead 0}}row-unread{{end}}">
-                <td class="text-muted" style="white-space:nowrap">{{slice .CreatedAt 0 16}}</td>
+                <td class="text-muted" style="white-space:nowrap">{{when .CreatedAt}}</td>
                 <td>{{.Name}}</td>
                 <td><a href="mailto:{{.Email}}">{{.Email}}</a></td>
                 <td style="max-width:400px; word-break:break-word;">{{.Message}}</td>

@@ -100,10 +100,10 @@ func jobsCmd(args []string) error {
 
 	// Every 2 minutes in the US session.
 	timeIt("process limit orders", 3, func() error {
-		market.ProcessLimitOrders(ctx, q)
+		market.ProcessLimitOrders(ctx, q, rawDB)
 		return nil
 	})
-	timeIt("revalue portfolios", 3, func() error { return market.RevaluePortfolios(ctx, q) })
+	timeIt("revalue portfolios", 3, func() error { return market.RevaluePortfolios(ctx, q, rawDB) })
 
 	// Once a day, just after midnight: today's interest, as if it's ended.
 	tomorrow := time.Date(now.In(loc).Year(), now.In(loc).Month(), now.In(loc).Day()+1, 0, 5, 0, 0, loc)

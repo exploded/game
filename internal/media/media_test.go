@@ -306,6 +306,47 @@ func TestClassifyKeepsAdminTopics(t *testing.T) {
 	}
 }
 
+// brokenClassifier fails on any title containing "bad" and sorts the rest
+// into no topics.
+type brokenClassifier struct{ calls map[string]int }
+
+func (b *brokenClassifier) Classify(_ context.Context, _ []media.Topic, title, _ string) (media.Classification, error) {
+	b.calls[title]++
+	if strings.Contains(title, "bad") {
+		return media.Classification{}, fmt.Errorf("classifier answer %q: not JSON", "oops")
+	}
+	return media.Classification{}, nil
+}
+
+// TestClassifyOneBadVideo: a video the classifier fails on doesn't stop the
+// others, and after 3 failed runs it's left alone.
+func TestClassifyOneBadVideo(t *testing.T) {
+	d, q, m := openDB(t)
+	if _, err := d.Exec(`INSERT INTO videos (id, platform, external_id, url, embed_url, title, published_at) VALUES
+		(1, 'youtube', 'a', 'u', 'e', 'A bad one', '2026-10-03 00:00:00'),
+		(2, 'youtube', 'b', 'u', 'e', 'A good one', '2026-10-02 00:00:00')`); err != nil {
+		t.Fatal(err)
+	}
+	b := &brokenClassifier{calls: map[string]int{}}
+	s := media.NewTestService(q, m, nil, b)
+	for range 5 {
+		if err := media.ClassifyPending(s, context.Background()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if b.calls["A good one"] != 1 {
+		t.Errorf("good video classified %d times, want 1", b.calls["A good one"])
+	}
+	if b.calls["A bad one"] != 3 {
+		t.Errorf("bad video tried %d times, want 3", b.calls["A bad one"])
+	}
+	var classified sql.NullString
+	d.QueryRow(`SELECT classified_at FROM videos WHERE id = 2`).Scan(&classified)
+	if !classified.Valid {
+		t.Error("the good video wasn't marked classified")
+	}
+}
+
 func TestLiveEmails(t *testing.T) {
 	d, q, m := openDB(t)
 	now := time.Now().UTC()

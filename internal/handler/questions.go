@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"log/slog"
@@ -19,8 +20,8 @@ import (
 
 // Ask a Question: members post questions and vote for the ones they want
 // answered; an admin (Rob) answers in writing, with a video, or live on air,
-// which emails the asker and the voters. It's the Questions tab of Learn, so
-// anyone can read it.
+// which emails the asker and the voters. It's the Ask Rob tab of Learn, for
+// signed-in players like the rest of Learn.
 const (
 	maxQuestionTitle    = 150
 	maxQuestionBody     = 2000
@@ -72,7 +73,7 @@ func (h *Handler) renderQuestions(w http.ResponseWriter, r *http.Request, errs m
 	if topicID == 0 {
 		topicSlug = ""
 	}
-	questions, err := h.q.ListQuestions(ctx, db.ListQuestionsParams{Viewer: viewerID(r), Show: show, Topic: topicID})
+	questions, err := h.q.ListQuestions(ctx, db.ListQuestionsParams{Viewer: viewerID(r), Show: show, Topic: topicID, Lim: 100})
 	if err != nil {
 		h.serverError(w, "list questions", err)
 		return
@@ -280,8 +281,8 @@ func (h *Handler) QuestionAnswer(w http.ResponseWriter, r *http.Request) {
 	}
 	msg := "Answer updated."
 	if !q.AnsweredAt.Valid {
-		n := h.emailAnswer(r, q, answer, user.Name)
-		msg = "Answer posted. Emailing " + strconv.Itoa(n) + " people who asked or voted."
+		h.emailAnswer(r, q, answer, user.Name)
+		msg = "Answer posted. Emailing the people who asked or voted."
 	}
 	setFlashCookie(w, msg, "success")
 	http.Redirect(w, r, back, http.StatusSeeOther)
@@ -350,30 +351,27 @@ type answeredEmail struct {
 	Answer     string
 }
 
-// emailAnswer queues the answer email and returns how many were queued.
-func (h *Handler) emailAnswer(r *http.Request, q db.GetQuestionRow, answer, answeredBy string) int {
-	followers, err := h.q.ListQuestionFollowers(r.Context(), q.ID)
-	if err != nil {
-		slog.Error("list question followers", "question", q.ID, "error", err)
-		return 0
-	}
-	n := 0
-	for _, id := range followers {
-		queued, err := h.mailer.ToUser(r.Context(), id, mail.Community, questionAnsweredTpl, answeredEmail{
-			Title:      q.Title,
-			URL:        questionPath(q.ID),
-			AnsweredBy: answeredBy,
-			Asker:      id == q.UserID,
-			Answer:     answer,
-		})
+// emailAnswer queues the answer email to the asker and voters, after the
+// request (afterRequest): a popular question can have many voters.
+func (h *Handler) emailAnswer(r *http.Request, q db.GetQuestionRow, answer, answeredBy string) {
+	afterRequest(r, "queue answer email", func(ctx context.Context) {
+		followers, err := h.q.ListQuestionFollowers(ctx, q.ID)
 		if err != nil {
-			slog.Error("queue answer email", "question", q.ID, "user", id, "error", err)
+			slog.Error("list question followers", "question", q.ID, "error", err)
+			return
 		}
-		if queued {
-			n++
+		for _, id := range followers {
+			if _, err := h.mailer.ToUser(ctx, id, mail.Community, questionAnsweredTpl, answeredEmail{
+				Title:      q.Title,
+				URL:        questionPath(q.ID),
+				AnsweredBy: answeredBy,
+				Asker:      id == q.UserID,
+				Answer:     answer,
+			}); err != nil {
+				slog.Error("queue answer email", "question", q.ID, "user", id, "error", err)
+			}
 		}
-	}
-	return n
+	})
 }
 
 // QuestionHide removes a question from the list (admins only).

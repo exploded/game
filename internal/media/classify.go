@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"slices"
 	"strings"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/anthropics/anthropic-sdk-go/v2"
 
 	"github.com/exploded/game/internal/db"
+	"github.com/exploded/game/internal/jobs"
 )
 
 // Topic is one Learn topic as the classifier sees it.
@@ -127,9 +129,19 @@ func (c *Claude) Classify(ctx context.Context, topics []Topic, title, text strin
 // a run each minute, so a 1,600-video backlog clears in under two hours.
 const classifyBatch = 20
 
-// classifyPending sorts videos Claude hasn't seen yet.
+// classifyMaxAttempts is how many failed tries a video gets before the
+// classifier gives up on it, so one video it can't sort doesn't hold up
+// the rest. An admin's Reclassify still works, and a new title or
+// description starts the count again.
+const classifyMaxAttempts = 3
+
+// classifyPending sorts videos Claude hasn't seen yet. A video that fails
+// is counted and skipped; an outage (the API down, overloaded or out of
+// quota) ends the run without counting, so the batch is tried again later.
 func (s *Service) classifyPending(ctx context.Context) error {
-	videos, err := s.q.ListUnclassifiedVideos(ctx, classifyBatch)
+	videos, err := s.q.ListUnclassifiedVideos(ctx, db.ListUnclassifiedVideosParams{
+		MaxAttempts: classifyMaxAttempts, Lim: classifyBatch,
+	})
 	if err != nil || len(videos) == 0 {
 		return err
 	}
@@ -138,11 +150,36 @@ func (s *Service) classifyPending(ctx context.Context) error {
 		return err
 	}
 	for _, v := range videos {
-		if err := s.classifyVideo(ctx, topics, v); err != nil {
+		err := s.classifyVideo(ctx, topics, v)
+		if err == nil {
+			continue
+		}
+		if ctx.Err() != nil || transient(err) {
 			return err
+		}
+		tries, aerr := s.q.AddVideoClassifyAttempt(ctx, v.ID)
+		if aerr != nil {
+			return errors.Join(err, aerr)
+		}
+		if tries >= classifyMaxAttempts {
+			slog.Error("classifier gave up on a video", "video", v.ID, "title", v.Title, "tries", tries, "error", err)
+		} else {
+			slog.Warn("classify video failed, will retry", "video", v.ID, "tries", tries, "error", err)
 		}
 	}
 	return nil
+}
+
+// transient says whether err is the API being unavailable rather than a
+// problem with one video: rate limited, overloaded, a server error or a
+// network failure.
+func transient(err error) bool {
+	var apiErr *anthropic.Error
+	if errors.As(err, &apiErr) {
+		return apiErr.StatusCode == 429 || apiErr.StatusCode >= 500
+	}
+	var netErr net.Error
+	return errors.As(err, &netErr) || errors.Is(err, context.DeadlineExceeded)
 }
 
 // ClassifyVideo sorts one video now (the admin's "Reclassify").
@@ -203,7 +240,7 @@ func (s *Service) SuggestQuestionTopic(id int64, title, body string) {
 	if s == nil || s.classify == nil {
 		return
 	}
-	go func() {
+	jobs.Go("question topic", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 		defer cancel()
 		topics, err := s.topics(ctx)
@@ -225,7 +262,7 @@ func (s *Service) SuggestQuestionTopic(id int64, title, body string) {
 		if err := s.q.SetQuestionTopic(ctx, db.SetQuestionTopicParams{TopicID: nullInt(t.ID), ID: id}); err != nil {
 			slog.Error("set question topic", "question", id, "error", err)
 		}
-	}()
+	})
 }
 
 func (s *Service) topics(ctx context.Context) ([]Topic, error) {

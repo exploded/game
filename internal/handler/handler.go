@@ -32,6 +32,7 @@ type Handler struct {
 	vimeo      *vimeo.Client    // fills courses from Vimeo folders; nil without VIMEO_TOKEN
 	screener   screenCache      // the stocks page's rows (screener.go)
 	liveCache  liveBannerCache  // /live/banner's answer (livebanner.go)
+	heartbeat  heartbeatSource  // the scheduler's last tick, for /health (health.go)
 }
 
 func New(q *db.Queries, rawDB *sql.DB, pages PageTemplates, production bool, loc *time.Location) *Handler {
@@ -90,6 +91,15 @@ type Flash struct {
 
 func isHTMX(r *http.Request) bool {
 	return r.Header.Get("HX-Request") == "true"
+}
+
+// maxPage caps a ?page= number, so a huge one can't overflow an offset.
+const maxPage = 100_000
+
+// isHistoryRestore says whether htmx is refetching a page for Back (it
+// sends HX-Request too). Such a request needs the whole page.
+func isHistoryRestore(r *http.Request) bool {
+	return r.Header.Get("HX-History-Restore-Request") == "true"
 }
 
 func setFlashCookie(w http.ResponseWriter, msg, kind string) {

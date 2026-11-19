@@ -126,6 +126,44 @@ func TestCheckListings(t *testing.T) {
 	}
 }
 
+// TestCheckListingsCapsLookups: one check makes at most listingMaxLookups
+// /statistics calls, least-checked first; the rest wait for the next day.
+func TestCheckListingsCapsLookups(t *testing.T) {
+	d, q := monthlyDB(t)
+	old := listingMaxLookups
+	listingMaxLookups = 2
+	t.Cleanup(func() { listingMaxLookups = old })
+	stub := &listingsStub{
+		lists: map[string][]tdListing{"NASDAQ": fillerList("NASDAQ", 1500), "NYSE": fillerList("NYSE", 500)},
+		caps:  map[string]float64{}, asked: map[string]int{},
+	}
+	f := &Fetcher{q: q, rawDB: d, client: &http.Client{Transport: stub}}
+	ctx := context.Background()
+	resetCredits()
+	if _, err := f.CheckListings(ctx, q, "2026-11-19"); err != nil {
+		t.Fatal(err)
+	}
+	stub.lists["NASDAQ"] = append(stub.lists["NASDAQ"],
+		tdListing{Symbol: "AAA", Name: "A", Exchange: "NASDAQ", Type: "Common Stock"},
+		tdListing{Symbol: "BBB", Name: "B", Exchange: "NASDAQ", Type: "Common Stock"},
+		tdListing{Symbol: "CCC", Name: "C", Exchange: "NASDAQ", Type: "Common Stock"},
+	)
+	resetCredits()
+	if _, err := f.CheckListings(ctx, q, "2026-11-20"); err != nil {
+		t.Fatal(err)
+	}
+	if n := len(stub.asked); n != 2 {
+		t.Fatalf("looked up %d listings, want 2: %v", n, stub.asked)
+	}
+	resetCredits()
+	if _, err := f.CheckListings(ctx, q, "2026-11-23"); err != nil {
+		t.Fatal(err)
+	}
+	if stub.asked["CCC"] != 1 {
+		t.Errorf("the left-over listing wasn't looked up the next day: %v", stub.asked)
+	}
+}
+
 // TestCheckListingsShortList: a list much shorter than usual is a failed
 // request, and nothing is saved, so the missing stocks don't look new later.
 func TestCheckListingsShortList(t *testing.T) {

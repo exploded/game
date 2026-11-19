@@ -267,7 +267,7 @@ func seedPlayers(ctx context.Context, rawDB *sql.DB, loc *time.Location, now tim
 			}
 
 			session := randHex(32)
-			if _, err := st.session.ExecContext(ctx, session, userID, sqlTime(now.Add(auth.SessionDuration))); err != nil {
+			if _, err := st.session.ExecContext(ctx, auth.SessionKey(session), userID, sqlTime(now.Add(auth.SessionDuration))); err != nil {
 				return err
 			}
 			mac := hmac.New(sha256.New, secret)

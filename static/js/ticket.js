@@ -37,10 +37,12 @@
         const limitPrice = document.getElementById("limit-price");
         const queuedNote = document.getElementById("queued-note");
 
+        // Converted as the server does (convertCurrency in trade.go): integer
+        // division, which drops the part cent rather than rounding it.
         function toBase(cents) {
             if (stockCurrency === baseCurrency) return cents;
-            if (stockCurrency === "AUD" && baseCurrency === "USD") return Math.round(cents * exchangeRate / 1000000);
-            if (stockCurrency === "USD" && baseCurrency === "AUD") return Math.round(cents * 1000000 / exchangeRate);
+            if (stockCurrency === "AUD" && baseCurrency === "USD") return Math.trunc(cents * exchangeRate / 1000000);
+            if (stockCurrency === "USD" && baseCurrency === "AUD") return exchangeRate > 0 ? Math.trunc(cents * 1000000 / exchangeRate) : 0;
             return cents;
         }
 

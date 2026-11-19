@@ -65,7 +65,8 @@ func (h *Handler) Leaderboard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	page = max(page, 1)
+	// Clamped, so a huge ?page= can't overflow the offset.
+	page = min(max(page, 1), maxPage)
 	off := (page - 1) * leaderboardPageSize
 	// One more than a page, to know whether there's a next one.
 	rows, err := h.leaderboardPage(ctx, game.ID, leaderboardPageSize+1, off)

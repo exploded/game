@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/exploded/game/internal/db"
+	"github.com/exploded/game/internal/jobs"
 	"github.com/exploded/game/internal/market"
 )
 
@@ -55,11 +56,11 @@ var stockLookup = func(ctx context.Context, h *Handler, symbol string) (market.F
 // fetchNewStock fetches a just-added stock's prices and profile in the
 // background. Tests replace it.
 var fetchNewStock = func(h *Handler, s db.Stock) {
-	go func() {
+	jobs.Go("fetch new stock", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 		defer cancel()
 		market.NewFetcher(h.q, h.rawDB).FetchNewStock(ctx, h.q, s)
-	}()
+	})
 }
 
 // tickerRe is what a NYSE or Nasdaq ticker can look like: BRK.B, BF-B.

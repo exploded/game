@@ -28,7 +28,7 @@ func TestRevalueWaitsForARate(t *testing.T) {
 		return p.PortfolioValue
 	}
 
-	if err := RevaluePortfolios(t.Context(), q); err != nil {
+	if err := RevaluePortfolios(t.Context(), q, d); err != nil {
 		t.Fatal(err)
 	}
 	if v := value(); v != 100000 {
@@ -39,7 +39,7 @@ func TestRevalueWaitsForARate(t *testing.T) {
 	if _, err := d.Exec(`INSERT INTO exchange_rates (date, rate_aud_usd) VALUES ('2026-10-28', 700000)`); err != nil {
 		t.Fatal(err)
 	}
-	if err := RevaluePortfolios(t.Context(), q); err != nil {
+	if err := RevaluePortfolios(t.Context(), q, d); err != nil {
 		t.Fatal(err)
 	}
 	if v := value(); v != 100000+15000 {

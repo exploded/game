@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -32,7 +33,8 @@ import (
 // an unknown address creates the account.
 const (
 	loginTTL         = 15 * time.Minute
-	maxCodeAttempts  = 5
+	maxCodeAttempts  = 5  // wrong codes before a request is used up
+	maxFailedCodes   = 10 // code attempts an address gets in a day, across requests; then only the link works
 	maxLoginsPerHour = 5
 	loginCookie      = "login_req"
 	nextCookie       = "login_next" // the page to return to after signing in
@@ -204,21 +206,46 @@ func (h *Handler) LoginCode(w http.ResponseWriter, r *http.Request) {
 		}
 		return -1
 	}, r.FormValue("code"))
+	checkAgain := func(msg string) {
+		h.render(w, r, "auth/check", "", PageData{
+			Title:  "Check your email",
+			Errors: map[string]string{"code": msg},
+			Extra:  map[string]any{"Email": req.Email},
+		})
+	}
+	// The attempt is taken before the code is checked, in one statement, so
+	// guesses sent together can't get past the limits. Without the daily
+	// limit for the address, a new request every few minutes would give an
+	// attacker 25 guesses an hour forever.
+	attempts, err := h.q.AddLoginAttempt(r.Context(), db.AddLoginAttemptParams{
+		ID: req.ID, MaxAttempts: maxCodeAttempts, Email: req.Email, MaxFailed: maxFailedCodes,
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		if n, _ := h.q.CountFailedLoginCodes(r.Context(), req.Email); n >= maxFailedCodes {
+			// The link in the email still works: it's 256 bits, not 6 digits.
+			checkAgain("Too many wrong codes for this address today, so codes are turned off until tomorrow. Open the link in the newest email instead.")
+			return
+		}
+		_, _ = h.q.UseLoginRequest(r.Context(), req.ID)
+		setFlashCookie(w, "Too many wrong codes. Enter your email to get a new one.", "error")
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	} else if err != nil {
+		h.serverError(w, "login attempt", err)
+		return
+	}
 	if subtle.ConstantTimeCompare([]byte(codeHash(req.ID, code)), []byte(req.CodeHash)) != 1 {
-		attempts, err := h.q.AddLoginAttempt(r.Context(), req.ID)
-		if err != nil || attempts >= maxCodeAttempts {
+		if attempts >= maxCodeAttempts {
 			_, _ = h.q.UseLoginRequest(r.Context(), req.ID)
 			setFlashCookie(w, "Too many wrong codes. Enter your email to get a new one.", "error")
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
-		h.render(w, r, "auth/check", "", PageData{
-			Title:  "Check your email",
-			Errors: map[string]string{"code": "That code isn't right. Check the newest email from The Investor Project."},
-			Extra:  map[string]any{"Email": req.Email},
-		})
+		checkAgain("That code isn't right. Check the newest email from The Investor Project.")
 		return
 	}
+	// Only wrong codes count towards the daily limit.
+	_ = h.q.ReturnLoginAttempt(r.Context(), req.ID)
 	h.finishLogin(w, r, req)
 }
 
@@ -401,8 +428,23 @@ func cleanDisplayName(s string) (string, string) {
 		return "", "Use 40 characters or fewer."
 	case strings.IndexFunc(name, unicode.IsControl) >= 0:
 		return "", "Use letters, numbers and spaces."
+	case looksLikeLink(name):
+		return "", "Names can't contain web addresses."
 	}
 	return name, ""
+}
+
+// linkTLD is a dot and a common top-level domain, ending the word: "x.com",
+// "bit.ly/abc". A short list, not every TLD, so names like "J.R. Smith" or
+// "Mr.Smith" pass.
+var linkTLD = regexp.MustCompile(`(?i)[a-z0-9]\.(com|net|org|au|io|co|me|info|biz|xyz|app|ly|gg|tv|link|site|online|shop|top|click|ru|cn|uk|us)\b`)
+
+// looksLikeLink reports whether a display name looks like a web address.
+// Names show to other players and in the invite email to a stranger, so they
+// mustn't carry links.
+func looksLikeLink(name string) bool {
+	lower := strings.ToLower(name)
+	return strings.Contains(lower, "://") || strings.Contains(lower, "www.") || linkTLD.MatchString(name)
 }
 
 // isAdminEmail reports whether email is in the comma-separated ADMIN_EMAIL.

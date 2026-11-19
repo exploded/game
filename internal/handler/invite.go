@@ -19,9 +19,10 @@ import (
 // and we email them a link to /invite/{code}. The link remembers the code in
 // a cookie; if the friend then signs up, they join the game and the player
 // who invited them gets the game's referral bonus in that game, or in this
-// month's game if that one has ended. Existing accounts can't be invited, and
-// each player sends one invite per game. The email's stop link puts the
-// friend's address in invite_optouts, which no invite can be sent to.
+// month's game if that one has ended. Existing accounts and addresses in
+// invite_optouts (the email's stop link puts them there) get no email, but
+// the player isn't told why (see InviteSend). Each player sends one invite
+// per game.
 const (
 	inviteCookie      = "invite"
 	inviteCookieAge   = 30 * 24 * 60 * 60 // seconds
@@ -93,25 +94,33 @@ func (h *Handler) InviteSend(w http.ResponseWriter, r *http.Request) {
 		fail("That's your own address. Enter a friend's.")
 		return
 	}
+	// Whether an address has an account, or has asked not to be invited, is
+	// nobody else's business. So both get the answer a sent invite gets, and
+	// use up the player's invite the same way (the home page lists it), but
+	// nothing is emailed. Otherwise any player could test addresses one by
+	// one.
+	quiet := false
 	if _, err := h.q.GetUserByEmail(ctx, email); err == nil {
-		fail(email + " already has an Investor Project account, so there's no bonus for inviting them.")
-		return
+		quiet = true
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		h.serverError(w, "invite: find user", err)
 		return
 	}
-	if n, err := h.q.IsInviteOptout(ctx, email); err != nil {
-		h.serverError(w, "invite: check opt-outs", err)
-		return
-	} else if n > 0 {
-		fail(email + " has asked not to get invitations from The Investor Project. Try another friend.")
-		return
+	if !quiet {
+		if n, err := h.q.IsInviteOptout(ctx, email); err != nil {
+			h.serverError(w, "invite: check opt-outs", err)
+			return
+		} else if n > 0 {
+			quiet = true
+		}
 	}
-	if n, err := h.q.InviteSentTo(ctx, db.InviteSentToParams{
-		GameID: game.ID, Email: sql.NullString{String: email, Valid: true},
-	}); err != nil || n > 0 {
-		fail(email + " has already been invited to this game.")
-		return
+	if !quiet {
+		if n, err := h.q.InviteSentTo(ctx, db.InviteSentToParams{
+			GameID: game.ID, Email: sql.NullString{String: email, Valid: true},
+		}); err != nil || n > 0 {
+			fail(email + " has already been invited to this game.")
+			return
+		}
 	}
 
 	code, err := auth.RandomHex(16)
@@ -129,15 +138,23 @@ func (h *Handler) InviteSend(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, "create invite", err)
 		return
 	}
-	if err := h.mailer.ToStranger(ctx, email, "invite", inviteEmail{
-		From: user.Name, Game: game.Name, Code: code, Starting: fmtDollars(game.StartingBalance),
-		Sender: h.mailer.Sender(),
-	}, h.mailer.URL(inviteStopPath(code))); err != nil {
-		h.serverError(w, "queue invite email", err)
-		return
+	if !quiet {
+		if err := h.mailer.ToStranger(ctx, email, "invite", inviteEmail{
+			From: user.Name, Game: game.Name, Code: code, Starting: fmtDollars(game.StartingBalance),
+			Sender: h.mailer.Sender(),
+		}, h.mailer.URL(inviteStopPath(code))); err != nil {
+			h.serverError(w, "queue invite email", err)
+			return
+		}
 	}
-	setFlashCookie(w, "Invite sent to "+email+".", "success")
+	setFlashCookie(w, inviteSentMsg(email), "success")
 	http.Redirect(w, r, home, http.StatusSeeOther)
+}
+
+// inviteSentMsg is the answer to every invite that gets past the checks
+// on the address itself, sent or not.
+func inviteSentMsg(email string) string {
+	return "If " + email + " isn't already playing, we've sent them your invite."
 }
 
 // InviteLanding is where the emailed link lands. Opening it changes nothing

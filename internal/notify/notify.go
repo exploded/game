@@ -127,7 +127,7 @@ func gameEmails(ctx context.Context, q *db.Queries, m *mail.Mailer, local time.T
 		slog.Error("list started games", "error", err)
 	}
 	for _, g := range started {
-		sendGameEmail(ctx, q, m, g, "started", "game_started")
+		sendStartedEmail(ctx, q, m, g)
 	}
 	for _, kind := range []struct {
 		days int
@@ -147,6 +147,44 @@ func gameEmails(ctx context.Context, q *db.Queries, m *mail.Mailer, local time.T
 	}
 	for _, g := range finished {
 		sendGameEmail(ctx, q, m, g, "results", "game_results")
+	}
+}
+
+// startedEmail is the data for game_started.tmpl.
+type startedEmail struct {
+	GameName string
+	URL      string // the game's home page, which joins the player
+	EndDate  string // "Mon 30 Nov"
+	Starting string // starting cash
+}
+
+// sendStartedEmail claims the game's started email, then sends it to every
+// user who still has an account: players are joined to the month's game
+// on their first visit, so at the start almost nobody is in it yet.
+// ToUser skips blocked users and those with Games email off.
+func sendStartedEmail(ctx context.Context, q *db.Queries, m *mail.Mailer, g db.Game) {
+	claimed, err := q.ClaimGameEmail(ctx, db.ClaimGameEmailParams{GameID: g.ID, Kind: "started"})
+	if err != nil || claimed == 0 {
+		if err != nil {
+			slog.Error("claim game email", "game", g.ID, "kind", "started", "error", err)
+		}
+		return
+	}
+	users, err := q.ListActiveUserIDs(ctx)
+	if err != nil {
+		slog.Error("list users for game started email", "game", g.ID, "error", err)
+		return
+	}
+	data := startedEmail{
+		GameName: g.Name,
+		URL:      fmt.Sprintf("/games/%d", g.ID),
+		EndDate:  shortDate(g.EndDate),
+		Starting: money(g.StartingBalance),
+	}
+	for _, id := range users {
+		if _, err := m.ToUser(ctx, id, mail.Games, "game_started", data); err != nil {
+			slog.Error("queue game email", "game", g.ID, "user", id, "error", err)
+		}
 	}
 }
 
@@ -173,7 +211,11 @@ func sendGameEmail(ctx context.Context, q *db.Queries, m *mail.Mailer, g db.Game
 	}
 	standings := make([]standing, len(players))
 	var top []standing
-	rank := 0
+	// Places as the site gives them (standingIn): 1 + the ranked players
+	// worth more, so equal values share a place. players is sorted by value,
+	// highest first.
+	rank, ahead := 0, 0
+	var prev int64
 	for i, p := range players {
 		standings[i] = standing{
 			Name:    p.UserName,
@@ -182,7 +224,11 @@ func sendGameEmail(ctx context.Context, q *db.Queries, m *mail.Mailer, g db.Game
 			Players: ranked,
 		}
 		if p.Traded != 0 {
-			rank++
+			if ahead == 0 || p.PortfolioValue != prev {
+				rank = ahead + 1
+			}
+			ahead++
+			prev = p.PortfolioValue
 			standings[i].Ranked, standings[i].Rank, standings[i].Place = true, rank, ordinal(rank)
 			if len(top) < 3 {
 				top = append(top, standings[i])

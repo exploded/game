@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/exploded/game/internal/db"
+	"github.com/exploded/game/internal/jobs"
 )
 
 // YouTube reads a channel through the YouTube Data API v3. Each list call
@@ -295,6 +296,7 @@ func (s *Service) findShorts(ctx context.Context, items []ytVideo) map[string]bo
 		sem <- struct{}{}
 		go func() {
 			defer func() { <-sem; wg.Done() }()
+			defer jobs.Recover("youtube shorts check")
 			short, ok := s.yt.isShort(ctx, v.ID)
 			if !ok {
 				short = parseISODuration(v.ContentDetails.Duration) <= 60

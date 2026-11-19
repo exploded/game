@@ -178,8 +178,7 @@ func TestInviteRules(t *testing.T) {
 	for _, tc := range []struct{ user, email, want string }{
 		{"1", "not an email", "Enter a valid email"},
 		{"1", "Alice@Example.com", "your own address"},
-		{"1", "bob@example.com", "already has an Investor Project account"},
-		{"1", "friend@example.com", "success|Invite sent to friend@example.com."},
+		{"1", "friend@example.com", "success|If friend@example.com isn't already playing, we've sent them your invite."},
 		{"1", "other@example.com", "used your invite"},
 	} {
 		if got := invite(t, srv, tc.user, tc.email); !strings.Contains(got, tc.want) {
@@ -303,13 +302,13 @@ func TestInviteStopLink(t *testing.T) {
 
 	// Bob joins and tries to invite the same friend.
 	d.Exec("INSERT INTO participants (game_id, user_id, cash_balance, portfolio_value) VALUES (1, 2, 100000000, 100000000)")
-	if got := invite(t, srv, "2", "Friend@Example.com"); !strings.Contains(got, "asked not to get invitations") {
-		t.Errorf("invite after stop: flash %q", got)
+	if got := invite(t, srv, "2", "Friend@Example.com"); got != "success|"+inviteSentMsg("friend@example.com") {
+		t.Errorf("invite after stop: flash %q, want the usual answer", got)
 	}
-	var invites int
-	d.QueryRow("SELECT COUNT(*) FROM game_invites WHERE created_by = 2").Scan(&invites)
-	if invites != 0 {
-		t.Error("the refused invite used up Bob's invite")
+	var emails int
+	d.QueryRow("SELECT COUNT(*) FROM email_outbox WHERE template = 'invite'").Scan(&emails)
+	if emails != 1 {
+		t.Errorf("%d invite emails, want only Alice's from before the stop", emails)
 	}
 
 	// A made-up code changes nothing.
@@ -334,9 +333,15 @@ func TestAdminInviteOptouts(t *testing.T) {
 	if body := getPage(t, srv, "/admin/email", "1"); !strings.Contains(body, "replied@example.com") || !strings.Contains(body, "Added by an admin") {
 		t.Error("admin email page doesn't list the opt-out")
 	}
-	if got := invite(t, srv, "1", "replied@example.com"); !strings.Contains(got, "asked not to get invitations") {
-		t.Errorf("invite an opted-out address: flash %q", got)
+	if got := invite(t, srv, "1", "replied@example.com"); got != "success|"+inviteSentMsg("replied@example.com") {
+		t.Errorf("invite an opted-out address: flash %q, want the usual answer", got)
 	}
+	var emails int
+	d.QueryRow("SELECT COUNT(*) FROM email_outbox WHERE to_email = 'replied@example.com'").Scan(&emails)
+	if emails != 0 {
+		t.Error("an opted-out address was emailed")
+	}
+	d.Exec("DELETE FROM game_invites") // give Alice her invite back
 
 	post(srv, "/admin/email/optouts/delete", url.Values{"email": {"replied@example.com"}})
 	var n int
@@ -346,5 +351,41 @@ func TestAdminInviteOptouts(t *testing.T) {
 	}
 	if got := invite(t, srv, "1", "replied@example.com"); !strings.HasPrefix(got, "success|") {
 		t.Errorf("invite after removing the opt-out: flash %q", got)
+	}
+}
+
+// A player can't use invites to find out whether an address has an account:
+// it gets the same answer as an address that hasn't, and uses up the invite
+// the same way, but no email goes to it.
+func TestInviteDoesntRevealAccounts(t *testing.T) {
+	srv, d := inviteServer(t)
+	if got := invite(t, srv, "1", "Bob@Example.com"); got != "success|"+inviteSentMsg("bob@example.com") {
+		t.Errorf("invite an existing account: flash %q, want the usual answer", got)
+	}
+	var emails int
+	d.QueryRow("SELECT COUNT(*) FROM email_outbox WHERE template = 'invite'").Scan(&emails)
+	if emails != 0 {
+		t.Error("an existing account was emailed an invite")
+	}
+	// The home page shows the invite used, as it would for anyone else.
+	body := getPage(t, srv, "/games/1", "1")
+	if !strings.Contains(body, "used your invite for this game") || !strings.Contains(body, "bob@example.com") {
+		t.Error("home page doesn't show the invite as used")
+	}
+	if got := invite(t, srv, "1", "other@example.com"); !strings.Contains(got, "used your invite") {
+		t.Errorf("second invite: flash %q", got)
+	}
+}
+
+// The display name is text the player chose, so it stays out of the subject
+// of an email to a stranger.
+func TestInviteSubjectHasNoDisplayName(t *testing.T) {
+	srv, d := inviteServer(t)
+	d.Exec("UPDATE users SET name = 'WIN BIG NOW' WHERE id = 1")
+	invite(t, srv, "1", "friend@example.com")
+	var subject string
+	d.QueryRow("SELECT subject FROM email_outbox WHERE template = 'invite'").Scan(&subject)
+	if subject != "You're invited to The Investor Project" {
+		t.Errorf("invite subject = %q", subject)
 	}
 }

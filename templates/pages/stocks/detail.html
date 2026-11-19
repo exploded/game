@@ -13,7 +13,7 @@ app.js goes back through history when it can. */}}
         </div>
     </div>
     <div class="page-header-actions">
-        {{if .Extra.Trade}}{{template "watch-button" dict "Game" .Extra.Game.ID "Stock" .Item.ID "Symbol" .Item.Symbol "Watching" .Extra.Watching}}{{end}}
+        {{if and .Extra.Trade (not .Extra.Retired)}}{{template "watch-button" dict "Game" .Extra.Game.ID "Stock" .Item.ID "Symbol" .Item.Symbol "Watching" .Extra.Watching}}{{end}}
     </div>
 </div>
 
@@ -42,7 +42,7 @@ app.js goes back through history when it can. */}}
 </div>
 
 {{/* On a phone the ticket is a sheet: these open it (ticket.js). */}}
-{{if and .Extra.Trade (eq .Extra.Game.Status "active") .Extra.LatestPrice.ID}}
+{{if and .Extra.Trade (eq .Extra.Game.Status "active") .Extra.LatestPrice.ID (not .Extra.Retired)}}
 <div class="trade-bar">
     <button type="button" class="btn btn-buy" data-ticket-open="buy">Buy</button>
     <button type="button" class="btn btn-sell" data-ticket-open="sell"{{if and (le .Extra.Trade.Holding.Quantity 0) (not .Extra.Game.AllowShort)}} disabled{{end}}>Sell</button>

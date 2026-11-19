@@ -560,25 +560,26 @@ type UserAchievement struct {
 }
 
 type Video struct {
-	ID              int64
-	Platform        string
-	ExternalID      string
-	Url             string
-	EmbedUrl        string
-	Title           string
-	Description     string
-	ThumbUrl        string
-	PublishedAt     string
-	DurationSeconds int64
-	Vertical        int64
-	LiveStatus      string
-	WasLive         int64
-	ViewCount       int64
-	Hidden          int64
-	Featured        int64
-	HideStocks      int64
-	ClassifiedAt    sql.NullString
-	CreatedAt       string
+	ID               int64
+	Platform         string
+	ExternalID       string
+	Url              string
+	EmbedUrl         string
+	Title            string
+	Description      string
+	ThumbUrl         string
+	PublishedAt      string
+	DurationSeconds  int64
+	Vertical         int64
+	LiveStatus       string
+	WasLive          int64
+	ViewCount        int64
+	Hidden           int64
+	Featured         int64
+	HideStocks       int64
+	ClassifiedAt     sql.NullString
+	CreatedAt        string
+	ClassifyAttempts int64
 }
 
 type VideoStock struct {

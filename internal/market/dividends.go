@@ -154,7 +154,9 @@ func (f *Fetcher) payDividend(ctx context.Context, q *db.Queries, stock db.Stock
 		rate = r.RateAudUsd
 	}
 
-	holdings, err := qtx.ListRunningHoldings(ctx, stock.ID)
+	// Everyone holding it now or trading it since the open: a player who
+	// sold out after the open still held the shares then.
+	holdings, err := qtx.ListDividendHolders(ctx, db.ListDividendHoldersParams{StockID: stock.ID, Since: open})
 	if err != nil {
 		return false, err
 	}

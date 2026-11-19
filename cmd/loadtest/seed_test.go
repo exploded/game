@@ -54,7 +54,7 @@ func TestSeedPlayersAddUp(t *testing.T) {
 	traders := 0
 	for _, pl := range p.Players {
 		var sessions int
-		rawDB.QueryRow(`SELECT COUNT(*) FROM sessions WHERE id = ? AND user_id = ?`, pl.Session, pl.UserID).Scan(&sessions)
+		rawDB.QueryRow(`SELECT COUNT(*) FROM sessions WHERE id = ? AND user_id = ?`, auth.SessionKey(pl.Session), pl.UserID).Scan(&sessions)
 		if sessions != 1 {
 			t.Fatalf("user %d: no session %s", pl.UserID, pl.Session)
 		}

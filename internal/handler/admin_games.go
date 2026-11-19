@@ -39,10 +39,15 @@ func (h *Handler) adminGame(w http.ResponseWriter, r *http.Request) (db.Game, bo
 
 func (h *Handler) renderAdminGame(w http.ResponseWriter, r *http.Request, g db.Game, errs map[string]string) {
 	players, _ := h.q.CountParticipants(r.Context(), g.ID)
+	var flash *Flash
+	if len(errs) > 0 {
+		flash = &Flash{Type: "error", Message: "Settings not saved: fix the fields marked below."}
+	}
 	h.render(w, r, "admin/game", "", PageData{
 		Title:  g.Name,
 		Item:   g,
 		Errors: errs,
+		Flash:  flash,
 		Extra: map[string]any{
 			"Players": players,
 			// Everyone who joined got the old starting balance, in the old
@@ -59,6 +64,13 @@ func (h *Handler) AdminGame(w http.ResponseWriter, r *http.Request) {
 		h.renderAdminGame(w, r, g, nil)
 	}
 }
+
+// The most a game's settings allow, in dollars: well past any sensible
+// game, and far below what overflows the cents.
+const (
+	maxStartingBalance = 1_000_000_000
+	maxTradeFee        = 1_000
+)
 
 // AdminGameUpdate saves a game's settings. They apply straight away, to
 // everyone in the game. Dates come from the month and can't change.
@@ -100,10 +112,12 @@ func (h *Handler) AdminGameUpdate(w http.ResponseWriter, r *http.Request) {
 
 	players, _ := h.q.CountParticipants(r.Context(), g.ID)
 	if players == 0 {
-		if dollars, err := strconv.ParseFloat(r.FormValue("starting_balance"), 64); err == nil && dollars >= 1000 {
+		// The bounds also turn away NaN, Inf and 1e20, which ParseFloat
+		// accepts and which overflow int64.
+		if dollars, err := strconv.ParseFloat(r.FormValue("starting_balance"), 64); err == nil && dollars >= 1000 && dollars <= maxStartingBalance {
 			p.StartingBalance = int64(math.Round(dollars)) * 100
 		} else {
-			errs["starting_balance"] = "Enter at least $1,000"
+			errs["starting_balance"] = "Enter $1,000 to $1,000,000,000"
 		}
 		if c := r.FormValue("base_currency"); c == "AUD" || c == "USD" {
 			p.BaseCurrency = c
@@ -114,15 +128,15 @@ func (h *Handler) AdminGameUpdate(w http.ResponseWriter, r *http.Request) {
 
 	if v := strings.TrimSpace(r.FormValue("max_participants")); v == "" {
 		p.MaxParticipants = sql.NullInt64{}
-	} else if n, err := strconv.ParseInt(v, 10, 64); err == nil && n > 0 {
+	} else if n, err := strconv.ParseInt(v, 10, 64); err == nil && n > 0 && n <= 10_000_000 {
 		p.MaxParticipants = sql.NullInt64{Int64: n, Valid: true}
 	} else {
 		errs["max_participants"] = "Enter a number, or leave it blank for no limit"
 	}
-	if dollars, err := strconv.ParseFloat(r.FormValue("trade_fee"), 64); err == nil && dollars >= 0 {
+	if dollars, err := strconv.ParseFloat(r.FormValue("trade_fee"), 64); err == nil && dollars >= 0 && dollars <= maxTradeFee {
 		p.TradeFee = int64(math.Round(dollars * 100))
 	} else {
-		errs["trade_fee"] = "Enter a fee of $0 or more"
+		errs["trade_fee"] = "Enter a fee of $0 to $1,000"
 	}
 	if pct, err := strconv.ParseFloat(r.FormValue("fx_fee"), 64); err == nil && pct >= 0 && pct <= 5 {
 		p.FxFee = int64(math.Round(pct * 100))

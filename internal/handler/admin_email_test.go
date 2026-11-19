@@ -52,6 +52,7 @@ func sendNewsletter(srv http.Handler, action string) *httptest.ResponseRecorder 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w := httptest.NewRecorder()
 	srv.ServeHTTP(w, req)
+	waitForJobs()
 	return w
 }
 

@@ -1,0 +1,6032 @@
+[
+  {
+    "deposit": 54294.869774947045,
+    "bank": 37926.00862686692,
+    "extra": 16368.861148080126,
+    "counted": 50000.0,
+    "earnings": 12902.928341782703,
+    "tax": 1108.058566835655,
+    "buySalary": 115927.40742999998,
+    "buyRate": 0.32,
+    "banner": "✓  Your plan is within the $32,500 cap, the $15,000 yearly limit and the $50,000 total limit.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 40000.0,
+        "counted": 10000.0,
+        "earnings": 4158.657979218018,
+        "rate": 0.32,
+        "bank": 8026.101957760893
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 30000.0,
+        "counted": 10000.0,
+        "earnings": 3274.4005015515013,
+        "rate": 0.32,
+        "bank": 7787.795417970981
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 20000.0,
+        "counted": 10000.0,
+        "earnings": 2451.9119166138044,
+        "rate": 0.32,
+        "bank": 7556.564542956512
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 5000.0,
+        "counted": 15000.0,
+        "earnings": 2530.3161333091894,
+        "rate": 0.32,
+        "bank": 10998.298869042079
+      },
+      {
+        "most": 5000.0,
+        "check": "✓ Within the limits",
+        "left": 0.0,
+        "counted": 5000.0,
+        "earnings": 487.6418110901899,
+        "rate": 0.32,
+        "bank": 3557.247839136452
+      },
+      {
+        "most": 0.0,
+        "check": "✓ Within the limits",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 12955.694283885368,
+    "bank": 10354.88406501975,
+    "extra": 2600.8102188656176,
+    "counted": 15000.0,
+    "earnings": 470.096208046294,
+    "tax": 264.4019241609261,
+    "buySalary": 100000.0,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 35000.0,
+        "counted": 15000.0,
+        "earnings": 470.096208046294,
+        "rate": 0.32,
+        "bank": 10354.88406501975
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 35000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 35000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 35000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 35000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 35000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 26884.361208490525,
+    "bank": 21026.627582429108,
+    "extra": 5857.733626061417,
+    "counted": 30000.0,
+    "earnings": 1933.0216413168637,
+    "tax": 548.6604328263378,
+    "buySalary": 103000.0,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 35000.0,
+        "counted": 15000.0,
+        "earnings": 1462.9254332705698,
+        "rate": 0.32,
+        "bank": 10671.743517409355
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 20000.0,
+        "counted": 15000.0,
+        "earnings": 470.096208046294,
+        "rate": 0.32,
+        "bank": 10354.88406501975
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 20000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 20000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 20000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 20000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 41859.07101913353,
+    "bank": 32024.926451471183,
+    "extra": 9834.144567662348,
+    "counted": 45000.0,
+    "earnings": 4463.337774626053,
+    "tax": 854.2667554925218,
+    "buySalary": 106090.0,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 35000.0,
+        "counted": 15000.0,
+        "earnings": 2530.3161333091894,
+        "rate": 0.32,
+        "bank": 10998.298869042079
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 20000.0,
+        "counted": 15000.0,
+        "earnings": 1462.9254332705698,
+        "rate": 0.32,
+        "bank": 10671.743517409355
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 5000.0,
+        "counted": 15000.0,
+        "earnings": 470.096208046294,
+        "rate": 0.32,
+        "bank": 10354.88406501975
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 5000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 5000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 5000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 49321.252013965575,
+    "bank": 36456.51722255945,
+    "extra": 12864.734791406125,
+    "counted": 50000.0,
+    "earnings": 7827.808177515897,
+    "tax": 1006.5561635503187,
+    "buySalary": 109272.7,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 35000.0,
+        "counted": 15000.0,
+        "earnings": 3677.8678749207065,
+        "rate": 0.32,
+        "bank": 11334.846814434768
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 20000.0,
+        "counted": 15000.0,
+        "earnings": 2530.3161333091894,
+        "rate": 0.32,
+        "bank": 10998.298869042079
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 5000.0,
+        "counted": 15000.0,
+        "earnings": 1462.9254332705698,
+        "rate": 0.32,
+        "bank": 10671.743517409355
+      },
+      {
+        "most": 5000.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 5000.0,
+        "earnings": 156.69873601543134,
+        "rate": 0.32,
+        "bank": 3451.6280216732503
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 53025.27804021439,
+    "bank": 37572.08664956976,
+    "extra": 15453.191390644628,
+    "counted": 50000.0,
+    "earnings": 11607.426571647338,
+    "tax": 1082.1485314329477,
+    "buySalary": 112550.881,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 35000.0,
+        "counted": 15000.0,
+        "earnings": 4911.600752327252,
+        "rate": 0.32,
+        "bank": 11681.69312695647
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 20000.0,
+        "counted": 15000.0,
+        "earnings": 3677.8678749207065,
+        "rate": 0.32,
+        "bank": 11334.846814434768
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 5000.0,
+        "counted": 15000.0,
+        "earnings": 2530.3161333091894,
+        "rate": 0.32,
+        "bank": 10998.298869042079
+      },
+      {
+        "most": 5000.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 5000.0,
+        "earnings": 487.6418110901899,
+        "rate": 0.32,
+        "bank": 3557.247839136452
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 57007.47642103449,
+    "bank": 38721.79250104661,
+    "extra": 18285.683919987874,
+    "counted": 50000.0,
+    "earnings": 15670.894307178049,
+    "tax": 1163.417886143562,
+    "buySalary": 115927.40742999998,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 35000.0,
+        "counted": 15000.0,
+        "earnings": 6237.986968827027,
+        "rate": 0.32,
+        "bank": 12039.15293664134
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 20000.0,
+        "counted": 15000.0,
+        "earnings": 4911.600752327252,
+        "rate": 0.32,
+        "bank": 11681.69312695647
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 5000.0,
+        "counted": 15000.0,
+        "earnings": 3677.8678749207065,
+        "rate": 0.32,
+        "bank": 11334.846814434768
+      },
+      {
+        "most": 5000.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 5000.0,
+        "earnings": 843.4387111030632,
+        "rate": 0.32,
+        "bank": 3666.0996230140267
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 0.0,
+    "bank": 0.0,
+    "extra": 0.0,
+    "counted": 0.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 327818.1,
+    "buyRate": 0.47000000000000003,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $8,500",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $3,500",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $3,500",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $4,500",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 14237.779258208684,
+    "bank": 16034.156911031465,
+    "extra": -1796.3776528227809,
+    "counted": 15000.0,
+    "earnings": 1487.7792582086845,
+    "tax": 0.0,
+    "buySalary": 0.0,
+    "buyRate": 0.02,
+    "banner": "✓  Your plan is within the $32,500 cap, the $15,000 yearly limit and the $50,000 total limit.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 45000.0,
+        "counted": 5000.0,
+        "earnings": 843.4387111030632,
+        "rate": 0.0,
+        "bank": 5581.625967523094
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 40000.0,
+        "counted": 5000.0,
+        "earnings": 487.6418110901899,
+        "rate": 0.0,
+        "bank": 5341.268868443152
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 35000.0,
+        "counted": 5000.0,
+        "earnings": 156.69873601543134,
+        "rate": 0.0,
+        "bank": 5111.262075065219
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 35000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 35000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 35000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 5486.604328263373,
+    "bank": 6140.737268978659,
+    "extra": -654.1329407152862,
+    "counted": 6000.0,
+    "earnings": 386.60432826337274,
+    "tax": 0.0,
+    "buySalary": 18200.0,
+    "buyRate": 0.02,
+    "banner": "✓  Your plan is within the $32,500 cap, the $15,000 yearly limit and the $50,000 total limit.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 47000.0,
+        "counted": 3000.0,
+        "earnings": 292.5850866541139,
+        "rate": 0.02,
+        "bank": 3136.6096485204334
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 44000.0,
+        "counted": 3000.0,
+        "earnings": 94.0192416092588,
+        "rate": 0.02,
+        "bank": 3004.127620458226
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 44000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 44000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 44000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 44000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 2884.7281228801176,
+    "bank": 1946.9488544927453,
+    "extra": 937.7792683873722,
+    "counted": 2500.0,
+    "earnings": 818.6001253878753,
+    "tax": 58.87200250775756,
+    "buySalary": 67530.52859999999,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 2500.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 2500.0,
+        "earnings": 818.6001253878753,
+        "rate": 0.32,
+        "bank": 1946.9488544927453
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 13887.283594706101,
+    "bank": 9666.21805943857,
+    "extra": 4221.065535267531,
+    "counted": 15000.0,
+    "earnings": 2510.7512029737363,
+    "tax": 1373.4676082676367,
+    "buySalary": 191442.23437500003,
+    "buyRate": 0.39,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 2500.0,
+        "check": "✗ Over the $32,500 cap by $17,500",
+        "left": 27500.0,
+        "counted": 2500.0,
+        "earnings": 802.798563337889,
+        "rate": 0.39,
+        "bank": 1684.9477360369522
+      },
+      {
+        "most": 2500.0,
+        "check": "✗ Over the $32,500 cap by $9,500",
+        "left": 25000.0,
+        "counted": 2500.0,
+        "earnings": 637.0741163564992,
+        "rate": 0.39,
+        "bank": 1654.6673240076127
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $6,500",
+        "left": 22500.0,
+        "counted": 2500.0,
+        "earnings": 480.730298449527,
+        "rate": 0.39,
+        "bank": 1624.9310851493794
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $500",
+        "left": 20000.0,
+        "counted": 2500.0,
+        "earnings": 333.23613061276166,
+        "rate": 0.39,
+        "bank": 1595.729240056348
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $4,500",
+        "left": 17500.0,
+        "counted": 2500.0,
+        "earnings": 194.0906892573222,
+        "rate": 0.39,
+        "bank": 1567.052185069575
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $1,500",
+        "left": 15000.0,
+        "counted": 2500.0,
+        "earnings": 62.82140495973748,
+        "rate": 0.39,
+        "bank": 1538.8904891187028
+      }
+    ]
+  },
+  {
+    "deposit": 47786.96592967624,
+    "bank": 29195.622993397057,
+    "extra": 18591.342936279183,
+    "counted": 50000.0,
+    "earnings": 15074.657746597879,
+    "tax": 9787.69181692164,
+    "buySalary": 322102.0000000001,
+    "buyRate": 0.47000000000000003,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 8500.0,
+        "check": "✗ Over the $32,500 cap by $500",
+        "left": 41500.0,
+        "counted": 8500.0,
+        "earnings": 4978.871322530545,
+        "rate": 0.47000000000000003,
+        "bank": 5351.434014668705
+      },
+      {
+        "most": 8500.0,
+        "check": "✗ Over the $32,500 cap by $500",
+        "left": 33000.0,
+        "counted": 8500.0,
+        "earnings": 3869.428475027768,
+        "rate": 0.47000000000000003,
+        "bank": 5186.503212510859
+      },
+      {
+        "most": 8500.0,
+        "check": "✗ Over the $32,500 cap by $500",
+        "left": 24500.0,
+        "counted": 8500.0,
+        "earnings": 2860.84406820706,
+        "rate": 0.47000000000000003,
+        "bank": 5026.655565527096
+      },
+      {
+        "most": 8500.0,
+        "check": "✗ Over the $32,500 cap by $500",
+        "left": 16000.0,
+        "counted": 8500.0,
+        "earnings": 1943.9491529155089,
+        "rate": 0.47000000000000003,
+        "bank": 4871.7344112493665
+      },
+      {
+        "most": 8500.0,
+        "check": "✗ Over the $32,500 cap by $500",
+        "left": 7500.0,
+        "counted": 8500.0,
+        "earnings": 1110.408320832281,
+        "rate": 0.47000000000000003,
+        "bank": 4721.587915535342
+      },
+      {
+        "most": 5000.0,
+        "check": "✗ Over the $32,500 cap by $500",
+        "left": 0.0,
+        "counted": 7500.0,
+        "earnings": 311.15640708471665,
+        "rate": 0.47000000000000003,
+        "bank": 4037.7078739056888
+      }
+    ]
+  },
+  {
+    "deposit": 12750.0,
+    "bank": 12450.000000000002,
+    "extra": 299.9999999999982,
+    "counted": 15000.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 45000.0,
+    "buyRate": 0.16999999999999998,
+    "banner": "✓  Your plan is within the $32,500 cap, the $15,000 yearly limit and the $50,000 total limit.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 35000.0,
+        "counted": 15000.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 12450.000000000002
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 35000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 35000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 35000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 35000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 35000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 15731.44251206363,
+    "bank": 11054.390193274196,
+    "extra": 4677.052318789434,
+    "counted": 15000.0,
+    "earnings": 3302.4923592486,
+    "tax": 321.0498471849723,
+    "buySalary": 72930.375,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 15000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 0.0
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 12500.0,
+        "counted": 2500.0,
+        "earnings": 748.1061858096838,
+        "rate": 0.32,
+        "bank": 1889.141135739128
+      },
+      {
+        "most": 12500.0,
+        "check": "✗ Over the $32,500 cap by $7,500",
+        "left": 0.0,
+        "counted": 12500.0,
+        "earnings": 2554.3861734389166,
+        "rate": 0.32,
+        "bank": 9165.249057535068
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 1050.6686122750955,
+    "bank": 620.7383831968513,
+    "extra": 429.9302290782442,
+    "counted": 1000.0,
+    "earnings": 415.86579792180186,
+    "tax": 215.19718564670637,
+    "buySalary": 280781.94375000003,
+    "buyRate": 0.47000000000000003,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 1000.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 1000.0,
+        "earnings": 415.86579792180186,
+        "rate": 0.47000000000000003,
+        "bank": 620.7383831968513
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $3,900",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $8,900",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 46947.077547657485,
+    "bank": 36575.36993997602,
+    "extra": 10371.707607681463,
+    "counted": 50000.0,
+    "earnings": 5405.1811710790635,
+    "tax": 958.1036234215821,
+    "buySalary": 85320.2533203314,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 44202.0,
+        "counted": 5798.0,
+        "earnings": 1516.9279478418146,
+        "rate": 0.32,
+        "bank": 4653.533915109766
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 34202.0,
+        "counted": 10000.0,
+        "earnings": 2086.947794546254,
+        "rate": 0.32,
+        "bank": 7787.795417970981
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 34202.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 0.0
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 29384.0,
+        "counted": 4818.0,
+        "earnings": 531.2682062697371,
+        "rate": 0.32,
+        "bank": 3532.6535967363166
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 14384.0,
+        "counted": 15000.0,
+        "earnings": 968.1053379284126,
+        "rate": 0.32,
+        "bank": 10671.743517409355
+      },
+      {
+        "most": 14384.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 14384.0,
+        "earnings": 301.93188449284446,
+        "rate": 0.32,
+        "bank": 9929.643492749607
+      }
+    ]
+  },
+  {
+    "deposit": 28234.82543533537,
+    "bank": 28505.800945680458,
+    "extra": -270.97551034508797,
+    "counted": 27908.0,
+    "earnings": 4513.02543533537,
+    "tax": 0.0,
+    "buySalary": 28285.205322265618,
+    "buyRate": 0.16999999999999998,
+    "banner": "✓  Your plan is within the $32,500 cap, the $15,000 yearly limit and the $50,000 total limit.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 45569.0,
+        "counted": 4431.0,
+        "earnings": 1842.701350591504,
+        "rate": 0.16999999999999998,
+        "bank": 4499.54971298938
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 45569.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 0.0
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 45569.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 0.0
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 35569.0,
+        "counted": 10000.0,
+        "earnings": 1686.8774222061263,
+        "rate": 0.02,
+        "bank": 10916.447113400616
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 27092.0,
+        "counted": 8477.0,
+        "earnings": 826.7479265223079,
+        "rate": 0.02,
+        "bank": 8863.013330169237
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 22092.0,
+        "counted": 5000.0,
+        "earnings": 156.69873601543134,
+        "rate": 0.16999999999999998,
+        "bank": 4226.790789121222
+      }
+    ]
+  },
+  {
+    "deposit": 12933.762144276217,
+    "bank": 10671.743517409355,
+    "extra": 2262.018626866862,
+    "counted": 15000.0,
+    "earnings": 1462.9254332705698,
+    "tax": 1279.1632889943517,
+    "buySalary": 153750.0,
+    "buyRate": 0.39,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $32,500 cap by $2,750",
+        "left": 0.0,
+        "counted": 15000.0,
+        "earnings": 1462.9254332705698,
+        "rate": 0.32,
+        "bank": 10671.743517409355
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.39,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 802.0191699548085,
+    "bank": 618.3155707242055,
+    "extra": 183.703599230603,
+    "counted": 1000.0,
+    "earnings": 31.339747203086265,
+    "tax": 79.32057724827779,
+    "buySalary": 187173.0,
+    "buyRate": 0.39,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 1000.0,
+        "check": "✗ Over the $32,500 cap by $5,576",
+        "left": 0.0,
+        "counted": 1000.0,
+        "earnings": 31.339747203086265,
+        "rate": 0.39,
+        "bank": 618.3155707242055
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 0.0,
+    "bank": 0.0,
+    "extra": 0.0,
+    "counted": 0.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 85000.0,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 0.0,
+    "bank": 0.0,
+    "extra": 0.0,
+    "counted": 0.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 283241.0,
+    "buyRate": 0.47000000000000003,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $3,989",
+        "left": 1000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $41,489",
+        "left": 1000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $1,489",
+        "left": 1000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $1,489",
+        "left": 1000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 1000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 1000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 52604.153281535626,
+    "bank": 58503.39983065265,
+    "extra": -5899.246549117022,
+    "counted": 50000.0,
+    "earnings": 10104.153281535626,
+    "tax": 0.0,
+    "buySalary": 0.0,
+    "buyRate": 0.02,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 47500.0,
+        "counted": 2500.0,
+        "earnings": 1039.6644948045046,
+        "rate": 0.0,
+        "bank": 3356.0508819547117
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 42500.0,
+        "counted": 5000.0,
+        "earnings": 1637.2002507757506,
+        "rate": 0.0,
+        "bank": 6362.181766738791
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 27500.0,
+        "counted": 15000.0,
+        "earnings": 3677.8678749207065,
+        "rate": 0.0,
+        "bank": 18091.512132906515
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 12500.0,
+        "counted": 15000.0,
+        "earnings": 2530.3161333091894,
+        "rate": 0.0,
+        "bank": 17148.352732612813
+      },
+      {
+        "most": 12500.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 12500.0,
+        "earnings": 1219.1045277254748,
+        "rate": 0.0,
+        "bank": 13545.30231643982
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 16427.867874920707,
+    "bank": 17498.397408184897,
+    "extra": -1070.5295332641908,
+    "counted": 15000.0,
+    "earnings": 3677.8678749207065,
+    "tax": 0.0,
+    "buySalary": 0.0,
+    "buyRate": 0.02,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $15,000 yearly limit by $1,471",
+        "left": 0.0,
+        "counted": 15000.0,
+        "earnings": 3677.8678749207065,
+        "rate": 0.0,
+        "bank": 17498.397408184897
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $15,000 yearly limit by $2,332",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 2005.0479248870213,
+    "bank": 1545.7889268105137,
+    "extra": 459.2589980765076,
+    "counted": 2500.0,
+    "earnings": 78.34936800771567,
+    "tax": 198.30144312069447,
+    "buySalary": 190000.0,
+    "buyRate": 0.39,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 4000.0,
+        "check": "✓ Within the limits",
+        "left": 47500.0,
+        "counted": 2500.0,
+        "earnings": 78.34936800771567,
+        "rate": 0.39,
+        "bank": 1545.7889268105137
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 47500.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 47500.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 47500.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 47500.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 47500.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 15996.973649999998,
+    "bank": 13471.519023263612,
+    "extra": 2525.4546267363858,
+    "counted": 19204.05,
+    "earnings": 0.0,
+    "tax": 326.46885000000026,
+    "buySalary": 131351.580203125,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 14204.05,
+        "check": "✓ Within the limits",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 0.0
+      },
+      {
+        "most": 14204.05,
+        "check": "✓ Within the limits",
+        "left": 45000.0,
+        "counted": 5000.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 3666.0996230140267
+      },
+      {
+        "most": 14204.05,
+        "check": "✓ Within the limits",
+        "left": 45000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 0.0
+      },
+      {
+        "most": 14204.05,
+        "check": "✗ Over the $32,500 cap by $796",
+        "left": 30795.95,
+        "counted": 14204.05,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 9805.419400249586
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 30795.95,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 30795.95,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 42309.15794957634,
+    "bank": 30263.553090088993,
+    "extra": 12045.60485948735,
+    "counted": 41816.0,
+    "earnings": 7629.010152628917,
+    "tax": 863.4522030525791,
+    "buySalary": 141223.0,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 39531.0,
+        "counted": 10469.0,
+        "earnings": 3427.9698850742666,
+        "rate": 0.32,
+        "bank": 8153.04302307382
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 34531.0,
+        "counted": 5000.0,
+        "earnings": 1225.9559583069022,
+        "rate": 0.39,
+        "bank": 3353.2217698862264
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 19531.0,
+        "counted": 15000.0,
+        "earnings": 2530.3161333091894,
+        "rate": 0.32,
+        "bank": 10998.298869042079
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 18184.0,
+        "counted": 1347.0,
+        "earnings": 131.37070390769716,
+        "rate": 0.39,
+        "bank": 855.7333847403679
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 8184.0,
+        "counted": 10000.0,
+        "earnings": 313.3974720308627,
+        "rate": 0.32,
+        "bank": 6903.2560433465005
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 8184.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 13064.862226598489,
+    "bank": 14700.0,
+    "extra": -1635.1377734015114,
+    "counted": 15000.0,
+    "earnings": 314.8622265984891,
+    "tax": 0.0,
+    "buySalary": 25750.0,
+    "buyRate": 0.02,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 0.0
+      },
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $15,000 yearly limit by $3,000",
+        "left": 25000.0,
+        "counted": 15000.0,
+        "earnings": 314.8622265984891,
+        "rate": 0.02,
+        "bank": 14700.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 25000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 25000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 25000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 25000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 19215.29973116747,
+    "bank": 15006.688703890772,
+    "extra": 4208.611027276698,
+    "counted": 20319.0,
+    "earnings": 3844.5639902939224,
+    "tax": 1900.4142591264533,
+    "buySalary": 148796.13143749998,
+    "buyRate": 0.39,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $32,500 cap by $7,500",
+        "left": 35000.0,
+        "counted": 15000.0,
+        "earnings": 3677.8678749207065,
+        "rate": 0.32,
+        "bank": 11334.846814434768
+      },
+      {
+        "most": 10000.0,
+        "check": "✓ Within the limits",
+        "left": 35000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.39,
+        "bank": 0.0
+      },
+      {
+        "most": 10000.0,
+        "check": "✓ Within the limits",
+        "left": 35000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.39,
+        "bank": 0.0
+      },
+      {
+        "most": 10000.0,
+        "check": "✓ Within the limits",
+        "left": 29681.0,
+        "counted": 5319.0,
+        "earnings": 166.69611537321583,
+        "rate": 0.32,
+        "bank": 3671.841889456004
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 29681.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 29681.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 0.0,
+    "bank": 0.0,
+    "extra": 0.0,
+    "counted": 0.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 227491.7187375,
+    "buyRate": 0.47000000000000003,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.39,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.39,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.39,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $3,488",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.39,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.39,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 22974.156951213787,
+    "bank": 19146.862433543207,
+    "extra": 3827.29451767058,
+    "counted": 23964.0,
+    "earnings": 3073.617297156923,
+    "tax": 468.8603459431388,
+    "buySalary": 52000.0,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $15,000 yearly limit by $3,000",
+        "left": 35000.0,
+        "counted": 15000.0,
+        "earnings": 2530.3161333091894,
+        "rate": 0.16999999999999998,
+        "bank": 12973.125363874511
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 31036.0,
+        "counted": 3964.0,
+        "earnings": 386.60242783230257,
+        "rate": 0.32,
+        "bank": 2750.6951476350187
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 26036.0,
+        "counted": 5000.0,
+        "earnings": 156.69873601543134,
+        "rate": 0.32,
+        "bank": 3423.0419220336757
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 26036.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 26036.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 26036.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 51654.91094060328,
+    "bank": 37139.91148047384,
+    "extra": 14514.999460129438,
+    "counted": 50000.0,
+    "earnings": 10209.09279653396,
+    "tax": 1054.18185593068,
+    "buySalary": 112550.881,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 35000.0,
+        "counted": 15000.0,
+        "earnings": 4911.600752327252,
+        "rate": 0.32,
+        "bank": 11681.69312695647
+      },
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $15,000 yearly limit by $3,000",
+        "left": 20000.0,
+        "counted": 15000.0,
+        "earnings": 3677.8678749207065,
+        "rate": 0.32,
+        "bank": 11334.846814434768
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 20000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 0.0
+      },
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $15,000 yearly limit by $2,548",
+        "left": 5000.0,
+        "counted": 15000.0,
+        "earnings": 1462.9254332705698,
+        "rate": 0.32,
+        "bank": 10671.743517409355
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $7,500",
+        "left": 0.0,
+        "counted": 5000.0,
+        "earnings": 156.69873601543134,
+        "rate": 0.32,
+        "bank": 3451.6280216732503
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 41650.0,
+    "bank": 44848.1045769139,
+    "extra": -3198.104576913902,
+    "counted": 50000.0,
+    "earnings": 0.0,
+    "tax": 850.0000000000008,
+    "buySalary": 57398.27031249999,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 45000.0,
+        "counted": 5000.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 3893.8977089854907
+      },
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $15,000 yearly limit by $3,000",
+        "left": 30000.0,
+        "counted": 15000.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 14154.937004677135
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 15000.0,
+        "counted": 15000.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 13645.285587966582
+      },
+      {
+        "most": 12000.0,
+        "check": "✗ Over the $15,000 yearly limit by $10,000",
+        "left": 0.0,
+        "counted": 15000.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 13153.9842752847
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $13,740",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 43920.54914944121,
+    "bank": 37771.65086089605,
+    "extra": 6148.898288545162,
+    "counted": 40000.0,
+    "earnings": 9920.549149441213,
+    "tax": 0.0,
+    "buySalary": 45000.0,
+    "buyRate": 0.16999999999999998,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $15,000 yearly limit by $2,250",
+        "left": 25000.0,
+        "counted": 15000.0,
+        "earnings": 4911.600752327252,
+        "rate": 0.16999999999999998,
+        "bank": 14683.623901801824
+      },
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $15,000 yearly limit by $10,000",
+        "left": 10000.0,
+        "counted": 15000.0,
+        "earnings": 3677.8678749207065,
+        "rate": 0.16999999999999998,
+        "bank": 14154.937004677135
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 5000.0,
+        "counted": 5000.0,
+        "earnings": 843.4387111030632,
+        "rate": 0.16999999999999998,
+        "bank": 4548.428529322194
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $15,000 yearly limit by $649",
+        "left": 0.0,
+        "counted": 5000.0,
+        "earnings": 487.6418110901899,
+        "rate": 0.16999999999999998,
+        "bank": 4384.6614250949
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $15,000 yearly limit by $10,000",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 0.0,
+    "bank": 0.0,
+    "extra": 0.0,
+    "counted": 0.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 278710.7211,
+    "buyRate": 0.47000000000000003,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $1,369",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $18,869",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $13,091",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $7,378",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 17641.860144095146,
+    "bank": 12297.761822785462,
+    "extra": 5344.098321309684,
+    "counted": 22393.154999999995,
+    "earnings": 2221.071435656805,
+    "tax": 3613.3930415616574,
+    "buySalary": 230958.9909,
+    "buyRate": 0.47000000000000003,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 7464.384999999998,
+        "check": "✗ Over the $32,500 cap by $10,536",
+        "left": 42535.615000000005,
+        "counted": 7464.384999999998,
+        "earnings": 1259.150252715407,
+        "rate": 0.47000000000000003,
+        "bank": 4196.244042040717
+      },
+      {
+        "most": 7464.384999999998,
+        "check": "✗ Over the $32,500 cap by $442",
+        "left": 35071.23,
+        "counted": 7464.384999999998,
+        "earnings": 727.9892440148892,
+        "rate": 0.47000000000000003,
+        "bank": 4098.494937774789
+      },
+      {
+        "most": 7464.384999999998,
+        "check": "✗ Over the $32,500 cap by $17,536",
+        "left": 27606.845000000005,
+        "counted": 7464.384999999998,
+        "earnings": 233.931938926509,
+        "rate": 0.47000000000000003,
+        "bank": 4003.0228429699564
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 27606.845000000005,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 27606.845000000005,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 27606.845000000005,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 0.0,
+    "bank": 0.0,
+    "extra": 0.0,
+    "counted": 0.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 309000.0,
+    "buyRate": 0.47000000000000003,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $17,403",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $11,000",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 947.528362218038,
+    "bank": 876.93228501898,
+    "extra": 70.59607719905796,
+    "counted": 1000.0,
+    "earnings": 97.52836221803798,
+    "tax": 0.0,
+    "buySalary": 45000.0,
+    "buyRate": 0.16999999999999998,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 1000.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 1000.0,
+        "earnings": 97.52836221803798,
+        "rate": 0.16999999999999998,
+        "bank": 876.93228501898
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 0.0,
+    "bank": 0.0,
+    "extra": 0.0,
+    "counted": 0.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 298948.95660664054,
+    "buyRate": 0.47000000000000003,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $26,667",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $61,667",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $25,137",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $21,667",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $24,167",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 0.0,
+    "bank": 0.0,
+    "extra": 0.0,
+    "counted": 0.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 16537.5,
+    "buyRate": 0.02,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.02,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $15,000 yearly limit by $10,000",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.02,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $15,000 yearly limit by $10,000",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.02,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 11796.728109614573,
+    "bank": 8076.739383803882,
+    "extra": 3719.98872581069,
+    "counted": 15000.0,
+    "earnings": 1462.9254332705698,
+    "tax": 2416.1973236559975,
+    "buySalary": 259979.97499999998,
+    "buyRate": 0.47000000000000003,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $32,500 cap by $7,500",
+        "left": 0.0,
+        "counted": 15000.0,
+        "earnings": 1462.9254332705698,
+        "rate": 0.47000000000000003,
+        "bank": 8076.739383803882
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $7,500",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 47422.57573077297,
+    "bank": 40581.48810387881,
+    "extra": 6841.087626894165,
+    "counted": 45284.0,
+    "earnings": 9898.983398747934,
+    "tax": 967.8076679749596,
+    "buySalary": 58526.458119999996,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 47500.0,
+        "counted": 2500.0,
+        "earnings": 1006.6857425325558,
+        "rate": 0.32,
+        "bank": 1946.9488544927453
+      },
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $15,000 yearly limit by $10,000",
+        "left": 32500.0,
+        "counted": 15000.0,
+        "earnings": 4488.637114858103,
+        "rate": 0.16999999999999998,
+        "bank": 14154.937004677135
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 17500.0,
+        "counted": 15000.0,
+        "earnings": 3065.2634081266997,
+        "rate": 0.16999999999999998,
+        "bank": 13645.285587966582
+      },
+      {
+        "most": 7500.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 6733.0,
+        "counted": 10767.0,
+        "earnings": 1262.9087838104067,
+        "rate": 0.16999999999999998,
+        "bank": 9441.929912799356
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 4716.0,
+        "counted": 2017.0,
+        "earnings": 75.48834942016936,
+        "rate": 0.32,
+        "bank": 1392.3867439429894
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 4716.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 14289.52626083745,
+    "bank": 10914.319282485238,
+    "extra": 3375.206978352213,
+    "counted": 15000.0,
+    "earnings": 1831.1492457525003,
+    "tax": 291.62298491505027,
+    "buySalary": 93712.5,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 7500.0,
+        "counted": 7500.0,
+        "earnings": 1265.1580666545947,
+        "rate": 0.32,
+        "bank": 5590.30863186728
+      },
+      {
+        "most": 7500.0,
+        "check": "✓ Within the limits",
+        "left": 2500.0,
+        "counted": 5000.0,
+        "earnings": 487.6418110901899,
+        "rate": 0.32,
+        "bank": 3592.512455412429
+      },
+      {
+        "most": 2500.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 2500.0,
+        "earnings": 78.34936800771567,
+        "rate": 0.32,
+        "bank": 1731.4981952055277
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 0.0,
+    "bank": 0.0,
+    "extra": 0.0,
+    "counted": 0.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 347287.50000000006,
+    "buyRate": 0.47000000000000003,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $21,500",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $13,500",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $11,555",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $18,500",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 2228.971677138401,
+    "bank": 1723.5162472468558,
+    "extra": 505.45542989154524,
+    "counted": 2779.199999999997,
+    "earnings": 87.09942542681725,
+    "tax": 220.44774828841338,
+    "buySalary": 148604.0,
+    "buyRate": 0.39,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 2779.199999999997,
+        "check": "✗ Over the $32,500 cap by $7,221",
+        "left": 47220.8,
+        "counted": 2779.199999999997,
+        "earnings": 87.09942542681725,
+        "rate": 0.39,
+        "bank": 1723.5162472468558
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 47220.8,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 47220.8,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 47220.8,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 47220.8,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 47220.8,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 0.0,
+    "bank": 0.0,
+    "extra": 0.0,
+    "counted": 0.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 25000.0,
+    "buyRate": 0.16999999999999998,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 0.0,
+    "bank": 0.0,
+    "extra": 0.0,
+    "counted": 0.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 25000.0,
+    "buyRate": 0.16999999999999998,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 0.0,
+        "check": "✓ Within the limits",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 1265.865797921802,
+    "bank": 1000.0,
+    "extra": 265.8657979218019,
+    "counted": 1000.0,
+    "earnings": 415.86579792180186,
+    "tax": 0.0,
+    "buySalary": 0.0,
+    "buyRate": 0.02,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 1000.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 1000.0,
+        "earnings": 415.86579792180186,
+        "rate": 0.0,
+        "bank": 1000.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $7,500",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $15,000 yearly limit by $4,405",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $7,500",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 0.0,
+    "bank": 0.0,
+    "extra": 0.0,
+    "counted": 0.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 300000.0,
+    "buyRate": 0.47000000000000003,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $18,500",
+        "left": 1000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 1000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 1000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 1000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 1000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 1000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 21414.176305818026,
+    "bank": 23682.12491343725,
+    "extra": -2267.9486076192225,
+    "counted": 22753.0,
+    "earnings": 2074.126305818028,
+    "tax": 0.0,
+    "buySalary": 16390.905,
+    "buyRate": 0.02,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.02,
+        "bank": 0.0
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 42500.0,
+        "counted": 7500.0,
+        "earnings": 1265.1580666545947,
+        "rate": 0.02,
+        "bank": 8187.335335050461
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 37500.0,
+        "counted": 5000.0,
+        "earnings": 487.6418110901899,
+        "rate": 0.02,
+        "bank": 5227.682747534056
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 27247.0,
+        "counted": 10253.0,
+        "earnings": 321.32642807324345,
+        "rate": 0.02,
+        "bank": 10267.10683085273
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 27247.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 27247.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 42500.0,
+    "bank": 57133.07406932282,
+    "extra": -14633.074069322822,
+    "counted": 50000.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 0.0,
+    "buyRate": 0.02,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $15,000 yearly limit by $673",
+        "left": 35000.0,
+        "counted": 15000.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 18285.825291553218
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 27500.0,
+        "counted": 7500.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 8749.198704092449
+      },
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $15,000 yearly limit by $10,000",
+        "left": 12500.0,
+        "counted": 15000.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 16744.877902569282
+      },
+      {
+        "most": 1827.0,
+        "check": "✗ Over the $15,000 yearly limit by $3,000",
+        "left": 0.0,
+        "counted": 12500.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 13353.17217110788
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 0.0,
+    "bank": 0.0,
+    "extra": 0.0,
+    "counted": 0.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 356057.03030625003,
+    "buyRate": 0.47000000000000003,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $21,111",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $12,651",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $10,151",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $17,651",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $8,425",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 25167.578700594895,
+    "bank": 20498.48,
+    "extra": 4669.0987005948955,
+    "counted": 26836.0,
+    "earnings": 2870.602755709078,
+    "tax": 513.6240551141819,
+    "buySalary": 69457.50000000001,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 42500.0,
+        "counted": 7500.0,
+        "earnings": 1838.9339374603533,
+        "rate": 0.32,
+        "bank": 5099.999999999999
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 40551.0,
+        "counted": 1949.0,
+        "earnings": 328.772409587974,
+        "rate": 0.32,
+        "bank": 1325.32
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 38164.0,
+        "counted": 2387.0,
+        "earnings": 232.80020061445666,
+        "rate": 0.32,
+        "bank": 1623.1599999999999
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 23164.0,
+        "counted": 15000.0,
+        "earnings": 470.096208046294,
+        "rate": 0.16999999999999998,
+        "bank": 12450.000000000002
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 23164.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 23164.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 0.0,
+    "bank": 0.0,
+    "extra": 0.0,
+    "counted": 0.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 313969.6753648919,
+    "buyRate": 0.47000000000000003,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $31,667",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $39,667",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $33,772",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $41,028",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $39,667",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $61,667",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 8020.191699548085,
+    "bank": 6201.483330623409,
+    "extra": 1818.7083689246765,
+    "counted": 10000.0,
+    "earnings": 313.3974720308627,
+    "tax": 793.2057724827779,
+    "buySalary": 150000.0,
+    "buyRate": 0.39,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 10000.0,
+        "check": "✓ Within the limits",
+        "left": 40000.0,
+        "counted": 10000.0,
+        "earnings": 313.3974720308627,
+        "rate": 0.39,
+        "bank": 6201.483330623409
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 0.0,
+    "bank": 0.0,
+    "extra": 0.0,
+    "counted": 0.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 316566.0,
+    "buyRate": 0.47000000000000003,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $35,813",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $44,143",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $38,313",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $35,813",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $43,421",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 13064.862226598489,
+    "bank": 15020.638102291128,
+    "extra": -1955.7758756926396,
+    "counted": 15000.0,
+    "earnings": 314.8622265984891,
+    "tax": 0.0,
+    "buySalary": 18201.0,
+    "buyRate": 0.02,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 35000.0,
+        "counted": 15000.0,
+        "earnings": 314.8622265984891,
+        "rate": 0.02,
+        "bank": 15020.638102291128
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 35000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 35000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 35000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 35000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 35000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 13220.096208046294,
+    "bank": 15020.638102291128,
+    "extra": -1800.541894244834,
+    "counted": 15000.0,
+    "earnings": 470.096208046294,
+    "tax": 0.0,
+    "buySalary": 15000.0,
+    "buyRate": 0.02,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $32,500 cap by $9,300",
+        "left": 25000.0,
+        "counted": 15000.0,
+        "earnings": 470.096208046294,
+        "rate": 0.02,
+        "bank": 15020.638102291128
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 25000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 25000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 25000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 25000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 25000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 8566.388739999999,
+    "bank": 6847.74601527926,
+    "extra": 1718.6427247207384,
+    "counted": 11074.84,
+    "earnings": 0.0,
+    "tax": 847.2252600000002,
+    "buySalary": 178543.0,
+    "buyRate": 0.39,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 11074.84,
+        "check": "✗ Over the $32,500 cap by $13,925",
+        "left": 3925.16,
+        "counted": 11074.84,
+        "earnings": 0.0,
+        "rate": 0.39,
+        "bank": 6847.74601527926
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 3925.16,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 3925.16,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 3925.16,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 3925.16,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 3925.16,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 12346.25,
+    "bank": 9416.928519762356,
+    "extra": 2929.321480237644,
+    "counted": 17500.0,
+    "earnings": 0.0,
+    "tax": 2528.7500000000005,
+    "buySalary": 299909.22000000003,
+    "buyRate": 0.47000000000000003,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 47500.0,
+        "counted": 2500.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 1372.6833951406545
+      },
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $15,000 yearly limit by $3,000",
+        "left": 32500.0,
+        "counted": 15000.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 8044.245124621701
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 32500.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 32500.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 32500.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 32500.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 22241.47223362214,
+    "bank": 17469.379743292655,
+    "extra": 4772.092490329484,
+    "counted": 25000.0,
+    "earnings": 1445.3798302266737,
+    "tax": 453.90759660453386,
+    "buySalary": 66746.40000000001,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 40000.0,
+        "counted": 10000.0,
+        "earnings": 975.2836221803798,
+        "rate": 0.32,
+        "bank": 7114.495678272904
+      },
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $32,500 cap by $7,500",
+        "left": 25000.0,
+        "counted": 15000.0,
+        "earnings": 470.096208046294,
+        "rate": 0.32,
+        "bank": 10354.88406501975
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 25000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 25000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 25000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 25000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 29764.724689839448,
+    "bank": 22635.736,
+    "extra": 7128.988689839447,
+    "counted": 33545.2,
+    "earnings": 4195.068670153244,
+    "tax": 2943.7639803137927,
+    "buySalary": 156294.928264,
+    "buyRate": 0.39,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 11045.2,
+        "check": "✓ Within the limits",
+        "left": 40000.0,
+        "counted": 10000.0,
+        "earnings": 2451.9119166138044,
+        "rate": 0.32,
+        "bank": 6799.999999999999
+      },
+      {
+        "most": 11045.2,
+        "check": "✓ Within the limits",
+        "left": 37500.0,
+        "counted": 2500.0,
+        "earnings": 421.7193555515316,
+        "rate": 0.39,
+        "bank": 1525.0
+      },
+      {
+        "most": 11045.2,
+        "check": "✓ Within the limits",
+        "left": 27500.0,
+        "counted": 10000.0,
+        "earnings": 975.2836221803798,
+        "rate": 0.32,
+        "bank": 6799.999999999999
+      },
+      {
+        "most": 11045.2,
+        "check": "✗ Over the $32,500 cap by $1,275",
+        "left": 16454.800000000003,
+        "counted": 11045.2,
+        "earnings": 346.1537758075284,
+        "rate": 0.32,
+        "bank": 7510.736
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 16454.800000000003,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 16454.800000000003,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 24990.0,
+    "bank": 20677.911642621024,
+    "extra": 4312.088357378976,
+    "counted": 30000.0,
+    "earnings": 0.0,
+    "tax": 510.00000000000045,
+    "buySalary": 87124.99999999999,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $32,500 cap by $17,700",
+        "left": 35000.0,
+        "counted": 15000.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 10408.78587652
+      },
+      {
+        "most": 10000.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 20000.0,
+        "counted": 15000.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 10269.125766101026
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 20000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 20000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 20000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 20000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 9153.484887652727,
+    "bank": 7709.763446890673,
+    "extra": 1443.721440762054,
+    "counted": 11000.0,
+    "earnings": 708.7746018161833,
+    "tax": 905.2897141634568,
+    "buySalary": 141750.0,
+    "buyRate": 0.39,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 5500.0,
+        "check": "✗ Over the $32,500 cap by $4,500",
+        "left": 34500.0,
+        "counted": 5500.0,
+        "earnings": 536.4059921992089,
+        "rate": 0.32,
+        "bank": 3912.9726230500974
+      },
+      {
+        "most": 5500.0,
+        "check": "✗ Over the $32,500 cap by $2,000",
+        "left": 29000.0,
+        "counted": 5500.0,
+        "earnings": 172.36860961697445,
+        "rate": 0.32,
+        "bank": 3796.7908238405753
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 29000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 29000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 29000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 29000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 0.0,
+    "bank": 0.0,
+    "extra": 0.0,
+    "counted": 0.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 321842.82499999995,
+    "buyRate": 0.47000000000000003,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $14,599",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $14,599",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 996.6239844118561,
+    "bank": 670.6443539772453,
+    "extra": 325.97963043461084,
+    "counted": 1000.0,
+    "earnings": 245.19119166138043,
+    "tax": 98.56720724952426,
+    "buySalary": 163909.05,
+    "buyRate": 0.39,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 1000.0,
+        "check": "✗ Over the $32,500 cap by $24,750",
+        "left": 0.0,
+        "counted": 1000.0,
+        "earnings": 245.19119166138043,
+        "rate": 0.39,
+        "bank": 670.6443539772453
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.39,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $9,750",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.39,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.39,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 1177.4400501551502,
+    "bank": 978.9082601201217,
+    "extra": 198.5317900350285,
+    "counted": 1000.0,
+    "earnings": 327.4400501551501,
+    "tax": 0.0,
+    "buySalary": 45000.0,
+    "buyRate": 0.16999999999999998,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 1000.0,
+        "check": "✗ Over the $15,000 yearly limit by $3,000",
+        "left": 0.0,
+        "counted": 1000.0,
+        "earnings": 327.4400501551501,
+        "rate": 0.16999999999999998,
+        "bank": 978.9082601201217
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $1,500",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $15,000 yearly limit by $3,000",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 2125.0,
+    "bank": 2113.395394560611,
+    "extra": 11.604605439389161,
+    "counted": 2500.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 43315.0,
+    "buyRate": 0.16999999999999998,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 37500.0,
+        "counted": 2500.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 2113.395394560611
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 37500.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 37500.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 37500.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 37500.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 37500.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 4010.0958497740426,
+    "bank": 3100.7416653117043,
+    "extra": 909.3541844623383,
+    "counted": 5000.0,
+    "earnings": 156.69873601543134,
+    "tax": 396.60288624138894,
+    "buySalary": 194749.99999999997,
+    "buyRate": 0.39,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 10650.0,
+        "check": "✓ Within the limits",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.39,
+        "bank": 0.0
+      },
+      {
+        "most": 10650.0,
+        "check": "✓ Within the limits",
+        "left": 45000.0,
+        "counted": 5000.0,
+        "earnings": 156.69873601543134,
+        "rate": 0.39,
+        "bank": 3100.7416653117043
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 45000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 45000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 45000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 45000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 0.0,
+    "bank": 0.0,
+    "extra": 0.0,
+    "counted": 0.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 276504.0,
+    "buyRate": 0.47000000000000003,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $8,976",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 0.0,
+    "bank": 0.0,
+    "extra": 0.0,
+    "counted": 0.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 50913.369580078106,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 0.0,
+        "check": "✗ Over the $15,000 yearly limit by $3,000",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $15,000 yearly limit by $2,686",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 0.0,
+    "bank": 0.0,
+    "extra": 0.0,
+    "counted": 0.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 284878.019375,
+    "buyRate": 0.47000000000000003,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $40,038",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $38",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $10,038",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 50000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 8637.129522590247,
+    "bank": 6903.2560433465005,
+    "extra": 1733.8734792437463,
+    "counted": 10000.0,
+    "earnings": 313.3974720308627,
+    "tax": 176.26794944061743,
+    "buySalary": 88274.0,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 40000.0,
+        "counted": 10000.0,
+        "earnings": 313.3974720308627,
+        "rate": 0.32,
+        "bank": 6903.2560433465005
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 5493.382253949244,
+    "bank": 3873.0724862439447,
+    "extra": 1620.3097677052992,
+    "counted": 7136.959999999999,
+    "earnings": 552.1168360834267,
+    "tax": 1125.1505821341827,
+    "buySalary": 247123.39999999997,
+    "buyRate": 0.47000000000000003,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 3568.4799999999996,
+        "check": "✗ Over the $32,500 cap by $11,432",
+        "left": 46431.520000000004,
+        "counted": 3568.4799999999996,
+        "earnings": 418.56271355547136,
+        "rate": 0.47000000000000003,
+        "bank": 1959.3572967566088
+      },
+      {
+        "most": 3568.4799999999996,
+        "check": "✗ Over the $32,500 cap by $36,432",
+        "left": 42863.04,
+        "counted": 3568.4799999999996,
+        "earnings": 133.55412252795534,
+        "rate": 0.47000000000000003,
+        "bank": 1913.7151894873361
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 42863.04,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 42863.04,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 42863.04,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 42863.04,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 17370.583857472106,
+    "bank": 17532.814411603893,
+    "extra": -162.23055413178736,
+    "counted": 15000.0,
+    "earnings": 4620.583857472106,
+    "tax": 0.0,
+    "buySalary": 0.0,
+    "buyRate": 0.02,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 10000.0,
+        "counted": 5000.0,
+        "earnings": 2577.074918720972,
+        "rate": 0.0,
+        "bank": 6369.562476557704
+      },
+      {
+        "most": 10000.0,
+        "check": "✓ Within the limits",
+        "left": 10000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 10000.0,
+        "check": "✓ Within the limits",
+        "left": 10000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 10000.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 10000.0,
+        "earnings": 2043.5089387511332,
+        "rate": 0.0,
+        "bank": 11163.251935046188
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $7,500",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $15,000 yearly limit by $1,755",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 30271.986376420344,
+    "bank": 21444.283031675877,
+    "extra": 8827.703344744466,
+    "counted": 29256.0,
+    "earnings": 6022.182016755456,
+    "tax": 617.7956403351096,
+    "buySalary": 98398.12500000001,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 40744.0,
+        "counted": 9256.0,
+        "earnings": 2769.788342341773,
+        "rate": 0.32,
+        "bank": 6994.356140960547
+      },
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $32,500 cap by $2,700",
+        "left": 25744.0,
+        "counted": 15000.0,
+        "earnings": 3065.2634081266997,
+        "rate": 0.32,
+        "bank": 10998.298869042079
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 25744.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 0.0
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 20744.0,
+        "counted": 5000.0,
+        "earnings": 187.13026628698404,
+        "rate": 0.32,
+        "bank": 3451.6280216732503
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 20744.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 20744.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 14451.688367624081,
+    "bank": 13399.634931625642,
+    "extra": 1052.0534359984395,
+    "counted": 15000.0,
+    "earnings": 1996.6207832898795,
+    "tax": 294.93241566579786,
+    "buySalary": 47740.5,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 7500.0,
+        "counted": 7500.0,
+        "earnings": 1265.1580666545947,
+        "rate": 0.16999999999999998,
+        "bank": 6822.642793983291
+      },
+      {
+        "most": 7500.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 7500.0,
+        "earnings": 731.4627166352849,
+        "rate": 0.16999999999999998,
+        "bank": 6576.99213764235
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 39551.96498965959,
+    "bank": 41735.75196771623,
+    "extra": -2183.78697805664,
+    "counted": 37500.0,
+    "earnings": 7676.964989659588,
+    "tax": 0.0,
+    "buySalary": 20089.394609374995,
+    "buyRate": 0.02,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $15,000 yearly limit by $10,000",
+        "left": 25000.0,
+        "counted": 15000.0,
+        "earnings": 4911.600752327252,
+        "rate": 0.02,
+        "bank": 17850.762246469745
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 25000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.02,
+        "bank": 0.0
+      },
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $32,500 cap by $9,684",
+        "left": 10000.0,
+        "counted": 15000.0,
+        "earnings": 2530.3161333091894,
+        "rate": 0.02,
+        "bank": 16374.670670100923
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 10000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.02,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 2500.0,
+        "counted": 7500.0,
+        "earnings": 235.048104023147,
+        "rate": 0.02,
+        "bank": 7510.319051145564
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 2500.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 19758.729352353574,
+    "bank": 17987.21540538955,
+    "extra": 1771.5139469640235,
+    "counted": 21750.0,
+    "earnings": 1674.4687268914022,
+    "tax": 403.2393745378284,
+    "buySalary": 53560.0,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $32,500 cap by $17,900",
+        "left": 35000.0,
+        "counted": 15000.0,
+        "earnings": 1462.9254332705698,
+        "rate": 0.16999999999999998,
+        "bank": 13312.170278334626
+      },
+      {
+        "most": 10000.0,
+        "check": "✓ Within the limits",
+        "left": 28250.0,
+        "counted": 6750.0,
+        "earnings": 211.5432936208323,
+        "rate": 0.32,
+        "bank": 4675.045127054926
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 28250.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 28250.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 28250.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 28250.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 45605.984864353224,
+    "bank": 31450.434275318585,
+    "extra": 14155.55058903464,
+    "counted": 42500.0,
+    "earnings": 10411.71924934003,
+    "tax": 930.7343849868014,
+    "buySalary": 135000.0,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $32,500 cap by $8,700",
+        "left": 35000.0,
+        "counted": 15000.0,
+        "earnings": 7731.2247561629165,
+        "rate": 0.32,
+        "bank": 12039.15293664134
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 35000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 0.0
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 35000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 0.0
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 27500.0,
+        "counted": 7500.0,
+        "earnings": 1532.6317040633498,
+        "rate": 0.32,
+        "bank": 5499.149434521039
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 22500.0,
+        "counted": 5000.0,
+        "earnings": 586.4719902528127,
+        "rate": 0.32,
+        "bank": 3557.247839136452
+      },
+      {
+        "most": 12500.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 7500.0,
+        "counted": 15000.0,
+        "earnings": 561.3907988609521,
+        "rate": 0.32,
+        "bank": 10354.88406501975
+      }
+    ]
+  },
+  {
+    "deposit": 9011.29506,
+    "bank": 6913.851711219611,
+    "extra": 2097.443348780389,
+    "counted": 12772.920000000002,
+    "earnings": 0.0,
+    "tax": 1845.6869400000007,
+    "buySalary": 218607.9931,
+    "buyRate": 0.47000000000000003,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 7772.920000000002,
+        "check": "✓ Within the limits",
+        "left": 40000.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 7772.920000000002,
+        "check": "✓ Within the limits",
+        "left": 35000.0,
+        "counted": 5000.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 2745.366790281309
+      },
+      {
+        "most": 7772.920000000002,
+        "check": "✗ Over the $32,500 cap by $7,227",
+        "left": 27227.079999999998,
+        "counted": 7772.920000000002,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 4168.484920938302
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 27227.079999999998,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 27227.079999999998,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 27227.079999999998,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 0.0,
+    "bank": 0.0,
+    "extra": 0.0,
+    "counted": 0.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 163909.05,
+    "buyRate": 0.39,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $500",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.39,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.39,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $3,500",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.39,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $500",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.39,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "After your purchase year",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 0.0,
+    "bank": 0.0,
+    "extra": 0.0,
+    "counted": 0.0,
+    "earnings": 0.0,
+    "tax": 0.0,
+    "buySalary": 87124.99999999999,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 0.0,
+        "check": "✓ Within the limits",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.32,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 11730.41319854154,
+    "bank": 7950.000000000001,
+    "extra": 3780.4131985415397,
+    "counted": 15000.0,
+    "earnings": 1383.027950050049,
+    "tax": 2402.614751508509,
+    "buySalary": 271238.881394,
+    "buyRate": 0.47000000000000003,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 3954.4699999999975,
+        "check": "✗ Over the $32,500 cap by $3,546",
+        "left": 11045.530000000002,
+        "counted": 3954.4699999999975,
+        "earnings": 625.9164471523164,
+        "rate": 0.47000000000000003,
+        "bank": 2095.869099999999
+      },
+      {
+        "most": 3954.4699999999975,
+        "check": "✗ Over the $32,500 cap by $36,046",
+        "left": 7091.060000000005,
+        "counted": 3954.4699999999975,
+        "earnings": 436.0490210974442,
+        "rate": 0.47000000000000003,
+        "bank": 2095.869099999999
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $3,546",
+        "left": 3136.5900000000074,
+        "counted": 3954.4699999999975,
+        "earnings": 255.22290104518447,
+        "rate": 0.47000000000000003,
+        "bank": 2095.869099999999
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $21,046",
+        "left": 0.0,
+        "counted": 3136.5900000000074,
+        "earnings": 65.83958075510381,
+        "rate": 0.47000000000000003,
+        "bank": 1662.392700000004
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 17661.600752327253,
+    "bank": 17850.762246469745,
+    "extra": -189.1614941424923,
+    "counted": 15000.0,
+    "earnings": 4911.600752327252,
+    "tax": 0.0,
+    "buySalary": 20485.38585081,
+    "buyRate": 0.16999999999999998,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $15,000 yearly limit by $4,980",
+        "left": 0.0,
+        "counted": 15000.0,
+        "earnings": 4911.600752327252,
+        "rate": 0.02,
+        "bank": 17850.762246469745
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $15,000 yearly limit by $10,000",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $15,000 yearly limit by $3,000",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 47569.0049555906,
+    "bank": 45848.748168529026,
+    "extra": 1720.2567870615749,
+    "counted": 50000.0,
+    "earnings": 6039.800975092452,
+    "tax": 970.79601950185,
+    "buySalary": 54697.78125,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 45000.0,
+        "counted": 5000.0,
+        "earnings": 1043.473897273127,
+        "rate": 0.16999999999999998,
+        "bank": 4894.541300600607
+      },
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 30000.0,
+        "counted": 15000.0,
+        "earnings": 2374.2111350660775,
+        "rate": 0.16999999999999998,
+        "bank": 14154.937004677135
+      },
+      {
+        "most": 15000.0,
+        "check": "✗ Over the $32,500 cap by $12,900",
+        "left": 15000.0,
+        "counted": 15000.0,
+        "earnings": 1654.0106048248356,
+        "rate": 0.16999999999999998,
+        "bank": 13645.285587966582
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 15000.0,
+        "earnings": 968.1053379284126,
+        "rate": 0.16999999999999998,
+        "bank": 13153.9842752847
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $32,500 cap by $12,900",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.16999999999999998,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 1177.4400501551502,
+    "bank": 1219.0550194368811,
+    "extra": -41.614969281730964,
+    "counted": 1000.0,
+    "earnings": 327.4400501551501,
+    "tax": 0.0,
+    "buySalary": 0.0,
+    "buyRate": 0.02,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 1000.0,
+        "check": "✗ Over the $15,000 yearly limit by $1,682",
+        "left": 0.0,
+        "counted": 1000.0,
+        "earnings": 327.4400501551501,
+        "rate": 0.0,
+        "bank": 1219.0550194368811
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $15,000 yearly limit by $3,000",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 4610.044871022507,
+    "bank": 3047.2819670525196,
+    "extra": 1562.7629039699877,
+    "counted": 5416.819999999992,
+    "earnings": 949.973928942787,
+    "tax": 944.2260579202729,
+    "buySalary": 304824.92753873,
+    "buyRate": 0.47000000000000003,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 1354.204999999998,
+        "check": "✗ Over the $32,500 cap by $13,646",
+        "left": 38645.795,
+        "counted": 1354.204999999998,
+        "earnings": 443.4209531203544,
+        "rate": 0.47000000000000003,
+        "bank": 798.0383984348017
+      },
+      {
+        "most": 1354.204999999998,
+        "check": "✗ Over the $32,500 cap by $13,646",
+        "left": 37291.590000000004,
+        "counted": 1354.204999999998,
+        "earnings": 332.0391377037992,
+        "rate": 0.47000000000000003,
+        "bank": 779.4485505052515
+      },
+      {
+        "most": 1354.204999999998,
+        "check": "✓ Within the limits",
+        "left": 37291.590000000004,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.47000000000000003,
+        "bank": 0.0
+      },
+      {
+        "most": 1354.204999999998,
+        "check": "✗ Over the $32,500 cap by $4,489",
+        "left": 35937.38500000001,
+        "counted": 1354.204999999998,
+        "earnings": 132.07339575747793,
+        "rate": 0.47000000000000003,
+        "bank": 743.557886846579
+      },
+      {
+        "most": 1354.204999999998,
+        "check": "✗ Over the $32,500 cap by $8,461",
+        "left": 34583.18000000001,
+        "counted": 1354.204999999998,
+        "earnings": 42.44044236115538,
+        "rate": 0.47000000000000003,
+        "bank": 726.2371312658877
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 34583.18000000001,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 863.7129522590245,
+    "bank": 692.5992780822111,
+    "extra": 171.11367417681345,
+    "counted": 1000.0,
+    "earnings": 31.339747203086265,
+    "tax": 17.626794944061743,
+    "buySalary": 96618.0,
+    "buyRate": 0.32,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 1000.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 1000.0,
+        "earnings": 31.339747203086265,
+        "rate": 0.32,
+        "bank": 692.5992780822111
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ After your purchase year – not counted",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.0,
+        "bank": 0.0
+      }
+    ]
+  },
+  {
+    "deposit": 18987.986968827026,
+    "bank": 18637.98086153906,
+    "extra": 350.0061072879653,
+    "counted": 15000.0,
+    "earnings": 6237.986968827027,
+    "tax": 0.0,
+    "buySalary": 18200.0,
+    "buyRate": 0.02,
+    "banner": "⚠  Please check the rows marked ✗ above. Amounts over the limits are not counted in your results.",
+    "rows": [
+      {
+        "most": 15000.0,
+        "check": "✓ Within the limits",
+        "left": 0.0,
+        "counted": 15000.0,
+        "earnings": 6237.986968827027,
+        "rate": 0.02,
+        "bank": 18637.98086153906
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.02,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.02,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $15,000 yearly limit by $2,009",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.02,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.02,
+        "bank": 0.0
+      },
+      {
+        "most": 0.0,
+        "check": "✗ Over the $50,000 total limit",
+        "left": 0.0,
+        "counted": 0.0,
+        "earnings": 0.0,
+        "rate": 0.02,
+        "bank": 0.0
+      }
+    ]
+  }
+]

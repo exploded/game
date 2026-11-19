@@ -71,7 +71,7 @@ func (h *Handler) StocksBrowse(w http.ResponseWriter, r *http.Request) {
 	// The same URL serves the page and the list, so caches must tell them
 	// apart. Back re-fetches the page with HX-Request set, and needs it all.
 	w.Header().Add("Vary", "HX-Request")
-	if isHTMX(r) && r.Header.Get("HX-History-Restore-Request") != "true" {
+	if isHTMX(r) && !isHistoryRestore(r) {
 		h.render(w, r, "stocks/browse", "stock-list", data)
 		return
 	}
@@ -188,6 +188,9 @@ func (h *Handler) ticketData(ctx context.Context, game db.Game, stock db.Stock, 
 		"LatestPrice": latest,
 		"Trade":       trade,
 		"Watching":    watching,
+		// Retired at /admin/stocks: the page stays (past trades link to it,
+		// and a holder still sees their position), but the ticket doesn't.
+		"Retired": stock.IsActive == 0,
 	}
 }
 
@@ -375,11 +378,25 @@ func (h *Handler) StockPrice(w http.ResponseWriter, r *http.Request) {
 }
 
 // StockSearch fills the search box on an empty portfolio with stock rows.
-// An empty query shows Rob's Picks.
+// An empty query clears them: the biggest companies are already listed
+// above. Without htmx it's the stocks page's search.
 func (h *Handler) StockSearch(w http.ResponseWriter, r *http.Request) {
 	gameID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.NotFound(w, r)
+		return
+	}
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	if !isHTMX(r) {
+		to := fmt.Sprintf("/games/%d/stocks", gameID)
+		if q != "" {
+			to += "?q=" + url.QueryEscape(q)
+		}
+		http.Redirect(w, r, to, http.StatusSeeOther)
+		return
+	}
+	if q == "" {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		return
 	}
 
@@ -394,7 +411,7 @@ func (h *Handler) StockSearch(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, "stock search", err)
 		return
 	}
-	res := applyFilter(rows, "", "", r.URL.Query().Get("q"), nil)
+	res := applyFilter(rows, "", "", q, nil)
 	user := auth.UserFromContext(r.Context())
 	if p, err := h.q.GetParticipantByGameAndUser(r.Context(), db.GetParticipantByGameAndUserParams{
 		GameID: gameID, UserID: user.ID,

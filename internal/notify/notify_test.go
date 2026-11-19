@@ -127,6 +127,12 @@ func TestGameStartedOnceAfter8am(t *testing.T) {
 	d, q, m := setup(t)
 	seedGame(t, d, "active", "2026-10-29", "2026-11-30")
 	addCat(t, d)
+	// Dan hasn't visited since the game started, so he isn't in it yet; Eve
+	// is blocked and Fay deleted her account.
+	exec(t, d, `INSERT INTO users (id, email, name, email_token, blocked_at, deleted_at) VALUES
+		(4, 'd@x.com', 'Dan', 't4', NULL, NULL),
+		(5, 'e@x.com', 'Eve', 't5', datetime('now'), NULL),
+		(6, 'f@x.com', 'Fay', 't6', NULL, datetime('now'))`)
 
 	notify.Run(context.Background(), q, m, now.Add(-3*time.Hour), loc)
 	if got := outbox(t, d); len(got) != 0 {
@@ -135,13 +141,41 @@ func TestGameStartedOnceAfter8am(t *testing.T) {
 	notify.Run(context.Background(), q, m, now, loc)
 	notify.Run(context.Background(), q, m, now.Add(time.Minute), loc)
 	got := outbox(t, d)
-	// Cat hasn't traded, but the start goes to everyone.
-	if len(got) != 3 {
-		t.Fatalf("queued %d emails, want one each for Alice, Bob and Cat", len(got))
+	// Cat hasn't traded and Dan isn't in the game yet, but the start goes
+	// to everyone with an account.
+	var to []string
+	for _, e := range got {
+		to = append(to, e.to)
+	}
+	if strings.Join(to, " ") != "a@x.com b@x.com c@x.com d@x.com" {
+		t.Fatalf("started email went to %v, want Alice, Bob, Cat and Dan", to)
 	}
 	if got[0].subject != "Spring Cup has started" || !strings.Contains(got[0].text, "Mon 30 Nov") ||
-		!strings.Contains(got[0].text, "3 players are in") {
+		!strings.Contains(got[0].text, "https://game.example/games/1") {
 		t.Errorf("started email = %+v", got[0])
+	}
+}
+
+// TestGameEmailPlacesShareTies: two players worth the same share a place,
+// as on the site, and the next one comes after both.
+func TestGameEmailPlacesShareTies(t *testing.T) {
+	d, q, m := setup(t)
+	seedGame(t, d, "finished", "2026-10-01", "2026-10-28")
+	exec(t, d,
+		`INSERT INTO users (id, email, name, email_token) VALUES (3, 'c@x.com', 'Cat', 't3')`,
+		`INSERT INTO participants (id, game_id, user_id, cash_balance, portfolio_value) VALUES (3, 1, 3, 0, 110000000)`,
+		`INSERT INTO transactions (participant_id, stock_id, type, quantity, price, total, converted_total) VALUES (3, 1, 'buy', 1, 1, 1, 1)`,
+	)
+	notify.Run(context.Background(), q, m, now, loc)
+	subjects := map[string]string{}
+	for _, e := range outbox(t, d) {
+		subjects[e.to] = e.subject
+	}
+	if subjects["a@x.com"] != "You won Spring Cup!" || subjects["c@x.com"] != "You won Spring Cup!" {
+		t.Errorf("tied leaders: Alice %q, Cat %q; want both to have won", subjects["a@x.com"], subjects["c@x.com"])
+	}
+	if subjects["b@x.com"] != "Spring Cup results: you came 3rd of 3" {
+		t.Errorf("Bob: %q, want 3rd of 3", subjects["b@x.com"])
 	}
 }
 

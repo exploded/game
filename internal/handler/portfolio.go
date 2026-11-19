@@ -183,7 +183,7 @@ func (h *Handler) standingIn(ctx context.Context, p db.Participant) standing {
 }
 
 // portfolioFigures is what a player is worth in a game and how it moved:
-// their home page, and the API's portfolio.
+// their game's home page.
 type portfolioFigures struct {
 	Rows      []holdingRow
 	Over      bool    // the game has ended: values are from its end, with no Today
@@ -430,9 +430,7 @@ func (h *Handler) TransactionHistory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	page, _ := strconv.ParseInt(r.URL.Query().Get("page"), 10, 64)
-	if page < 1 {
-		page = 1
-	}
+	page = min(max(page, 1), maxPage)
 	perPage := int64(25)
 
 	// The whole history, to keep a running cash balance. A month of one

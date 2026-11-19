@@ -60,7 +60,7 @@ All settings come from `.env` (or the environment, which takes priority):
 
 ## Deploy
 
-Pushing to `master` runs the **Test and Deploy** workflow. It tests, cross-compiles a Linux binary, copies the binary and `scripts/deploy-game` to the Linode, and runs the deploy script. The script installs the binary, enables and restarts the `game` service, and fails the run unless `/health` returns `200`.
+Pushing to `master` runs the **Test and Deploy** workflow. It tests, cross-compiles a Linux binary, copies the binary and `scripts/deploy-game` to the Linode, and runs the deploy script. The script backs up `game.db` (see Backups), keeps the old binary as `game.prev`, installs the new one, and restarts the `game` service. If `/health` doesn't return `200` within a minute, it puts `game.prev` back, restarts it and fails the run. It never rolls the database back: that's safe while migrations only add tables and columns.
 
 The app runs as `www-data` from `/var/www/game` on port 8888, behind Caddy. `scripts/server-setup.sh` provisions a fresh server and prints the Caddy block.
 
@@ -78,7 +78,53 @@ Set it up once, in Git Bash on your PC, in `C:\Projects\go\game`:
 AWS_PROFILE=aws-admin scripts/s3-backup-setup.sh
 ```
 
-To restore, download a backup with the admin profile, gunzip it, then on the server stop `game`, replace `/var/www/game/game.db` (owner `www-data`), delete `game.db-wal` and `game.db-shm`, and start `game`.
+Each deploy also copies `game.db` to `/var/www/game/pre-deploy/<UTC time>/` while the service is stopped, before the new binary runs its migrations, and keeps the last 3. To undo a bad migration, restore from there: skip steps 1 and 2 below, and in step 4 install `/var/www/game/pre-deploy/<UTC time>/game.db` instead (if that folder also has a `game.db-wal`, install it next to `game.db` too).
+
+### Restore a backup
+
+The site is down from step 3 until step 4 finishes. The examples restore the backup of 18 November 2026: change the date.
+
+1. Download the backup and copy it to the server. Git Bash on your PC, in `C:\Projects\go\game`:
+
+   ```bash
+   AWS_PROFILE=aws-admin aws s3 ls s3://thewealthlab-backups/
+   AWS_PROFILE=aws-admin aws s3 cp s3://thewealthlab-backups/game-2026-11-18.db.gz .local/
+   scp .local/game-2026-11-18.db.gz linode:
+   ```
+
+2. Unzip it and check it. On the Linode (`ssh linode`), in your home folder. Not `/tmp`: it's a RAM disk.
+
+   ```bash
+   gunzip game-2026-11-18.db.gz
+   sqlite3 game-2026-11-18.db 'PRAGMA integrity_check'
+   ```
+
+   It must print `ok`.
+
+3. Stop the app and put the current database aside. On the Linode (`ssh linode`). The `-wal` file holds recent changes, so it moves with the database, renamed to match it:
+
+   ```bash
+   sudo systemctl stop game
+   cd /var/www/game
+   sudo mv game.db game.db.before-restore
+   [ -f game.db-wal ] && sudo mv game.db-wal game.db.before-restore-wal
+   sudo rm -f game.db-shm
+   ```
+
+4. Put the backup in place, readable by `www-data` only, and start the app. On the Linode (`ssh linode`):
+
+   ```bash
+   sudo install -o www-data -g www-data -m 600 ~/game-2026-11-18.db /var/www/game/game.db
+   sudo systemctl start game
+   ```
+
+5. Check it. On the Linode (`ssh linode`):
+
+   ```bash
+   curl -fsS http://127.0.0.1:8888/health
+   ```
+
+   It must print `ok`. If it doesn't, `sudo journalctl -u game -n 50` shows why. Once the site works, delete `~/game-2026-11-18.db`, and later `/var/www/game/game.db.before-restore*`.
 
 ## Monitoring
 

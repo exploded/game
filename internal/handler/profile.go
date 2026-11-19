@@ -38,8 +38,8 @@ func (h *Handler) giveRandomAvatar(ctx context.Context, userID int64) {
 	}
 }
 
-// ProfileUpdateAvatar sets the player's avatar, from Settings. Locked
-// avatars need their achievement.
+// ProfileUpdateAvatar sets the player's avatar, from Settings (a plain form
+// post per avatar). Locked avatars need their achievement.
 func (h *Handler) ProfileUpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	r.ParseForm()
@@ -69,24 +69,17 @@ func (h *Handler) ProfileUpdateAvatar(w http.ResponseWriter, r *http.Request) {
 			AchievementID: ach.ID,
 		})
 		if has == 0 {
-			if isHTMX(r) {
-				triggerToast(w, "You haven't unlocked this avatar yet!", "error")
-				return
-			}
 			setFlashCookie(w, "You haven't unlocked this avatar yet!", "error")
 			http.Redirect(w, r, "/settings", http.StatusSeeOther)
 			return
 		}
 	}
 
-	_ = h.q.UpdateUserAvatar(r.Context(), db.UpdateUserAvatarParams{
+	if err := h.q.UpdateUserAvatar(r.Context(), db.UpdateUserAvatarParams{
 		AvatarID: sql.NullInt64{Int64: avatarID, Valid: true},
 		ID:       user.ID,
-	})
-
-	if isHTMX(r) {
-		triggerToast(w, "Avatar updated!", "success")
-		w.Header().Set("HX-Refresh", "true")
+	}); err != nil {
+		h.serverError(w, "update avatar", err)
 		return
 	}
 	setFlashCookie(w, "Avatar updated!", "success")

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/exploded/game/internal/db"
+	"github.com/exploded/game/internal/jobs"
 	"github.com/exploded/game/internal/market"
 )
 
@@ -109,17 +110,19 @@ func (h *Handler) screenRows(ctx context.Context, mkt string) ([]screenRow, erro
 			c.building = map[string]bool{}
 		}
 		c.building[mkt] = true
-		go func() {
+		jobs.Go("rebuild stocks list", func() {
+			defer func() {
+				c.mu.Lock()
+				delete(c.building, mkt)
+				c.mu.Unlock()
+			}()
 			// Not the request's context: it ends when the page is sent.
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 			if _, err := h.buildScreenRows(ctx, mkt); err != nil {
 				slog.Warn("rebuild stocks list", "market", mkt, "error", err)
 			}
-			c.mu.Lock()
-			delete(c.building, mkt)
-			c.mu.Unlock()
-		}()
+		})
 	}
 	c.mu.Unlock()
 	if ok {

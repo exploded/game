@@ -83,10 +83,7 @@ func (h *Handler) LearnHome(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, "latest videos", err)
 		return
 	}
-	questions, _ := h.q.ListQuestions(ctx, db.ListQuestionsParams{Viewer: viewerID(r), Show: "all"})
-	if len(questions) > 3 {
-		questions = questions[:3]
-	}
+	questions, _ := h.q.ListQuestions(ctx, db.ListQuestionsParams{Viewer: viewerID(r), Show: "all", Lim: 3})
 	extra := map[string]any{
 		"Topics": topics, "Socials": robSocials, "Courses": courses,
 		"Latest": latest, "Questions": questions,
@@ -154,7 +151,7 @@ func (h *Handler) LearnTopic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	page = max(page, 1)
+	page = min(max(page, 1), maxPage)
 	videos, err := h.q.ListTopicVideos(ctx, db.ListTopicVideosParams{
 		TopicID: t.ID, Lim: learnPerPage, Off: int64((page - 1) * learnPerPage),
 	})

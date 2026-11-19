@@ -105,10 +105,10 @@ const busyRetry = 30
 func (t *Throttle) refuse(w http.ResponseWriter, r *http.Request) {
 	// Warn at most once a minute, so an overload doesn't flood the logs
 	// shipped to monitor.
-	n := t.refused.Add(1)
+	t.refused.Add(1)
 	now := time.Now().Unix()
 	if last := t.warned.Load(); now-last >= 60 && t.warned.CompareAndSwap(last, now) {
-		n = t.refused.Swap(0)
+		n := t.refused.Swap(0)
 		slog.Warn("server busy: requests refused", "refused", n, "path", r.URL.Path)
 	}
 	w.Header().Set("Retry-After", strconv.Itoa(busyRetry))

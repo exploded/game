@@ -1,0 +1,422 @@
+[
+ {
+  "loan": 650000,
+  "rate": 0.06,
+  "term": 30,
+  "freq": "Fortnightly",
+  "extra": 175
+ },
+ {
+  "loan": 650000,
+  "rate": 0.06,
+  "term": 30,
+  "freq": "Fortnightly",
+  "extra": 0
+ },
+ {
+  "loan": 650000,
+  "rate": 0.06,
+  "term": 30,
+  "freq": "Monthly",
+  "extra": 0
+ },
+ {
+  "loan": 650000,
+  "rate": 0.06,
+  "term": 30,
+  "freq": "Weekly",
+  "extra": 0
+ },
+ {
+  "loan": 400000,
+  "rate": 0,
+  "term": 25,
+  "freq": "Monthly",
+  "extra": 0
+ },
+ {
+  "loan": 400000,
+  "rate": 0,
+  "term": 25,
+  "freq": "Monthly",
+  "extra": 500
+ },
+ {
+  "loan": 400000,
+  "rate": 0,
+  "term": 25,
+  "freq": "Weekly",
+  "extra": 100
+ },
+ {
+  "loan": 1000,
+  "rate": 0.05,
+  "term": 1,
+  "freq": "Monthly",
+  "extra": 0
+ },
+ {
+  "loan": 1000,
+  "rate": 0.05,
+  "term": 1,
+  "freq": "Weekly",
+  "extra": 2000
+ },
+ {
+  "loan": 100000000,
+  "rate": 0.3,
+  "term": 50,
+  "freq": "Weekly",
+  "extra": 0
+ },
+ {
+  "loan": 100000000,
+  "rate": 0.3,
+  "term": 50,
+  "freq": "Weekly",
+  "extra": 999999
+ },
+ {
+  "loan": 500000,
+  "rate": 0.065,
+  "term": 50,
+  "freq": "Weekly",
+  "extra": 50
+ },
+ {
+  "loan": 500000,
+  "rate": 0.065,
+  "term": 50,
+  "freq": "Monthly",
+  "extra": 0
+ },
+ {
+  "loan": 300000,
+  "rate": 0.055,
+  "term": 30,
+  "freq": "Monthly",
+  "extra": 300000
+ },
+ {
+  "loan": 750000,
+  "rate": 0.0625,
+  "term": 30,
+  "freq": "Monthly",
+  "extra": 1000
+ },
+ {
+  "loan": 250000,
+  "rate": 0.12,
+  "term": 10,
+  "freq": "Fortnightly",
+  "extra": 25
+ },
+ {
+  "loan": 2500000,
+  "rate": 0.1,
+  "term": 50,
+  "freq": "Fortnightly",
+  "extra": 1705
+ },
+ {
+  "loan": 650000,
+  "rate": 0.15,
+  "term": 11,
+  "freq": "Weekly",
+  "extra": 50
+ },
+ {
+  "loan": 800000,
+  "rate": 0.0215,
+  "term": 23,
+  "freq": "Monthly",
+  "extra": 0
+ },
+ {
+  "loan": 800000,
+  "rate": 0.0909,
+  "term": 14,
+  "freq": "Fortnightly",
+  "extra": 500
+ },
+ {
+  "loan": 214734,
+  "rate": 0.2016,
+  "term": 13,
+  "freq": "Fortnightly",
+  "extra": 50
+ },
+ {
+  "loan": 2500000,
+  "rate": 0.055,
+  "term": 16,
+  "freq": "Weekly",
+  "extra": 0
+ },
+ {
+  "loan": 50000,
+  "rate": 0.055,
+  "term": 41,
+  "freq": "Weekly",
+  "extra": 25
+ },
+ {
+  "loan": 800000,
+  "rate": 0.2976,
+  "term": 10,
+  "freq": "Monthly",
+  "extra": 1315
+ },
+ {
+  "loan": 650000,
+  "rate": 0.1,
+  "term": 46,
+  "freq": "Fortnightly",
+  "extra": 1000
+ },
+ {
+  "loan": 800000,
+  "rate": 0.08,
+  "term": 10,
+  "freq": "Fortnightly",
+  "extra": 500
+ },
+ {
+  "loan": 650000,
+  "rate": 0.1,
+  "term": 39,
+  "freq": "Fortnightly",
+  "extra": 250
+ },
+ {
+  "loan": 350000,
+  "rate": 0,
+  "term": 29,
+  "freq": "Monthly",
+  "extra": 500
+ },
+ {
+  "loan": 1000,
+  "rate": 0.08,
+  "term": 25,
+  "freq": "Weekly",
+  "extra": 175
+ },
+ {
+  "loan": 200000,
+  "rate": 0.055,
+  "term": 30,
+  "freq": "Fortnightly",
+  "extra": 1790
+ },
+ {
+  "loan": 579334,
+  "rate": 0.1172,
+  "term": 49,
+  "freq": "Monthly",
+  "extra": 0
+ },
+ {
+  "loan": 650000,
+  "rate": 0.08,
+  "term": 21,
+  "freq": "Monthly",
+  "extra": 0
+ },
+ {
+  "loan": 650000,
+  "rate": 0.1055,
+  "term": 23,
+  "freq": "Weekly",
+  "extra": 50
+ },
+ {
+  "loan": 800000,
+  "rate": 0.035,
+  "term": 33,
+  "freq": "Monthly",
+  "extra": 0
+ },
+ {
+  "loan": 453151,
+  "rate": 0.1491,
+  "term": 29,
+  "freq": "Fortnightly",
+  "extra": 0
+ },
+ {
+  "loan": 1000,
+  "rate": 0.1,
+  "term": 48,
+  "freq": "Fortnightly",
+  "extra": 0
+ },
+ {
+  "loan": 678887,
+  "rate": 0.02,
+  "term": 39,
+  "freq": "Monthly",
+  "extra": 1000
+ },
+ {
+  "loan": 2704431,
+  "rate": 0.0499,
+  "term": 33,
+  "freq": "Monthly",
+  "extra": 250
+ },
+ {
+  "loan": 650000,
+  "rate": 0.055,
+  "term": 37,
+  "freq": "Monthly",
+  "extra": 0
+ },
+ {
+  "loan": 1248375,
+  "rate": 0,
+  "term": 43,
+  "freq": "Fortnightly",
+  "extra": 1000
+ },
+ {
+  "loan": 500000,
+  "rate": 0.15,
+  "term": 22,
+  "freq": "Weekly",
+  "extra": 50
+ },
+ {
+  "loan": 200000,
+  "rate": 0.0675,
+  "term": 4,
+  "freq": "Weekly",
+  "extra": 327
+ },
+ {
+  "loan": 350000,
+  "rate": 0.2848,
+  "term": 27,
+  "freq": "Monthly",
+  "extra": 500
+ },
+ {
+  "loan": 2238418,
+  "rate": 0.2521,
+  "term": 4,
+  "freq": "Fortnightly",
+  "extra": 50
+ },
+ {
+  "loan": 991306,
+  "rate": 0.0272,
+  "term": 28,
+  "freq": "Fortnightly",
+  "extra": 50
+ },
+ {
+  "loan": 2500000,
+  "rate": 0.0691,
+  "term": 27,
+  "freq": "Monthly",
+  "extra": 50
+ },
+ {
+  "loan": 1000,
+  "rate": 0.15,
+  "term": 33,
+  "freq": "Weekly",
+  "extra": 5000
+ },
+ {
+  "loan": 200000,
+  "rate": 0.0313,
+  "term": 40,
+  "freq": "Monthly",
+  "extra": 5000
+ },
+ {
+  "loan": 1737063,
+  "rate": 0.0499,
+  "term": 21,
+  "freq": "Fortnightly",
+  "extra": 0
+ },
+ {
+  "loan": 200000,
+  "rate": 0.15,
+  "term": 18,
+  "freq": "Monthly",
+  "extra": 500
+ },
+ {
+  "loan": 350000,
+  "rate": 0.06,
+  "term": 39,
+  "freq": "Monthly",
+  "extra": 25
+ },
+ {
+  "loan": 800000,
+  "rate": 0.1,
+  "term": 5,
+  "freq": "Monthly",
+  "extra": 1364
+ },
+ {
+  "loan": 500000,
+  "rate": 0.035,
+  "term": 16,
+  "freq": "Fortnightly",
+  "extra": 1000
+ },
+ {
+  "loan": 200000,
+  "rate": 0.15,
+  "term": 40,
+  "freq": "Weekly",
+  "extra": 100
+ },
+ {
+  "loan": 312162,
+  "rate": 0.02,
+  "term": 39,
+  "freq": "Fortnightly",
+  "extra": 100
+ },
+ {
+  "loan": 2076905,
+  "rate": 0.0675,
+  "term": 1,
+  "freq": "Monthly",
+  "extra": 250
+ },
+ {
+  "loan": 1000,
+  "rate": 0.035,
+  "term": 17,
+  "freq": "Weekly",
+  "extra": 100
+ },
+ {
+  "loan": 2323967,
+  "rate": 0.0056,
+  "term": 7,
+  "freq": "Weekly",
+  "extra": 100
+ },
+ {
+  "loan": 130957,
+  "rate": 0.2233,
+  "term": 32,
+  "freq": "Weekly",
+  "extra": 1956
+ },
+ {
+  "loan": 715463,
+  "rate": 0.0675,
+  "term": 36,
+  "freq": "Fortnightly",
+  "extra": 5000
+ }
+]

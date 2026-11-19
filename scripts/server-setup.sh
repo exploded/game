@@ -94,6 +94,16 @@ CPUQuota=150%
 Environment=GOMEMLIMIT=400MiB
 LIMITS
 
+# File permissions, as deploy-game writes them on every deploy: game.db, its
+# -wal and -shm, and backup snapshots are readable by www-data only.
+cat > /etc/systemd/system/$SERVICE.service.d/hardening.conf <<'HARDENING'
+# Written by /usr/local/bin/deploy-game (scripts/deploy-game in the repo).
+# Files the app creates (game.db, its -wal and -shm, backup snapshots) are
+# readable by the service user only.
+[Service]
+UMask=0077
+HARDENING
+
 systemctl daemon-reload
 systemctl enable "$SERVICE"
 

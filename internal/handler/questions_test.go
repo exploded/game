@@ -12,6 +12,7 @@ import (
 
 	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/db"
+	"github.com/exploded/game/internal/jobs"
 	"github.com/exploded/game/internal/mail"
 	"github.com/go-chi/chi/v5"
 )
@@ -68,7 +69,16 @@ func as(srv http.Handler, user, method, path string, form url.Values, htmx bool)
 	}
 	w := httptest.NewRecorder()
 	srv.ServeHTTP(w, req)
+	waitForJobs()
 	return w
+}
+
+// waitForJobs waits for email queued after a request (afterRequest), so a
+// test can check the outbox straight after.
+func waitForJobs() {
+	if !jobs.Wait(10 * time.Second) {
+		panic("background jobs still running after 10 seconds")
+	}
 }
 
 func ask(t *testing.T, srv http.Handler, user, title string) string {

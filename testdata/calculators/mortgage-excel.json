@@ -1,0 +1,3722 @@
+[
+  {
+    "input": {
+      "loan": 650000,
+      "rate": 0.06,
+      "term": 30,
+      "freq": "Fortnightly",
+      "extra": 175
+    },
+    "regular": 1797.7895021113882,
+    "baseInterest": 752275.8116468932,
+    "interest": 572644.3574375694,
+    "saved": 179631.45420932374,
+    "periods": 620.0,
+    "monthsSaved": 73.84615384615384,
+    "samples": [
+      {
+        "period": 1,
+        "base": 649702.2104978886,
+        "withExtra": 649527.2104978886
+      },
+      {
+        "period": 12,
+        "base": 646380.8196350794,
+        "withExtra": 644253.9596908214
+      },
+      {
+        "period": 26,
+        "base": 642029.9523069912,
+        "withExtra": 637346.2467485765
+      },
+      {
+        "period": 52,
+        "base": 633567.6493610516,
+        "withExtra": 623910.9578342281
+      },
+      {
+        "period": 100,
+        "base": 616547.9334001377,
+        "withExtra": 596889.3772271726
+      },
+      {
+        "period": 260,
+        "base": 544074.5252854736,
+        "withExtra": 481825.9975717302
+      },
+      {
+        "period": 520,
+        "base": 351199.09652665706,
+        "withExtra": 175604.7329339572
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 650000,
+      "rate": 0.06,
+      "term": 30,
+      "freq": "Fortnightly",
+      "extra": 0
+    },
+    "regular": 1797.7895021113882,
+    "baseInterest": 752275.8116468932,
+    "interest": 752275.8116468932,
+    "saved": 0.0,
+    "periods": 781.0,
+    "monthsSaved": 0.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 649702.2104978886,
+        "withExtra": 649702.2104978886
+      },
+      {
+        "period": 12,
+        "base": 646380.8196350794,
+        "withExtra": 646380.8196350794
+      },
+      {
+        "period": 26,
+        "base": 642029.9523069912,
+        "withExtra": 642029.9523069912
+      },
+      {
+        "period": 52,
+        "base": 633567.6493610516,
+        "withExtra": 633567.6493610516
+      },
+      {
+        "period": 100,
+        "base": 616547.9334001377,
+        "withExtra": 616547.9334001377
+      },
+      {
+        "period": 260,
+        "base": 544074.5252854736,
+        "withExtra": 544074.5252854736
+      },
+      {
+        "period": 520,
+        "base": 351199.09652665706,
+        "withExtra": 351199.09652665706
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 650000,
+      "rate": 0.06,
+      "term": 30,
+      "freq": "Monthly",
+      "extra": 0
+    },
+    "regular": 3897.07841349289,
+    "baseInterest": 752948.2288574437,
+    "interest": 752948.2288574437,
+    "saved": 0.0,
+    "periods": 361.0,
+    "monthsSaved": 0.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 649352.9215865071,
+        "withExtra": 649352.9215865071
+      },
+      {
+        "period": 12,
+        "base": 642017.9238702012,
+        "withExtra": 642017.9238702012
+      },
+      {
+        "period": 26,
+        "base": 632081.162427302,
+        "withExtra": 632081.162427302
+      },
+      {
+        "period": 52,
+        "base": 611681.2906146924,
+        "withExtra": 611681.2906146924
+      },
+      {
+        "period": 100,
+        "base": 566310.9556130775,
+        "withExtra": 566310.9556130775
+      },
+      {
+        "period": 260,
+        "base": 306086.8454553558,
+        "withExtra": 306086.8454553558
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 650000,
+      "rate": 0.06,
+      "term": 30,
+      "freq": "Weekly",
+      "extra": 0
+    },
+    "regular": 898.7099936736919,
+    "baseInterest": 751987.5901309212,
+    "interest": 751987.5901309212,
+    "saved": 0.0,
+    "periods": 1560.0,
+    "monthsSaved": 0.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 649851.2900063263,
+        "withExtra": 649851.2900063263
+      },
+      {
+        "period": 12,
+        "base": 648204.1115675764,
+        "withExtra": 648204.1115675764
+      },
+      {
+        "period": 26,
+        "base": 646077.2557188134,
+        "withExtra": 646077.2557188134
+      },
+      {
+        "period": 52,
+        "base": 642035.1159956703,
+        "withExtra": 642035.1159956703
+      },
+      {
+        "period": 100,
+        "base": 634246.707336079,
+        "withExtra": 634246.707336079
+      },
+      {
+        "period": 260,
+        "base": 604939.5839608298,
+        "withExtra": 604939.5839608298
+      },
+      {
+        "period": 520,
+        "base": 544124.9029350823,
+        "withExtra": 544124.9029350823
+      },
+      {
+        "period": 1000,
+        "base": 370550.96205405693,
+        "withExtra": 370550.96205405693
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 400000,
+      "rate": 0,
+      "term": 25,
+      "freq": "Monthly",
+      "extra": 0
+    },
+    "regular": 1333.3333333333333,
+    "baseInterest": 0.0,
+    "interest": 0.0,
+    "saved": 0.0,
+    "periods": 301.0,
+    "monthsSaved": 0.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 398666.6666666667,
+        "withExtra": 398666.6666666667
+      },
+      {
+        "period": 12,
+        "base": 384000.00000000023,
+        "withExtra": 384000.00000000023
+      },
+      {
+        "period": 26,
+        "base": 365333.33333333384,
+        "withExtra": 365333.33333333384
+      },
+      {
+        "period": 52,
+        "base": 330666.6666666677,
+        "withExtra": 330666.6666666677
+      },
+      {
+        "period": 100,
+        "base": 266666.6666666686,
+        "withExtra": 266666.6666666686
+      },
+      {
+        "period": 260,
+        "base": 53333.333333334594,
+        "withExtra": 53333.333333334594
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 400000,
+      "rate": 0,
+      "term": 25,
+      "freq": "Monthly",
+      "extra": 500
+    },
+    "regular": 1333.3333333333333,
+    "baseInterest": 0.0,
+    "interest": 0.0,
+    "saved": 0.0,
+    "periods": 219.0,
+    "monthsSaved": 81.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 398666.6666666667,
+        "withExtra": 398166.6666666667
+      },
+      {
+        "period": 12,
+        "base": 384000.00000000023,
+        "withExtra": 378000.00000000023
+      },
+      {
+        "period": 26,
+        "base": 365333.33333333384,
+        "withExtra": 352333.33333333384
+      },
+      {
+        "period": 52,
+        "base": 330666.6666666677,
+        "withExtra": 304666.6666666677
+      },
+      {
+        "period": 100,
+        "base": 266666.6666666686,
+        "withExtra": 216666.66666666788
+      },
+      {
+        "period": 260,
+        "base": 53333.333333334594,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 400000,
+      "rate": 0,
+      "term": 25,
+      "freq": "Weekly",
+      "extra": 100
+    },
+    "regular": 307.6923076923077,
+    "baseInterest": 0.0,
+    "interest": 0.0,
+    "saved": 0.0,
+    "periods": 982.0,
+    "monthsSaved": 73.3846153846154,
+    "samples": [
+      {
+        "period": 1,
+        "base": 399692.3076923077,
+        "withExtra": 399592.3076923077
+      },
+      {
+        "period": 12,
+        "base": 396307.69230769225,
+        "withExtra": 395107.69230769225
+      },
+      {
+        "period": 26,
+        "base": 391999.9999999999,
+        "withExtra": 389399.9999999999
+      },
+      {
+        "period": 52,
+        "base": 383999.99999999977,
+        "withExtra": 378799.99999999977
+      },
+      {
+        "period": 100,
+        "base": 369230.7692307688,
+        "withExtra": 359230.7692307688
+      },
+      {
+        "period": 260,
+        "base": 319999.99999999884,
+        "withExtra": 293999.99999999884
+      },
+      {
+        "period": 520,
+        "base": 239999.99999999767,
+        "withExtra": 187999.99999999767
+      },
+      {
+        "period": 1000,
+        "base": 92307.69230768783,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 1000,
+      "rate": 0.05,
+      "term": 1,
+      "freq": "Monthly",
+      "extra": 0
+    },
+    "regular": 85.60748178846713,
+    "baseInterest": 27.289781461605383,
+    "interest": 27.289781461605383,
+    "saved": 0.0,
+    "periods": 12.0,
+    "monthsSaved": 0.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 918.5591848781995,
+        "withExtra": 918.5591848781995
+      },
+      {
+        "period": 12,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 26,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 52,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 100,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 260,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 1000,
+      "rate": 0.05,
+      "term": 1,
+      "freq": "Weekly",
+      "extra": 2000
+    },
+    "regular": 19.72478686136806,
+    "baseInterest": 25.688916791138908,
+    "interest": 0.9615384615384616,
+    "saved": 24.727378329600448,
+    "periods": 1.0,
+    "monthsSaved": 11.769230769230768,
+    "samples": [
+      {
+        "period": 1,
+        "base": 981.2367516001704,
+        "withExtra": 0.0
+      },
+      {
+        "period": 12,
+        "base": 773.6464498333759,
+        "withExtra": 0.0
+      },
+      {
+        "period": 26,
+        "base": 506.24667208551404,
+        "withExtra": 0.0
+      },
+      {
+        "period": 52,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 100,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 260,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 100000000,
+      "rate": 0.3,
+      "term": 50,
+      "freq": "Weekly",
+      "extra": 0
+    },
+    "regular": 576923.2611785705,
+    "baseInterest": 1400000480.476196,
+    "interest": 1400000480.476196,
+    "saved": 0.0,
+    "periods": null,
+    "monthsSaved": null,
+    "samples": [
+      {
+        "period": 1,
+        "base": 99999999.8157445,
+        "withExtra": 99999999.8157445
+      },
+      {
+        "period": 12,
+        "base": 99999997.71740842,
+        "withExtra": 99999997.71740842
+      },
+      {
+        "period": 26,
+        "base": 99999994.84739038,
+        "withExtra": 99999994.84739038
+      },
+      {
+        "period": 52,
+        "base": 99999988.86349186,
+        "withExtra": 99999988.86349186
+      },
+      {
+        "period": 100,
+        "base": 99999975.16524492,
+        "withExtra": 99999975.16524492
+      },
+      {
+        "period": 260,
+        "base": 99999889.41877522,
+        "withExtra": 99999889.41877522
+      },
+      {
+        "period": 520,
+        "base": 99999395.9596823,
+        "withExtra": 99999395.9596823
+      },
+      {
+        "period": 1000,
+        "base": 99989970.78445062,
+        "withExtra": 99989970.78445062
+      },
+      {
+        "period": 2600,
+        "base": 1.411922395345755,
+        "withExtra": 1.411922395345755
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 100000000,
+      "rate": 0.3,
+      "term": 50,
+      "freq": "Weekly",
+      "extra": 999999
+    },
+    "regular": 576923.2611785705,
+    "baseInterest": 1400000480.476196,
+    "interest": 24856102.491240684,
+    "saved": 1375144377.9849553,
+    "periods": 80.0,
+    "monthsSaved": 581.5384615384615,
+    "samples": [
+      {
+        "period": 1,
+        "base": 99999999.8157445,
+        "withExtra": 99000000.8157445
+      },
+      {
+        "period": 12,
+        "base": 99999997.71740842,
+        "withExtra": 87611822.4547958
+      },
+      {
+        "period": 26,
+        "base": 99999994.84739038,
+        "withExtra": 72035539.2344231
+      },
+      {
+        "period": 52,
+        "base": 99999988.86349186,
+        "withExtra": 39559472.48520442
+      },
+      {
+        "period": 100,
+        "base": 99999975.16524492,
+        "withExtra": 0.0
+      },
+      {
+        "period": 260,
+        "base": 99999889.41877522,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 99999395.9596823,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 99989970.78445062,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 1.411922395345755,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 500000,
+      "rate": 0.065,
+      "term": 50,
+      "freq": "Weekly",
+      "extra": 50
+    },
+    "regular": 650.2647237914797,
+    "baseInterest": 1190688.281857364,
+    "interest": 750303.5188529532,
+    "saved": 440384.7630044109,
+    "periods": 1786.0,
+    "monthsSaved": 187.84615384615384,
+    "samples": [
+      {
+        "period": 1,
+        "base": 499974.7352762085,
+        "withExtra": 499924.7352762085
+      },
+      {
+        "period": 12,
+        "base": 499694.73026556557,
+        "withExtra": 499090.58802962885
+      },
+      {
+        "period": 26,
+        "base": 499332.7500076547,
+        "withExtra": 498012.23291462864
+      },
+      {
+        "period": 52,
+        "base": 498643.47213980404,
+        "withExtra": 495958.8438189277
+      },
+      {
+        "period": 100,
+        "base": 497310.6206212109,
+        "withExtra": 491988.22050121974
+      },
+      {
+        "period": 260,
+        "base": 492243.7342968603,
+        "withExtra": 476893.7432042469
+      },
+      {
+        "period": 520,
+        "base": 481511.00335734204,
+        "withExtra": 444920.4655085328
+      },
+      {
+        "period": 1000,
+        "base": 449720.7851481872,
+        "withExtra": 350216.0067331696
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 500000,
+      "rate": 0.065,
+      "term": 50,
+      "freq": "Monthly",
+      "extra": 0
+    },
+    "regular": 2818.584433207978,
+    "baseInterest": 1191150.6599247498,
+    "interest": 1191150.6599247498,
+    "saved": 0.0,
+    "periods": 600.0,
+    "monthsSaved": 0.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 499889.7489001253,
+        "withExtra": 499889.7489001253
+      },
+      {
+        "period": 12,
+        "base": 498636.85162881424,
+        "withExtra": 498636.85162881424
+      },
+      {
+        "period": 26,
+        "base": 496930.7047403679,
+        "withExtra": 496930.7047403679
+      },
+      {
+        "period": 52,
+        "base": 493398.5741355568,
+        "withExtra": 493398.5741355568
+      },
+      {
+        "period": 100,
+        "base": 485419.2026679444,
+        "withExtra": 485419.2026679444
+      },
+      {
+        "period": 260,
+        "base": 437439.32292373205,
+        "withExtra": 437439.32292373205
+      },
+      {
+        "period": 520,
+        "base": 182590.69978244763,
+        "withExtra": 182590.69978244763
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 300000,
+      "rate": 0.055,
+      "term": 30,
+      "freq": "Monthly",
+      "extra": 300000
+    },
+    "regular": 1703.3670040410086,
+    "baseInterest": 313212.12145475566,
+    "interest": 1375.0,
+    "saved": 311837.12145475566,
+    "periods": 1.0,
+    "monthsSaved": 359.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 299671.63299595896,
+        "withExtra": 0.0
+      },
+      {
+        "period": 12,
+        "base": 295958.7316103644,
+        "withExtra": 0.0
+      },
+      {
+        "period": 26,
+        "base": 290954.91076855717,
+        "withExtra": 0.0
+      },
+      {
+        "period": 52,
+        "base": 280767.87007708993,
+        "withExtra": 0.0
+      },
+      {
+        "period": 100,
+        "base": 258462.3433181706,
+        "withExtra": 0.0
+      },
+      {
+        "period": 260,
+        "base": 136393.55389599502,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 750000,
+      "rate": 0.0625,
+      "term": 30,
+      "freq": "Monthly",
+      "extra": 1000
+    },
+    "regular": 4617.879003197937,
+    "baseInterest": 912436.4411512886,
+    "interest": 535302.3654733449,
+    "saved": 377134.07567794365,
+    "periods": 229.0,
+    "monthsSaved": 131.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 749288.3709968021,
+        "withExtra": 748288.3709968021
+      },
+      {
+        "period": 12,
+        "base": 741211.5323880585,
+        "withExtra": 728861.7439836394
+      },
+      {
+        "period": 26,
+        "base": 730241.3365302226,
+        "withExtra": 702475.9371704628
+      },
+      {
+        "period": 52,
+        "base": 707625.3439872504,
+        "withExtra": 648079.3504676939
+      },
+      {
+        "period": 100,
+        "base": 656931.7616648285,
+        "withExtra": 526149.798145992
+      },
+      {
+        "period": 260,
+        "base": 359238.08485266555,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 250000,
+      "rate": 0.12,
+      "term": 10,
+      "freq": "Fortnightly",
+      "extra": 25
+    },
+    "regular": 1653.1383802327812,
+    "baseInterest": 179815.9788605209,
+    "interest": 173981.41543501103,
+    "saved": 5834.56342550987,
+    "periods": 253.0,
+    "monthsSaved": 3.2307692307692406,
+    "samples": [
+      {
+        "period": 1,
+        "base": 249500.70777361337,
+        "withExtra": 249475.70777361337
+      },
+      {
+        "period": 12,
+        "base": 243854.03683227772,
+        "withExtra": 243546.30306220677
+      },
+      {
+        "period": 26,
+        "base": 236241.06164832404,
+        "withExtra": 235552.13952894468
+      },
+      {
+        "period": 52,
+        "base": 220732.1841637904,
+        "withExtra": 219266.7189367418
+      },
+      {
+        "period": 100,
+        "base": 186733.18789147463,
+        "withExtra": 183565.36308042242
+      },
+      {
+        "period": 260,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 2500000,
+      "rate": 0.1,
+      "term": 50,
+      "freq": "Fortnightly",
+      "extra": 1705
+    },
+    "regular": 9681.244964958549,
+    "baseInterest": 10085618.45444284,
+    "interest": 3019764.07201357,
+    "saved": 7065854.38242927,
+    "periods": 485.0,
+    "monthsSaved": 376.1538461538462,
+    "samples": [
+      {
+        "period": 1,
+        "base": 2499934.139650426,
+        "withExtra": 2498229.139650426
+      },
+      {
+        "period": 12,
+        "base": 2499192.7412039475,
+        "withExtra": 2478294.3363796375
+      },
+      {
+        "period": 26,
+        "base": 2498202.7154025324,
+        "withExtra": 2451674.4133436885
+      },
+      {
+        "period": 52,
+        "base": 2496216.789702796,
+        "withExtra": 2398276.6239057053
+      },
+      {
+        "period": 100,
+        "base": 2491986.698349404,
+        "withExtra": 2284537.460642127
+      },
+      {
+        "period": 260,
+        "base": 2470665.8721664706,
+        "withExtra": 1711260.732660569
+      },
+      {
+        "period": 520,
+        "base": 2391080.2499956866,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 1721410.1530646256,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 650000,
+      "rate": 0.15,
+      "term": 11,
+      "freq": "Weekly",
+      "extra": 50
+    },
+    "regular": 2322.000447646933,
+    "baseInterest": 678184.2560540327,
+    "interest": 637014.4031646396,
+    "saved": 41169.85288939311,
+    "periods": 543.0,
+    "monthsSaved": 6.6923076923077005,
+    "samples": [
+      {
+        "period": 1,
+        "base": 649552.999552353,
+        "withExtra": 649502.999552353
+      },
+      {
+        "period": 12,
+        "base": 644550.0689957908,
+        "withExtra": 643940.4576371334
+      },
+      {
+        "period": 26,
+        "base": 637949.0922989859,
+        "withExtra": 636601.1173960017
+      },
+      {
+        "period": 52,
+        "base": 624961.0122245598,
+        "withExtra": 622160.2333990297
+      },
+      {
+        "period": 100,
+        "base": 598271.349671846,
+        "withExtra": 592485.1529688606
+      },
+      {
+        "period": 260,
+        "base": 477263.49448503717,
+        "withExtra": 457941.75706572836
+      },
+      {
+        "period": 520,
+        "base": 111974.90806877607,
+        "withExtra": 51793.190716653255
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 800000,
+      "rate": 0.0215,
+      "term": 23,
+      "freq": "Monthly",
+      "extra": 0
+    },
+    "regular": 3676.586974819016,
+    "baseInterest": 214738.00505004762,
+    "interest": 214738.00505004762,
+    "saved": 0.0,
+    "periods": 276.0,
+    "monthsSaved": 0.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 797756.7463585143,
+        "withExtra": 797756.7463585143
+      },
+      {
+        "period": 12,
+        "base": 772814.1009343392,
+        "withExtra": 772814.1009343392
+      },
+      {
+        "period": 26,
+        "base": 740350.2604078709,
+        "withExtra": 740350.2604078709
+      },
+      {
+        "period": 52,
+        "base": 677858.7049371016,
+        "withExtra": 677858.7049371016
+      },
+      {
+        "period": 100,
+        "base": 554562.9966883161,
+        "withExtra": 554562.9966883161
+      },
+      {
+        "period": 260,
+        "base": 57939.07904147149,
+        "withExtra": 57939.07904147149
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 800000,
+      "rate": 0.0909,
+      "term": 14,
+      "freq": "Fortnightly",
+      "extra": 500
+    },
+    "regular": 3888.529656140173,
+    "baseInterest": 615424.7948350325,
+    "interest": 475358.69185724936,
+    "saved": 140066.1029777832,
+    "periods": 291.0,
+    "monthsSaved": 33.6923076923077,
+    "samples": [
+      {
+        "period": 1,
+        "base": 798908.393420783,
+        "withExtra": 798408.393420783
+      },
+      {
+        "period": 12,
+        "base": 786645.8783914071,
+        "withExtra": 780529.1501383714
+      },
+      {
+        "period": 26,
+        "base": 770342.4914097858,
+        "withExtra": 756758.1519807006
+      },
+      {
+        "period": 52,
+        "base": 737867.9382353468,
+        "withExtra": 709408.9389275478
+      },
+      {
+        "period": 100,
+        "base": 669594.5977454025,
+        "withExtra": 609863.6448831869
+      },
+      {
+        "period": 260,
+        "base": 338551.7156419481,
+        "withExtra": 127189.7226201496
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 214734,
+      "rate": 0.2016,
+      "term": 13,
+      "freq": "Fortnightly",
+      "extra": 50
+    },
+    "regular": 1797.0697455398126,
+    "baseInterest": 392675.5739924663,
+    "interest": 339354.31688660855,
+    "saved": 53321.257105857774,
+    "periods": 300.0,
+    "monthsSaved": 17.53846153846154,
+    "samples": [
+      {
+        "period": 1,
+        "base": 214601.94465446018,
+        "withExtra": 214551.94465446018
+      },
+      {
+        "period": 12,
+        "base": 213079.97848950987,
+        "withExtra": 212453.71777142648
+      },
+      {
+        "period": 26,
+        "base": 210946.1863672026,
+        "withExtra": 209512.00980384048
+      },
+      {
+        "period": 52,
+        "base": 206315.93385950522,
+        "withExtra": 203128.60883828628
+      },
+      {
+        "period": 100,
+        "base": 194893.919870612,
+        "withExtra": 187381.88768127243
+      },
+      {
+        "period": 260,
+        "base": 104883.08794147197,
+        "withExtra": 63290.33317282213
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 2500000,
+      "rate": 0.055,
+      "term": 16,
+      "freq": "Weekly",
+      "extra": 0
+    },
+    "regular": 4519.866039489223,
+    "baseInterest": 1260528.5448550035,
+    "interest": 1260528.5448550035,
+    "saved": 0.0,
+    "periods": 832.0,
+    "monthsSaved": 0.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 2498124.3647297416,
+        "withExtra": 2498124.3647297416
+      },
+      {
+        "period": 12,
+        "base": 2477360.980261157,
+        "withExtra": 2477360.980261157
+      },
+      {
+        "period": 26,
+        "base": 2450583.244441064,
+        "withExtra": 2450583.244441064
+      },
+      {
+        "period": 52,
+        "base": 2399789.408117116,
+        "withExtra": 2399789.408117116
+      },
+      {
+        "period": 100,
+        "base": 2302268.263201268,
+        "withExtra": 2302268.263201268
+      },
+      {
+        "period": 260,
+        "base": 1939026.594806292,
+        "withExtra": 1939026.594806292
+      },
+      {
+        "period": 520,
+        "base": 1200595.2232797162,
+        "withExtra": 1200595.2232797162
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 50000,
+      "rate": 0.055,
+      "term": 41,
+      "freq": "Weekly",
+      "extra": 25
+    },
+    "regular": 59.08886310016091,
+    "baseInterest": 75977.45612955876,
+    "interest": 28853.791700486865,
+    "saved": 47123.6644290719,
+    "periods": 938.0,
+    "monthsSaved": 275.53846153846155,
+    "samples": [
+      {
+        "period": 1,
+        "base": 49993.79575228446,
+        "withExtra": 49968.79575228446
+      },
+      {
+        "period": 12,
+        "base": 49925.114392587915,
+        "withExtra": 49623.363032691064
+      },
+      {
+        "period": 26,
+        "base": 49836.538692971066,
+        "withExtra": 49177.87178231791
+      },
+      {
+        "period": 52,
+        "base": 49668.522262498926,
+        "withExtra": 48332.833583149986
+      },
+      {
+        "period": 100,
+        "base": 49345.940708315524,
+        "withExtra": 46710.410497110526
+      },
+      {
+        "period": 260,
+        "base": 48144.405779289154,
+        "withExtra": 40667.29370306487
+      },
+      {
+        "period": 520,
+        "base": 45701.814075814,
+        "withExtra": 28382.2850964242
+      },
+      {
+        "period": 1000,
+        "base": 38983.32628508641,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 800000,
+      "rate": 0.2976,
+      "term": 10,
+      "freq": "Monthly",
+      "extra": 1315
+    },
+    "regular": 20947.754349622155,
+    "baseInterest": 1713730.5219546477,
+    "interest": 1215745.6093048672,
+    "saved": 497984.9126497805,
+    "periods": 91.0,
+    "monthsSaved": 29.000000000000004,
+    "samples": [
+      {
+        "period": 1,
+        "base": 798892.2456503778,
+        "withExtra": 797577.2456503778
+      },
+      {
+        "period": 12,
+        "base": 784735.1810868363,
+        "withExtra": 766614.5238511804
+      },
+      {
+        "period": 26,
+        "base": 760215.7320322824,
+        "withExtra": 712988.3730104988
+      },
+      {
+        "period": 52,
+        "base": 684996.5846068382,
+        "withExtra": 548477.6070071673
+      },
+      {
+        "period": 100,
+        "base": 327175.73279253754,
+        "withExtra": 0.0
+      },
+      {
+        "period": 260,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 650000,
+      "rate": 0.1,
+      "term": 46,
+      "freq": "Fortnightly",
+      "extra": 1000
+    },
+    "regular": 2525.6120319174256,
+    "baseInterest": 2370631.9901729035,
+    "interest": 484034.9430417491,
+    "saved": 1886597.0471311545,
+    "periods": 322.0,
+    "monthsSaved": 403.38461538461536,
+    "samples": [
+      {
+        "period": 1,
+        "base": 649974.3879680826,
+        "withExtra": 648974.3879680826
+      },
+      {
+        "period": 12,
+        "base": 649686.0700226487,
+        "withExtra": 637428.9410934348
+      },
+      {
+        "period": 26,
+        "base": 649301.0648930231,
+        "withExtra": 622011.738172294
+      },
+      {
+        "period": 52,
+        "base": 648528.7702918507,
+        "withExtra": 591085.8578008892
+      },
+      {
+        "period": 100,
+        "base": 646883.7557199958,
+        "withExtra": 525212.6485603027
+      },
+      {
+        "period": 260,
+        "base": 638592.4289317932,
+        "withExtra": 193193.52013067875
+      },
+      {
+        "period": 520,
+        "base": 607642.8589949311,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 347218.9163999127,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 800000,
+      "rate": 0.08,
+      "term": 10,
+      "freq": "Fortnightly",
+      "extra": 500
+    },
+    "regular": 4474.557903159111,
+    "baseInterest": 363385.0548213736,
+    "interest": 305686.4908380374,
+    "saved": 57698.56398333621,
+    "periods": 223.0,
+    "monthsSaved": 17.07692307692308,
+    "samples": [
+      {
+        "period": 1,
+        "base": 797986.9805583794,
+        "withExtra": 797486.9805583794
+      },
+      {
+        "period": 12,
+        "base": 775430.7469378852,
+        "withExtra": 769328.1598107744
+      },
+      {
+        "period": 26,
+        "base": 745598.0351547343,
+        "withExtra": 732085.5067308978
+      },
+      {
+        "period": 52,
+        "base": 686672.3281784886,
+        "withExtra": 658523.6502575546
+      },
+      {
+        "period": 100,
+        "base": 564712.2976422925,
+        "withExtra": 506270.809822312
+      },
+      {
+        "period": 260,
+        "base": 8.747520041652024E-09,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 650000,
+      "rate": 0.1,
+      "term": 39,
+      "freq": "Fortnightly",
+      "extra": 250
+    },
+    "regular": 2552.0461886627313,
+    "baseInterest": 1937774.8353036563,
+    "interest": 975943.331889418,
+    "saved": 961831.5034142383,
+    "periods": 581.0,
+    "monthsSaved": 199.84615384615384,
+    "samples": [
+      {
+        "period": 1,
+        "base": 649947.9538113372,
+        "withExtra": 649697.9538113372
+      },
+      {
+        "period": 12,
+        "base": 649362.0631552865,
+        "withExtra": 646297.7809229828
+      },
+      {
+        "period": 26,
+        "base": 648579.6945530133,
+        "withExtra": 641757.362872831
+      },
+      {
+        "period": 52,
+        "base": 647010.3153391569,
+        "withExtra": 632649.5872164166
+      },
+      {
+        "period": 100,
+        "base": 643667.4826019594,
+        "withExtra": 613249.7058120364
+      },
+      {
+        "period": 260,
+        "base": 626818.6843623492,
+        "withExtra": 515468.95716207137
+      },
+      {
+        "period": 520,
+        "base": 563926.089149374,
+        "withExtra": 150476.45401687617
+      },
+      {
+        "period": 1000,
+        "base": 34718.812964008255,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 350000,
+      "rate": 0,
+      "term": 29,
+      "freq": "Monthly",
+      "extra": 500
+    },
+    "regular": 1005.7471264367816,
+    "baseInterest": 0.0,
+    "interest": 0.0,
+    "saved": 0.0,
+    "periods": 233.0,
+    "monthsSaved": 114.99999999999999,
+    "samples": [
+      {
+        "period": 1,
+        "base": 348994.2528735632,
+        "withExtra": 348494.2528735632
+      },
+      {
+        "period": 12,
+        "base": 337931.0344827585,
+        "withExtra": 331931.0344827585
+      },
+      {
+        "period": 26,
+        "base": 323850.5747126434,
+        "withExtra": 310850.5747126434
+      },
+      {
+        "period": 52,
+        "base": 297701.1494252868,
+        "withExtra": 271701.1494252868
+      },
+      {
+        "period": 100,
+        "base": 249425.28735632077,
+        "withExtra": 199425.28735632077
+      },
+      {
+        "period": 260,
+        "base": 88505.74712643462,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 1000,
+      "rate": 0.08,
+      "term": 25,
+      "freq": "Weekly",
+      "extra": 175
+    },
+    "regular": 1.779686344057589,
+    "baseInterest": 1313.5922472748039,
+    "interest": 5.17843594587406,
+    "saved": 1308.4138113289298,
+    "periods": 6.0,
+    "monthsSaved": 298.6153846153846,
+    "samples": [
+      {
+        "period": 1,
+        "base": 999.7587751944039,
+        "withExtra": 824.7587751944039
+      },
+      {
+        "period": 12,
+        "base": 997.0806826931497,
+        "withExtra": 0.0
+      },
+      {
+        "period": 26,
+        "base": 993.606044970225,
+        "withExtra": 0.0
+      },
+      {
+        "period": 52,
+        "base": 986.9513522386852,
+        "withExtra": 0.0
+      },
+      {
+        "period": 100,
+        "base": 973.9446291609848,
+        "withExtra": 0.0
+      },
+      {
+        "period": 260,
+        "base": 922.9556821428423,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 808.0543894040858,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 427.3936244004974,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 200000,
+      "rate": 0.055,
+      "term": 30,
+      "freq": "Fortnightly",
+      "extra": 1790
+    },
+    "regular": 523.8595949557692,
+    "baseInterest": 208610.4840654912,
+    "interest": 21105.85257065702,
+    "saved": 187504.6314948342,
+    "periods": 96.0,
+    "monthsSaved": 315.6923076923077,
+    "samples": [
+      {
+        "period": 1,
+        "base": 199899.21732812116,
+        "withExtra": 198109.21732812116
+      },
+      {
+        "period": 12,
+        "base": 198776.437434858,
+        "withExtra": 177044.7552838139
+      },
+      {
+        "period": 26,
+        "base": 197309.17548038752,
+        "withExtra": 149517.46882771875
+      },
+      {
+        "period": 52,
+        "base": 194466.3752348353,
+        "withExtra": 96183.72262217947
+      },
+      {
+        "period": 100,
+        "base": 188789.5991920813,
+        "withExtra": 0.0
+      },
+      {
+        "period": 260,
+        "base": 165113.7894750141,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 104682.2753714881,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 579334,
+      "rate": 0.1172,
+      "term": 49,
+      "freq": "Monthly",
+      "extra": 0
+    },
+    "regular": 5676.875075353607,
+    "baseInterest": 2758668.544306384,
+    "interest": 2758668.544306384,
+    "saved": 0.0,
+    "periods": 588.0,
+    "monthsSaved": 0.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 579315.286991313,
+        "withExtra": 579315.286991313
+      },
+      {
+        "period": 12,
+        "base": 579096.9800261015,
+        "withExtra": 579096.9800261015
+      },
+      {
+        "period": 26,
+        "base": 578783.1503620902,
+        "withExtra": 578783.1503620902
+      },
+      {
+        "period": 52,
+        "base": 578073.9321951043,
+        "withExtra": 578073.9321951043
+      },
+      {
+        "period": 100,
+        "base": 576185.9311085849,
+        "withExtra": 576185.9311085849
+      },
+      {
+        "period": 260,
+        "base": 557269.1292495487,
+        "withExtra": 557269.1292495487
+      },
+      {
+        "period": 520,
+        "base": 281103.75706423254,
+        "withExtra": 281103.75706423254
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 650000,
+      "rate": 0.08,
+      "term": 21,
+      "freq": "Monthly",
+      "extra": 0
+    },
+    "regular": 5332.781721409705,
+    "baseInterest": 693860.9937952325,
+    "interest": 693860.9937952325,
+    "saved": 0.0,
+    "periods": 252.0,
+    "monthsSaved": 0.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 649000.5516119236,
+        "withExtra": 649000.5516119236
+      },
+      {
+        "period": 12,
+        "base": 637556.9415065143,
+        "withExtra": 637556.9415065143
+      },
+      {
+        "period": 26,
+        "base": 621728.818449653,
+        "withExtra": 621728.818449653
+      },
+      {
+        "period": 52,
+        "base": 588126.298027531,
+        "withExtra": 588126.298027531
+      },
+      {
+        "period": 100,
+        "base": 508563.6139081045,
+        "withExtra": 508563.6139081045
+      },
+      {
+        "period": 260,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 650000,
+      "rate": 0.1055,
+      "term": 23,
+      "freq": "Weekly",
+      "extra": 50
+    },
+    "regular": 1446.8909084329405,
+    "baseInterest": 1080481.526485954,
+    "interest": 922060.8849816374,
+    "saved": 158420.6415043166,
+    "periods": 1051.0,
+    "monthsSaved": 33.46153846153848,
+    "samples": [
+      {
+        "period": 1,
+        "base": 649871.8590915671,
+        "withExtra": 649821.8590915671
+      },
+      {
+        "period": 12,
+        "base": 648445.0339666156,
+        "withExtra": 647838.2932885599
+      },
+      {
+        "period": 26,
+        "base": 646582.4559420701,
+        "withExtra": 645248.9457852729
+      },
+      {
+        "period": 52,
+        "base": 642979.9894669579,
+        "withExtra": 640240.8132667517
+      },
+      {
+        "period": 100,
+        "base": 635809.3624625918,
+        "withExtra": 630272.2401997037
+      },
+      {
+        "period": 260,
+        "base": 606180.8922672347,
+        "withExtra": 589082.8756117198
+      },
+      {
+        "period": 520,
+        "base": 531960.7489688527,
+        "withExtra": 485902.36976944644
+      },
+      {
+        "period": 1000,
+        "base": 233798.43795268697,
+        "withExtra": 71398.48030555365
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 800000,
+      "rate": 0.035,
+      "term": 33,
+      "freq": "Monthly",
+      "extra": 0
+    },
+    "regular": 3409.250662336205,
+    "baseInterest": 550063.2622851295,
+    "interest": 550063.2622851295,
+    "saved": 0.0,
+    "periods": 396.0,
+    "monthsSaved": 0.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 798924.0826709971,
+        "withExtra": 798924.0826709971
+      },
+      {
+        "period": 12,
+        "base": 786879.8510807771,
+        "withExtra": 786879.8510807771
+      },
+      {
+        "period": 26,
+        "base": 770982.0680051963,
+        "withExtra": 770982.0680051963
+      },
+      {
+        "period": 52,
+        "base": 739681.4781944773,
+        "withExtra": 739681.4781944773
+      },
+      {
+        "period": 100,
+        "base": 675283.8848334774,
+        "withExtra": 675283.8848334774
+      },
+      {
+        "period": 260,
+        "base": 382288.1355756747,
+        "withExtra": 382288.1355756747
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 453151,
+      "rate": 0.1491,
+      "term": 29,
+      "freq": "Fortnightly",
+      "extra": 0
+    },
+    "regular": 2633.9755620557726,
+    "baseInterest": 1532866.573790082,
+    "interest": 1532866.5737900822,
+    "saved": 0.0,
+    "periods": 755.0,
+    "monthsSaved": 0.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 453115.6711340981,
+        "withExtra": 453115.6711340981
+      },
+      {
+        "period": 12,
+        "base": 452713.42324844236,
+        "withExtra": 452713.42324844236
+      },
+      {
+        "period": 26,
+        "base": 452163.48241446156,
+        "withExtra": 452163.48241446156
+      },
+      {
+        "period": 52,
+        "base": 451017.6708938053,
+        "withExtra": 451017.6708938053
+      },
+      {
+        "period": 100,
+        "base": 448398.10520048655,
+        "withExtra": 448398.10520048655
+      },
+      {
+        "period": 260,
+        "base": 432065.2504267392,
+        "withExtra": 432065.2504267392
+      },
+      {
+        "period": 520,
+        "base": 338810.1684785,
+        "withExtra": 338810.1684785
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 1000,
+      "rate": 0.1,
+      "term": 48,
+      "freq": "Fortnightly",
+      "extra": 0
+    },
+    "regular": 3.878367057258355,
+    "baseInterest": 3840.2020874571667,
+    "interest": 3840.2020874571667,
+    "saved": 0.0,
+    "periods": 1248.0,
+    "monthsSaved": 0.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 999.9677867888954,
+        "withExtra": 999.9677867888954
+      },
+      {
+        "period": 12,
+        "base": 999.6051585182676,
+        "withExtra": 999.6051585182676
+      },
+      {
+        "period": 26,
+        "base": 999.1209231574443,
+        "withExtra": 999.1209231574443
+      },
+      {
+        "period": 52,
+        "base": 998.149579333469,
+        "withExtra": 998.149579333469
+      },
+      {
+        "period": 100,
+        "base": 996.0805829397409,
+        "withExtra": 996.0805829397409
+      },
+      {
+        "period": 260,
+        "base": 985.6522709250542,
+        "withExtra": 985.6522709250542
+      },
+      {
+        "period": 520,
+        "base": 946.7258384895092,
+        "withExtra": 946.7258384895092
+      },
+      {
+        "period": 1000,
+        "base": 619.1808991994395,
+        "withExtra": 619.1808991994395
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 678887,
+      "rate": 0.02,
+      "term": 39,
+      "freq": "Monthly",
+      "extra": 1000
+    },
+    "regular": 2090.3124951206855,
+    "baseInterest": 299379.2477164812,
+    "interest": 167183.95240552898,
+    "saved": 132195.29531095224,
+    "periods": 274.0,
+    "monthsSaved": 194.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 677928.1658382127,
+        "withExtra": 676928.1658382127
+      },
+      {
+        "period": 12,
+        "base": 667274.9301433461,
+        "withExtra": 655164.3167344452
+      },
+      {
+        "period": 26,
+        "base": 653430.9515225634,
+        "withExtra": 626881.9929101747
+      },
+      {
+        "period": 52,
+        "base": 626848.5170826892,
+        "withExtra": 572575.8545189084
+      },
+      {
+        "period": 100,
+        "base": 574644.547097579,
+        "withExtra": 465926.6300094935
+      },
+      {
+        "period": 260,
+        "base": 367169.625139005,
+        "withExtra": 42069.21957989812
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 2704431,
+      "rate": 0.0499,
+      "term": 33,
+      "freq": "Monthly",
+      "extra": 250
+    },
+    "regular": 13941.409706172835,
+    "baseInterest": 2816367.243644377,
+    "interest": 2672826.532405685,
+    "saved": 143540.71123869205,
+    "periods": 379.0,
+    "monthsSaved": 17.000000000000014,
+    "samples": [
+      {
+        "period": 1,
+        "base": 2701735.5158688272,
+        "withExtra": 2701485.5158688272
+      },
+      {
+        "period": 12,
+        "base": 2671335.0641125953,
+        "withExtra": 2668265.491609399
+      },
+      {
+        "period": 26,
+        "base": 2630581.4417574345,
+        "withExtra": 2623732.063811883
+      },
+      {
+        "period": 52,
+        "base": 2548318.3520407965,
+        "withExtra": 2533839.2603116166
+      },
+      {
+        "period": 100,
+        "base": 2371037.7297896575,
+        "withExtra": 2340116.2650373103
+      },
+      {
+        "period": 260,
+        "base": 1445916.1027778597,
+        "withExtra": 1329191.7189586929
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 650000,
+      "rate": 0.055,
+      "term": 37,
+      "freq": "Monthly",
+      "extra": 0
+    },
+    "regular": 3429.412424099175,
+    "baseInterest": 872659.1163000457,
+    "interest": 872659.1163000459,
+    "saved": 0.0,
+    "periods": 445.0,
+    "monthsSaved": 0.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 649549.7542425675,
+        "withExtra": 649549.7542425675
+      },
+      {
+        "period": 12,
+        "base": 644458.7491292149,
+        "withExtra": 644458.7491292149
+      },
+      {
+        "period": 26,
+        "base": 637597.6788107905,
+        "withExtra": 637597.6788107905
+      },
+      {
+        "period": 52,
+        "base": 623629.5523069712,
+        "withExtra": 623629.5523069712
+      },
+      {
+        "period": 100,
+        "base": 593044.9665632541,
+        "withExtra": 593044.9665632541
+      },
+      {
+        "period": 260,
+        "base": 425668.3608876417,
+        "withExtra": 425668.3608876417
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 1248375,
+      "rate": 0,
+      "term": 43,
+      "freq": "Fortnightly",
+      "extra": 1000
+    },
+    "regular": 1116.6144901610019,
+    "baseInterest": 0.0,
+    "interest": 0.0,
+    "saved": 0.0,
+    "periods": 590.0,
+    "monthsSaved": 243.69230769230768,
+    "samples": [
+      {
+        "period": 1,
+        "base": 1247258.385509839,
+        "withExtra": 1246258.385509839
+      },
+      {
+        "period": 12,
+        "base": 1234975.6261180686,
+        "withExtra": 1222975.6261180686
+      },
+      {
+        "period": 26,
+        "base": 1219343.0232558153,
+        "withExtra": 1193343.0232558153
+      },
+      {
+        "period": 52,
+        "base": 1190311.0465116305,
+        "withExtra": 1138311.0465116305
+      },
+      {
+        "period": 100,
+        "base": 1136713.5509839049,
+        "withExtra": 1036713.5509839049
+      },
+      {
+        "period": 260,
+        "base": 958055.2325581526,
+        "withExtra": 698055.2325581526
+      },
+      {
+        "period": 520,
+        "base": 667735.4651163053,
+        "withExtra": 147735.46511629492
+      },
+      {
+        "period": 1000,
+        "base": 131760.50983902812,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 500000,
+      "rate": 0.15,
+      "term": 22,
+      "freq": "Weekly",
+      "extra": 50
+    },
+    "regular": 1497.8149111294563,
+    "baseInterest": 1213500.2583319321,
+    "interest": 943224.2915178797,
+    "saved": 270275.96681405243,
+    "periods": 933.0,
+    "monthsSaved": 48.69230769230768,
+    "samples": [
+      {
+        "period": 1,
+        "base": 499944.4927811782,
+        "withExtra": 499894.4927811782
+      },
+      {
+        "period": 12,
+        "base": 499323.24337837537,
+        "withExtra": 498713.6320197181
+      },
+      {
+        "period": 26,
+        "base": 498503.5532418759,
+        "withExtra": 497155.57833889197
+      },
+      {
+        "period": 52,
+        "base": 496890.73113719764,
+        "withExtra": 494089.9523116677
+      },
+      {
+        "period": 100,
+        "base": 493576.48626923,
+        "withExtra": 487790.289566245
+      },
+      {
+        "period": 260,
+        "base": 478550.0818609858,
+        "withExtra": 459228.344441677
+      },
+      {
+        "period": 520,
+        "base": 433189.6049172961,
+        "withExtra": 373007.8875651751
+      },
+      {
+        "period": 1000,
+        "base": 176292.60299238292,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 200000,
+      "rate": 0.0675,
+      "term": 4,
+      "freq": "Weekly",
+      "extra": 327
+    },
+    "regular": 1097.8005813536438,
+    "baseInterest": 28342.520921557854,
+    "interest": 20932.418539952097,
+    "saved": 7410.102381605757,
+    "periods": 156.0,
+    "monthsSaved": 12.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 199161.81480326172,
+        "withExtra": 198834.81480326172
+      },
+      {
+        "period": 12,
+        "base": 189869.65610898315,
+        "withExtra": 185917.51943888539
+      },
+      {
+        "period": 26,
+        "base": 177849.87584194407,
+        "withExtra": 169208.47937267902
+      },
+      {
+        "period": 52,
+        "base": 154939.92809433327,
+        "withExtra": 137360.7062582859
+      },
+      {
+        "period": 100,
+        "base": 110559.98942448513,
+        "withExtra": 75666.88516541988
+      },
+      {
+        "period": 260,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 350000,
+      "rate": 0.2848,
+      "term": 27,
+      "freq": "Monthly",
+      "extra": 500
+    },
+    "regular": 8310.82679424228,
+    "baseInterest": 2342707.881336412,
+    "interest": 724624.2590770638,
+    "saved": 1618083.6222593482,
+    "periods": 122.0,
+    "monthsSaved": 202.00000000000003,
+    "samples": [
+      {
+        "period": 1,
+        "base": 349995.83987242443,
+        "withExtra": 349495.83987242443
+      },
+      {
+        "period": 12,
+        "base": 349943.01791997405,
+        "withExtra": 343094.42025192437
+      },
+      {
+        "period": 26,
+        "base": 349852.7297250625,
+        "withExtra": 332152.5183419446
+      },
+      {
+        "period": 52,
+        "base": 349581.72737827495,
+        "withExtra": 299310.11741863715
+      },
+      {
+        "period": 100,
+        "base": 348345.3652406293,
+        "withExtra": 149477.09385888927
+      },
+      {
+        "period": 260,
+        "base": 272133.4550475846,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 2238418,
+      "rate": 0.2521,
+      "term": 4,
+      "freq": "Fortnightly",
+      "extra": 50
+    },
+    "regular": 34264.7755783476,
+    "baseInterest": 1325118.6601481584,
+    "interest": 1321408.2785445568,
+    "saved": 3710.3816036016215,
+    "periods": 104.0,
+    "monthsSaved": 0.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 2225857.2697216524,
+        "withExtra": 2225807.2697216524
+      },
+      {
+        "period": 12,
+        "base": 2079385.4903861755,
+        "withExtra": 2078752.4359932798
+      },
+      {
+        "period": 26,
+        "base": 1869007.9275080438,
+        "withExtra": 1867537.4315085849
+      },
+      {
+        "period": 52,
+        "base": 1394255.7303155134,
+        "withExtra": 1390895.407105884
+      },
+      {
+        "period": 100,
+        "base": 133800.0887692623,
+        "withExtra": 125422.31986334715
+      },
+      {
+        "period": 260,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 991306,
+      "rate": 0.0272,
+      "term": 28,
+      "freq": "Fortnightly",
+      "extra": 50
+    },
+    "regular": 1946.0830985363543,
+    "baseInterest": 425442.4957344656,
+    "interest": 408053.1836223483,
+    "saved": 17389.312112117303,
+    "periods": 702.0,
+    "monthsSaved": 12.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 990396.975486079,
+        "withExtra": 990346.975486079
+      },
+      {
+        "period": 12,
+        "base": 980334.7217988692,
+        "withExtra": 979731.2574239755
+      },
+      {
+        "period": 26,
+        "base": 967359.6920074386,
+        "withExtra": 966042.5488707112
+      },
+      {
+        "period": 52,
+        "base": 942753.4552040709,
+        "withExtra": 940082.8701949548
+      },
+      {
+        "period": 100,
+        "base": 895531.1649923362,
+        "withExtra": 890263.1643201347
+      },
+      {
+        "period": 260,
+        "base": 719854.89628203,
+        "withExtra": 704923.9951038483
+      },
+      {
+        "period": 520,
+        "base": 363602.36084287666,
+        "withExtra": 329076.1390774365
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 2500000,
+      "rate": 0.0691,
+      "term": 27,
+      "freq": "Monthly",
+      "extra": 50
+    },
+    "regular": 17048.96475959478,
+    "baseInterest": 3023864.582108727,
+    "interest": 2993195.258093458,
+    "saved": 30669.324015269056,
+    "periods": 322.0,
+    "monthsSaved": 2.000000000000014,
+    "samples": [
+      {
+        "period": 1,
+        "base": 2497346.8685737387,
+        "withExtra": 2497296.8685737387
+      },
+      {
+        "period": 12,
+        "base": 2467134.49301055,
+        "withExtra": 2466515.120998591
+      },
+      {
+        "period": 26,
+        "base": 2425816.8574319915,
+        "withExtra": 2424418.827507169
+      },
+      {
+        "period": 52,
+        "base": 2339689.750700619,
+        "withExtra": 2336668.5990208997
+      },
+      {
+        "period": 100,
+        "base": 2142609.611617705,
+        "withExtra": 2135874.3555944907
+      },
+      {
+        "period": 260,
+        "base": 910489.5529375635,
+        "withExtra": 880534.1871511491
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 1000,
+      "rate": 0.15,
+      "term": 33,
+      "freq": "Weekly",
+      "extra": 5000
+    },
+    "regular": 2.9053422812311744,
+    "baseInterest": 3985.567354594831,
+    "interest": 2.8846153846153846,
+    "saved": 3982.682739210216,
+    "periods": 1.0,
+    "monthsSaved": 395.76923076923083,
+    "samples": [
+      {
+        "period": 1,
+        "base": 999.9792731033842,
+        "withExtra": 0.0
+      },
+      {
+        "period": 12,
+        "base": 999.7472929678663,
+        "withExtra": 0.0
+      },
+      {
+        "period": 26,
+        "base": 999.4412132709044,
+        "withExtra": 0.0
+      },
+      {
+        "period": 52,
+        "base": 998.8389709367932,
+        "withExtra": 0.0
+      },
+      {
+        "period": 100,
+        "base": 997.6014019827769,
+        "withExtra": 0.0
+      },
+      {
+        "period": 260,
+        "base": 991.990406921468,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 975.0523953256927,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 879.1247355939367,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 200000,
+      "rate": 0.0313,
+      "term": 40,
+      "freq": "Monthly",
+      "extra": 5000
+    },
+    "regular": 731.0339026588213,
+    "baseInterest": 150896.27327623512,
+    "interest": 9970.622527232099,
+    "saved": 140925.65074900302,
+    "periods": 37.0,
+    "monthsSaved": 443.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 199790.63276400784,
+        "withExtra": 194790.63276400784
+      },
+      {
+        "period": 12,
+        "base": 197451.23538150897,
+        "withExtra": 136582.95753438366
+      },
+      {
+        "period": 26,
+        "base": 194375.20986088936,
+        "withExtra": 60046.882115247645
+      },
+      {
+        "period": 52,
+        "base": 188356.26474097036,
+        "withExtra": 0.0
+      },
+      {
+        "period": 100,
+        "base": 176114.42715369244,
+        "withExtra": 0.0
+      },
+      {
+        "period": 260,
+        "base": 122257.98695561221,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 1737063,
+      "rate": 0.0499,
+      "term": 21,
+      "freq": "Fortnightly",
+      "extra": 0
+    },
+    "regular": 5137.06783325828,
+    "baseInterest": 1067776.0369590095,
+    "interest": 1067776.0369590095,
+    "saved": 0.0,
+    "periods": 546.0,
+    "monthsSaved": 0.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 1735259.756924434,
+        "withExtra": 1735259.756924434
+      },
+      {
+        "period": 12,
+        "base": 1715194.2000773812,
+        "withExtra": 1715194.2000773812
+      },
+      {
+        "period": 26,
+        "base": 1689036.445377192,
+        "withExtra": 1689036.445377192
+      },
+      {
+        "period": 52,
+        "base": 1638554.9795487057,
+        "withExtra": 1638554.9795487057
+      },
+      {
+        "period": 100,
+        "base": 1538481.614321018,
+        "withExtra": 1538481.614321018
+      },
+      {
+        "period": 260,
+        "base": 1129835.072291603,
+        "withExtra": 1129835.072291603
+      },
+      {
+        "period": 520,
+        "base": 130164.31406588733,
+        "withExtra": 130164.31406588733
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 200000,
+      "rate": 0.15,
+      "term": 18,
+      "freq": "Monthly",
+      "extra": 500
+    },
+    "regular": 2683.3815058816144,
+    "baseInterest": 379610.4052704316,
+    "interest": 194294.14119085332,
+    "saved": 185316.26407957828,
+    "periods": 124.0,
+    "monthsSaved": 92.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 199816.6184941184,
+        "withExtra": 199316.6184941184
+      },
+      {
+        "period": 12,
+        "base": 197641.64755701474,
+        "withExtra": 191211.46684809474
+      },
+      {
+        "period": 26,
+        "base": 194406.93228447705,
+        "withExtra": 179157.11827342355
+      },
+      {
+        "period": 52,
+        "base": 186681.53350863024,
+        "withExtra": 150367.98480223023
+      },
+      {
+        "period": 100,
+        "base": 163860.5771572186,
+        "withExtra": 65324.40615938525
+      },
+      {
+        "period": 260,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 350000,
+      "rate": 0.06,
+      "term": 39,
+      "freq": "Monthly",
+      "extra": 25
+    },
+    "regular": 1937.7504297881383,
+    "baseInterest": 556867.2011408488,
+    "interest": 524419.3368490644,
+    "saved": 32447.864291784354,
+    "periods": 446.0,
+    "monthsSaved": 22.00000000000003,
+    "samples": [
+      {
+        "period": 1,
+        "base": 349812.24957021186,
+        "withExtra": 349787.24957021186
+      },
+      {
+        "period": 12,
+        "base": 347683.9928628097,
+        "withExtra": 347375.6038034872
+      },
+      {
+        "period": 26,
+        "base": 344800.83188462787,
+        "withExtra": 344108.5341198186
+      },
+      {
+        "period": 52,
+        "base": 338881.7892762277,
+        "withExtra": 337401.33850757714
+      },
+      {
+        "period": 100,
+        "base": 325717.54253493436,
+        "withExtra": 322484.20007435133
+      },
+      {
+        "period": 260,
+        "base": 250213.26437547544,
+        "withExtra": 236926.11295095793
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 800000,
+      "rate": 0.1,
+      "term": 5,
+      "freq": "Monthly",
+      "extra": 1364
+    },
+    "regular": 16997.63576901462,
+    "baseInterest": 219858.1461408774,
+    "interest": 198115.7574004291,
+    "saved": 21742.38874044828,
+    "periods": 55.0,
+    "monthsSaved": 5.0000000000000036,
+    "samples": [
+      {
+        "period": 1,
+        "base": 789669.030897652,
+        "withExtra": 788305.030897652
+      },
+      {
+        "period": 12,
+        "base": 670185.5042782257,
+        "withExtra": 653046.0693994345
+      },
+      {
+        "period": 26,
+        "base": 501457.02670394524,
+        "withExtra": 462040.3358261008
+      },
+      {
+        "period": 52,
+        "base": 131020.2600784467,
+        "withExtra": 42694.72583155724
+      },
+      {
+        "period": 100,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 260,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 500000,
+      "rate": 0.035,
+      "term": 16,
+      "freq": "Fortnightly",
+      "extra": 1000
+    },
+    "regular": 1570.4968498545336,
+    "baseInterest": 153326.68953948596,
+    "interest": 80126.29411635248,
+    "saved": 73200.39542313348,
+    "periods": 226.0,
+    "monthsSaved": 87.69230769230771,
+    "samples": [
+      {
+        "period": 1,
+        "base": 499102.5800732224,
+        "withExtra": 498102.5800732224
+      },
+      {
+        "period": 12,
+        "base": 489150.86971063114,
+        "withExtra": 477061.62367803504
+      },
+      {
+        "period": 26,
+        "base": 476270.19953443285,
+        "withExtra": 449827.9513098206
+      },
+      {
+        "period": 52,
+        "base": 451695.7288920162,
+        "withExtra": 397870.0117815985
+      },
+      {
+        "period": 100,
+        "base": 404006.3099488856,
+        "withExtra": 297040.00890428876
+      },
+      {
+        "period": 260,
+        "base": 220849.24246120692,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 200000,
+      "rate": 0.15,
+      "term": 40,
+      "freq": "Weekly",
+      "extra": 100
+    },
+    "regular": 578.3691469744023,
+    "baseInterest": 1003007.8257059997,
+    "interest": 247502.189293523,
+    "saved": 755505.6364124768,
+    "periods": 660.0,
+    "monthsSaved": 327.6923076923077,
+    "samples": [
+      {
+        "period": 1,
+        "base": 199998.55392994866,
+        "withExtra": 199898.55392994866
+      },
+      {
+        "period": 12,
+        "base": 199982.36918542584,
+        "withExtra": 198763.14646811137
+      },
+      {
+        "period": 26,
+        "base": 199961.0146772569,
+        "withExtra": 197265.06487128892
+      },
+      {
+        "period": 52,
+        "base": 199918.99755239984,
+        "withExtra": 194317.4399013398
+      },
+      {
+        "period": 100,
+        "base": 199832.65508473397,
+        "withExtra": 188260.26167876358
+      },
+      {
+        "period": 260,
+        "base": 199441.18828356502,
+        "withExtra": 160797.7134449461
+      },
+      {
+        "period": 520,
+        "base": 198259.46041798833,
+        "withExtra": 77896.02571374143
+      },
+      {
+        "period": 1000,
+        "base": 191566.7982986151,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 312162,
+      "rate": 0.02,
+      "term": 39,
+      "freq": "Fortnightly",
+      "extra": 100
+    },
+    "regular": 443.47903838896104,
+    "baseInterest": 137525.7449264125,
+    "interest": 99962.33053049172,
+    "saved": 37563.41439592079,
+    "periods": 759.0,
+    "monthsSaved": 117.69230769230768,
+    "samples": [
+      {
+        "period": 1,
+        "base": 311958.6455769957,
+        "withExtra": 311858.6455769957
+      },
+      {
+        "period": 12,
+        "base": 309711.3962582716,
+        "withExtra": 308506.30629488477
+      },
+      {
+        "period": 26,
+        "base": 306823.6321547093,
+        "withExtra": 304198.47762577265
+      },
+      {
+        "period": 52,
+        "base": 301377.4639976787,
+        "withExtra": 296074.1438913378
+      },
+      {
+        "period": 100,
+        "base": 291032.42120469187,
+        "withExtra": 280641.9027772368
+      },
+      {
+        "period": 260,
+        "base": 253656.62490265266,
+        "withExtra": 224886.4736401405
+      },
+      {
+        "period": 520,
+        "base": 182203.49218052436,
+        "withExtra": 118296.10039651919
+      },
+      {
+        "period": 1000,
+        "base": 6173.033549205972,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 2076905,
+      "rate": 0.0675,
+      "term": 1,
+      "freq": "Monthly",
+      "extra": 250
+    },
+    "regular": 179468.55700864614,
+    "baseInterest": 76717.6841037534,
+    "interest": 76623.1091450064,
+    "saved": 94.57495874700544,
+    "periods": 12.0,
+    "monthsSaved": 0.0,
+    "samples": [
+      {
+        "period": 1,
+        "base": 1909119.0336163538,
+        "withExtra": 1908869.0336163538
+      },
+      {
+        "period": 12,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 26,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 52,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 100,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 260,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 1000,
+      "rate": 0.035,
+      "term": 17,
+      "freq": "Weekly",
+      "extra": 100
+    },
+    "regular": 1.5013079331950487,
+    "baseInterest": 327.1562129444373,
+    "interest": 3.6713493557295624,
+    "saved": 323.48486358870775,
+    "periods": 10.0,
+    "monthsSaved": 201.69230769230768,
+    "samples": [
+      {
+        "period": 1,
+        "base": 999.1717689898819,
+        "withExtra": 899.1717689898819
+      },
+      {
+        "period": 12,
+        "base": 990.0243526361314,
+        "withExtra": 0.0
+      },
+      {
+        "period": 26,
+        "base": 978.2838388560868,
+        "withExtra": 0.0
+      },
+      {
+        "period": 52,
+        "base": 956.1844302170875,
+        "withExtra": 0.0
+      },
+      {
+        "period": 100,
+        "base": 914.3557806482573,
+        "withExtra": 0.0
+      },
+      {
+        "period": 260,
+        "base": 764.7550185340923,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 484.5368207049777,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 2323967,
+      "rate": 0.0056,
+      "term": 7,
+      "freq": "Weekly",
+      "extra": 100
+    },
+    "regular": 6510.822680540022,
+    "baseInterest": 45972.45571656876,
+    "interest": 45260.94490118049,
+    "saved": 711.5108153882684,
+    "periods": 359.0,
+    "monthsSaved": 1.1538461538461497,
+    "samples": [
+      {
+        "period": 1,
+        "base": 2317706.450688691,
+        "withExtra": 2317606.450688691
+      },
+      {
+        "period": 12,
+        "base": 2248795.8942285753,
+        "withExtra": 2247595.183204135
+      },
+      {
+        "period": 26,
+        "base": 2160973.4097834723,
+        "withExtra": 2158369.90676622
+      },
+      {
+        "period": 52,
+        "base": 1997522.8226242594,
+        "withExtra": 1992308.516959643
+      },
+      {
+        "period": 100,
+        "base": 1694562.943139294,
+        "withExtra": 1684509.4474224926
+      },
+      {
+        "period": 260,
+        "base": 673311.7205869242,
+        "withExtra": 646945.7389879735
+      },
+      {
+        "period": 520,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 130957,
+      "rate": 0.2233,
+      "term": 32,
+      "freq": "Weekly",
+      "extra": 1956
+    },
+    "regular": 562.8100960159236,
+    "baseInterest": 805558.999771151,
+    "interest": 17557.507431326245,
+    "saved": 788001.4923398248,
+    "periods": 59.0,
+    "monthsSaved": 370.3846153846154,
+    "samples": [
+      {
+        "period": 1,
+        "base": 130956.54948283025,
+        "withExtra": 129000.54948283025
+      },
+      {
+        "period": 12,
+        "base": 130951.46426325239,
+        "withExtra": 106917.08376696675
+      },
+      {
+        "period": 26,
+        "base": 130944.63565690003,
+        "withExtra": 77262.65253516959
+      },
+      {
+        "period": 52,
+        "base": 130930.81412398195,
+        "withExtra": 17240.200472710734
+      },
+      {
+        "period": 100,
+        "base": 130900.87627516559,
+        "withExtra": 0.0
+      },
+      {
+        "period": 260,
+        "base": 130742.26005573131,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 130087.9787951678,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 123444.73890685214,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  },
+  {
+    "input": {
+      "loan": 715463,
+      "rate": 0.0675,
+      "term": 36,
+      "freq": "Fortnightly",
+      "extra": 5000
+    },
+    "regular": 2037.3824002382662,
+    "baseInterest": 1191526.9266229214,
+    "interest": 116294.39031519931,
+    "saved": 1075232.536307722,
+    "periods": 119.0,
+    "monthsSaved": 377.0769230769231,
+    "samples": [
+      {
+        "period": 1,
+        "base": 715283.0696189925,
+        "withExtra": 710283.0696189925
+      },
+      {
+        "period": 12,
+        "base": 713272.7366828369,
+        "withExtra": 652408.5484090584
+      },
+      {
+        "period": 26,
+        "base": 710629.793116098,
+        "withExtra": 576322.0998616894
+      },
+      {
+        "period": 52,
+        "base": 705459.5343970973,
+        "withExtra": 427477.974337941
+      },
+      {
+        "period": 100,
+        "base": 694948.5971526009,
+        "withExtra": 124883.58832733337
+      },
+      {
+        "period": 260,
+        "base": 648768.2428117376,
+        "withExtra": 0.0
+      },
+      {
+        "period": 520,
+        "base": 517892.06631866744,
+        "withExtra": 0.0
+      },
+      {
+        "period": 1000,
+        "base": 0.0,
+        "withExtra": 0.0
+      },
+      {
+        "period": 2600,
+        "base": 0.0,
+        "withExtra": 0.0
+      }
+    ]
+  }
+]

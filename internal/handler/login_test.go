@@ -3,11 +3,13 @@ package handler
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -264,5 +266,132 @@ func TestWelcomeNeedsAdult(t *testing.T) {
 	user, _ = q.GetUserByEmail(context.Background(), "new@example.com")
 	if user.Name != "Newbie" || !user.AgeConfirmedAt.Valid {
 		t.Errorf("welcome saved name %q, age confirmed %v", user.Name, user.AgeConfirmedAt.Valid)
+	}
+}
+
+// wrongCode is a code that isn't code.
+func wrongCode(code string) string {
+	if code == "000000" {
+		return "111111"
+	}
+	return "000000"
+}
+
+// Asking for a new code each time doesn't give unlimited guesses: after
+// maxFailedCodes wrong codes in a day, an address's codes stop working, and
+// only the emailed link signs in.
+func TestWrongCodesLimitedPerAddress(t *testing.T) {
+	srv, d, _ := loginServer(t)
+
+	// A right code gives back its attempt, so signing in by code doesn't
+	// count towards the limit.
+	req, code, _ := requestLogin(t, srv, d, "a@example.com")
+	if w := post(srv, "/login/code", url.Values{"code": {code}}, req); cookie(w, "session") == nil {
+		t.Fatal("the right code didn't sign in")
+	}
+	var used int
+	d.QueryRow("SELECT COALESCE(SUM(attempts), 0) FROM login_requests").Scan(&used)
+	if used != 0 {
+		t.Errorf("%d attempts counted after the right code, want 0", used)
+	}
+
+	for i := 0; i*maxCodeAttempts < maxFailedCodes; i++ {
+		req, code, _ := requestLogin(t, srv, d, "a@example.com")
+		for range maxCodeAttempts {
+			post(srv, "/login/code", url.Values{"code": {wrongCode(code)}}, req)
+		}
+	}
+	req, code, token := requestLogin(t, srv, d, "a@example.com")
+	w := post(srv, "/login/code", url.Values{"code": {code}}, req)
+	if cookie(w, "session") != nil {
+		t.Fatalf("the right code signed in after %d wrong ones", maxFailedCodes)
+	}
+	if !strings.Contains(w.Body.String(), "Too many wrong codes for this address today") {
+		t.Errorf("no explanation:\n%s", w.Body)
+	}
+	// The link in the same email still works.
+	if w := post(srv, "/login/verify", url.Values{"t": {token}}); cookie(w, "session") == nil {
+		t.Errorf("the link didn't sign in: %d to %q", w.Code, w.Header().Get("Location"))
+	}
+	// Another address isn't affected.
+	req, code, _ = requestLogin(t, srv, d, "b@example.com")
+	if w := post(srv, "/login/code", url.Values{"code": {code}}, req); cookie(w, "session") == nil {
+		t.Error("another address's code was refused")
+	}
+}
+
+// AddLoginAttempt takes an attempt only while both limits allow it, so
+// guesses sent together can't get past them.
+func TestAddLoginAttemptIsAtomic(t *testing.T) {
+	d := openTestDB(t)
+	q := db.New(d)
+	ctx := context.Background()
+	for _, id := range []string{"r1", "r2", "r3"} {
+		if err := q.CreateLoginRequest(ctx, db.CreateLoginRequestParams{
+			ID: id, Email: "a@example.com", TokenHash: "t" + id, CodeHash: "c",
+			ExpiresAt: time.Now().Add(time.Hour).UTC().Format(time.DateTime),
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	taken := func(id string, tries int) int {
+		var mu sync.Mutex
+		var wg sync.WaitGroup
+		n := 0
+		for range tries {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				_, err := q.AddLoginAttempt(ctx, db.AddLoginAttemptParams{
+					ID: id, MaxAttempts: maxCodeAttempts, Email: "a@example.com", MaxFailed: maxFailedCodes,
+				})
+				if err == nil {
+					mu.Lock()
+					n++
+					mu.Unlock()
+				} else if !errors.Is(err, sql.ErrNoRows) {
+					t.Error(err)
+				}
+			}()
+		}
+		wg.Wait()
+		return n
+	}
+	if n := taken("r1", 20); n != maxCodeAttempts {
+		t.Errorf("request 1: %d attempts taken, want %d", n, maxCodeAttempts)
+	}
+	if n := taken("r2", 20); n != maxFailedCodes-maxCodeAttempts {
+		t.Errorf("request 2: %d attempts taken, want %d", n, maxFailedCodes-maxCodeAttempts)
+	}
+	if n := taken("r3", 20); n != 0 {
+		t.Errorf("request 3: %d attempts taken once the address is out, want 0", n)
+	}
+}
+
+// Display names show to other players and in invite emails to strangers,
+// so they can't be web addresses.
+func TestDisplayNameRefusesLinks(t *testing.T) {
+	for _, name := range []string{"https://spam.example", "www.cheap-pills", "Visit bit.ly/abc", "best-stocks.com", "Free crypto.io", "SHOP.NET deals"} {
+		if _, msg := cleanDisplayName(name); msg == "" {
+			t.Errorf("%q accepted", name)
+		}
+	}
+	for _, name := range []string{"Rob Goudie", "J.R. Smith", "Mr.Smith", "Anne-Marie O'Neil", "Dr. Who", "Zoë"} {
+		if got, msg := cleanDisplayName(name); msg != "" || got != name {
+			t.Errorf("%q refused: %q", name, msg)
+		}
+	}
+}
+
+func TestWelcomeRefusesLinkName(t *testing.T) {
+	srv, d, q := loginServer(t)
+	req, code, _ := requestLogin(t, srv, d, "new@example.com")
+	session := cookie(post(srv, "/login/code", url.Values{"code": {code}}, req), "session")
+	w := post(srv, "/welcome", url.Values{"name": {"cheap-shares.com"}, "adult": {"1"}}, session)
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "can&#39;t contain web addresses") {
+		t.Fatalf("welcome with a link for a name = %d\n%s", w.Code, w.Body)
+	}
+	if user, _ := q.GetUserByEmail(context.Background(), "new@example.com"); user.Name != "new" {
+		t.Errorf("name saved as %q", user.Name)
 	}
 }

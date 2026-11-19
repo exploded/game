@@ -1,4 +1,5 @@
-{{define "subject"}}{{.D.From}} invited you to The Investor Project{{end}}
+{{/* The subject never carries the player's display name: it's text they
+chose, in an email to a stranger. */}}{{define "subject"}}You're invited to The Investor Project{{end}}
 
 {{define "text"}}{{.D.From}} invited you to join the {{.D.Game}} share game on The Investor Project,
 Rob Goudie's investing community.

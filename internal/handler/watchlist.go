@@ -22,6 +22,11 @@ func (h *Handler) WatchlistAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// A retired stock can't be traded, so it can't be watched either.
+	if s, err := h.q.GetStock(r.Context(), stockID); err != nil || s.IsActive == 0 {
+		http.NotFound(w, r)
+		return
+	}
 	_ = h.q.AddToWatchlist(r.Context(), db.AddToWatchlistParams{
 		UserID:  user.ID,
 		StockID: stockID,
@@ -60,7 +65,9 @@ func (h *Handler) WatchlistRemove(w http.ResponseWriter, r *http.Request) {
 		h.renderWatch(w, r, gameID, stockID, false)
 		return
 	}
-	http.Redirect(w, r, fmt.Sprintf("/games/%d/watchlist", gameID), http.StatusSeeOther)
+	// The Watchlist page is gone (the stocks page's Watchlist chip took its
+	// place), so back to the stock.
+	http.Redirect(w, r, fmt.Sprintf("/games/%d/stocks/%d", gameID, stockID), http.StatusSeeOther)
 }
 
 // renderWatch sends back the watch button that was clicked

@@ -24,7 +24,7 @@ func (h *Handler) AdminLearn(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	page = max(page, 1)
+	page = min(max(page, 1), maxPage)
 	videos, err := h.q.ListVideosAdmin(ctx, db.ListVideosAdminParams{
 		Q: q, Lim: adminLearnPerPage, Off: int64((page - 1) * adminLearnPerPage),
 	})

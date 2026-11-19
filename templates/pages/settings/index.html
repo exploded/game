@@ -11,7 +11,7 @@
         <img src="{{avatarURL .Item.AvatarID}}" alt="Your avatar" class="avatar-lg">
         <div>
             <p><strong>{{.Item.Name}}</strong></p>
-            <p class="text-muted">{{.Item.Email}} &middot; member since {{slice .Item.CreatedAt 0 10}}</p>
+            <p class="text-muted">{{.Item.Email}} &middot; member since {{day .Item.CreatedAt}}</p>
         </div>
     </div>
     <form method="POST" action="/settings/profile" class="name-form">

@@ -114,7 +114,7 @@ with Item (the stream) and Extra.Queue. */}}
             <span class="text-muted">{{.UserName}}</span>
         </div>
         {{if and $.User $.User.IsAdmin (eq $e.Status "live")}}
-        <form method="POST" action="/learn/questions/{{.ID}}/onair" hx-post="/learn/questions/{{.ID}}/onair" hx-target="#queue" hx-swap="outerHTML">
+        <form method="POST" action="/learn/questions/{{.ID}}/onair" hx-post="/learn/questions/{{.ID}}/onair" hx-target="#queue" hx-swap="outerHTML" hx-disable="find button">
             <input type="hidden" name="event_id" value="{{$e.ID}}">
             <input type="hidden" name="back" value="/learn/live/{{$e.ID}}">
             <button type="submit" class="btn btn-sm btn-secondary">Answered</button>
@@ -128,7 +128,7 @@ with Item (the stream) and Extra.Queue. */}}
 
 {{/* The Remind me button. . is PageData with Item (the stream) and
 Extra.Reminded. */}}
-{{define "remind"}}{{$e := .Item}}<form method="POST" action="/learn/live/{{$e.ID}}/remind" hx-post="/learn/live/{{$e.ID}}/remind" hx-swap="outerHTML">
+{{define "remind"}}{{$e := .Item}}<form method="POST" action="/learn/live/{{$e.ID}}/remind" hx-post="/learn/live/{{$e.ID}}/remind" hx-swap="outerHTML" hx-disable="find button">
     {{if index .Extra "Reminded"}}
     <input type="hidden" name="on" value="0">
     <button type="submit" class="btn btn-secondary">&#10003; We'll remind you</button>

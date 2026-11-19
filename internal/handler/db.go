@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	game "github.com/exploded/game"
+	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/market"
 	_ "modernc.org/sqlite"
 )
@@ -118,6 +119,7 @@ var addedColumns = []struct{ table, column, ddl string }{
 	{"courses", "vimeo_thumbs", "INTEGER NOT NULL DEFAULT 0"},
 	{"courses", "cover_version", "INTEGER NOT NULL DEFAULT 0"},
 	{"stocks", "listing", "TEXT NOT NULL DEFAULT 'sp500'"},
+	{"videos", "classify_attempts", "INTEGER NOT NULL DEFAULT 0"},
 }
 
 // onceMigrations run exactly once per database, in order. Each is recorded in
@@ -461,7 +463,61 @@ func runMigrations(db *sql.DB) error {
 		}
 	}
 
-	return applyOnce(db, onceMigrations)
+	if err := applyOnce(db, onceMigrations); err != nil {
+		return err
+	}
+	return hashSessionIDs(db)
+}
+
+// hashSessionIDs replaces each stored session ID with its SHA-256
+// (auth.SessionKey), once, recorded in schema_migrations as
+// hash-session-ids. Until 19 November 2026 sessions.id held the cookie
+// itself, so a copy of the database could sign in as anyone. Hashing in place
+// keeps everyone signed in. SQLite has no SHA-256, so it runs in Go.
+func hashSessionIDs(db *sql.DB) error {
+	const name = "hash-session-ids"
+	var done int
+	if err := db.QueryRow("SELECT COUNT(*) FROM schema_migrations WHERE name = ?", name).Scan(&done); err != nil {
+		return fmt.Errorf("checking migration %s: %w", name, err)
+	}
+	if done > 0 {
+		return nil
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin migration %s: %w", name, err)
+	}
+	defer tx.Rollback()
+	rows, err := tx.Query("SELECT id FROM sessions")
+	if err != nil {
+		return fmt.Errorf("migration %s: %w", name, err)
+	}
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return fmt.Errorf("migration %s: %w", name, err)
+		}
+		ids = append(ids, id)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("migration %s: %w", name, err)
+	}
+	for _, id := range ids {
+		if _, err := tx.Exec("UPDATE sessions SET id = ? WHERE id = ?", auth.SessionKey(id), id); err != nil {
+			return fmt.Errorf("migration %s: %w", name, err)
+		}
+	}
+	if _, err := tx.Exec("INSERT INTO schema_migrations (name) VALUES (?)", name); err != nil {
+		return fmt.Errorf("recording migration %s: %w", name, err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit migration %s: %w", name, err)
+	}
+	slog.Info("applied migration", "name", name, "rows", len(ids))
+	return nil
 }
 
 // seedMigrations are onceMigrations that add content: some need the stocks

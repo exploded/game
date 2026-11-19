@@ -327,6 +327,25 @@ document.addEventListener("DOMContentLoaded", function() {
     schedule();
 });
 
+// data-price-poll on the stock page's price header (_price_stats.html): ask
+// htmx for a fresh one every minute while the market is open, but only while
+// the tab is on screen. A tab that comes back after a minute or more asks
+// straight away. Each reply replaces the header, so look it up each time.
+(function() {
+    const every = 60000;
+    let last = Date.now();
+    function poll() {
+        const el = document.querySelector("[data-price-poll]");
+        if (!el || document.hidden) return;
+        last = Date.now();
+        el.dispatchEvent(new CustomEvent("price-poll"));
+    }
+    setInterval(function() { if (Date.now() - last >= every - 1000) poll(); }, 5000);
+    document.addEventListener("visibilitychange", function() {
+        if (!document.hidden && Date.now() - last >= every) poll();
+    });
+})();
+
 // data-play on a video's button: swap in the player only when it's tapped,
 // so a page of videos doesn't load a dozen third-party players up front.
 document.addEventListener("click", function(e) {

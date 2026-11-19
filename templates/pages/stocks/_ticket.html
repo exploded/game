@@ -8,9 +8,11 @@ were. All money in cents; data-rate is AUD/USD * 1,000,000. */}}
 {{define "ticket"}}
 {{- $g := .Extra.Game -}}
 {{- $t := .Extra.Trade -}}
-{{- $open := and $t (eq $g.Status "active") .Extra.LatestPrice.ID -}}
+{{- $open := and $t (eq $g.Status "active") .Extra.LatestPrice.ID (not .Extra.Retired) -}}
 <aside class="ticket{{if $open}} ticket-sheet{{end}}{{if .Extra.Done}} is-done{{end}}" id="ticket" aria-label="Order ticket">
-    {{if not $t}}
+    {{if .Extra.Retired}}
+    <p class="text-muted">{{.Item.Symbol}} is no longer available to trade.</p>
+    {{else if not $t}}
     <p class="text-muted">You're not playing in this game. <a href="/games/{{$g.ID}}">Join it</a> to trade {{.Item.Symbol}}.</p>
     {{else if ne $g.Status "active"}}
     <p class="text-muted">This game is {{$g.Status}}, so trading is closed.</p>

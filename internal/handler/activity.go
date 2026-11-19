@@ -23,9 +23,7 @@ func (h *Handler) ActivityFeed(w http.ResponseWriter, r *http.Request) {
 	}
 
 	page, _ := strconv.ParseInt(r.URL.Query().Get("page"), 10, 64)
-	if page < 1 {
-		page = 1
-	}
+	page = min(max(page, 1), maxPage)
 	perPage := int64(30)
 	offset := (page - 1) * perPage
 

@@ -1,0 +1,322 @@
+[
+ {
+  "weekly": 20,
+  "ret": 0.09,
+  "ctax": 0.15,
+  "income": 0.03,
+  "itax": 0.15,
+  "inflation": 0.026
+ },
+ {
+  "weekly": 20,
+  "ret": 0.09,
+  "ctax": 0.15,
+  "income": 0.03,
+  "itax": 0.15,
+  "inflation": 0.037
+ },
+ {
+  "weekly": 0,
+  "ret": 0.09,
+  "ctax": 0.15,
+  "income": 0.03,
+  "itax": 0.15,
+  "inflation": 0.026
+ },
+ {
+  "weekly": 50,
+  "ret": 0,
+  "ctax": 0.15,
+  "income": 0,
+  "itax": 0.15,
+  "inflation": 0.026
+ },
+ {
+  "weekly": 50,
+  "ret": 0.0045,
+  "ctax": 0.15,
+  "income": 0.03,
+  "itax": 0.15,
+  "inflation": 0.026
+ },
+ {
+  "weekly": 2000,
+  "ret": 0.2,
+  "ctax": 0,
+  "income": 0,
+  "itax": 0,
+  "inflation": 0
+ },
+ {
+  "weekly": 2000,
+  "ret": 0.2,
+  "ctax": 0.5,
+  "income": 0.2,
+  "itax": 0.5,
+  "inflation": 0.1
+ },
+ {
+  "weekly": 1,
+  "ret": 0.07,
+  "ctax": 0.15,
+  "income": 0.07,
+  "itax": 0.15,
+  "inflation": 0.025
+ },
+ {
+  "weekly": 500,
+  "ret": 0,
+  "ctax": 0.15,
+  "income": 0,
+  "itax": 0.15,
+  "inflation": 0.025
+ },
+ {
+  "weekly": 100,
+  "ret": 0.05,
+  "ctax": 0.15,
+  "income": 0.018,
+  "itax": 0,
+  "inflation": 0
+ },
+ {
+  "weekly": 20,
+  "ret": 0.07,
+  "ctax": 0.3,
+  "income": 0.024,
+  "itax": 0,
+  "inflation": 0.037
+ },
+ {
+  "weekly": 100,
+  "ret": 0.05,
+  "ctax": 0.3,
+  "income": 0.022,
+  "itax": 0.15,
+  "inflation": 0.037
+ },
+ {
+  "weekly": 20,
+  "ret": 0,
+  "ctax": 0.15,
+  "income": 0,
+  "itax": 0.15,
+  "inflation": 0
+ },
+ {
+  "weekly": 25,
+  "ret": 0.03,
+  "ctax": 0.47,
+  "income": 0.008,
+  "itax": 0.5,
+  "inflation": 0
+ },
+ {
+  "weekly": 5,
+  "ret": 0,
+  "ctax": 0.3,
+  "income": 0,
+  "itax": 0.15,
+  "inflation": 0.05
+ },
+ {
+  "weekly": 182.93,
+  "ret": 0,
+  "ctax": 0.3,
+  "income": 0,
+  "itax": 0.15,
+  "inflation": 0.026
+ },
+ {
+  "weekly": 500,
+  "ret": 0.09,
+  "ctax": 0.15,
+  "income": 0.063,
+  "itax": 0.3,
+  "inflation": 0
+ },
+ {
+  "weekly": 1981.11,
+  "ret": 0.06,
+  "ctax": 0.3,
+  "income": 0.037,
+  "itax": 0,
+  "inflation": 0.05
+ },
+ {
+  "weekly": 711.42,
+  "ret": 0,
+  "ctax": 0,
+  "income": 0,
+  "itax": 0.3,
+  "inflation": 0.05
+ },
+ {
+  "weekly": 5,
+  "ret": 0.08,
+  "ctax": 0.15,
+  "income": 0.052,
+  "itax": 0.5,
+  "inflation": 0.026
+ },
+ {
+  "weekly": 605.72,
+  "ret": 0.1,
+  "ctax": 0.15,
+  "income": 0.084,
+  "itax": 0.3,
+  "inflation": 0
+ },
+ {
+  "weekly": 1705.07,
+  "ret": 0.06,
+  "ctax": 0.3,
+  "income": 0.036,
+  "itax": 0.5,
+  "inflation": 0
+ },
+ {
+  "weekly": 500,
+  "ret": 0.05,
+  "ctax": 0.15,
+  "income": 0.022,
+  "itax": 0.3,
+  "inflation": 0
+ },
+ {
+  "weekly": 5,
+  "ret": 0.1,
+  "ctax": 0,
+  "income": 0.047,
+  "itax": 0.3,
+  "inflation": 0
+ },
+ {
+  "weekly": 500,
+  "ret": 0.06,
+  "ctax": 0.47,
+  "income": 0.054,
+  "itax": 0.3,
+  "inflation": 0.026
+ },
+ {
+  "weekly": 5,
+  "ret": 0.07,
+  "ctax": 0.15,
+  "income": 0.07,
+  "itax": 0.15,
+  "inflation": 0.025
+ },
+ {
+  "weekly": 250,
+  "ret": 0.12,
+  "ctax": 0.47,
+  "income": 0.012,
+  "itax": 0.5,
+  "inflation": 0.037
+ },
+ {
+  "weekly": 100,
+  "ret": 0.06,
+  "ctax": 0.3,
+  "income": 0.048,
+  "itax": 0,
+  "inflation": 0.026
+ },
+ {
+  "weekly": 608.11,
+  "ret": 0.05,
+  "ctax": 0.15,
+  "income": 0.041,
+  "itax": 0.3,
+  "inflation": 0.026
+ },
+ {
+  "weekly": 10,
+  "ret": 0.2,
+  "ctax": 0.47,
+  "income": 0.05,
+  "itax": 0.5,
+  "inflation": 0.05
+ },
+ {
+  "weekly": 250,
+  "ret": 0.12,
+  "ctax": 0.3,
+  "income": 0.037,
+  "itax": 0.15,
+  "inflation": 0.025
+ },
+ {
+  "weekly": 404.66,
+  "ret": 0.12,
+  "ctax": 0.15,
+  "income": 0.091,
+  "itax": 0,
+  "inflation": 0
+ },
+ {
+  "weekly": 500,
+  "ret": 0.12,
+  "ctax": 0,
+  "income": 0.047,
+  "itax": 0.3,
+  "inflation": 0.026
+ },
+ {
+  "weekly": 25,
+  "ret": 0,
+  "ctax": 0,
+  "income": 0,
+  "itax": 0.5,
+  "inflation": 0.026
+ },
+ {
+  "weekly": 500,
+  "ret": 0.09,
+  "ctax": 0.47,
+  "income": 0.085,
+  "itax": 0,
+  "inflation": 0.037
+ },
+ {
+  "weekly": 20,
+  "ret": 0.07,
+  "ctax": 0.15,
+  "income": 0.004,
+  "itax": 0.5,
+  "inflation": 0.026
+ },
+ {
+  "weekly": 20,
+  "ret": 0.09,
+  "ctax": 0.15,
+  "income": 0.059,
+  "itax": 0,
+  "inflation": 0.025
+ },
+ {
+  "weekly": 10,
+  "ret": 0.06,
+  "ctax": 0.15,
+  "income": 0.009,
+  "itax": 0.5,
+  "inflation": 0.05
+ },
+ {
+  "weekly": 886.63,
+  "ret": 0.07,
+  "ctax": 0.15,
+  "income": 0.036,
+  "itax": 0,
+  "inflation": 0
+ },
+ {
+  "weekly": 1397.26,
+  "ret": 0.03,
+  "ctax": 0.3,
+  "income": 0.019,
+  "itax": 0.5,
+  "inflation": 0.026
+ }
+]

@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -61,14 +63,32 @@ func (rl *RateLimiter) Allow(ip string) bool {
 // Middleware returns HTTP middleware that rate-limits requests by IP.
 func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip := r.RemoteAddr
-		if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
-			ip = fwd
-		}
-		if !rl.Allow(ip) {
+		if !rl.Allow(clientIP(r)) {
 			http.Error(w, "Too many requests", http.StatusTooManyRequests)
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// clientIP is the visitor's address, the rate limiters' key.
+//
+// It trusts X-Forwarded-For, which anyone can send. That's safe only because
+// of how production is set up: the app listens on 127.0.0.1 (BIND_ADDR,
+// main.go), so only Caddy on the same box reaches it, and Caddy's site block
+// sets the header to a single address with `header_up X-Forwarded-For
+// {client_ip}`, replacing whatever the client sent. Caddy works out
+// {client_ip} from Cloudflare's X-Forwarded-For only for connections from
+// Cloudflare's ranges (`trusted_proxies` and `trusted_proxies_strict` in the
+// global options of /etc/caddy/Caddyfile). Change any of that and a client
+// can pick its own key, and so skip the limits. Without the header (dev, or
+// a direct connection) it's the connection's address, without the port.
+func clientIP(r *http.Request) string {
+	if fwd := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); fwd != "" {
+		return fwd
+	}
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		return host
+	}
+	return r.RemoteAddr
 }

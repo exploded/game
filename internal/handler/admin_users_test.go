@@ -24,7 +24,7 @@ func adminUsersServer(t *testing.T) (http.Handler, *sql.DB, *db.Queries) {
 			(1, 'admin@x.com', 'Admin', 't1', 1, '2026-10-01 00:00:00'),
 			(2, 'bob@x.com', 'Bob', 't2', 0, '2026-10-02 00:00:00'),
 			(3, 'cat@x.com', 'Cat', 't3', 1, '2026-10-03 00:00:00')`,
-		`INSERT INTO sessions (id, user_id, expires_at) VALUES ('s2', 2, datetime('now', '+1 day'))`,
+		`INSERT INTO sessions (id, user_id, expires_at) VALUES ('` + auth.SessionKey("s2") + `', 2, datetime('now', '+1 day'))`,
 		`INSERT INTO games (id, created_by, name, status, start_date, end_date) VALUES (1, 1, 'October 2026', 'active', '2026-10-01', '2026-10-31')`,
 		`INSERT INTO participants (id, game_id, user_id, cash_balance, portfolio_value) VALUES (1, 1, 2, 100000000, 100000000)`,
 		`INSERT INTO stocks (id, symbol, name, market) VALUES (1, 'AAPL', 'Apple', 'sp500')`,

@@ -87,15 +87,23 @@ worked out but aren't written yet.
 
 | # | Email | Trigger | Status |
 |---|---|---|---|
-| G1 | Game started | A game you joined moves from pending to active | Built |
+| G1 | Game started | A new month's game starts: to every user with an account (not blocked, Games on), since players join on their first visit | Built |
 | G2 | Game ending soon | 3 days and 1 day before a game you're in ends: your place, or a nudge to make a first trade if you haven't | Built |
 | G3 | Final results | A game you traded in finishes: your rank, return and the top 3 | Built |
 | G4 | Next round ready | A recurring game you created starts its next round | Removed: recurring games were replaced by one game a month |
 | G5 | Referral bonus | A friend you invited signs up, and you get the game's referral bonus | Built |
 
 - G2 and G3 matter most to Rob: they bring people back before a game ends.
-- Only players with a trade are ranked (since 6 November 2026), so G1 and G2
-  go to every player (`ListGamePlayers`) and G3 only to players who traded.
+- Only players with a trade are ranked (since 6 November 2026), so G2 goes
+  to every player (`ListGamePlayers`) and G3 only to players who traded.
+  Places share ties the way the site does (1 + players worth more). G1 goes
+  to every user (`ListActiveUserIDs`, since 19 November 2026): at 8 am on
+  the 1st almost nobody has been joined to the new game yet.
+- Queued email is checked again when it's sent (`stillWanted` in
+  `internal/mail/mailer.go`): a user who has since deleted their account,
+  been blocked or turned the category off doesn't get it (status
+  `cancelled`). Account email still goes to blocked users, and the
+  `account_deleted` confirmation always goes.
 - G1 to G3 go out after 8 am in `TIMEZONE`, once per game (the `game_emails`
   table records each). Games that started or finished before this shipped
   don't get them.

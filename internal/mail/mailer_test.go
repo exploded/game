@@ -189,3 +189,121 @@ func TestAccountEmailGoesFirst(t *testing.T) {
 		t.Errorf("bulk email after it isn't oldest first: ids %d, %d", due[1].ID, due[2].ID)
 	}
 }
+
+// TestQueuedEmailRecheckedAtSend: what changed after an email was queued
+// counts when it's sent. Unsubscribing or being blocked stops everything
+// but Account email; deleting the account stops everything but its
+// confirmation.
+func TestQueuedEmailRecheckedAtSend(t *testing.T) {
+	d, err := handler.OpenDB(filepath.Join(t.TempDir(), "test.db"), game.Schema)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { d.Close() })
+	if _, err := d.Exec(`INSERT INTO users (id, email, name, email_token) VALUES
+		(1, 'a@x.com', 'Alice', 't1'), (2, 'b@x.com', 'Bob', 't2'), (3, 'c@x.com', 'Cat', 't3')`); err != nil {
+		t.Fatal(err)
+	}
+	q := db.New(d)
+	f := &fakeSender{}
+	m, err := mail.New(q, f, mail.Config{BaseURL: "https://game.example"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	for id := int64(1); id <= 3; id++ {
+		for _, c := range []mail.Category{mail.Games, mail.Account} {
+			if _, err := m.ToUser(ctx, id, c, "welcome", nil); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	// Queued while Cat still had an account, as AccountDelete does.
+	if _, err := m.ToUser(ctx, 3, mail.Account, "account_deleted", nil); err != nil {
+		t.Fatal(err)
+	}
+	q.SetEmailPref(ctx, db.SetEmailPrefParams{UserID: 1, Category: "games", Enabled: 0})
+	q.BlockUser(ctx, 2)
+	q.SoftDeleteUser(ctx, 3)
+
+	runOnce(t, m, q)
+	var got []string
+	for _, s := range f.sent {
+		got = append(got, s.To+" "+s.Subject)
+	}
+	rows, err := d.Query(`SELECT to_email, category, template, status FROM email_outbox ORDER BY id`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	var statuses []string
+	for rows.Next() {
+		var to, cat, tpl, status string
+		rows.Scan(&to, &cat, &tpl, &status)
+		statuses = append(statuses, to+" "+cat+" "+tpl+" "+status)
+	}
+	want := []string{
+		"a@x.com games welcome cancelled",
+		"a@x.com account welcome sent",
+		"b@x.com games welcome cancelled",
+		"b@x.com account welcome sent",
+		"c@x.com games welcome cancelled",
+		"c@x.com account welcome cancelled",
+		"c@x.com account account_deleted sent",
+	}
+	if strings.Join(statuses, "\n") != strings.Join(want, "\n") {
+		t.Errorf("outbox:\n%s\nwant:\n%s\n(sent %v)", strings.Join(statuses, "\n"), strings.Join(want, "\n"), got)
+	}
+}
+
+// cancellingSender stands in for SIGTERM arriving while SES is sending: it
+// cancels the worker's context, then fails if its own context was
+// cancelled with it.
+type cancellingSender struct {
+	cancel context.CancelFunc
+	sent   int
+}
+
+func (c *cancellingSender) Send(ctx context.Context, _ mail.Message) error {
+	c.cancel()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	c.sent++
+	return nil
+}
+
+// TestShutdownMidSendMarksSent: an email handed to SES as shutdown starts
+// is still marked sent, so it isn't sent again after the restart, and the
+// worker stops before the next one.
+func TestShutdownMidSendMarksSent(t *testing.T) {
+	_, q, _ := newMailer(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	s := &cancellingSender{cancel: cancel}
+	m, err := mail.New(q, s, mail.Config{BaseURL: "https://game.example"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		if _, err := m.ToUser(context.Background(), 1, mail.Account, "welcome", nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	done := make(chan struct{})
+	go func() { m.Run(ctx); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the worker didn't stop")
+	}
+	if s.sent != 1 {
+		t.Fatalf("sent %d, want 1", s.sent)
+	}
+	due, err := q.ListDueEmails(context.Background(), 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(due) != 1 || due[0].Attempts != 0 {
+		t.Errorf("after shutdown: %d due (want 1, the unsent one, untried)", len(due))
+	}
+}

@@ -13,13 +13,13 @@ import (
 )
 
 func (h *Handler) AdminDashboard(w http.ResponseWriter, r *http.Request) {
-	users, _ := h.q.ListUsers(r.Context())
+	userCount, _ := h.q.CountUsers(r.Context())
 	stockCount, _ := h.q.CountStocks(r.Context())
 
 	h.render(w, r, "admin/index", "", PageData{
 		Title: "Admin",
 		Extra: map[string]any{
-			"UserCount":  len(users),
+			"UserCount":  userCount,
 			"StockCount": stockCount,
 		},
 	})

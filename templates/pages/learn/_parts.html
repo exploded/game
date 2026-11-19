@@ -18,8 +18,10 @@ fields). */}}
 {{define "videogrid"}}<div class="vgrid">{{range .}}{{template "videocard" .}}{{end}}</div>{{end}}
 
 {{/* The vote button. . is a dict with Q (a question row with ID, Votes and
-Voted). Works without JavaScript; htmx swaps in the new button. */}}
-{{define "vote"}}{{$q := .Q}}<form method="POST" action="/learn/questions/{{$q.ID}}/vote" hx-post="/learn/questions/{{$q.ID}}/vote" hx-swap="outerHTML" class="vote-form">
+Voted). Works without JavaScript; htmx swaps in the new button. The vote
+toggles, so the button is disabled while it's sent: a double tap would take
+the vote back. */}}
+{{define "vote"}}{{$q := .Q}}<form method="POST" action="/learn/questions/{{$q.ID}}/vote" hx-post="/learn/questions/{{$q.ID}}/vote" hx-swap="outerHTML" hx-disable="find button" class="vote-form">
     <button type="submit" class="vote{{if $q.Voted}} vote-on{{end}}" aria-pressed="{{$q.Voted}}" aria-label="{{$q.Votes}} votes. {{if $q.Voted}}Remove your vote{{else}}Vote for this question{{end}}" title="{{if $q.Voted}}Remove your vote{{else}}Vote for this question{{end}}">
         <span aria-hidden="true" class="vote-arrow">&#9650;</span>
         <span class="vote-count">{{$q.Votes}}</span>

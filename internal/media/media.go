@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/exploded/game/internal/db"
+	"github.com/exploded/game/internal/jobs"
 	"github.com/exploded/game/internal/mail"
 )
 
@@ -32,6 +33,11 @@ type Service struct {
 	ytRunning       atomic.Bool
 	ttLiveRunning   atomic.Bool
 	classifyRunning atomic.Bool
+
+	// Jobs that run once a day in a window, not on an exact minute: a
+	// scheduler tick can be late, or the job before can still be running.
+	ytFullSlot jobs.Slot // the full YouTube sync, from 17:30 UTC
+	pruneSlot  jobs.Slot // pruning old TikTok checks, from 3 am (TIMEZONE)
 }
 
 // New reads the media settings from the environment. loc is the time zone
@@ -76,11 +82,17 @@ func (s *Service) Run(ctx context.Context, now time.Time) {
 	}
 	utc := now.UTC()
 	if s.yt != nil {
+		fullSlot := ""
+		if utc.Hour() == 17 && utc.Minute() >= 30 {
+			fullSlot = utc.Format(time.DateOnly)
+		}
 		switch {
-		case !s.done(ctx, stateYouTubeBackfilled) || (utc.Hour() == 17 && utc.Minute() == 30):
-			// The first run, and once a day (3:30 am in Sydney), reads the
-			// whole channel to pick up edits and deletions.
-			s.background(&s.ytRunning, "youtube full sync", func() error { return s.syncYouTube(ctx, true) })
+		case !s.done(ctx, stateYouTubeBackfilled) || s.ytFullSlot.Due(fullSlot):
+			// The first run, and once a day (from 3:30 am in Sydney), reads
+			// the whole channel to pick up edits and deletions.
+			if s.background(&s.ytRunning, "youtube full sync", func() error { return s.syncYouTube(ctx, true) }) && fullSlot != "" {
+				s.ytFullSlot.Done(fullSlot)
+			}
 		case utc.Minute()%10 == 0:
 			s.background(&s.ytRunning, "youtube sync", func() error { return s.syncYouTube(ctx, false) })
 		case utc.Minute()%2 == 0:
@@ -105,17 +117,20 @@ func (s *Service) SyncNow(ctx context.Context, full bool) {
 	}
 }
 
-// background runs job in a goroutine unless the previous run is still going.
-func (s *Service) background(running *atomic.Bool, name string, job func() error) {
+// background runs job in a goroutine unless the previous run is still
+// going, and reports whether it started it. A panic in job is logged and
+// doesn't stop later runs.
+func (s *Service) background(running *atomic.Bool, name string, job func() error) bool {
 	if !running.CompareAndSwap(false, true) {
-		return
+		return false
 	}
-	go func() {
+	jobs.Go(name, func() {
 		defer running.Store(false)
 		if err := job(); err != nil {
 			slog.Error(name, "error", err)
 		}
-	}()
+	})
+	return true
 }
 
 const (

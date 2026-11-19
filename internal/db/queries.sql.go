@@ -39,12 +39,32 @@ func (q *Queries) AddLiveReminder(ctx context.Context, arg AddLiveReminderParams
 }
 
 const addLoginAttempt = `-- name: AddLoginAttempt :one
-UPDATE login_requests SET attempts = attempts + 1 WHERE id = ?
+UPDATE login_requests SET attempts = login_requests.attempts + 1
+WHERE login_requests.id = ?1 AND login_requests.used_at IS NULL
+  AND login_requests.attempts < ?2
+  AND (SELECT COALESCE(SUM(lr.attempts), 0) FROM login_requests lr
+       WHERE lr.email = ?3 AND lr.created_at > datetime('now', '-1 day')) < ?4
 RETURNING attempts
 `
 
-func (q *Queries) AddLoginAttempt(ctx context.Context, id string) (int64, error) {
-	row := q.db.QueryRowContext(ctx, addLoginAttempt, id)
+type AddLoginAttemptParams struct {
+	ID          string
+	MaxAttempts int64
+	Email       string
+	MaxFailed   int64
+}
+
+// Takes one code attempt before the code is checked, so guesses sent at the
+// same moment can't pass either limit: a request's max_attempts, and
+// max_failed for the address across its requests in the last day. No row
+// means the request or the address is out of attempts.
+func (q *Queries) AddLoginAttempt(ctx context.Context, arg AddLoginAttemptParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, addLoginAttempt,
+		arg.ID,
+		arg.MaxAttempts,
+		arg.Email,
+		arg.MaxFailed,
+	)
 	var attempts int64
 	err := row.Scan(&attempts)
 	return attempts, err
@@ -80,6 +100,19 @@ type AddToWatchlistParams struct {
 func (q *Queries) AddToWatchlist(ctx context.Context, arg AddToWatchlistParams) error {
 	_, err := q.db.ExecContext(ctx, addToWatchlist, arg.UserID, arg.StockID)
 	return err
+}
+
+const addVideoClassifyAttempt = `-- name: AddVideoClassifyAttempt :one
+UPDATE videos SET classify_attempts = classify_attempts + 1 WHERE id = ?
+RETURNING classify_attempts
+`
+
+// One failed try at sorting a video; returns the tries so far.
+func (q *Queries) AddVideoClassifyAttempt(ctx context.Context, id int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, addVideoClassifyAttempt, id)
+	var classify_attempts int64
+	err := row.Scan(&classify_attempts)
+	return classify_attempts, err
 }
 
 const addVideoStockBySymbol = `-- name: AddVideoStockBySymbol :exec
@@ -149,6 +182,21 @@ WHERE status = 'pending' AND start_date <= ?
 
 func (q *Queries) AdvancePendingGames(ctx context.Context, startDate string) error {
 	_, err := q.db.ExecContext(ctx, advancePendingGames, startDate)
+	return err
+}
+
+const anonymiseInvitesTo = `-- name: AnonymiseInvitesTo :exec
+UPDATE game_invites SET email = ?1 WHERE email = ?2
+`
+
+type AnonymiseInvitesToParams struct {
+	Anon  sql.NullString
+	Email sql.NullString
+}
+
+// Invites other players sent to the address keep counting as their invite.
+func (q *Queries) AnonymiseInvitesTo(ctx context.Context, arg AnonymiseInvitesToParams) error {
+	_, err := q.db.ExecContext(ctx, anonymiseInvitesTo, arg.Anon, arg.Email)
 	return err
 }
 
@@ -272,6 +320,20 @@ func (q *Queries) ClaimGameEmail(ctx context.Context, arg ClaimGameEmailParams) 
 	return result.RowsAffected()
 }
 
+const claimOpenOrder = `-- name: ClaimOpenOrder :execrows
+UPDATE limit_orders SET status = 'filled', filled_at = datetime('now') WHERE id = ? AND status = 'open'
+`
+
+// Marks an order filled at the start of its fill's transaction. 0 rows means
+// it isn't open any more: a cancel that got in first wins.
+func (q *Queries) ClaimOpenOrder(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, claimOpenOrder, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const clearClaudeVideoTopics = `-- name: ClearClaudeVideoTopics :exec
 DELETE FROM video_topics WHERE video_id = ? AND source = 'claude'
 `
@@ -338,6 +400,55 @@ func (q *Queries) CountBlockedLobbyMessages(ctx context.Context) (int64, error) 
 	var count int64
 	err := row.Scan(&count)
 	return count, err
+}
+
+const countFailedLoginCodes = `-- name: CountFailedLoginCodes :one
+SELECT CAST(COALESCE(SUM(attempts), 0) AS INTEGER) FROM login_requests
+WHERE email = ? AND created_at > datetime('now', '-1 day')
+`
+
+// Code attempts for the address in the last day, across its requests.
+func (q *Queries) CountFailedLoginCodes(ctx context.Context, email string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countFailedLoginCodes, email)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const countFinishedGamePlayers = `-- name: CountFinishedGamePlayers :many
+SELECT p.game_id, COUNT(*) AS players FROM participants p
+JOIN games g ON g.id = p.game_id
+WHERE g.status IN ('finished', 'cancelled')
+GROUP BY p.game_id
+`
+
+type CountFinishedGamePlayersRow struct {
+	GameID  int64
+	Players int64
+}
+
+// How many players each finished or cancelled game had, for /games.
+func (q *Queries) CountFinishedGamePlayers(ctx context.Context) ([]CountFinishedGamePlayersRow, error) {
+	rows, err := q.db.QueryContext(ctx, countFinishedGamePlayers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CountFinishedGamePlayersRow
+	for rows.Next() {
+		var i CountFinishedGamePlayersRow
+		if err := rows.Scan(&i.GameID, &i.Players); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const countInvitesSentInGame = `-- name: CountInvitesSentInGame :one
@@ -601,6 +712,17 @@ WHERE p.user_id = ?
 // A player's trades in every game.
 func (q *Queries) CountUserTransactions(ctx context.Context, userID int64) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countUserTransactions, userID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countUsers = `-- name: CountUsers :one
+SELECT COUNT(*) FROM users
+`
+
+func (q *Queries) CountUsers(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countUsers)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -1218,6 +1340,23 @@ func (q *Queries) DeleteCourseCover(ctx context.Context, courseID int64) error {
 	return err
 }
 
+const deleteEmailsForUser = `-- name: DeleteEmailsForUser :exec
+DELETE FROM email_outbox
+WHERE (user_id = ?1 OR to_email = ?2) AND template != 'account_deleted'
+`
+
+type DeleteEmailsForUserParams struct {
+	UserID sql.NullInt64
+	Email  string
+}
+
+// Every email to the user or their address, sent or waiting, except the
+// account_deleted email queued just before.
+func (q *Queries) DeleteEmailsForUser(ctx context.Context, arg DeleteEmailsForUserParams) error {
+	_, err := q.db.ExecContext(ctx, deleteEmailsForUser, arg.UserID, arg.Email)
+	return err
+}
+
 const deleteExpiredSessions = `-- name: DeleteExpiredSessions :exec
 DELETE FROM sessions WHERE expires_at <= datetime('now')
 `
@@ -1286,6 +1425,18 @@ func (q *Queries) DeleteLobbyMessage(ctx context.Context, id int64) error {
 	return err
 }
 
+const deleteLoginRequestsForEmail = `-- name: DeleteLoginRequestsForEmail :exec
+
+DELETE FROM login_requests WHERE email = ?
+`
+
+// Account deletion (AccountDelete, settings.go) also clears these, in the
+// same transaction as SoftDeleteUser.
+func (q *Queries) DeleteLoginRequestsForEmail(ctx context.Context, email string) error {
+	_, err := q.db.ExecContext(ctx, deleteLoginRequestsForEmail, email)
+	return err
+}
+
 const deleteOldEmails = `-- name: DeleteOldEmails :exec
 DELETE FROM email_outbox WHERE status != 'pending' AND created_at < datetime('now', '-90 days')
 `
@@ -1339,12 +1490,39 @@ func (q *Queries) DeleteTopic(ctx context.Context, id int64) error {
 	return err
 }
 
+const deleteUserLiveReminders = `-- name: DeleteUserLiveReminders :exec
+DELETE FROM live_reminders WHERE user_id = ?
+`
+
+func (q *Queries) DeleteUserLiveReminders(ctx context.Context, userID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteUserLiveReminders, userID)
+	return err
+}
+
+const deleteUserNotifications = `-- name: DeleteUserNotifications :exec
+DELETE FROM notifications WHERE user_id = ?
+`
+
+func (q *Queries) DeleteUserNotifications(ctx context.Context, userID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteUserNotifications, userID)
+	return err
+}
+
 const deleteUserSessions = `-- name: DeleteUserSessions :exec
 DELETE FROM sessions WHERE user_id = ?
 `
 
 func (q *Queries) DeleteUserSessions(ctx context.Context, userID int64) error {
 	_, err := q.db.ExecContext(ctx, deleteUserSessions, userID)
+	return err
+}
+
+const deleteUserWatchlist = `-- name: DeleteUserWatchlist :exec
+DELETE FROM watchlist WHERE user_id = ?
+`
+
+func (q *Queries) DeleteUserWatchlist(ctx context.Context, userID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteUserWatchlist, userID)
 	return err
 }
 
@@ -1392,6 +1570,25 @@ type DismissListingParams struct {
 func (q *Queries) DismissListing(ctx context.Context, arg DismissListingParams) error {
 	_, err := q.db.ExecContext(ctx, dismissListing, arg.Symbol, arg.Exchange)
 	return err
+}
+
+const dividendsAfter = `-- name: DividendsAfter :one
+SELECT CAST(COALESCE(SUM(per_share), 0) AS INTEGER) FROM stock_dividends
+WHERE stock_id = ? AND ex_date > ?
+`
+
+type DividendsAfterParams struct {
+	StockID int64
+	ExDate  string
+}
+
+// A stock's dividends (per share, x 1,000,000) with an ex-date after a day.
+// A close from before the ex-date still includes them.
+func (q *Queries) DividendsAfter(ctx context.Context, arg DividendsAfterParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, dividendsAfter, arg.StockID, arg.ExDate)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const endLive = `-- name: EndLive :exec
@@ -1461,13 +1658,295 @@ func (q *Queries) ExpireOldLimitOrders(ctx context.Context, today sql.NullString
 	return items, nil
 }
 
-const fillLimitOrder = `-- name: FillLimitOrder :exec
-UPDATE limit_orders SET status = 'filled', filled_at = datetime('now') WHERE id = ?
+const exportUserContactMessages = `-- name: ExportUserContactMessages :many
+SELECT name, email, message, created_at FROM contact_messages WHERE user_id = ? ORDER BY id
 `
 
-func (q *Queries) FillLimitOrder(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, fillLimitOrder, id)
-	return err
+type ExportUserContactMessagesRow struct {
+	Name      string
+	Email     string
+	Message   string
+	CreatedAt string
+}
+
+func (q *Queries) ExportUserContactMessages(ctx context.Context, userID sql.NullInt64) ([]ExportUserContactMessagesRow, error) {
+	rows, err := q.db.QueryContext(ctx, exportUserContactMessages, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ExportUserContactMessagesRow
+	for rows.Next() {
+		var i ExportUserContactMessagesRow
+		if err := rows.Scan(
+			&i.Name,
+			&i.Email,
+			&i.Message,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const exportUserInvites = `-- name: ExportUserInvites :many
+SELECT g.name AS game_name, COALESCE(gi.email, '') AS email, gi.use_count, gi.created_at
+FROM game_invites gi
+JOIN games g ON g.id = gi.game_id
+WHERE gi.created_by = ? AND gi.email IS NOT NULL
+ORDER BY gi.id
+`
+
+type ExportUserInvitesRow struct {
+	GameName  string
+	Email     string
+	UseCount  int64
+	CreatedAt string
+}
+
+func (q *Queries) ExportUserInvites(ctx context.Context, createdBy int64) ([]ExportUserInvitesRow, error) {
+	rows, err := q.db.QueryContext(ctx, exportUserInvites, createdBy)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ExportUserInvitesRow
+	for rows.Next() {
+		var i ExportUserInvitesRow
+		if err := rows.Scan(
+			&i.GameName,
+			&i.Email,
+			&i.UseCount,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const exportUserLessonProgress = `-- name: ExportUserLessonProgress :many
+SELECT c.title AS course, l.title AS lesson, lp.completed_at
+FROM lesson_progress lp
+JOIN lessons l ON l.id = lp.lesson_id
+JOIN courses c ON c.id = l.course_id
+WHERE lp.user_id = ?
+ORDER BY lp.completed_at
+`
+
+type ExportUserLessonProgressRow struct {
+	Course      string
+	Lesson      string
+	CompletedAt string
+}
+
+func (q *Queries) ExportUserLessonProgress(ctx context.Context, userID int64) ([]ExportUserLessonProgressRow, error) {
+	rows, err := q.db.QueryContext(ctx, exportUserLessonProgress, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ExportUserLessonProgressRow
+	for rows.Next() {
+		var i ExportUserLessonProgressRow
+		if err := rows.Scan(&i.Course, &i.Lesson, &i.CompletedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const exportUserLobbyMessages = `-- name: ExportUserLobbyMessages :many
+SELECT message, created_at, blocked_reason FROM lobby_messages WHERE user_id = ? ORDER BY id
+`
+
+type ExportUserLobbyMessagesRow struct {
+	Message       string
+	CreatedAt     string
+	BlockedReason string
+}
+
+func (q *Queries) ExportUserLobbyMessages(ctx context.Context, userID int64) ([]ExportUserLobbyMessagesRow, error) {
+	rows, err := q.db.QueryContext(ctx, exportUserLobbyMessages, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ExportUserLobbyMessagesRow
+	for rows.Next() {
+		var i ExportUserLobbyMessagesRow
+		if err := rows.Scan(&i.Message, &i.CreatedAt, &i.BlockedReason); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const exportUserNotifications = `-- name: ExportUserNotifications :many
+SELECT type, title, message, is_read, created_at FROM notifications WHERE user_id = ? ORDER BY id
+`
+
+type ExportUserNotificationsRow struct {
+	Type      string
+	Title     string
+	Message   string
+	IsRead    int64
+	CreatedAt string
+}
+
+func (q *Queries) ExportUserNotifications(ctx context.Context, userID int64) ([]ExportUserNotificationsRow, error) {
+	rows, err := q.db.QueryContext(ctx, exportUserNotifications, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ExportUserNotificationsRow
+	for rows.Next() {
+		var i ExportUserNotificationsRow
+		if err := rows.Scan(
+			&i.Type,
+			&i.Title,
+			&i.Message,
+			&i.IsRead,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const exportUserQuestions = `-- name: ExportUserQuestions :many
+SELECT title, body, answer, created_at FROM questions WHERE user_id = ? ORDER BY id
+`
+
+type ExportUserQuestionsRow struct {
+	Title     string
+	Body      string
+	Answer    string
+	CreatedAt string
+}
+
+func (q *Queries) ExportUserQuestions(ctx context.Context, userID int64) ([]ExportUserQuestionsRow, error) {
+	rows, err := q.db.QueryContext(ctx, exportUserQuestions, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ExportUserQuestionsRow
+	for rows.Next() {
+		var i ExportUserQuestionsRow
+		if err := rows.Scan(
+			&i.Title,
+			&i.Body,
+			&i.Answer,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const exportUserTransactions = `-- name: ExportUserTransactions :many
+
+SELECT g.name AS game_name, s.symbol, t.type, t.quantity, t.price, t.total,
+    t.converted_total, t.fee, t.created_at
+FROM transactions t
+JOIN participants p ON p.id = t.participant_id
+JOIN games g ON g.id = p.game_id
+JOIN stocks s ON s.id = t.stock_id
+WHERE p.user_id = ?
+ORDER BY t.id
+`
+
+type ExportUserTransactionsRow struct {
+	GameName       string
+	Symbol         string
+	Type           string
+	Quantity       int64
+	Price          int64
+	Total          int64
+	ConvertedTotal int64
+	Fee            int64
+	CreatedAt      string
+}
+
+// Personal data export (ExportPersonalData, settings.go).
+func (q *Queries) ExportUserTransactions(ctx context.Context, userID int64) ([]ExportUserTransactionsRow, error) {
+	rows, err := q.db.QueryContext(ctx, exportUserTransactions, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ExportUserTransactionsRow
+	for rows.Next() {
+		var i ExportUserTransactionsRow
+		if err := rows.Scan(
+			&i.GameName,
+			&i.Symbol,
+			&i.Type,
+			&i.Quantity,
+			&i.Price,
+			&i.Total,
+			&i.ConvertedTotal,
+			&i.Fee,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const finishExpiredGames = `-- name: FinishExpiredGames :many
@@ -2038,6 +2517,32 @@ func (q *Queries) GetNewsThumb(ctx context.Context, newsID int64) (GetNewsThumbR
 	return i, err
 }
 
+const getNotification = `-- name: GetNotification :one
+SELECT id, user_id, game_id, type, title, message, is_read, created_at, emailed FROM notifications WHERE id = ? AND user_id = ?
+`
+
+type GetNotificationParams struct {
+	ID     int64
+	UserID int64
+}
+
+func (q *Queries) GetNotification(ctx context.Context, arg GetNotificationParams) (Notification, error) {
+	row := q.db.QueryRowContext(ctx, getNotification, arg.ID, arg.UserID)
+	var i Notification
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.GameID,
+		&i.Type,
+		&i.Title,
+		&i.Message,
+		&i.IsRead,
+		&i.CreatedAt,
+		&i.Emailed,
+	)
+	return i, err
+}
+
 const getParticipant = `-- name: GetParticipant :one
 SELECT id, game_id, user_id, cash_balance, portfolio_value, joined_at, traded FROM participants WHERE id = ?
 `
@@ -2453,7 +2958,7 @@ func (q *Queries) GetUserByEmailToken(ctx context.Context, emailToken string) (U
 }
 
 const getVideo = `-- name: GetVideo :one
-SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, hide_stocks, classified_at, created_at FROM videos WHERE id = ?
+SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, hide_stocks, classified_at, created_at, classify_attempts FROM videos WHERE id = ?
 `
 
 func (q *Queries) GetVideo(ctx context.Context, id int64) (Video, error) {
@@ -2479,12 +2984,13 @@ func (q *Queries) GetVideo(ctx context.Context, id int64) (Video, error) {
 		&i.HideStocks,
 		&i.ClassifiedAt,
 		&i.CreatedAt,
+		&i.ClassifyAttempts,
 	)
 	return i, err
 }
 
 const getVideoByExternalID = `-- name: GetVideoByExternalID :one
-SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, hide_stocks, classified_at, created_at FROM videos WHERE platform = ? AND external_id = ?
+SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, hide_stocks, classified_at, created_at, classify_attempts FROM videos WHERE platform = ? AND external_id = ?
 `
 
 type GetVideoByExternalIDParams struct {
@@ -2515,6 +3021,7 @@ func (q *Queries) GetVideoByExternalID(ctx context.Context, arg GetVideoByExtern
 		&i.HideStocks,
 		&i.ClassifiedAt,
 		&i.CreatedAt,
+		&i.ClassifyAttempts,
 	)
 	return i, err
 }
@@ -3078,8 +3585,43 @@ func (q *Queries) ListActiveGamesStartedSince(ctx context.Context, startDate str
 	return items, nil
 }
 
-const listActiveParticipants = `-- name: ListActiveParticipants :many
+const listActiveHeldStocks = `-- name: ListActiveHeldStocks :many
 
+SELECT DISTINCT h.stock_id
+FROM holdings h
+JOIN participants p ON p.id = h.participant_id
+JOIN games g ON g.id = p.game_id
+WHERE g.status = 'active'
+`
+
+// =============================================================================
+// Active Participants (for revaluation)
+// =============================================================================
+// Stocks held in running games, for revaluation.
+func (q *Queries) ListActiveHeldStocks(ctx context.Context) ([]int64, error) {
+	rows, err := q.db.QueryContext(ctx, listActiveHeldStocks)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int64
+	for rows.Next() {
+		var stock_id int64
+		if err := rows.Scan(&stock_id); err != nil {
+			return nil, err
+		}
+		items = append(items, stock_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listActiveParticipants = `-- name: ListActiveParticipants :many
 SELECT p.id, p.game_id, p.user_id, p.cash_balance, p.portfolio_value, p.joined_at, p.traded, g.base_currency
 FROM participants p
 JOIN games g ON g.id = p.game_id
@@ -3097,9 +3639,6 @@ type ListActiveParticipantsRow struct {
 	BaseCurrency   string
 }
 
-// =============================================================================
-// Active Participants (for revaluation)
-// =============================================================================
 func (q *Queries) ListActiveParticipants(ctx context.Context) ([]ListActiveParticipantsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listActiveParticipants)
 	if err != nil {
@@ -3242,66 +3781,6 @@ func (q *Queries) ListAdminIDs(ctx context.Context) ([]int64, error) {
 			return nil, err
 		}
 		items = append(items, id)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listAllActiveHoldings = `-- name: ListAllActiveHoldings :many
-SELECT h.id, h.participant_id, h.stock_id, h.quantity, h.avg_cost, h.current_value, h.updated_at, h.cost_basis, s.symbol, s.market, s.currency, p.game_id
-FROM holdings h
-JOIN stocks s ON s.id = h.stock_id
-JOIN participants p ON p.id = h.participant_id
-JOIN games g ON g.id = p.game_id
-WHERE g.status = 'active'
-`
-
-type ListAllActiveHoldingsRow struct {
-	ID            int64
-	ParticipantID int64
-	StockID       int64
-	Quantity      int64
-	AvgCost       int64
-	CurrentValue  int64
-	UpdatedAt     string
-	CostBasis     int64
-	Symbol        string
-	Market        string
-	Currency      string
-	GameID        int64
-}
-
-func (q *Queries) ListAllActiveHoldings(ctx context.Context) ([]ListAllActiveHoldingsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listAllActiveHoldings)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListAllActiveHoldingsRow
-	for rows.Next() {
-		var i ListAllActiveHoldingsRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.ParticipantID,
-			&i.StockID,
-			&i.Quantity,
-			&i.AvgCost,
-			&i.CurrentValue,
-			&i.UpdatedAt,
-			&i.CostBasis,
-			&i.Symbol,
-			&i.Market,
-			&i.Currency,
-			&i.GameID,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
@@ -3651,6 +4130,62 @@ func (q *Queries) ListContactMessages(ctx context.Context, arg ListContactMessag
 	return items, nil
 }
 
+const listDividendHolders = `-- name: ListDividendHolders :many
+SELECT p.id AS participant_id, p.user_id, p.game_id, g.base_currency,
+       CAST(COALESCE(h.quantity, 0) AS INTEGER) AS quantity
+FROM participants p
+JOIN games g ON g.id = p.game_id
+LEFT JOIN holdings h ON h.participant_id = p.id AND h.stock_id = ?1
+WHERE g.status = 'active'
+  AND (h.id IS NOT NULL OR EXISTS (
+       SELECT 1 FROM transactions t
+       WHERE t.participant_id = p.id AND t.stock_id = ?1 AND t.created_at >= ?2))
+`
+
+type ListDividendHoldersParams struct {
+	StockID int64
+	Since   string
+}
+
+type ListDividendHoldersRow struct {
+	ParticipantID int64
+	UserID        int64
+	GameID        int64
+	BaseCurrency  string
+	Quantity      int64
+}
+
+// Players in running games holding a stock now or trading it since a time.
+// Someone who sold out after the ex-date's open still held it at the open.
+func (q *Queries) ListDividendHolders(ctx context.Context, arg ListDividendHoldersParams) ([]ListDividendHoldersRow, error) {
+	rows, err := q.db.QueryContext(ctx, listDividendHolders, arg.StockID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListDividendHoldersRow
+	for rows.Next() {
+		var i ListDividendHoldersRow
+		if err := rows.Scan(
+			&i.ParticipantID,
+			&i.UserID,
+			&i.GameID,
+			&i.BaseCurrency,
+			&i.Quantity,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listDueEmails = `-- name: ListDueEmails :many
 SELECT id, user_id, to_email, category, template, subject, text_body, html_body, reply_to, unsubscribe_url, status, attempts, last_error, send_after, sent_at, created_at FROM email_outbox
 WHERE status = 'pending' AND send_after <= datetime('now')
@@ -3738,7 +4273,7 @@ func (q *Queries) ListEmailPrefs(ctx context.Context, userID int64) ([]EmailPref
 }
 
 const listFeaturedVideos = `-- name: ListFeaturedVideos :many
-SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, hide_stocks, classified_at, created_at FROM videos
+SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, hide_stocks, classified_at, created_at, classify_attempts FROM videos
 WHERE hidden = 0 AND live_status = '' AND featured = 1
 ORDER BY published_at DESC
 LIMIT 6
@@ -3773,6 +4308,7 @@ func (q *Queries) ListFeaturedVideos(ctx context.Context) ([]Video, error) {
 			&i.HideStocks,
 			&i.ClassifiedAt,
 			&i.CreatedAt,
+			&i.ClassifyAttempts,
 		); err != nil {
 			return nil, err
 		}
@@ -4440,7 +4976,7 @@ func (q *Queries) ListLatestPrices(ctx context.Context, stockID int64) ([]StockP
 }
 
 const listLatestVideos = `-- name: ListLatestVideos :many
-SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, hide_stocks, classified_at, created_at FROM videos
+SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, hide_stocks, classified_at, created_at, classify_attempts FROM videos
 WHERE hidden = 0 AND live_status = '' AND vertical = ?1
 ORDER BY published_at DESC
 LIMIT ?2
@@ -4482,6 +5018,7 @@ func (q *Queries) ListLatestVideos(ctx context.Context, arg ListLatestVideosPara
 			&i.HideStocks,
 			&i.ClassifiedAt,
 			&i.CreatedAt,
+			&i.ClassifyAttempts,
 		); err != nil {
 			return nil, err
 		}
@@ -4675,7 +5212,7 @@ SELECT l.symbol, l.exchange, l.name, l.checks FROM us_listings l
 WHERE l.baseline = 0 AND l.dismissed = 0 AND l.market_cap = 0
   AND l.checks < ?1 AND l.first_seen >= ?2
   AND NOT EXISTS (SELECT 1 FROM stocks s WHERE s.symbol = l.symbol AND s.market = 'sp500')
-ORDER BY l.first_seen, l.symbol
+ORDER BY l.checks, l.first_seen, l.symbol
 `
 
 type ListListingsToCheckParams struct {
@@ -4692,7 +5229,8 @@ type ListListingsToCheckRow struct {
 
 // New listings still waiting for a market cap: seen in the last 30 days,
 // not in the baseline, not dismissed, not already a stock, and checked
-// fewer than max_checks times.
+// fewer than max_checks times. Least-checked first, so when a run is capped
+// every listing gets its turn.
 func (q *Queries) ListListingsToCheck(ctx context.Context, arg ListListingsToCheckParams) ([]ListListingsToCheckRow, error) {
 	rows, err := q.db.QueryContext(ctx, listListingsToCheck, arg.MaxChecks, arg.Since)
 	if err != nil {
@@ -5720,13 +6258,14 @@ WHERE q.hidden = 0
        OR (?2 = 'open' AND q.answer = ''))
   AND (CAST(?3 AS INTEGER) = 0 OR q.topic_id = ?3)
 ORDER BY votes DESC, q.created_at DESC
-LIMIT 100
+LIMIT ?4
 `
 
 type ListQuestionsParams struct {
 	Viewer int64
 	Show   string
 	Topic  int64
+	Lim    int64
 }
 
 type ListQuestionsRow struct {
@@ -5748,7 +6287,12 @@ type ListQuestionsRow struct {
 // Most votes first; the handler re-sorts for newest first. Show is 'all',
 // 'answered' or 'open'; topic 0 means every topic.
 func (q *Queries) ListQuestions(ctx context.Context, arg ListQuestionsParams) ([]ListQuestionsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listQuestions, arg.Viewer, arg.Show, arg.Topic)
+	rows, err := q.db.QueryContext(ctx, listQuestions,
+		arg.Viewer,
+		arg.Show,
+		arg.Topic,
+		arg.Lim,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -5831,7 +6375,7 @@ func (q *Queries) ListRecentCloses(ctx context.Context) ([]ListRecentClosesRow, 
 }
 
 const listRelatedVideos = `-- name: ListRelatedVideos :many
-SELECT v.id, v.platform, v.external_id, v.url, v.embed_url, v.title, v.description, v.thumb_url, v.published_at, v.duration_seconds, v.vertical, v.live_status, v.was_live, v.view_count, v.hidden, v.featured, v.hide_stocks, v.classified_at, v.created_at, COUNT(*) AS shared FROM videos v
+SELECT v.id, v.platform, v.external_id, v.url, v.embed_url, v.title, v.description, v.thumb_url, v.published_at, v.duration_seconds, v.vertical, v.live_status, v.was_live, v.view_count, v.hidden, v.featured, v.hide_stocks, v.classified_at, v.created_at, v.classify_attempts, COUNT(*) AS shared FROM videos v
 JOIN video_topics vt ON vt.video_id = v.id
 WHERE vt.topic_id IN (SELECT x.topic_id FROM video_topics x WHERE x.video_id = ?1)
   AND v.id != ?1 AND v.hidden = 0 AND v.live_status = ''
@@ -5841,26 +6385,27 @@ LIMIT 8
 `
 
 type ListRelatedVideosRow struct {
-	ID              int64
-	Platform        string
-	ExternalID      string
-	Url             string
-	EmbedUrl        string
-	Title           string
-	Description     string
-	ThumbUrl        string
-	PublishedAt     string
-	DurationSeconds int64
-	Vertical        int64
-	LiveStatus      string
-	WasLive         int64
-	ViewCount       int64
-	Hidden          int64
-	Featured        int64
-	HideStocks      int64
-	ClassifiedAt    sql.NullString
-	CreatedAt       string
-	Shared          int64
+	ID               int64
+	Platform         string
+	ExternalID       string
+	Url              string
+	EmbedUrl         string
+	Title            string
+	Description      string
+	ThumbUrl         string
+	PublishedAt      string
+	DurationSeconds  int64
+	Vertical         int64
+	LiveStatus       string
+	WasLive          int64
+	ViewCount        int64
+	Hidden           int64
+	Featured         int64
+	HideStocks       int64
+	ClassifiedAt     sql.NullString
+	CreatedAt        string
+	ClassifyAttempts int64
+	Shared           int64
 }
 
 // Videos sharing the most topics with this one, newest first.
@@ -5893,6 +6438,7 @@ func (q *Queries) ListRelatedVideos(ctx context.Context, id int64) ([]ListRelate
 			&i.HideStocks,
 			&i.ClassifiedAt,
 			&i.CreatedAt,
+			&i.ClassifyAttempts,
 			&i.Shared,
 		); err != nil {
 			return nil, err
@@ -6279,7 +6825,7 @@ func (q *Queries) ListStockNewsKeys(ctx context.Context, stockID int64) ([]ListS
 }
 
 const listStockVideos = `-- name: ListStockVideos :many
-SELECT v.id, v.platform, v.external_id, v.url, v.embed_url, v.title, v.description, v.thumb_url, v.published_at, v.duration_seconds, v.vertical, v.live_status, v.was_live, v.view_count, v.hidden, v.featured, v.hide_stocks, v.classified_at, v.created_at FROM videos v
+SELECT v.id, v.platform, v.external_id, v.url, v.embed_url, v.title, v.description, v.thumb_url, v.published_at, v.duration_seconds, v.vertical, v.live_status, v.was_live, v.view_count, v.hidden, v.featured, v.hide_stocks, v.classified_at, v.created_at, v.classify_attempts FROM videos v
 JOIN video_stocks vs ON vs.video_id = v.id
 WHERE vs.stock_id = ? AND v.hidden = 0 AND v.hide_stocks = 0 AND v.live_status = ''
 ORDER BY v.published_at DESC
@@ -6315,6 +6861,7 @@ func (q *Queries) ListStockVideos(ctx context.Context, stockID int64) ([]Video, 
 			&i.HideStocks,
 			&i.ClassifiedAt,
 			&i.CreatedAt,
+			&i.ClassifyAttempts,
 		); err != nil {
 			return nil, err
 		}
@@ -6556,7 +7103,7 @@ func (q *Queries) ListTopicQuestions(ctx context.Context, topicID sql.NullInt64)
 }
 
 const listTopicVideos = `-- name: ListTopicVideos :many
-SELECT v.id, v.platform, v.external_id, v.url, v.embed_url, v.title, v.description, v.thumb_url, v.published_at, v.duration_seconds, v.vertical, v.live_status, v.was_live, v.view_count, v.hidden, v.featured, v.hide_stocks, v.classified_at, v.created_at FROM videos v
+SELECT v.id, v.platform, v.external_id, v.url, v.embed_url, v.title, v.description, v.thumb_url, v.published_at, v.duration_seconds, v.vertical, v.live_status, v.was_live, v.view_count, v.hidden, v.featured, v.hide_stocks, v.classified_at, v.created_at, v.classify_attempts FROM videos v
 JOIN video_topics vt ON vt.video_id = v.id
 WHERE vt.topic_id = ?1 AND v.hidden = 0 AND v.live_status = ''
 ORDER BY v.published_at DESC
@@ -6598,6 +7145,7 @@ func (q *Queries) ListTopicVideos(ctx context.Context, arg ListTopicVideosParams
 			&i.HideStocks,
 			&i.ClassifiedAt,
 			&i.CreatedAt,
+			&i.ClassifyAttempts,
 		); err != nil {
 			return nil, err
 		}
@@ -6665,14 +7213,22 @@ func (q *Queries) ListTopics(ctx context.Context) ([]ListTopicsRow, error) {
 }
 
 const listUnclassifiedVideos = `-- name: ListUnclassifiedVideos :many
-SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, hide_stocks, classified_at, created_at FROM videos
+SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, hide_stocks, classified_at, created_at, classify_attempts FROM videos
 WHERE classified_at IS NULL AND hidden = 0 AND live_status = ''
+  AND classify_attempts < ?1
 ORDER BY published_at DESC
-LIMIT ?
+LIMIT ?2
 `
 
-func (q *Queries) ListUnclassifiedVideos(ctx context.Context, limit int64) ([]Video, error) {
-	rows, err := q.db.QueryContext(ctx, listUnclassifiedVideos, limit)
+type ListUnclassifiedVideosParams struct {
+	MaxAttempts int64
+	Lim         int64
+}
+
+// Videos Claude hasn't sorted yet, leaving out those it has failed on
+// max_attempts times.
+func (q *Queries) ListUnclassifiedVideos(ctx context.Context, arg ListUnclassifiedVideosParams) ([]Video, error) {
+	rows, err := q.db.QueryContext(ctx, listUnclassifiedVideos, arg.MaxAttempts, arg.Lim)
 	if err != nil {
 		return nil, err
 	}
@@ -6700,6 +7256,7 @@ func (q *Queries) ListUnclassifiedVideos(ctx context.Context, limit int64) ([]Vi
 			&i.HideStocks,
 			&i.ClassifiedAt,
 			&i.CreatedAt,
+			&i.ClassifyAttempts,
 		); err != nil {
 			return nil, err
 		}
@@ -6850,6 +7407,44 @@ func (q *Queries) ListUserAchievements(ctx context.Context, userID int64) ([]Lis
 			&i.AchievementName,
 			&i.Description,
 			&i.Icon,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUserFinishedParticipants = `-- name: ListUserFinishedParticipants :many
+SELECT p.id, p.game_id, p.user_id, p.cash_balance, p.portfolio_value, p.joined_at, p.traded FROM participants p
+JOIN games g ON g.id = p.game_id
+WHERE p.user_id = ? AND g.status IN ('finished', 'cancelled')
+`
+
+// A player's places in finished or cancelled games, for /games.
+func (q *Queries) ListUserFinishedParticipants(ctx context.Context, userID int64) ([]Participant, error) {
+	rows, err := q.db.QueryContext(ctx, listUserFinishedParticipants, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Participant
+	for rows.Next() {
+		var i Participant
+		if err := rows.Scan(
+			&i.ID,
+			&i.GameID,
+			&i.UserID,
+			&i.CashBalance,
+			&i.PortfolioValue,
+			&i.JoinedAt,
+			&i.Traded,
 		); err != nil {
 			return nil, err
 		}
@@ -7096,7 +7691,7 @@ func (q *Queries) ListUsersWithActivity(ctx context.Context) ([]ListUsersWithAct
 const listVideoStocks = `-- name: ListVideoStocks :many
 SELECT s.id, s.symbol, s.name FROM stocks s
 JOIN video_stocks vs ON vs.stock_id = s.id
-WHERE vs.video_id = ?
+WHERE vs.video_id = ? AND s.is_active = 1
 ORDER BY s.symbol
 `
 
@@ -7106,6 +7701,8 @@ type ListVideoStocksRow struct {
 	Name   string
 }
 
+// Retired stocks are left out: their chips would open a stock nobody can
+// trade.
 func (q *Queries) ListVideoStocks(ctx context.Context, videoID int64) ([]ListVideoStocksRow, error) {
 	rows, err := q.db.QueryContext(ctx, listVideoStocks, videoID)
 	if err != nil {
@@ -7344,6 +7941,23 @@ UPDATE contact_messages SET is_read = 1 WHERE id = ?
 
 func (q *Queries) MarkContactMessageRead(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, markContactMessageRead, id)
+	return err
+}
+
+const markEmailCancelled = `-- name: MarkEmailCancelled :exec
+UPDATE email_outbox SET status = 'cancelled', last_error = ?
+WHERE id = ?
+`
+
+type MarkEmailCancelledParams struct {
+	LastError string
+	ID        int64
+}
+
+// A queued email that mustn't go any more: its user deleted their account,
+// was blocked or turned its category off after it was queued.
+func (q *Queries) MarkEmailCancelled(ctx context.Context, arg MarkEmailCancelledParams) error {
+	_, err := q.db.ExecContext(ctx, markEmailCancelled, arg.LastError, arg.ID)
 	return err
 }
 
@@ -7730,6 +8344,36 @@ func (q *Queries) RemoveVideoTopic(ctx context.Context, arg RemoveVideoTopicPara
 	return err
 }
 
+const returnLoginAttempt = `-- name: ReturnLoginAttempt :exec
+UPDATE login_requests SET attempts = attempts - 1 WHERE id = ? AND attempts > 0
+`
+
+// The right code gives back the attempt AddLoginAttempt took.
+func (q *Queries) ReturnLoginAttempt(ctx context.Context, id string) error {
+	_, err := q.db.ExecContext(ctx, returnLoginAttempt, id)
+	return err
+}
+
+const revalueStockHoldings = `-- name: RevalueStockHoldings :exec
+UPDATE holdings SET current_value = quantity * ?1, updated_at = datetime('now')
+WHERE stock_id = ?2
+  AND participant_id IN (
+      SELECT p.id FROM participants p JOIN games g ON g.id = p.game_id
+      WHERE g.status = 'active')
+`
+
+type RevalueStockHoldingsParams struct {
+	Price   int64
+	StockID int64
+}
+
+// Values every running game's holding of a stock at a price, using the
+// quantity held now rather than one read earlier.
+func (q *Queries) RevalueStockHoldings(ctx context.Context, arg RevalueStockHoldingsParams) error {
+	_, err := q.db.ExecContext(ctx, revalueStockHoldings, arg.Price, arg.StockID)
+	return err
+}
+
 const saveCourseCover = `-- name: SaveCourseCover :exec
 INSERT INTO course_covers (course_id, content_type, data) VALUES (?, ?, ?)
 ON CONFLICT (course_id) DO UPDATE SET content_type = excluded.content_type, data = excluded.data
@@ -7833,7 +8477,7 @@ func (q *Queries) SearchStocksAdmin(ctx context.Context, search string) ([]Searc
 }
 
 const searchVideos = `-- name: SearchVideos :many
-SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, hide_stocks, classified_at, created_at FROM videos
+SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, hide_stocks, classified_at, created_at, classify_attempts FROM videos
 WHERE hidden = 0 AND live_status = ''
   AND (title LIKE '%' || CAST(?1 AS TEXT) || '%' OR description LIKE '%' || CAST(?1 AS TEXT) || '%')
 ORDER BY published_at DESC
@@ -7870,6 +8514,7 @@ func (q *Queries) SearchVideos(ctx context.Context, q_ string) ([]Video, error) 
 			&i.HideStocks,
 			&i.ClassifiedAt,
 			&i.CreatedAt,
+			&i.ClassifyAttempts,
 		); err != nil {
 			return nil, err
 		}
@@ -8083,7 +8728,7 @@ func (q *Queries) SetStockListing(ctx context.Context, arg SetStockListingParams
 }
 
 const setVideoClassified = `-- name: SetVideoClassified :exec
-UPDATE videos SET classified_at = datetime('now') WHERE id = ?
+UPDATE videos SET classified_at = datetime('now'), classify_attempts = 0 WHERE id = ?
 `
 
 func (q *Queries) SetVideoClassified(ctx context.Context, id int64) error {
@@ -8162,6 +8807,18 @@ func (q *Queries) TikTokBlockedSince(ctx context.Context, arg TikTokBlockedSince
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const tikTokLastSeenLive = `-- name: TikTokLastSeenLive :one
+SELECT CAST(COALESCE(MAX(checked_at), '') AS TEXT) FROM tiktok_live_checks WHERE event_id = ? AND result = 'live'
+`
+
+// When a check last found this stream on air (UTC), or ” if none has.
+func (q *Queries) TikTokLastSeenLive(ctx context.Context, eventID sql.NullInt64) (string, error) {
+	row := q.db.QueryRowContext(ctx, tikTokLastSeenLive, eventID)
+	var column_1 string
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const tikTokOfflineStreak = `-- name: TikTokOfflineStreak :one
@@ -8357,21 +9014,6 @@ type UpdateGameStatusParams struct {
 
 func (q *Queries) UpdateGameStatus(ctx context.Context, arg UpdateGameStatusParams) error {
 	_, err := q.db.ExecContext(ctx, updateGameStatus, arg.Status, arg.ID)
-	return err
-}
-
-const updateHoldingValue = `-- name: UpdateHoldingValue :exec
-UPDATE holdings SET current_value = ?, updated_at = datetime('now')
-WHERE id = ?
-`
-
-type UpdateHoldingValueParams struct {
-	CurrentValue int64
-	ID           int64
-}
-
-func (q *Queries) UpdateHoldingValue(ctx context.Context, arg UpdateHoldingValueParams) error {
-	_, err := q.db.ExecContext(ctx, updateHoldingValue, arg.CurrentValue, arg.ID)
 	return err
 }
 
@@ -8951,7 +9593,9 @@ ON CONFLICT(platform, external_id) DO UPDATE SET
     was_live = excluded.was_live,
     view_count = excluded.view_count,
     classified_at = CASE WHEN videos.title != excluded.title OR videos.description != excluded.description
-                         THEN NULL ELSE videos.classified_at END
+                         THEN NULL ELSE videos.classified_at END,
+    classify_attempts = CASE WHEN videos.title != excluded.title OR videos.description != excluded.description
+                             THEN 0 ELSE videos.classify_attempts END
 RETURNING id
 `
 

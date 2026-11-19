@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/exploded/game/internal/db"
+	"github.com/exploded/game/internal/jobs"
 )
 
 // all: so the embed includes _layout.tmpl.
@@ -261,26 +262,29 @@ func (m *Mailer) Wake() {
 }
 
 // Run sends queued email until ctx is cancelled. It polls every 30 seconds
-// and whenever something is queued.
+// and whenever something is queued. A panic in one round is logged and the
+// next round carries on.
 func (m *Mailer) Run(ctx context.Context) {
 	tick := time.NewTicker(30 * time.Second)
 	defer tick.Stop()
 	prune := time.NewTicker(time.Hour)
 	defer prune.Stop()
 	for {
-		m.sendDue(ctx)
+		jobs.Run("send email", func() { m.sendDue(ctx) })
 		select {
 		case <-ctx.Done():
 			return
 		case <-m.wake:
 		case <-tick.C:
 		case <-prune.C:
-			if err := m.q.PruneEmailOutbox(ctx); err != nil {
-				slog.Error("prune email outbox", "error", err)
-			}
-			if err := m.q.DeleteOldEmails(ctx); err != nil {
-				slog.Error("delete old emails", "error", err)
-			}
+			jobs.Run("prune email", func() {
+				if err := m.q.PruneEmailOutbox(ctx); err != nil {
+					slog.Error("prune email outbox", "error", err)
+				}
+				if err := m.q.DeleteOldEmails(ctx); err != nil {
+					slog.Error("delete old emails", "error", err)
+				}
+			})
 		}
 	}
 }
@@ -303,6 +307,11 @@ func (m *Mailer) sendDue(ctx context.Context) {
 				return
 			case <-limit.C:
 			}
+			// Shutdown stops only between emails: once one is handed to
+			// SES, it's marked sent or retried whatever happens to ctx.
+			if ctx.Err() != nil {
+				return
+			}
 			m.sendOne(ctx, e)
 		}
 		if len(due) < batchSize {
@@ -311,30 +320,91 @@ func (m *Mailer) sendDue(ctx context.Context) {
 	}
 }
 
+// sendTimeout bounds one send and its marking, which don't stop for
+// shutdown (a cancelled send could go out and then be sent again).
+const sendTimeout = 30 * time.Second
+
 func (m *Mailer) sendOne(ctx context.Context, e db.EmailOutbox) {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), sendTimeout)
+	defer cancel()
+	if reason := m.stillWanted(ctx, e); reason != "" {
+		if err := m.q.MarkEmailCancelled(ctx, db.MarkEmailCancelledParams{LastError: reason, ID: e.ID}); err != nil {
+			slog.Error("mark email cancelled", "id", e.ID, "error", err)
+		}
+		return
+	}
 	err := m.sender.Send(ctx, Message{
 		To: e.ToEmail, Subject: e.Subject, Text: e.TextBody, HTML: e.HtmlBody,
 		ReplyTo: e.ReplyTo, UnsubscribeURL: e.UnsubscribeUrl,
 	})
 	if err == nil {
 		if err := m.q.MarkEmailSent(ctx, e.ID); err != nil {
-			slog.Error("mark email sent", "id", e.ID, "error", err)
+			// It went, but stays pending, so it may go again.
+			slog.Error("mark email sent: it may be sent twice", "id", e.ID, "template", e.Template, "error", err)
 		}
 		return
 	}
 	if e.Attempts+1 >= maxAttempts {
 		slog.Error("email failed, giving up", "id", e.ID, "template", e.Template, "error", err)
-		_ = m.q.MarkEmailFailed(ctx, db.MarkEmailFailedParams{LastError: err.Error(), ID: e.ID})
+		if merr := m.q.MarkEmailFailed(ctx, db.MarkEmailFailedParams{LastError: err.Error(), ID: e.ID}); merr != nil {
+			slog.Error("mark email failed", "id", e.ID, "error", merr)
+		}
 		return
 	}
 	// 1, 4, 16, 64 and 256 minutes.
 	wait := time.Minute << (2 * e.Attempts)
 	slog.Warn("email send failed, will retry", "id", e.ID, "template", e.Template, "in", wait, "error", err)
-	_ = m.q.MarkEmailRetry(ctx, db.MarkEmailRetryParams{
+	if merr := m.q.MarkEmailRetry(ctx, db.MarkEmailRetryParams{
 		LastError: err.Error(),
 		SendAfter: time.Now().Add(wait).UTC().Format(time.DateTime),
 		ID:        e.ID,
-	})
+	}); merr != nil {
+		// Still due, so it's tried again on the next round, not in wait.
+		slog.Error("mark email retry", "id", e.ID, "error", merr)
+	}
+}
+
+// stillWanted checks a queued email to a user against the user as they are
+// now, since things change between queueing and sending (a retry can wait
+// hours). It returns why the email mustn't go, or "" if it may. A deleted
+// account gets nothing but its confirmation; a blocked user still gets
+// Account email (sign-in links) but nothing else; other categories follow
+// the user's current settings. Email to an address with no user (sign-in
+// links to new people, invites) isn't checked.
+func (m *Mailer) stillWanted(ctx context.Context, e db.EmailOutbox) string {
+	if !e.UserID.Valid || e.Template == "account_deleted" {
+		return ""
+	}
+	user, err := m.q.GetUser(ctx, e.UserID.Int64)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "user no longer exists"
+	}
+	if err != nil {
+		slog.Error("check email recipient", "id", e.ID, "error", err)
+		return "" // send rather than lose it
+	}
+	if user.DeletedAt.Valid {
+		return "account deleted"
+	}
+	c := Category(e.Category)
+	if c == Account {
+		return ""
+	}
+	if user.BlockedAt.Valid {
+		return "user blocked"
+	}
+	if strings.HasPrefix(e.Subject, "[Test] ") {
+		return "" // an admin's newsletter preview, sent whatever their settings
+	}
+	on, err := m.Enabled(ctx, user.ID, c)
+	if err != nil {
+		slog.Error("check email settings", "id", e.ID, "error", err)
+		return ""
+	}
+	if !on {
+		return "unsubscribed from " + string(c)
+	}
+	return ""
 }
 
 // Unavailable is the production sender when SES isn't configured: it fails

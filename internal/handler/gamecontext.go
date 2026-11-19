@@ -28,11 +28,14 @@ type gameBarKey struct{}
 // GameContext loads the game bar for full-page GETs under /games/{id} and
 // remembers the game as the user's current one. A user who isn't in this
 // month's game is joined to it. render picks it up from the request context,
-// so the handlers don't need to know about it.
+// so the handlers don't need to know about it. htmx fragments are skipped,
+// but not Back's history restore, which redraws the whole page. Nor is the
+// stock chart's bars fetch, which is JSON.
 func (h *Handler) GameContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := auth.UserFromContext(r.Context())
-		if r.Method != http.MethodGet || isHTMX(r) || user == nil {
+		if r.Method != http.MethodGet || user == nil || (isHTMX(r) && !isHistoryRestore(r)) ||
+			strings.HasSuffix(r.URL.Path, "/bars") {
 			next.ServeHTTP(w, r)
 			return
 		}

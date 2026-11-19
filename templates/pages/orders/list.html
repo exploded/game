@@ -34,9 +34,9 @@
             {{else}}
             <td class="c-end"><span class="badge badge-{{if eq .Status "open"}}pending{{else if eq .Status "filled"}}active{{else}}cancelled{{end}}">{{.Status}}</span></td>
             <td>Limit {{cents .LimitPrice}} <span class="text-muted">{{.Currency}}</span></td>
-            <td data-label="Expires">{{if .ExpiresAt.Valid}}{{.ExpiresAt.String}}{{else}}<span class="text-muted">GTC</span>{{end}}</td>
+            <td data-label="Expires">{{if .ExpiresAt.Valid}}{{longDate .ExpiresAt.String}}{{else}}<span class="text-muted">GTC</span>{{end}}</td>
             {{end}}
-            <td class="text-muted" data-label="Placed">{{.CreatedAt}}</td>
+            <td class="text-muted" data-label="Placed">{{when .CreatedAt}}</td>
             <td class="c-action">
                 {{if eq .Status "open"}}
                 <form method="POST" action="/games/{{$.Item.ID}}/orders/{{.ID}}/cancel">

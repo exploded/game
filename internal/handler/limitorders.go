@@ -45,34 +45,8 @@ func (h *Handler) LimitOrdersList(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// LimitOrderCreate places a limit order from the old orders form. The order
-// ticket's Limit option goes through TradeExecute.
-func (h *Handler) LimitOrderCreate(w http.ResponseWriter, r *http.Request) {
-	user := auth.UserFromContext(r.Context())
-	gameID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-	stockID, err := strconv.ParseInt(r.PathValue("sid"), 10, 64)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-	r.ParseForm()
-	o := Order{
-		UserID:     user.ID,
-		GameID:     gameID,
-		StockID:    stockID,
-		Side:       r.FormValue("type"),
-		Limit:      true,
-		LimitPrice: parseDollars(r.FormValue("limit_price")),
-		ExpiresAt:  r.FormValue("expires_at"),
-	}
-	o.Quantity, _ = strconv.ParseInt(r.FormValue("quantity"), 10, 64)
-	h.placeFromForm(w, r, o, fmt.Sprintf("/games/%d/stocks/%d", gameID, stockID), false)
-}
-
+// LimitOrderCancel cancels an open order from the orders page (a plain form
+// post). Limit orders are placed through the order ticket (TradeExecute).
 func (h *Handler) LimitOrderCancel(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	gameID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -101,12 +75,6 @@ func (h *Handler) LimitOrderCancel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if isHTMX(r) {
-		triggerToast(w, "Order cancelled", "success")
-		w.Header().Set("HX-Redirect", orders)
-		w.WriteHeader(http.StatusOK)
-		return
-	}
 	setFlashCookie(w, "Order cancelled", "success")
 	http.Redirect(w, r, orders, http.StatusSeeOther)
 }

@@ -81,8 +81,7 @@ func TestMinutesRoundsUp(t *testing.T) {
 // TestFolder reads a folder's items over two pages, with the token in the
 // header and never in the URL.
 func TestFolder(t *testing.T) {
-	var srv *httptest.Server
-	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "bearer tok" {
 			t.Errorf("Authorization = %q", r.Header.Get("Authorization"))
 		}

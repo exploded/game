@@ -380,10 +380,24 @@ func (f *Fetcher) saveRows(ctx context.Context, q *db.Queries, rows []priceRow) 
 	defer tx.Rollback()
 
 	txq := q.WithTx(tx)
+	failed := make(map[int64]bool)
 	for _, r := range rows {
-		if savePrice(ctx, txq, r.stockID, r.v) {
+		ok, err := savePrice(ctx, txq, r.stockID, r.v)
+		if err != nil {
+			// The stock counts as not saved, so the daily fetch is tried
+			// again rather than logged as done.
+			if !failed[r.stockID] {
+				slog.Error("saving price", "stock", r.stockID, "error", err)
+			}
+			failed[r.stockID] = true
+			continue
+		}
+		if ok {
 			saved[r.stockID]++
 		}
+	}
+	for id := range failed {
+		delete(saved, id)
 	}
 	if err := tx.Commit(); err != nil {
 		return make(map[int64]int), err
@@ -475,7 +489,9 @@ func (f *Fetcher) FetchMarketOnly(q *db.Queries, mkt string) {
 	f.fetchMarketBatch(ctx, q, mkt, 1)
 }
 
-func savePrice(ctx context.Context, q *db.Queries, stockID int64, v map[string]any) bool {
+// savePrice upserts one bar. It reports false, with no error, for a bar
+// with no close, which is skipped.
+func savePrice(ctx context.Context, q *db.Queries, stockID int64, v map[string]any) (bool, error) {
 	date, _ := v["datetime"].(string)
 	if len(date) > 10 {
 		date = date[:10]
@@ -487,10 +503,10 @@ func savePrice(ctx context.Context, q *db.Queries, stockID int64, v map[string]a
 	vol := parseInt(v["volume"])
 
 	if closeC == 0 {
-		return false
+		return false, nil
 	}
 
-	q.UpsertPrice(ctx, db.UpsertPriceParams{
+	if err := q.UpsertPrice(ctx, db.UpsertPriceParams{
 		StockID: stockID,
 		Date:    date,
 		Open:    openC,
@@ -498,8 +514,10 @@ func savePrice(ctx context.Context, q *db.Queries, stockID int64, v map[string]a
 		Low:     lowC,
 		Close:   closeC,
 		Volume:  vol,
-	})
-	return true
+	}); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func parseCents(v any) int64 {

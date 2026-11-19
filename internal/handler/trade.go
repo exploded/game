@@ -88,15 +88,11 @@ func (h *Handler) TradeExecute(w http.ResponseWriter, r *http.Request) {
 		// The Close position button on the game's home page.
 		back = fmt.Sprintf("/games/%d", gameID)
 	}
-	side := r.FormValue("side") // "buy" or "sell"
-	if side == "" {
-		side = r.FormValue("type") // the old trade page's field
-	}
 	o := Order{
 		UserID:   user.ID,
 		GameID:   gameID,
 		StockID:  stockID,
-		Side:     side,
+		Side:     r.FormValue("side"), // "buy" or "sell"
 		Limit:    r.FormValue("order_type") == "limit",
 		CloseAll: r.FormValue("all") == "1",
 	}
@@ -199,26 +195,9 @@ func (h *Handler) closeQueued(ctx context.Context, participantID, stockID int64,
 // game's currency, and other holdings may not be. Without a rate the value
 // waits for the scheduler's next revaluation.
 func (h *Handler) revalueParticipant(ctx context.Context, participantID int64, baseCurrency string) {
-	holdings, err := h.q.ListHoldings(ctx, participantID)
-	if err != nil {
-		return
+	if err := market.RevalueParticipant(ctx, h.q, h.rawDB, participantID, baseCurrency); err != nil {
+		slog.Error("revalue after trade", "participant", participantID, "error", err)
 	}
-	var rate int64
-	if er, err := h.q.GetLatestExchangeRate(ctx); err == nil {
-		rate = er.RateAudUsd
-	}
-	holdingsValue, ok := market.HoldingsValue(holdings, baseCurrency, rate)
-	if !ok {
-		return
-	}
-	p, err := h.q.GetParticipant(ctx, participantID)
-	if err != nil {
-		return
-	}
-	h.q.UpdatePortfolioValue(ctx, db.UpdatePortfolioValueParams{
-		PortfolioValue: p.CashBalance + holdingsValue,
-		ID:             participantID,
-	})
 }
 
 // convertCurrency converts cents from one currency to another using the exchange rate.

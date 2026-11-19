@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -17,10 +18,9 @@ import (
 	"github.com/exploded/game/internal/mail"
 )
 
-// Courses are pre-recorded video lessons. Anyone can browse them at
-// /learn/courses and see each course's lessons; playing a lesson and ticking
-// it off need an account. Admins build them as drafts on /admin/courses and
-// publish when ready.
+// Courses are pre-recorded video lessons at /learn/courses, for signed-in
+// players only, like the rest of Learn. Admins build them as drafts on
+// /admin/courses and publish when ready.
 
 // coursePath is a course's page, or one of its lessons with lessonID > 0.
 func coursePath(slug string, lessonID int64) string {
@@ -101,8 +101,7 @@ func (h *Handler) CoursePage(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// LessonPage plays one lesson, with links to the lessons either side. A
-// visitor sees the lesson with a sign-in button where the player goes.
+// LessonPage plays one lesson, with links to the lessons either side.
 func (h *Handler) LessonPage(w http.ResponseWriter, r *http.Request) {
 	c, lessons, ok := h.course(w, r)
 	if !ok {
@@ -268,12 +267,24 @@ func (h *Handler) AdminCourseCreate(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/admin/courses", http.StatusSeeOther)
 		return
 	}
-	slug := slugify(title)
-	for n := 2; ; n++ {
-		if _, err := h.q.GetCourseBySlug(r.Context(), slug); errors.Is(err, sql.ErrNoRows) {
+	// The title's slug, or the first of title-2, title-3, ... not taken.
+	slug, free := slugify(title), false
+	for n := 2; n <= 100; n++ {
+		_, err := h.q.GetCourseBySlug(r.Context(), slug)
+		if errors.Is(err, sql.ErrNoRows) {
+			free = true
 			break
 		}
+		if err != nil {
+			h.serverError(w, "course slug", err)
+			return
+		}
 		slug = slugify(title) + "-" + strconv.Itoa(n)
+	}
+	if !free {
+		setFlashCookie(w, "Too many courses have that title. Give this one a different title.", "error")
+		http.Redirect(w, r, "/admin/courses", http.StatusSeeOther)
+		return
 	}
 	id, err := h.q.CreateCourse(r.Context(), db.CreateCourseParams{Slug: slug, Title: title})
 	if err != nil {
@@ -382,37 +393,42 @@ func (h *Handler) AdminCoursePublish(w http.ResponseWriter, r *http.Request) {
 	if publish {
 		msg = "Course published."
 		if !c.PublishedAt.Valid && r.FormValue("email") == "1" {
-			msg += " Emailing " + strconv.Itoa(h.emailNewCourse(r, c)) + " members."
+			h.emailNewCourse(r, c)
+			msg += " Emailing members who get Community emails."
 		}
 	}
 	setFlashCookie(w, msg, "success")
 	http.Redirect(w, r, "/admin/courses/"+strconv.FormatInt(c.ID, 10), http.StatusSeeOther)
 }
 
-// emailNewCourse queues the new-course email to everyone with Community on.
-func (h *Handler) emailNewCourse(r *http.Request, c db.Course) int {
-	ids, err := h.q.ListActiveUserIDs(r.Context())
-	if err != nil {
-		slog.Error("list users for course email", "error", err)
-		return 0
-	}
+// emailNewCourse queues the new-course email to everyone with Community on,
+// after the request (afterRequest): every member can take longer than a
+// request may.
+func (h *Handler) emailNewCourse(r *http.Request, c db.Course) {
 	// The email gets the course's opening paragraph, not its list.
 	intro := c.Summary
 	if i := strings.Index(intro, "\n\n"); i >= 0 {
 		intro = intro[:i]
 	}
 	data := struct{ Title, Summary, URL string }{c.Title, intro, coursePath(c.Slug, 0)}
-	n := 0
-	for _, id := range ids {
-		queued, err := h.mailer.ToUser(r.Context(), id, mail.Community, "course_published", data)
+	afterRequest(r, "queue course email", func(ctx context.Context) {
+		ids, err := h.q.ListActiveUserIDs(ctx)
 		if err != nil {
-			slog.Error("queue course email", "user", id, "error", err)
+			slog.Error("list users for course email", "error", err)
+			return
 		}
-		if queued {
-			n++
+		n := 0
+		for _, id := range ids {
+			queued, err := h.mailer.ToUser(ctx, id, mail.Community, "course_published", data)
+			if err != nil {
+				slog.Error("queue course email", "user", id, "error", err)
+			}
+			if queued {
+				n++
+			}
 		}
-	}
-	return n
+		slog.Info("course email queued", "course", c.ID, "recipients", n)
+	})
 }
 
 // AdminCourseDelete deletes a course and its lessons.

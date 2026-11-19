@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"math"
 	"time"
 
 	"github.com/exploded/game/internal/db"
+	"github.com/exploded/game/internal/jobs"
 	"github.com/exploded/game/internal/market"
 )
 
@@ -78,6 +78,11 @@ func (h *Handler) PlaceOrder(ctx context.Context, o Order) (OrderResult, error) 
 	if err != nil {
 		return OrderResult{}, errNotFound
 	}
+	// A retired stock sits at its last price: an admin retires one only
+	// once nobody holds it, and nobody may buy it again.
+	if stock.IsActive == 0 {
+		return OrderResult{}, refuse("%s is no longer traded on The Investor Project", stock.Symbol)
+	}
 	participant, err := h.q.GetParticipantByGameAndUser(ctx, db.GetParticipantByGameAndUserParams{
 		GameID: game.ID, UserID: o.UserID,
 	})
@@ -125,11 +130,13 @@ func (h *Handler) PlaceOrder(ctx context.Context, o Order) (OrderResult, error) 
 		return OrderResult{}, err
 	}
 
-	pricePerShare := latestPrice.Close
-	if quantity > math.MaxInt64/pricePerShare {
+	// Before the ex-date's first quote, the last close still includes a
+	// dividend paid that morning: take it off.
+	pricePerShare := market.ExDividendClose(ctx, h.q, stock.ID, latestPrice)
+	totalNative, ok := market.TradeValue(quantity, pricePerShare)
+	if !ok {
 		return OrderResult{}, refuse("Trade value too large")
 	}
-	totalNative := quantity * pricePerShare
 	totalBase := convertCurrency(totalNative, stock.Currency, game.BaseCurrency, exchangeRate)
 	fee := market.TradeFees(game, stock.Currency, totalBase)
 	res := OrderResult{
@@ -178,6 +185,15 @@ func (h *Handler) PlaceOrder(ctx context.Context, o Order) (OrderResult, error) 
 		if o.CloseAll && holding.Quantity != quantity {
 			// Another trade got in first.
 			return OrderResult{}, refuse("Your %s holding just changed. Check it and try again.", stock.Symbol)
+		}
+		if holding.Quantity < quantity {
+			ok, err := market.ShortAllowed(ctx, qtx, participant, game.BaseCurrency, stock, holding.Quantity-quantity, pricePerShare)
+			if err != nil {
+				return OrderResult{}, err
+			}
+			if !ok {
+				return OrderResult{}, refuse("Your short positions can't add up to more than your portfolio is worth")
+			}
 		}
 		cash = participant.CashBalance + max(totalBase-fee, 0)
 	}
@@ -228,7 +244,7 @@ func (h *Handler) PlaceOrder(ctx context.Context, o Order) (OrderResult, error) 
 	// Revalue now so the portfolio summary is right straight away.
 	h.revalueParticipant(ctx, participant.ID, game.BaseCurrency)
 	h.InsertTradeActivity(ctx, game.ID, o.UserID, o.Side, stock, quantity)
-	go h.CheckAndGrantAchievements(context.Background(), o.UserID, game.ID, participant.ID)
+	jobs.Go("achievements", func() { h.CheckAndGrantAchievements(context.Background(), o.UserID, game.ID, participant.ID) })
 
 	action := "Bought"
 	if o.Side == "sell" {
@@ -301,7 +317,8 @@ func (h *Handler) placeLimit(ctx context.Context, o Order, game db.Game, stock d
 	if o.Quantity <= 0 || o.LimitPrice <= 0 {
 		return OrderResult{}, refuse("Quantity and price must be positive")
 	}
-	if o.Quantity > math.MaxInt64/o.LimitPrice {
+	limitValue, ok := market.TradeValue(o.Quantity, o.LimitPrice)
+	if !ok {
 		return OrderResult{}, refuse("Trade value too large")
 	}
 	var expiry sql.NullString
@@ -320,7 +337,7 @@ func (h *Handler) placeLimit(ctx context.Context, o Order, game db.Game, stock d
 	if err != nil {
 		return OrderResult{}, err
 	}
-	value := convertCurrency(o.Quantity*o.LimitPrice, stock.Currency, game.BaseCurrency, exchangeRate)
+	value := convertCurrency(limitValue, stock.Currency, game.BaseCurrency, exchangeRate)
 	fee := market.TradeFees(game, stock.Currency, value)
 	res := OrderResult{
 		Status: orderOpen, Stock: stock, Side: o.Side, Quantity: o.Quantity,

@@ -153,8 +153,9 @@ Built and deployed on 2026-10-30, first as quarterly games.
 - [x] **Cancel "Test 3" in production.** Gone with private games (ccfa785).
 - [x] **Monthly instead of quarterly** (2026-10-30). The Oct–Dec 2026 game
   ended on 31 October as "October 2026"; Jan–Mar 2027 was removed.
-- [ ] **Email everyone when a month's game opens**, not only players who
-  joined early. Today G1 (game started) goes only to players already in it.
+- [x] **Email everyone when a month's game opens**, not only players who
+  joined early. G1 (game started) now goes to every user with Games email
+  on (2026-11-19, from the whole-site review).
 
 ## From the whole-game review (2026-10-29)
 
@@ -191,6 +192,60 @@ Highest impact for the effort first.
   split happens (`market.CheckSplits`).
 - [ ] **Small fixes:** the leaderboard rank skips hidden players; the lobby cuts
   messages at 500 bytes, not characters (can split an emoji).
+
+## Whole-site review (2026-11-19)
+
+A review of the code, tests and deploy before launch, all fixed on
+2026-11-19. The details are in `CLAUDE.md` ("Order safety", "Background
+jobs", Auth, Email, Backups, Tests).
+
+- [x] **Unlimited cash from a huge order.** Converting a trade over about
+  US$92 billion to AUD wrapped int64 to a negative cost, so a posted form
+  could add cash. Every order and fill path now caps a trade at US$10
+  billion (`market.TradeValue`).
+- [x] **Limit fills** ran outside a transaction, wrote cash read earlier (a
+  dividend or trade in between could vanish), ignored write errors, and
+  could fill an order the player had just cancelled. Each fill is now one
+  transaction that claims the order first.
+- [x] **Retired stocks could still be traded**, from a video's chip or a
+  posted form. Refused, and their page has no ticket.
+- [x] **Money:** revaluation overstated players who traded while it ran;
+  buying at the close before an ex-date and selling after the dividend was
+  free money; late dividends missed players who'd sold since the open;
+  shorts had no limit.
+- [x] **Crashes and restarts:** one panicking background job stopped the
+  whole site (no `recover`); shutdown didn't wait for requests or jobs; a
+  deploy could send an email twice.
+- [x] **Security and privacy:** sign-in codes could be guessed at 25 an hour
+  per address forever; the invite form told players who has an account;
+  invite subjects carried the sender's chosen name; sessions were stored in
+  plain text; deleting an account left the address in other tables, and
+  queued email still went out.
+- [x] **Smaller bugs:** cover uploads over 1 MB failed; a TikTok stream could
+  stay "live" while TikTok refused us; one bad video stopped classification;
+  restarts repeated the listings check; busy stocks got news every 8 hours;
+  timed jobs were skipped after a long tick; failed price writes counted as
+  saved; bulk email could be cut off mid-send; `/health` couldn't see a dead
+  scheduler; Back lost the top bar; some pages showed UTC times; notifications
+  couldn't be paged; and more, with dead code removed.
+- [x] **Deploy and CI:** a database copy before each deploy's migrations,
+  rollback to the previous binary when `/health` fails, `game.db` readable by
+  the service only; CI adds `sqlc diff`, staticcheck, `-race`, govulncheck
+  and the calculator checks (now in git, `testdata/calculators/`).
+- [ ] **Watch the first deploy** with the new script: it backs up
+  `game.db` (a few seconds more downtime), sets `UMask=0077`, and from then
+  on the `claude` user can't read `game.db`. CI's `-race` run is also new.
+- [ ] **Re-run the load test** (`docs/capacity.md`): revaluation now uses a
+  transaction per player.
+- [ ] **For the legal review:** the sign-in page and home page say "Nothing
+  here is personal financial advice" (not the licensee's wording), and
+  `privacy.html` still says TikTok players set cookies.
+- [ ] **For Rob: mortgage calculator edge.** With no extra repayment and a
+  rate of about 17% or more on a big loan, the payoff comes one repayment
+  late or never shows (example: $5,000,000 at 30% over 50 years, weekly).
+  Rob's spreadsheet does the same.
+- [ ] **Settings page:** the delete-account wording could say it also clears
+  the watchlist and notifications.
 
 ## Follow-ups from the terms review (2026-10-29)
 

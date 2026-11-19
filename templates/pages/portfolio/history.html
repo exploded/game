@@ -44,7 +44,7 @@ Total are the participant's own figures (cashLedger). */}}
     <tbody>
         {{range .Items}}
         <tr>
-            <td class="text-muted">{{.CreatedAt}}</td>
+            <td class="text-muted">{{when .CreatedAt}}</td>
             {{if eq .Kind "interest"}}
             <td class="c-main">
                 <span class="badge badge-pending">interest</span>

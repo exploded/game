@@ -2,6 +2,7 @@ package handler
 
 import (
 	"database/sql"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -86,12 +87,25 @@ func (h *Handler) ContactSubmit(w http.ResponseWriter, r *http.Request) {
 		userID = sql.NullInt64{Int64: user.ID, Valid: true}
 	}
 
-	_ = h.q.CreateContactMessage(r.Context(), db.CreateContactMessageParams{
+	if err := h.q.CreateContactMessage(r.Context(), db.CreateContactMessageParams{
 		UserID:  userID,
 		Name:    name,
 		Email:   email,
 		Message: message,
-	})
+	}); err != nil {
+		// Keep what they wrote, so they can send it again.
+		slog.Error("save contact message", "error", err)
+		h.render(w, r, "legal/contact", "", PageData{
+			Title: "Contact Us",
+			Flash: &Flash{Type: "error", Message: "Your message couldn't be sent. Please try again."},
+			Extra: map[string]any{
+				"PrefillName":  name,
+				"PrefillEmail": email,
+				"Message":      message,
+			},
+		})
+		return
+	}
 
 	setFlashCookie(w, "Your message has been sent. We'll get back to you soon!", "success")
 	http.Redirect(w, r, "/contact", http.StatusSeeOther)

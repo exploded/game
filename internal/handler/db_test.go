@@ -203,8 +203,8 @@ func TestOpenDBIsIdempotent(t *testing.T) {
 		if err := d.QueryRow("SELECT COUNT(*) FROM schema_migrations").Scan(&n); err != nil {
 			t.Fatal(err)
 		}
-		if n != len(onceMigrations) {
-			t.Errorf("open %d: %d migrations recorded, want %d", i+1, n, len(onceMigrations))
+		if want := len(onceMigrations) + 1; n != want { // + hash-session-ids
+			t.Errorf("open %d: %d migrations recorded, want %d", i+1, n, want)
 		}
 		d.Close()
 	}

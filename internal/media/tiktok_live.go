@@ -52,6 +52,16 @@ const tiktokRoomLive = 2
 // his stream is ended, so a dropped connection doesn't end it.
 const tiktokEndAfter = 5
 
+// tiktokStaleAfter ends a stream no check has found on air for this long
+// while checks fail or are held back: errors don't count towards
+// tiktokEndAfter, so without it a stream would stay live for as long as
+// TikTok refused the checks.
+const tiktokStaleAfter = 30 * time.Minute
+
+// tiktokBackoff is how long checks for a booked or live stream wait after
+// TikTok refuses one (403 or 429). The all-day check stops for the day.
+const tiktokBackoff = 10 * time.Minute
+
 // TikTokLiveTitle is the title of a stream the check adds when Rob didn't
 // give it one. The site shows "Live on TikTok" once it's over.
 const TikTokLiveTitle = "Rob is live on TikTok"
@@ -147,9 +157,12 @@ func tiktokUser(link string) string {
 // now, and Rob's account when the all-day check is due.
 func (s *Service) checkTikTokLive(ctx context.Context, now time.Time) error {
 	local := now.In(s.loc)
-	if local.Hour() == 3 && local.Minute() == 0 {
-		if err := s.q.PruneTikTokLiveChecks(ctx); err != nil {
-			slog.Error("prune tiktok live checks", "error", err)
+	if local.Hour() == 3 {
+		if slot := local.Format(time.DateOnly); s.pruneSlot.Due(slot) {
+			s.pruneSlot.Done(slot)
+			if err := s.q.PruneTikTokLiveChecks(ctx); err != nil {
+				slog.Error("prune tiktok live checks", "error", err)
+			}
 		}
 	}
 	events, err := s.q.ListTikTokLiveToCheck(ctx)
@@ -167,11 +180,59 @@ func (s *Service) checkTikTokLive(ctx context.Context, now time.Time) error {
 	}
 	var errs []error
 	for user, evs := range byUser {
-		if err := s.checkTikTokAccount(ctx, user, evs); err != nil {
+		if evs != nil && s.backingOff(ctx, user, now) {
+			// No check, so no news either way: end streams nothing has
+			// seen on air for a while.
+			if err := s.endStaleTikTok(ctx, evs, now); err != nil {
+				errs = append(errs, fmt.Errorf("tiktok live check @%s: %w", user, err))
+			}
+			continue
+		}
+		err := s.checkTikTokAccount(ctx, user, evs)
+		if err != nil {
 			errs = append(errs, fmt.Errorf("tiktok live check @%s: %w", user, err))
+			if err := s.endStaleTikTok(ctx, evs, now); err != nil {
+				errs = append(errs, fmt.Errorf("tiktok live check @%s: %w", user, err))
+			}
 		}
 	}
 	return errors.Join(errs...)
+}
+
+// backingOff says whether TikTok refused a check of user within the last
+// tiktokBackoff, so the booked and live checks hold off too.
+func (s *Service) backingOff(ctx context.Context, user string, now time.Time) bool {
+	blocked, err := s.q.TikTokBlockedSince(ctx, db.TikTokBlockedSinceParams{Account: user, CheckedAt: sqlTime(now.Add(-tiktokBackoff))})
+	if err != nil {
+		slog.Error("tiktok blocked check", "error", err)
+		return false
+	}
+	return blocked
+}
+
+// endStaleTikTok ends the live streams in events that a check has seen on
+// air but none has for tiktokStaleAfter. It's for when checks fail or are
+// held back; a check that finds Rob off air ends a stream sooner
+// (tiktokOffAir). A stream no check has seen on air (started by hand) is
+// left alone.
+func (s *Service) endStaleTikTok(ctx context.Context, events []db.LiveEvent, now time.Time) error {
+	for _, e := range events {
+		if e.Status != "live" {
+			continue
+		}
+		last, err := s.q.TikTokLastSeenLive(ctx, nullInt(e.ID))
+		if err != nil {
+			return err
+		}
+		if last == "" || now.Sub(parseSQLTime(last)) < tiktokStaleAfter {
+			continue
+		}
+		if err := s.q.EndTikTokLive(ctx, e.ID); err != nil {
+			return err
+		}
+		slog.Info("tiktok stream ended: not seen on air for a while", "event", e.ID, "last_seen", last)
+	}
+	return nil
 }
 
 // allDayDue says whether the all-day check of Rob's account is due at local:

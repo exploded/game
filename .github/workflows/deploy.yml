@@ -27,8 +27,40 @@ jobs:
       - name: Vet
         run: go vet ./...
 
-      - name: Run tests
-        run: go test -v ./...
+      # internal/db must be what sqlc generates from sql/. The release binary
+      # (checksum from the v1.31.1 release page) saves building sqlc, which
+      # compiles a C Postgres parser and takes minutes.
+      - name: Check sqlc output is current
+        run: |
+          curl -fsSL -o /tmp/sqlc.tar.gz https://github.com/sqlc-dev/sqlc/releases/download/v1.31.1/sqlc_1.31.1_linux_amd64.tar.gz
+          echo "497ae4fcdfa64c5b0c311ffe4c2bd991e43991e82e5367792ed78bc2dca27354  /tmp/sqlc.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/sqlc.tar.gz -C /tmp sqlc
+          /tmp/sqlc diff
+
+      # Settings in staticcheck.conf.
+      - name: Staticcheck
+        run: go run honnef.co/go/tools/cmd/staticcheck@v0.8.2 ./...
+
+      # -race needs cgo. The race build runs every test, so there's no
+      # separate plain run.
+      - name: Run tests (race detector)
+        env:
+          CGO_ENABLED: "1"
+        run: go test -race ./...
+
+      - name: Check for known vulnerabilities
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.10.0 ./...
+
+      # The calculators' sums against Rob's spreadsheets and closed-form
+      # answers. ASIC's calculator relief needs a 7-year record, so the checks
+      # live in git (testdata/calculators).
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 26
+
+      - name: Calculator tests
+        run: node --test "testdata/calculators/*.test.mjs"
 
   deploy:
     name: Deploy to Production

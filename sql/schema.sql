@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS email_outbox (
     html_body       TEXT    NOT NULL,
     reply_to        TEXT    NOT NULL DEFAULT '',
     unsubscribe_url TEXT    NOT NULL DEFAULT '',
-    status          TEXT    NOT NULL DEFAULT 'pending', -- 'pending' | 'sent' | 'failed'
+    status          TEXT    NOT NULL DEFAULT 'pending', -- 'pending' | 'sent' | 'failed' | 'cancelled'
     attempts        INTEGER NOT NULL DEFAULT 0,
     last_error      TEXT    NOT NULL DEFAULT '',
     send_after      TEXT    NOT NULL DEFAULT (datetime('now')),
@@ -97,7 +97,7 @@ CREATE TABLE IF NOT EXISTS email_broadcasts (
 -- Sessions
 --------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS sessions (
-    id         TEXT PRIMARY KEY,
+    id         TEXT PRIMARY KEY,                   -- SHA-256 (hex) of the session cookie: auth.SessionKey
     user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     expires_at TEXT    NOT NULL,
     created_at TEXT    NOT NULL DEFAULT (datetime('now'))
@@ -721,6 +721,7 @@ CREATE TABLE IF NOT EXISTS videos (
     hide_stocks      INTEGER NOT NULL DEFAULT 0,       -- 1 = an admin turned off its stock links
     classified_at    TEXT,                             -- NULL until Claude has picked its topics
     created_at       TEXT    NOT NULL DEFAULT (datetime('now')),
+    classify_attempts INTEGER NOT NULL DEFAULT 0,      -- failed tries at picking its topics; given up after 3
     UNIQUE(platform, external_id)
 );
 CREATE INDEX IF NOT EXISTS idx_videos_published ON videos(hidden, published_at DESC);

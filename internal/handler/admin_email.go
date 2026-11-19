@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"log/slog"
@@ -89,28 +90,34 @@ func (h *Handler) AdminEmailSend(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, "list news subscribers", err)
 		return
 	}
-	queued := 0
-	for _, id := range subs {
-		ok, err := h.mailer.ToUser(r.Context(), id, mail.News, "news", letter)
-		if errors.Is(err, mail.ErrNoNewsSender) {
-			break
+	// Queued after the request: thousands of subscribers can take longer
+	// than a request may (afterRequest). The broadcast is recorded, with
+	// how many it was queued for, once they're all queued.
+	afterRequest(r, "queue newsletter", func(ctx context.Context) {
+		queued := 0
+		for _, id := range subs {
+			ok, err := h.mailer.ToUser(ctx, id, mail.News, "news", letter)
+			if errors.Is(err, mail.ErrNoNewsSender) {
+				break
+			}
+			if err != nil {
+				slog.Error("queue newsletter", "user", id, "error", err)
+				continue
+			}
+			if ok {
+				queued++
+			}
 		}
-		if err != nil {
-			slog.Error("queue newsletter", "user", id, "error", err)
-			continue
+		if err := h.q.CreateBroadcast(ctx, db.CreateBroadcastParams{
+			Subject: subject, Body: body,
+			SentBy:     sql.NullInt64{Int64: user.ID, Valid: true},
+			Recipients: int64(queued),
+		}); err != nil {
+			slog.Error("record broadcast", "error", err)
 		}
-		if ok {
-			queued++
-		}
-	}
-	if err := h.q.CreateBroadcast(r.Context(), db.CreateBroadcastParams{
-		Subject: subject, Body: body,
-		SentBy:     sql.NullInt64{Int64: user.ID, Valid: true},
-		Recipients: int64(queued),
-	}); err != nil {
-		slog.Error("record broadcast", "error", err)
-	}
-	setFlashCookie(w, "Newsletter queued for "+strconv.Itoa(queued)+" subscribers.", "success")
+		slog.Info("newsletter queued", "subject", subject, "recipients", queued)
+	})
+	setFlashCookie(w, "Queuing the newsletter for "+strconv.Itoa(len(subs))+" subscribers. It shows under Sent once they're all queued.", "success")
 	http.Redirect(w, r, "/admin/email", http.StatusSeeOther)
 }
 

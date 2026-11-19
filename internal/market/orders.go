@@ -3,6 +3,7 @@ package market
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -36,11 +37,14 @@ func MarketClosed(stockMarket string) bool {
 
 // ProcessLimitOrders fills open limit orders whose price condition is met, and
 // queued market orders, once the market has opened. Neither fills against the
-// last price while the market is closed.
-func ProcessLimitOrders(ctx context.Context, q *db.Queries) {
+// last price while the market is closed. Each fill is its own transaction.
+func ProcessLimitOrders(ctx context.Context, q *db.Queries, rawDB *sql.DB) {
 	// Expire old orders first, and tell their owners.
 	today := time.Now().UTC().Format("2006-01-02")
-	expired, _ := q.ExpireOldLimitOrders(ctx, sql.NullString{String: today, Valid: true})
+	expired, err := q.ExpireOldLimitOrders(ctx, sql.NullString{String: today, Valid: true})
+	if err != nil {
+		slog.Error("expire limit orders", "error", err)
+	}
 	for _, o := range expired {
 		notifyExpired(ctx, q, o)
 	}
@@ -58,9 +62,17 @@ func ProcessLimitOrders(ctx context.Context, q *db.Queries) {
 		return
 	}
 
+	prices := map[int64]db.StockPrice{} // one lookup per stock
 	for _, order := range orders {
-		latestPrice, err := q.GetLatestPrice(ctx, order.StockID)
-		if err != nil || latestPrice.Close == 0 {
+		latestPrice, seen := prices[order.StockID]
+		if !seen {
+			latestPrice, err = q.GetLatestPrice(ctx, order.StockID)
+			if err != nil {
+				latestPrice = db.StockPrice{}
+			}
+			prices[order.StockID] = latestPrice
+		}
+		if latestPrice.Close <= 0 {
 			continue
 		}
 
@@ -81,160 +93,161 @@ func ProcessLimitOrders(ctx context.Context, q *db.Queries) {
 			continue
 		}
 
-		// Fill the order by executing the trade.
-		err = fillLimitOrder(ctx, q, order, latestPrice.Close)
+		filled, err := fillLimitOrder(ctx, q, rawDB, order, latestPrice.Close)
 		if err != nil {
 			slog.Error("fill limit order", "orderID", order.ID, "error", err)
 			continue
 		}
-
-		slog.Info("limit order filled", "orderID", order.ID, "symbol", order.Symbol, "type", order.Type, "qty", order.Quantity, "price", latestPrice.Close)
+		if filled {
+			slog.Info("limit order filled", "orderID", order.ID, "symbol", order.Symbol, "type", order.Type, "qty", order.Quantity, "price", latestPrice.Close)
+		}
 	}
 }
 
-func fillLimitOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrdersRow, pricePerShare int64) error {
-	participant, err := q.GetParticipant(ctx, order.ParticipantID)
+// fillLimitOrder fills one order at pricePerShare, or cancels it if it can't
+// fill, in one transaction. It first claims the order (open → filled), so an
+// order the player cancelled after ListAllOpenOrders read it is left alone,
+// and everything it reads is read inside the transaction, so a trade or a
+// dividend committed in between isn't overwritten. Any error rolls the whole
+// fill back and leaves the order open for the next run. It reports whether
+// the order filled.
+func fillLimitOrder(ctx context.Context, q *db.Queries, rawDB *sql.DB, order db.ListAllOpenOrdersRow, pricePerShare int64) (bool, error) {
+	tx, err := rawDB.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return false, err
+	}
+	defer tx.Rollback()
+	qtx := q.WithTx(tx)
+
+	claimed, err := qtx.ClaimOpenOrder(ctx, order.ID)
+	if err != nil {
+		return false, err
+	}
+	if claimed == 0 {
+		return false, nil // cancelled, expired or filled since it was listed
 	}
 
-	game, err := q.GetGame(ctx, order.GameID)
+	participant, err := qtx.GetParticipant(ctx, order.ParticipantID)
 	if err != nil {
-		return err
+		return false, err
+	}
+	game, err := qtx.GetGame(ctx, order.GameID)
+	if err != nil {
+		return false, err
+	}
+	stock, err := qtx.GetStock(ctx, order.StockID)
+	if err != nil {
+		return false, err
 	}
 
+	cancel := func(reason string) (bool, error) {
+		if err := cancelOrder(ctx, qtx, order, participant.UserID, reason); err != nil {
+			return false, err
+		}
+		return false, tx.Commit()
+	}
 	if game.Status != "active" {
-		cancelOrder(ctx, q, order, participant.UserID, "the game is no longer active")
-		return nil
+		return cancel("the game is no longer active")
+	}
+	if stock.IsActive == 0 {
+		return cancel(order.Symbol + " is no longer traded on The Investor Project")
+	}
+	totalNative, ok := TradeValue(order.Quantity, pricePerShare)
+	if !ok {
+		return cancel("the order was too large to fill")
 	}
 
-	totalNative := order.Quantity * pricePerShare
-
-	// Get exchange rate. Without one, leave the order for a later run rather
-	// than convert 1:1.
+	// Without an exchange rate, leave the order for a later run rather than
+	// convert 1:1.
 	var exchangeRate int64 = 1000000
 	if order.Currency != game.BaseCurrency {
-		rate, err := q.GetLatestExchangeRate(ctx)
+		rate, err := qtx.GetLatestExchangeRate(ctx)
 		if err != nil {
-			return fmt.Errorf("no exchange rate: %w", err)
+			return false, fmt.Errorf("no exchange rate: %w", err)
 		}
 		exchangeRate = rate.RateAudUsd
 	}
-
 	totalBase := convertCurrency(totalNative, order.Currency, game.BaseCurrency, exchangeRate)
 	fee := TradeFees(game, order.Currency, totalBase)
 
-	if order.Type == "buy" {
-		cost := totalBase + fee
-		if cost > participant.CashBalance {
-			cancelOrder(ctx, q, order, participant.UserID, "you didn't have enough cash at "+fmtCentsSimple(pricePerShare))
-			return nil
-		}
-
-		// Deduct cash.
-		_ = q.UpdateCashBalance(ctx, db.UpdateCashBalanceParams{
-			CashBalance: participant.CashBalance - cost,
-			ID:          participant.ID,
-		})
-
-		// Upsert holding.
-		existing, _ := q.GetHolding(ctx, db.GetHoldingParams{
-			ParticipantID: participant.ID, StockID: order.StockID,
-		})
-		newQty, newCost := Fill(existing.Quantity, existing.CostBasis, "buy", order.Quantity, pricePerShare)
-		if newQty == 0 {
-			_ = q.DeleteHolding(ctx, db.DeleteHoldingParams{
-				ParticipantID: participant.ID, StockID: order.StockID,
-			})
-		} else {
-			_ = q.UpsertHolding(ctx, db.UpsertHoldingParams{
-				ParticipantID: participant.ID,
-				StockID:       order.StockID,
-				Quantity:      newQty,
-				AvgCost:       AvgCost(newQty, newCost),
-				CostBasis:     newCost,
-				CurrentValue:  newQty * pricePerShare,
-			})
-		}
-
-		// Insert transaction.
-		_, _ = q.InsertTransaction(ctx, db.InsertTransactionParams{
-			ParticipantID:    participant.ID,
-			StockID:          order.StockID,
-			Type:             "buy",
-			Quantity:         order.Quantity,
-			Price:            pricePerShare,
-			Total:            totalNative,
-			ConvertedTotal:   totalBase,
-			ExchangeRateUsed: exchangeRate,
-			Fee:              fee,
-		})
-
-	} else { // sell
-		// No holding reads as zero shares. A queued market sell can go short
-		// in a short-selling game, as it could have if placed while open.
-		holding, _ := q.GetHolding(ctx, db.GetHoldingParams{
-			ParticipantID: participant.ID, StockID: order.StockID,
-		})
-		canShort := order.Kind == "market" && game.AllowShort != 0
-		if holding.Quantity < order.Quantity && !canShort {
-			cancelOrder(ctx, q, order, participant.UserID, "you no longer hold enough shares")
-			return nil
-		}
-
-		proceeds := totalBase - fee
-		if proceeds < 0 {
-			proceeds = 0
-		}
-
-		_ = q.UpdateCashBalance(ctx, db.UpdateCashBalanceParams{
-			CashBalance: participant.CashBalance + proceeds,
-			ID:          participant.ID,
-		})
-
-		newQty, newCost := Fill(holding.Quantity, holding.CostBasis, "sell", order.Quantity, pricePerShare)
-		if newQty == 0 {
-			_ = q.DeleteHolding(ctx, db.DeleteHoldingParams{
-				ParticipantID: participant.ID, StockID: order.StockID,
-			})
-		} else {
-			_ = q.UpsertHolding(ctx, db.UpsertHoldingParams{
-				ParticipantID: participant.ID,
-				StockID:       order.StockID,
-				Quantity:      newQty,
-				AvgCost:       AvgCost(newQty, newCost),
-				CostBasis:     newCost,
-				CurrentValue:  newQty * pricePerShare,
-			})
-		}
-
-		_, _ = q.InsertTransaction(ctx, db.InsertTransactionParams{
-			ParticipantID:    participant.ID,
-			StockID:          order.StockID,
-			Type:             "sell",
-			Quantity:         order.Quantity,
-			Price:            pricePerShare,
-			Total:            totalNative,
-			ConvertedTotal:   totalBase,
-			ExchangeRateUsed: exchangeRate,
-			Fee:              fee,
-		})
+	holding, err := qtx.GetHolding(ctx, db.GetHoldingParams{
+		ParticipantID: participant.ID, StockID: order.StockID,
+	})
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return false, err
 	}
 
-	// Mark filled.
-	_ = q.FillLimitOrder(ctx, order.ID)
+	var cash int64
+	if order.Type == "buy" {
+		cash = participant.CashBalance - (totalBase + fee)
+		if cash < 0 {
+			return cancel("you didn't have enough cash at " + fmtCentsSimple(pricePerShare))
+		}
+	} else {
+		// No holding reads as zero shares. A queued market sell can go short
+		// in a short-selling game, as it could have if placed while open.
+		canShort := order.Kind == "market" && game.AllowShort != 0
+		if holding.Quantity < order.Quantity && !canShort {
+			return cancel("you no longer hold enough shares")
+		}
+		if holding.Quantity < order.Quantity {
+			ok, err := ShortAllowed(ctx, qtx, participant, game.BaseCurrency, stock, holding.Quantity-order.Quantity, pricePerShare)
+			if err != nil {
+				return false, err
+			}
+			if !ok {
+				return cancel("the short would be bigger than your portfolio")
+			}
+		}
+		cash = participant.CashBalance + max(totalBase-fee, 0)
+	}
+
+	if err := qtx.UpdateCashBalance(ctx, db.UpdateCashBalanceParams{CashBalance: cash, ID: participant.ID}); err != nil {
+		return false, err
+	}
+	newQty, newCost := Fill(holding.Quantity, holding.CostBasis, order.Type, order.Quantity, pricePerShare)
+	if newQty == 0 {
+		err = qtx.DeleteHolding(ctx, db.DeleteHoldingParams{ParticipantID: participant.ID, StockID: order.StockID})
+	} else {
+		err = qtx.UpsertHolding(ctx, db.UpsertHoldingParams{
+			ParticipantID: participant.ID,
+			StockID:       order.StockID,
+			Quantity:      newQty,
+			AvgCost:       AvgCost(newQty, newCost),
+			CostBasis:     newCost,
+			CurrentValue:  newQty * pricePerShare,
+		})
+	}
+	if err != nil {
+		return false, err
+	}
+	if _, err := qtx.InsertTransaction(ctx, db.InsertTransactionParams{
+		ParticipantID:    participant.ID,
+		StockID:          order.StockID,
+		Type:             order.Type,
+		Quantity:         order.Quantity,
+		Price:            pricePerShare,
+		Total:            totalNative,
+		ConvertedTotal:   totalBase,
+		ExchangeRateUsed: exchangeRate,
+		Fee:              fee,
+	}); err != nil {
+		return false, err
+	}
 
 	title, when := "Limit Order Filled", ""
 	if order.Kind == "market" {
 		title, when = "Queued Order Filled", " at the open"
 	}
-	_ = q.CreateNotification(ctx, db.CreateNotificationParams{
+	if err := qtx.CreateNotification(ctx, db.CreateNotificationParams{
 		UserID:  participant.UserID,
 		GameID:  nint64(order.GameID),
 		Type:    "order_filled",
 		Title:   title,
 		Message: order.Type + " " + itoa(order.Quantity) + " shares of " + order.Symbol + " filled" + when + " at " + fmtCentsSimple(pricePerShare),
-	})
+	}); err != nil {
+		return false, err
+	}
 
 	// The game's activity feed, as trade.go does for a trade that fills
 	// straight away.
@@ -249,15 +262,20 @@ func fillLimitOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrde
 	if order.Quantity == 1 {
 		noun = " share of "
 	}
-	_ = q.InsertActivity(ctx, db.InsertActivityParams{
+	if err := qtx.InsertActivity(ctx, db.InsertActivityParams{
 		GameID:  order.GameID,
 		UserID:  participant.UserID,
 		Action:  order.Type,
 		Detail:  verb + " " + itoa(order.Quantity) + noun + order.Symbol + how,
 		StockID: sql.NullInt64{Int64: order.StockID, Valid: true},
-	})
+	}); err != nil {
+		return false, err
+	}
 
-	return nil
+	if err := tx.Commit(); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // notifyExpired tells the player their limit order expired unfilled.
@@ -280,13 +298,15 @@ func notifyExpired(ctx context.Context, q *db.Queries, o db.ExpireOldLimitOrders
 }
 
 // cancelOrder cancels an order that can't fill and tells the player why.
-func cancelOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrdersRow, userID int64, reason string) {
-	_ = q.CancelLimitOrder(ctx, order.ID)
+func cancelOrder(ctx context.Context, q *db.Queries, order db.ListAllOpenOrdersRow, userID int64, reason string) error {
+	if err := q.CancelLimitOrder(ctx, order.ID); err != nil {
+		return err
+	}
 	title := "Limit Order Cancelled"
 	if order.Kind == "market" {
 		title = "Queued Order Cancelled"
 	}
-	_ = q.CreateNotification(ctx, db.CreateNotificationParams{
+	return q.CreateNotification(ctx, db.CreateNotificationParams{
 		UserID:  userID,
 		GameID:  nint64(order.GameID),
 		Type:    "order_cancelled",

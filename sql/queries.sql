@@ -37,6 +37,9 @@ UPDATE users SET last_game_id = ? WHERE id = ?;
 -- name: ListUsers :many
 SELECT * FROM users ORDER BY created_at DESC;
 
+-- name: CountUsers :one
+SELECT COUNT(*) FROM users;
+
 -- Every user with how much they've played, for /admin/users.
 -- name: ListUsersWithActivity :many
 SELECT u.id, u.name, u.email, u.avatar_id, u.is_admin,
@@ -58,6 +61,70 @@ UPDATE users SET
     email = 'deleted-' || CAST(id AS TEXT) || '@deleted.local',
     deleted_at = datetime('now')
 WHERE id = ?;
+
+-- Account deletion (AccountDelete, settings.go) also clears these, in the
+-- same transaction as SoftDeleteUser.
+
+-- name: DeleteLoginRequestsForEmail :exec
+DELETE FROM login_requests WHERE email = ?;
+
+-- name: DeleteEmailsForUser :exec
+-- Every email to the user or their address, sent or waiting, except the
+-- account_deleted email queued just before.
+DELETE FROM email_outbox
+WHERE (user_id = sqlc.arg(user_id) OR to_email = sqlc.arg(email)) AND template != 'account_deleted';
+
+-- name: AnonymiseInvitesTo :exec
+-- Invites other players sent to the address keep counting as their invite.
+UPDATE game_invites SET email = sqlc.arg(anon) WHERE email = sqlc.arg(email);
+
+-- name: DeleteUserWatchlist :exec
+DELETE FROM watchlist WHERE user_id = ?;
+
+-- name: DeleteUserNotifications :exec
+DELETE FROM notifications WHERE user_id = ?;
+
+-- name: DeleteUserLiveReminders :exec
+DELETE FROM live_reminders WHERE user_id = ?;
+
+-- Personal data export (ExportPersonalData, settings.go).
+
+-- name: ExportUserTransactions :many
+SELECT g.name AS game_name, s.symbol, t.type, t.quantity, t.price, t.total,
+    t.converted_total, t.fee, t.created_at
+FROM transactions t
+JOIN participants p ON p.id = t.participant_id
+JOIN games g ON g.id = p.game_id
+JOIN stocks s ON s.id = t.stock_id
+WHERE p.user_id = ?
+ORDER BY t.id;
+
+-- name: ExportUserLobbyMessages :many
+SELECT message, created_at, blocked_reason FROM lobby_messages WHERE user_id = ? ORDER BY id;
+
+-- name: ExportUserQuestions :many
+SELECT title, body, answer, created_at FROM questions WHERE user_id = ? ORDER BY id;
+
+-- name: ExportUserContactMessages :many
+SELECT name, email, message, created_at FROM contact_messages WHERE user_id = ? ORDER BY id;
+
+-- name: ExportUserInvites :many
+SELECT g.name AS game_name, COALESCE(gi.email, '') AS email, gi.use_count, gi.created_at
+FROM game_invites gi
+JOIN games g ON g.id = gi.game_id
+WHERE gi.created_by = ? AND gi.email IS NOT NULL
+ORDER BY gi.id;
+
+-- name: ExportUserLessonProgress :many
+SELECT c.title AS course, l.title AS lesson, lp.completed_at
+FROM lesson_progress lp
+JOIN lessons l ON l.id = lp.lesson_id
+JOIN courses c ON c.id = l.course_id
+WHERE lp.user_id = ?
+ORDER BY lp.completed_at;
+
+-- name: ExportUserNotifications :many
+SELECT type, title, message, is_read, created_at FROM notifications WHERE user_id = ? ORDER BY id;
 
 -- =============================================================================
 -- Sessions
@@ -102,8 +169,25 @@ SELECT * FROM login_requests
 WHERE token_hash = ? AND used_at IS NULL AND expires_at > datetime('now');
 
 -- name: AddLoginAttempt :one
-UPDATE login_requests SET attempts = attempts + 1 WHERE id = ?
+-- Takes one code attempt before the code is checked, so guesses sent at the
+-- same moment can't pass either limit: a request's max_attempts, and
+-- max_failed for the address across its requests in the last day. No row
+-- means the request or the address is out of attempts.
+UPDATE login_requests SET attempts = login_requests.attempts + 1
+WHERE login_requests.id = sqlc.arg(id) AND login_requests.used_at IS NULL
+  AND login_requests.attempts < sqlc.arg(max_attempts)
+  AND (SELECT COALESCE(SUM(lr.attempts), 0) FROM login_requests lr
+       WHERE lr.email = sqlc.arg(email) AND lr.created_at > datetime('now', '-1 day')) < sqlc.arg(max_failed)
 RETURNING attempts;
+
+-- name: ReturnLoginAttempt :exec
+-- The right code gives back the attempt AddLoginAttempt took.
+UPDATE login_requests SET attempts = attempts - 1 WHERE id = ? AND attempts > 0;
+
+-- name: CountFailedLoginCodes :one
+-- Code attempts for the address in the last day, across its requests.
+SELECT CAST(COALESCE(SUM(attempts), 0) AS INTEGER) FROM login_requests
+WHERE email = ? AND created_at > datetime('now', '-1 day');
 
 -- name: UseLoginRequest :execrows
 UPDATE login_requests SET used_at = datetime('now')
@@ -162,6 +246,12 @@ WHERE id = ?;
 
 -- name: MarkEmailRetry :exec
 UPDATE email_outbox SET attempts = attempts + 1, last_error = ?, send_after = ?
+WHERE id = ?;
+
+-- A queued email that mustn't go any more: its user deleted their account,
+-- was blocked or turned its category off after it was queued.
+-- name: MarkEmailCancelled :exec
+UPDATE email_outbox SET status = 'cancelled', last_error = ?
 WHERE id = ?;
 
 -- name: MarkEmailFailed :exec
@@ -645,18 +735,6 @@ ORDER BY h.current_value DESC;
 -- name: DeleteHolding :exec
 DELETE FROM holdings WHERE participant_id = ? AND stock_id = ?;
 
--- name: UpdateHoldingValue :exec
-UPDATE holdings SET current_value = ?, updated_at = datetime('now')
-WHERE id = ?;
-
--- name: ListAllActiveHoldings :many
-SELECT h.*, s.symbol, s.market, s.currency, p.game_id
-FROM holdings h
-JOIN stocks s ON s.id = h.stock_id
-JOIN participants p ON p.id = h.participant_id
-JOIN games g ON g.id = p.game_id
-WHERE g.status = 'active';
-
 -- =============================================================================
 -- Transactions
 -- =============================================================================
@@ -752,6 +830,23 @@ ORDER BY created_at DESC, id DESC LIMIT 30;
 -- Active Participants (for revaluation)
 -- =============================================================================
 
+-- name: ListActiveHeldStocks :many
+-- Stocks held in running games, for revaluation.
+SELECT DISTINCT h.stock_id
+FROM holdings h
+JOIN participants p ON p.id = h.participant_id
+JOIN games g ON g.id = p.game_id
+WHERE g.status = 'active';
+
+-- name: RevalueStockHoldings :exec
+-- Values every running game's holding of a stock at a price, using the
+-- quantity held now rather than one read earlier.
+UPDATE holdings SET current_value = quantity * sqlc.arg(price), updated_at = datetime('now')
+WHERE stock_id = sqlc.arg(stock_id)
+  AND participant_id IN (
+      SELECT p.id FROM participants p JOIN games g ON g.id = p.game_id
+      WHERE g.status = 'active');
+
 -- name: ListActiveParticipants :many
 SELECT p.*, g.base_currency
 FROM participants p
@@ -821,8 +916,10 @@ JOIN participants p ON p.id = lo.participant_id
 JOIN games g ON g.id = p.game_id
 WHERE lo.status = 'open' AND g.status = 'active';
 
--- name: FillLimitOrder :exec
-UPDATE limit_orders SET status = 'filled', filled_at = datetime('now') WHERE id = ?;
+-- name: ClaimOpenOrder :execrows
+-- Marks an order filled at the start of its fill's transaction. 0 rows means
+-- it isn't open any more: a cancel that got in first wins.
+UPDATE limit_orders SET status = 'filled', filled_at = datetime('now') WHERE id = ? AND status = 'open';
 
 -- name: CancelLimitOrder :exec
 UPDATE limit_orders SET status = 'cancelled' WHERE id = ?;
@@ -858,6 +955,25 @@ FROM holdings h
 JOIN participants p ON p.id = h.participant_id
 JOIN games g ON g.id = p.game_id
 WHERE h.stock_id = ? AND g.status = 'active';
+
+-- name: ListDividendHolders :many
+-- Players in running games holding a stock now or trading it since a time.
+-- Someone who sold out after the ex-date's open still held it at the open.
+SELECT p.id AS participant_id, p.user_id, p.game_id, g.base_currency,
+       CAST(COALESCE(h.quantity, 0) AS INTEGER) AS quantity
+FROM participants p
+JOIN games g ON g.id = p.game_id
+LEFT JOIN holdings h ON h.participant_id = p.id AND h.stock_id = sqlc.arg(stock_id)
+WHERE g.status = 'active'
+  AND (h.id IS NOT NULL OR EXISTS (
+       SELECT 1 FROM transactions t
+       WHERE t.participant_id = p.id AND t.stock_id = sqlc.arg(stock_id) AND t.created_at >= sqlc.arg(since)));
+
+-- name: DividendsAfter :one
+-- A stock's dividends (per share, x 1,000,000) with an ex-date after a day.
+-- A close from before the ex-date still includes them.
+SELECT CAST(COALESCE(SUM(per_share), 0) AS INTEGER) FROM stock_dividends
+WHERE stock_id = ? AND ex_date > ?;
 
 -- name: NetSharesTradedSince :one
 -- Shares bought less shares sold since a time, which a split mustn't scale.
@@ -1044,6 +1160,9 @@ WHERE user_id = ?
 ORDER BY created_at DESC
 LIMIT ? OFFSET ?;
 
+-- name: GetNotification :one
+SELECT * FROM notifications WHERE id = ? AND user_id = ?;
+
 -- name: MarkNotificationRead :exec
 UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?;
 
@@ -1061,6 +1180,19 @@ SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0;
 SELECT * FROM games WHERE status IN ('finished', 'cancelled')
 ORDER BY end_date DESC
 LIMIT ? OFFSET ?;
+
+-- name: CountFinishedGamePlayers :many
+-- How many players each finished or cancelled game had, for /games.
+SELECT p.game_id, COUNT(*) AS players FROM participants p
+JOIN games g ON g.id = p.game_id
+WHERE g.status IN ('finished', 'cancelled')
+GROUP BY p.game_id;
+
+-- name: ListUserFinishedParticipants :many
+-- A player's places in finished or cancelled games, for /games.
+SELECT p.* FROM participants p
+JOIN games g ON g.id = p.game_id
+WHERE p.user_id = ? AND g.status IN ('finished', 'cancelled');
 
 
 -- =============================================================================
@@ -1256,7 +1388,7 @@ WHERE q.hidden = 0
        OR (sqlc.arg(show) = 'open' AND q.answer = ''))
   AND (CAST(sqlc.arg(topic) AS INTEGER) = 0 OR q.topic_id = sqlc.arg(topic))
 ORDER BY votes DESC, q.created_at DESC
-LIMIT 100;
+LIMIT sqlc.arg(lim);
 
 -- The live Q&A queue: open questions, most votes first.
 -- name: ListLiveQueue :many
@@ -1487,7 +1619,9 @@ ON CONFLICT(platform, external_id) DO UPDATE SET
     was_live = excluded.was_live,
     view_count = excluded.view_count,
     classified_at = CASE WHEN videos.title != excluded.title OR videos.description != excluded.description
-                         THEN NULL ELSE videos.classified_at END
+                         THEN NULL ELSE videos.classified_at END,
+    classify_attempts = CASE WHEN videos.title != excluded.title OR videos.description != excluded.description
+                             THEN 0 ELSE videos.classify_attempts END
 RETURNING id;
 
 -- name: GetVideo :one
@@ -1582,14 +1716,22 @@ DELETE FROM video_topics WHERE video_id = ? AND topic_id = ?;
 -- name: ClearClaudeVideoTopics :exec
 DELETE FROM video_topics WHERE video_id = ? AND source = 'claude';
 
+-- Videos Claude hasn't sorted yet, leaving out those it has failed on
+-- max_attempts times.
 -- name: ListUnclassifiedVideos :many
 SELECT * FROM videos
 WHERE classified_at IS NULL AND hidden = 0 AND live_status = ''
+  AND classify_attempts < sqlc.arg(max_attempts)
 ORDER BY published_at DESC
-LIMIT ?;
+LIMIT sqlc.arg(lim);
 
 -- name: SetVideoClassified :exec
-UPDATE videos SET classified_at = datetime('now') WHERE id = ?;
+UPDATE videos SET classified_at = datetime('now'), classify_attempts = 0 WHERE id = ?;
+
+-- One failed try at sorting a video; returns the tries so far.
+-- name: AddVideoClassifyAttempt :one
+UPDATE videos SET classify_attempts = classify_attempts + 1 WHERE id = ?
+RETURNING classify_attempts;
 
 -- name: ClearVideoStocks :exec
 DELETE FROM video_stocks WHERE video_id = ?;
@@ -1599,9 +1741,11 @@ INSERT OR IGNORE INTO video_stocks (video_id, stock_id)
 SELECT sqlc.arg(video_id), s.id FROM stocks s WHERE s.symbol = sqlc.arg(symbol);
 
 -- name: ListVideoStocks :many
+-- Retired stocks are left out: their chips would open a stock nobody can
+-- trade.
 SELECT s.id, s.symbol, s.name FROM stocks s
 JOIN video_stocks vs ON vs.stock_id = s.id
-WHERE vs.video_id = ?
+WHERE vs.video_id = ? AND s.is_active = 1
 ORDER BY s.symbol;
 
 -- name: ListStockVideos :many
@@ -1767,6 +1911,10 @@ UPDATE tiktok_live_checks SET detail = ?, event_id = ? WHERE id = ?;
 -- name: TikTokStreamSeen :one
 SELECT EXISTS(SELECT 1 FROM tiktok_live_checks WHERE event_id = ? AND result = 'live');
 
+-- When a check last found this stream on air (UTC), or '' if none has.
+-- name: TikTokLastSeenLive :one
+SELECT CAST(COALESCE(MAX(checked_at), '') AS TEXT) FROM tiktok_live_checks WHERE event_id = ? AND result = 'live';
+
 -- Checks in a row that found the account off air (errors don't count).
 -- name: TikTokOfflineStreak :one
 SELECT COUNT(*) FROM tiktok_live_checks c
@@ -1826,12 +1974,13 @@ VALUES (?, ?, ?, ?, ?, ?);
 -- name: ListListingsToCheck :many
 -- New listings still waiting for a market cap: seen in the last 30 days,
 -- not in the baseline, not dismissed, not already a stock, and checked
--- fewer than max_checks times.
+-- fewer than max_checks times. Least-checked first, so when a run is capped
+-- every listing gets its turn.
 SELECT l.symbol, l.exchange, l.name, l.checks FROM us_listings l
 WHERE l.baseline = 0 AND l.dismissed = 0 AND l.market_cap = 0
   AND l.checks < @max_checks AND l.first_seen >= @since
   AND NOT EXISTS (SELECT 1 FROM stocks s WHERE s.symbol = l.symbol AND s.market = 'sp500')
-ORDER BY l.first_seen, l.symbol;
+ORDER BY l.checks, l.first_seen, l.symbol;
 
 -- name: SetListingChecked :exec
 -- One /statistics call made; market_cap stays 0 if it wasn't known yet.
