@@ -463,6 +463,26 @@ func (q *Queries) CountRecentQuestions(ctx context.Context, userID int64) (int64
 	return count, err
 }
 
+const countStockExposure = `-- name: CountStockExposure :one
+SELECT
+  (SELECT COUNT(*) FROM holdings h WHERE h.stock_id = ?1 AND h.quantity != 0) AS holders,
+  (SELECT COUNT(*) FROM limit_orders o WHERE o.stock_id = ?1 AND o.status = 'open') AS orders
+`
+
+type CountStockExposureRow struct {
+	Holders int64
+	Orders  int64
+}
+
+// Holdings and open orders in a stock, in any game: a stock is retired
+// only when both are 0, or it would sit at its last price.
+func (q *Queries) CountStockExposure(ctx context.Context, stockID int64) (CountStockExposureRow, error) {
+	row := q.db.QueryRowContext(ctx, countStockExposure, stockID)
+	var i CountStockExposureRow
+	err := row.Scan(&i.Holders, &i.Orders)
+	return i, err
+}
+
 const countStockProfilesWithLogo = `-- name: CountStockProfilesWithLogo :one
 SELECT COUNT(*) FROM stock_profiles
 WHERE logo LIKE 'https://api.twelvedata.com/%' OR logo LIKE 'https://logo.twelvedata.com/%'
@@ -523,6 +543,17 @@ WHERE vt.topic_id = ? AND v.hidden = 0 AND v.live_status = ''
 
 func (q *Queries) CountTopicVideos(ctx context.Context, topicID int64) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countTopicVideos, topicID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countUSListings = `-- name: CountUSListings :one
+SELECT COUNT(*) FROM us_listings
+`
+
+func (q *Queries) CountUSListings(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countUSListings)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -1349,6 +1380,20 @@ func (q *Queries) DeleteYouTubeLiveEvent(ctx context.Context, videoID sql.NullIn
 	return err
 }
 
+const dismissListing = `-- name: DismissListing :exec
+UPDATE us_listings SET dismissed = 1 WHERE symbol = ? AND exchange = ?
+`
+
+type DismissListingParams struct {
+	Symbol   string
+	Exchange string
+}
+
+func (q *Queries) DismissListing(ctx context.Context, arg DismissListingParams) error {
+	_, err := q.db.ExecContext(ctx, dismissListing, arg.Symbol, arg.Exchange)
+	return err
+}
+
 const endLive = `-- name: EndLive :exec
 UPDATE live_events SET status = 'ended', ended_at = COALESCE(ended_at, datetime('now')) WHERE id = ?
 `
@@ -2161,7 +2206,7 @@ func (q *Queries) GetSession(ctx context.Context, id string) (Session, error) {
 }
 
 const getStock = `-- name: GetStock :one
-SELECT id, symbol, name, market, sector, currency, is_active, created_at, history_fetched_at FROM stocks WHERE id = ?
+SELECT id, symbol, name, market, sector, currency, is_active, created_at, history_fetched_at, listing FROM stocks WHERE id = ?
 `
 
 func (q *Queries) GetStock(ctx context.Context, id int64) (Stock, error) {
@@ -2177,12 +2222,13 @@ func (q *Queries) GetStock(ctx context.Context, id int64) (Stock, error) {
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.HistoryFetchedAt,
+		&i.Listing,
 	)
 	return i, err
 }
 
 const getStockBySymbol = `-- name: GetStockBySymbol :one
-SELECT id, symbol, name, market, sector, currency, is_active, created_at, history_fetched_at FROM stocks WHERE symbol = ? AND market = ?
+SELECT id, symbol, name, market, sector, currency, is_active, created_at, history_fetched_at, listing FROM stocks WHERE symbol = ? AND market = ?
 `
 
 type GetStockBySymbolParams struct {
@@ -2203,6 +2249,7 @@ func (q *Queries) GetStockBySymbol(ctx context.Context, arg GetStockBySymbolPara
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.HistoryFetchedAt,
+		&i.Listing,
 	)
 	return i, err
 }
@@ -2684,8 +2731,8 @@ func (q *Queries) InsertReferralBonus(ctx context.Context, arg InsertReferralBon
 
 const insertStock = `-- name: InsertStock :exec
 
-INSERT OR IGNORE INTO stocks (symbol, name, market, sector, currency)
-VALUES (?, ?, ?, ?, ?)
+INSERT OR IGNORE INTO stocks (symbol, name, market, sector, currency, listing)
+VALUES (?, ?, ?, ?, ?, ?)
 `
 
 type InsertStockParams struct {
@@ -2694,6 +2741,7 @@ type InsertStockParams struct {
 	Market   string
 	Sector   string
 	Currency string
+	Listing  string
 }
 
 // =============================================================================
@@ -2706,6 +2754,7 @@ func (q *Queries) InsertStock(ctx context.Context, arg InsertStockParams) error 
 		arg.Market,
 		arg.Sector,
 		arg.Currency,
+		arg.Listing,
 	)
 	return err
 }
@@ -2789,6 +2838,33 @@ func (q *Queries) InsertTransaction(ctx context.Context, arg InsertTransactionPa
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const insertUSListing = `-- name: InsertUSListing :exec
+INSERT OR IGNORE INTO us_listings (symbol, exchange, name, type, first_seen, baseline)
+VALUES (?, ?, ?, ?, ?, ?)
+`
+
+type InsertUSListingParams struct {
+	Symbol    string
+	Exchange  string
+	Name      string
+	Type      string
+	FirstSeen string
+	Baseline  int64
+}
+
+// New symbols only: a known one keeps its first_seen.
+func (q *Queries) InsertUSListing(ctx context.Context, arg InsertUSListingParams) error {
+	_, err := q.db.ExecContext(ctx, insertUSListing,
+		arg.Symbol,
+		arg.Exchange,
+		arg.Name,
+		arg.Type,
+		arg.FirstSeen,
+		arg.Baseline,
+	)
+	return err
 }
 
 const inviteSentTo = `-- name: InviteSentTo :one
@@ -3149,6 +3225,33 @@ func (q *Queries) ListActivityFeed(ctx context.Context, arg ListActivityFeedPara
 	return items, nil
 }
 
+const listAdminIDs = `-- name: ListAdminIDs :many
+SELECT id FROM users WHERE is_admin = 1 AND deleted_at IS NULL AND blocked_at IS NULL
+`
+
+func (q *Queries) ListAdminIDs(ctx context.Context) ([]int64, error) {
+	rows, err := q.db.QueryContext(ctx, listAdminIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listAllActiveHoldings = `-- name: ListAllActiveHoldings :many
 SELECT h.id, h.participant_id, h.stock_id, h.quantity, h.avg_cost, h.current_value, h.updated_at, h.cost_basis, s.symbol, s.market, s.currency, p.game_id
 FROM holdings h
@@ -3378,7 +3481,7 @@ func (q *Queries) ListAllOpenOrders(ctx context.Context) ([]ListAllOpenOrdersRow
 }
 
 const listAllStocksByMarket = `-- name: ListAllStocksByMarket :many
-SELECT id, symbol, name, market, sector, currency, is_active, created_at, history_fetched_at FROM stocks
+SELECT id, symbol, name, market, sector, currency, is_active, created_at, history_fetched_at, listing FROM stocks
 WHERE is_active = 1 AND (market = ? OR ? = 'both')
 ORDER BY symbol ASC
 `
@@ -3407,6 +3510,7 @@ func (q *Queries) ListAllStocksByMarket(ctx context.Context, arg ListAllStocksBy
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.HistoryFetchedAt,
+			&i.Listing,
 		); err != nil {
 			return nil, err
 		}
@@ -4522,6 +4626,101 @@ func (q *Queries) ListLessons(ctx context.Context, arg ListLessonsParams) ([]Lis
 	return items, nil
 }
 
+const listListingsToAlert = `-- name: ListListingsToAlert :many
+SELECT l.symbol, l.exchange, l.name, l.market_cap FROM us_listings l
+WHERE l.baseline = 0 AND l.dismissed = 0 AND l.alerted_at IS NULL
+  AND l.market_cap >= ?1
+  AND NOT EXISTS (SELECT 1 FROM stocks s WHERE s.symbol = l.symbol AND s.market = 'sp500')
+ORDER BY l.market_cap DESC
+`
+
+type ListListingsToAlertRow struct {
+	Symbol    string
+	Exchange  string
+	Name      string
+	MarketCap int64
+}
+
+// New listings big enough to tell admins about, not yet told.
+func (q *Queries) ListListingsToAlert(ctx context.Context, minCap int64) ([]ListListingsToAlertRow, error) {
+	rows, err := q.db.QueryContext(ctx, listListingsToAlert, minCap)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListListingsToAlertRow
+	for rows.Next() {
+		var i ListListingsToAlertRow
+		if err := rows.Scan(
+			&i.Symbol,
+			&i.Exchange,
+			&i.Name,
+			&i.MarketCap,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listListingsToCheck = `-- name: ListListingsToCheck :many
+SELECT l.symbol, l.exchange, l.name, l.checks FROM us_listings l
+WHERE l.baseline = 0 AND l.dismissed = 0 AND l.market_cap = 0
+  AND l.checks < ?1 AND l.first_seen >= ?2
+  AND NOT EXISTS (SELECT 1 FROM stocks s WHERE s.symbol = l.symbol AND s.market = 'sp500')
+ORDER BY l.first_seen, l.symbol
+`
+
+type ListListingsToCheckParams struct {
+	MaxChecks int64
+	Since     string
+}
+
+type ListListingsToCheckRow struct {
+	Symbol   string
+	Exchange string
+	Name     string
+	Checks   int64
+}
+
+// New listings still waiting for a market cap: seen in the last 30 days,
+// not in the baseline, not dismissed, not already a stock, and checked
+// fewer than max_checks times.
+func (q *Queries) ListListingsToCheck(ctx context.Context, arg ListListingsToCheckParams) ([]ListListingsToCheckRow, error) {
+	rows, err := q.db.QueryContext(ctx, listListingsToCheck, arg.MaxChecks, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListListingsToCheckRow
+	for rows.Next() {
+		var i ListListingsToCheckRow
+		if err := rows.Scan(
+			&i.Symbol,
+			&i.Exchange,
+			&i.Name,
+			&i.Checks,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listLiveAnswered = `-- name: ListLiveAnswered :many
 SELECT q.id, q.title, q.answer_seconds FROM questions q
 WHERE q.live_event_id = ? AND q.hidden = 0
@@ -4852,6 +5051,60 @@ func (q *Queries) ListLobbyMessages(ctx context.Context, arg ListLobbyMessagesPa
 			&i.BlockedReason,
 			&i.UserName,
 			&i.AvatarPath,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listNewListings = `-- name: ListNewListings :many
+SELECT l.symbol, l.exchange, l.name, l.type, l.first_seen, l.market_cap, l.checks,
+       EXISTS (SELECT 1 FROM stocks s WHERE s.symbol = l.symbol AND s.market = 'sp500') AS added
+FROM us_listings l
+WHERE l.baseline = 0 AND l.dismissed = 0 AND l.first_seen >= ?1
+ORDER BY l.market_cap DESC, l.first_seen DESC, l.symbol
+LIMIT 100
+`
+
+type ListNewListingsRow struct {
+	Symbol    string
+	Exchange  string
+	Name      string
+	Type      string
+	FirstSeen string
+	MarketCap int64
+	Checks    int64
+	Added     bool
+}
+
+// New listings for /admin/stocks, biggest first, with whether each is
+// already a stock.
+func (q *Queries) ListNewListings(ctx context.Context, since string) ([]ListNewListingsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listNewListings, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListNewListingsRow
+	for rows.Next() {
+		var i ListNewListingsRow
+		if err := rows.Scan(
+			&i.Symbol,
+			&i.Exchange,
+			&i.Name,
+			&i.Type,
+			&i.FirstSeen,
+			&i.MarketCap,
+			&i.Checks,
+			&i.Added,
 		); err != nil {
 			return nil, err
 		}
@@ -5900,6 +6153,39 @@ func (q *Queries) ListStockLastDates(ctx context.Context, market string) ([]List
 	return items, nil
 }
 
+const listStockListings = `-- name: ListStockListings :many
+SELECT symbol, listing FROM stocks WHERE market = ?
+`
+
+type ListStockListingsRow struct {
+	Symbol  string
+	Listing string
+}
+
+// Which list each stock in a market is on, for market.LoadListings.
+func (q *Queries) ListStockListings(ctx context.Context, market string) ([]ListStockListingsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listStockListings, market)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListStockListingsRow
+	for rows.Next() {
+		var i ListStockListingsRow
+		if err := rows.Scan(&i.Symbol, &i.Listing); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listStockNews = `-- name: ListStockNews :many
 SELECT n.id, n.stock_id, n.headline, n.summary, n.source, n.url, n.published_at, n.created_at, n.shown, EXISTS (SELECT 1 FROM news_thumbs t WHERE t.news_id = n.id AND length(t.data) > 0) AS has_thumb
 FROM stock_news n WHERE n.stock_id = ? AND n.shown = 1
@@ -6044,7 +6330,7 @@ func (q *Queries) ListStockVideos(ctx context.Context, stockID int64) ([]Video, 
 }
 
 const listStocksNeedingProfile = `-- name: ListStocksNeedingProfile :many
-SELECT s.id, s.symbol, s.name, s.market, s.sector, s.currency, s.is_active, s.created_at, s.history_fetched_at FROM stocks s
+SELECT s.id, s.symbol, s.name, s.market, s.sector, s.currency, s.is_active, s.created_at, s.history_fetched_at, s.listing FROM stocks s
 LEFT JOIN stock_profiles p ON p.stock_id = s.id
 WHERE s.is_active = 1 AND s.market = ?
   AND (p.stock_id IS NULL OR p.updated_at < ?)
@@ -6076,6 +6362,7 @@ func (q *Queries) ListStocksNeedingProfile(ctx context.Context, arg ListStocksNe
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.HistoryFetchedAt,
+			&i.Listing,
 		); err != nil {
 			return nil, err
 		}
@@ -6091,7 +6378,7 @@ func (q *Queries) ListStocksNeedingProfile(ctx context.Context, arg ListStocksNe
 }
 
 const listStocksWithoutHistory = `-- name: ListStocksWithoutHistory :many
-SELECT id, symbol, name, market, sector, currency, is_active, created_at, history_fetched_at FROM stocks
+SELECT id, symbol, name, market, sector, currency, is_active, created_at, history_fetched_at, listing FROM stocks
 WHERE is_active = 1 AND market = ? AND history_fetched_at IS NULL
   AND id NOT IN (
     SELECT stock_id FROM stock_prices GROUP BY stock_id HAVING COUNT(*) >= 30
@@ -6124,6 +6411,7 @@ func (q *Queries) ListStocksWithoutHistory(ctx context.Context, market string) (
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.HistoryFetchedAt,
+			&i.Listing,
 		); err != nil {
 			return nil, err
 		}
@@ -7109,6 +7397,20 @@ func (q *Queries) MarkHistoryFetched(ctx context.Context, id int64) error {
 	return err
 }
 
+const markListingAlerted = `-- name: MarkListingAlerted :exec
+UPDATE us_listings SET alerted_at = datetime('now') WHERE symbol = ? AND exchange = ?
+`
+
+type MarkListingAlertedParams struct {
+	Symbol   string
+	Exchange string
+}
+
+func (q *Queries) MarkListingAlerted(ctx context.Context, arg MarkListingAlertedParams) error {
+	_, err := q.db.ExecContext(ctx, markListingAlerted, arg.Symbol, arg.Exchange)
+	return err
+}
+
 const markLiveAnnounced = `-- name: MarkLiveAnnounced :exec
 UPDATE live_events SET announced = 1 WHERE id = ?
 `
@@ -7476,6 +7778,60 @@ func (q *Queries) SaveNewsThumb(ctx context.Context, arg SaveNewsThumbParams) er
 	return err
 }
 
+const searchStocksAdmin = `-- name: SearchStocksAdmin :many
+SELECT id, symbol, name, sector, listing, is_active, created_at FROM stocks
+WHERE market = 'sp500' AND (
+  (CAST(?1 AS TEXT) != '' AND (symbol LIKE CAST(?1 AS TEXT) || '%' OR name LIKE '%' || CAST(?1 AS TEXT) || '%'))
+  OR (CAST(?1 AS TEXT) = '' AND (is_active = 0 OR listing != 'sp500'))
+)
+ORDER BY is_active ASC, created_at DESC, symbol ASC
+LIMIT 50
+`
+
+type SearchStocksAdminRow struct {
+	ID        int64
+	Symbol    string
+	Name      string
+	Sector    string
+	Listing   string
+	IsActive  int64
+	CreatedAt string
+}
+
+// Stocks for /admin/stocks, retired ones too: those whose symbol or name
+// matches, or with an empty search the retired and those outside the
+// S&P 500 list (where a new listing goes).
+func (q *Queries) SearchStocksAdmin(ctx context.Context, search string) ([]SearchStocksAdminRow, error) {
+	rows, err := q.db.QueryContext(ctx, searchStocksAdmin, search)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchStocksAdminRow
+	for rows.Next() {
+		var i SearchStocksAdminRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Symbol,
+			&i.Name,
+			&i.Sector,
+			&i.Listing,
+			&i.IsActive,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const searchVideos = `-- name: SearchVideos :many
 SELECT id, platform, external_id, url, embed_url, title, description, thumb_url, published_at, duration_seconds, vertical, live_status, was_live, view_count, hidden, featured, hide_stocks, classified_at, created_at FROM videos
 WHERE hidden = 0 AND live_status = ''
@@ -7620,6 +7976,23 @@ func (q *Queries) SetLastGame(ctx context.Context, arg SetLastGameParams) error 
 	return err
 }
 
+const setListingChecked = `-- name: SetListingChecked :exec
+UPDATE us_listings SET checks = checks + 1, market_cap = ?1
+WHERE symbol = ?2 AND exchange = ?3
+`
+
+type SetListingCheckedParams struct {
+	MarketCap int64
+	Symbol    string
+	Exchange  string
+}
+
+// One /statistics call made; market_cap stays 0 if it wasn't known yet.
+func (q *Queries) SetListingChecked(ctx context.Context, arg SetListingCheckedParams) error {
+	_, err := q.db.ExecContext(ctx, setListingChecked, arg.MarketCap, arg.Symbol, arg.Exchange)
+	return err
+}
+
 const setLiveRecording = `-- name: SetLiveRecording :exec
 UPDATE live_events SET video_id = ? WHERE id = ?
 `
@@ -7678,6 +8051,34 @@ type SetQuestionVideoParams struct {
 // Points the answer at a video, from a given second.
 func (q *Queries) SetQuestionVideo(ctx context.Context, arg SetQuestionVideoParams) error {
 	_, err := q.db.ExecContext(ctx, setQuestionVideo, arg.AnswerVideoID, arg.AnswerSeconds, arg.ID)
+	return err
+}
+
+const setStockActive = `-- name: SetStockActive :exec
+UPDATE stocks SET is_active = ? WHERE id = ?
+`
+
+type SetStockActiveParams struct {
+	IsActive int64
+	ID       int64
+}
+
+func (q *Queries) SetStockActive(ctx context.Context, arg SetStockActiveParams) error {
+	_, err := q.db.ExecContext(ctx, setStockActive, arg.IsActive, arg.ID)
+	return err
+}
+
+const setStockListing = `-- name: SetStockListing :exec
+UPDATE stocks SET listing = ? WHERE id = ?
+`
+
+type SetStockListingParams struct {
+	Listing string
+	ID      int64
+}
+
+func (q *Queries) SetStockListing(ctx context.Context, arg SetStockListingParams) error {
+	_, err := q.db.ExecContext(ctx, setStockListing, arg.Listing, arg.ID)
 	return err
 }
 

@@ -4,32 +4,28 @@ import (
 	"context"
 	"log/slog"
 	"strings"
+	"sync/atomic"
 
 	"github.com/exploded/game/internal/db"
 )
 
-// SeedStocks inserts S&P 500 constituents into the stocks table.
-// Uses INSERT OR IGNORE so it's safe to call on every startup.
+// SeedStocks inserts the seed lists below into the stocks table. Uses INSERT
+// OR IGNORE so it's safe to call on every startup, and never undoes an
+// admin's change at /admin/stocks (a retired stock stays retired, a changed
+// listing stays changed). Since 19 November 2026 the lists only fill a new
+// database: stocks are added, retired and moved between lists at
+// /admin/stocks.
 func SeedStocks(ctx context.Context, q *db.Queries) {
 	count := 0
-	for _, s := range SP500 {
-		q.InsertStock(ctx, db.InsertStockParams{
-			Symbol:   s.Symbol,
-			Name:     s.Name,
-			Market:   "sp500",
-			Sector:   s.Sector,
-			Currency: "USD",
-		})
-		count++
-	}
-	for _, list := range [][]StockInfo{AusUS, OtherUS, MoreUS} {
-		for _, s := range list {
+	for _, l := range seedLists {
+		for _, s := range l.stocks {
 			q.InsertStock(ctx, db.InsertStockParams{
 				Symbol:   s.Symbol,
 				Name:     s.Name,
 				Market:   "sp500",
 				Sector:   s.Sector,
 				Currency: "USD",
+				Listing:  l.listing,
 			})
 			count++
 		}
@@ -37,11 +33,90 @@ func SeedStocks(ctx context.Context, q *db.Queries) {
 	slog.Info("stocks seeded", "total", count)
 }
 
+// Listings: which list a stock in the sp500 market is on (stocks.listing).
+const (
+	ListingSP500 = "sp500" // in the S&P 500
+	ListingUS    = "us"    // other US companies, such as big new listings
+	ListingAus   = "aus"   // Australian companies listed in the US
+	ListingIntl  = "intl"  // other overseas companies listed in the US
+)
+
+// Listings are the lists in the order admins see them.
+var Listings = []struct{ Key, Label string }{
+	{ListingSP500, "S&P 500"},
+	{ListingUS, "Other US"},
+	{ListingAus, "Australian (US-listed)"},
+	{ListingIntl, "International (US-listed)"},
+}
+
+// ValidListing says whether l is one of Listings.
+func ValidListing(l string) bool {
+	for _, x := range Listings {
+		if x.Key == l {
+			return true
+		}
+	}
+	return false
+}
+
+// seedLists pairs each seed list with its listing.
+var seedLists = []struct {
+	listing string
+	stocks  []StockInfo
+}{
+	{ListingSP500, SP500}, {ListingAus, AusUS}, {ListingIntl, OtherUS}, {ListingUS, MoreUS},
+}
+
+// listings maps a symbol in the sp500 market to its listing. It starts as
+// the seed lists, so tests that never load the database still label stocks,
+// and LoadListings replaces it from stocks.listing.
+var listings atomic.Pointer[map[string]string]
+
+func init() { listings.Store(seedListingMap()) }
+
+// seedListingMap is each seed list's symbols mapped to its listing.
+func seedListingMap() *map[string]string {
+	m := map[string]string{}
+	for _, l := range seedLists {
+		for _, s := range l.stocks {
+			m[s.Symbol] = l.listing
+		}
+	}
+	return &m
+}
+
+// LoadListings reads every stock's listing from the database. Call it at
+// startup, after SeedStocks and the migrations, and after an admin adds a
+// stock or changes its listing.
+func LoadListings(ctx context.Context, q *db.Queries) error {
+	rows, err := q.ListStockListings(ctx, "sp500")
+	if err != nil {
+		return err
+	}
+	m := make(map[string]string, len(rows))
+	for _, r := range rows {
+		m[r.Symbol] = r.Listing
+	}
+	listings.Store(&m)
+	return nil
+}
+
+// listingOf is a stock's listing, or "" outside the sp500 market.
+func listingOf(symbol, market string) string {
+	if market != "sp500" {
+		return ""
+	}
+	return (*listings.Load())[symbol]
+}
+
 type StockInfo struct {
 	Symbol string
 	Name   string
 	Sector string
 }
+
+// The lists below seed a new database only (SeedStocks); admins add and
+// change stocks at /admin/stocks.
 
 // AusUS contains Australian companies that trade in the US, as shares or ADRs.
 // They stand in for ASX listings, which need a separate ASX data licence.
@@ -92,38 +167,26 @@ var MoreUS = []StockInfo{
 	{"SPCX", "SpaceX", "Industrials"},
 }
 
-var ausUSSymbols = symbolSet(AusUS)
-var otherUSSymbols = symbolSet(OtherUS)
-var moreUSSymbols = symbolSet(MoreUS)
-
-func symbolSet(list []StockInfo) map[string]bool {
-	m := make(map[string]bool, len(list))
-	for _, s := range list {
-		m[s.Symbol] = true
-	}
-	return m
-}
-
 // IsAusUS says whether a stock is one of the US-listed Australian companies.
 func IsAusUS(symbol, market string) bool {
-	return market == "sp500" && ausUSSymbols[symbol]
+	return listingOf(symbol, market) == ListingAus
 }
 
 // IsOtherUS says whether a stock is one of the US-listed overseas companies.
 func IsOtherUS(symbol, market string) bool {
-	return market == "sp500" && otherUSSymbols[symbol]
+	return listingOf(symbol, market) == ListingIntl
 }
 
-// MarketLabel is the market name shown to players for a stock. AusUS,
-// OtherUS and MoreUS stocks sit in the sp500 market but aren't in the index,
-// so they get "AU (US)", "INTL (US)" and "US".
+// MarketLabel is the market name shown to players for a stock. Stocks on
+// the aus, intl and us lists sit in the sp500 market but aren't in the
+// index, so they get "AU (US)", "INTL (US)" and "US".
 func MarketLabel(symbol, market string) string {
-	switch {
-	case IsAusUS(symbol, market):
+	switch listingOf(symbol, market) {
+	case ListingAus:
 		return "AU (US)"
-	case IsOtherUS(symbol, market):
+	case ListingIntl:
 		return "INTL (US)"
-	case market == "sp500" && moreUSSymbols[symbol]:
+	case ListingUS:
 		return "US"
 	}
 	return strings.ToUpper(market)

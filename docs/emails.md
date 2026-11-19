@@ -51,11 +51,15 @@ worked out but aren't written yet.
 | A2 | Welcome | First sign-in creates the account | Built |
 | A3 | Account deleted | User deletes their account on Settings | Built |
 | A4 | Invite from a friend | A player enters a friend's email under **Invite a friend** on a game's home page | Built |
+| A5 | New listing at S&P 500 size (admins only) | `market.CheckListings` finds a new NYSE or Nasdaq listing that has traded at a market cap of US$20 billion or more | Built |
 
 - **A1** has a link and a 6-digit code. The link suits someone reading on the
   same device. The code suits someone who reads email on their phone but plays
   on a laptop. Both expire after 15 minutes and work once.
 - **A2** explains how a game works and links to the dashboard and help.
+- **A5** goes only to admins, once per listing, after it has traded (nothing
+  before, so admins aren't emailed about IPOs that shrink or never happen).
+  It links to `/admin/stocks`, where they add or dismiss it.
 - **A4** goes to someone who isn't a user yet, so it has no settings
   unsubscribe link. It's sent once per address per game, only to addresses
   with no account, and each player can send one per game. It says who entered

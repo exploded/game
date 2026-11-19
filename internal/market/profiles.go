@@ -135,10 +135,16 @@ func logoLoads(ctx context.Context, u string) bool {
 // getJSON calls a Twelve Data endpoint that costs the given credits for one
 // symbol, and decodes the response into out.
 func (f *Fetcher) getJSON(ctx context.Context, endpoint string, cost int, symbol string, out any) error {
+	return f.getQuery(ctx, endpoint, cost, url.Values{"symbol": {symbol}}, out)
+}
+
+// getQuery calls a Twelve Data endpoint with the given query, costing the
+// given credits, and decodes the response into out.
+func (f *Fetcher) getQuery(ctx context.Context, endpoint string, cost int, query url.Values, out any) error {
 	if err := takeCredits(ctx, cost); err != nil {
 		return err
 	}
-	u := fmt.Sprintf("https://api.twelvedata.com/%s?symbol=%s", endpoint, url.QueryEscape(symbol))
+	u := fmt.Sprintf("https://api.twelvedata.com/%s?%s", endpoint, query.Encode())
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
 		return err
@@ -166,6 +172,8 @@ func (f *Fetcher) getJSON(ctx context.Context, endpoint string, cost int, symbol
 }
 
 type tdProfile struct {
+	Name        string `json:"name"`
+	Sector      string `json:"sector"`
 	Exchange    string `json:"exchange"`
 	Industry    string `json:"industry"`
 	Description string `json:"description"`

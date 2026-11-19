@@ -106,6 +106,9 @@ func main() {
 	if err := handler.RunSeedMigrations(rawDB); err != nil {
 		log.Fatalf("database: %v", err)
 	}
+	if err := market.LoadListings(context.Background(), queries); err != nil {
+		log.Fatalf("database: %v", err)
+	}
 	handler.SeedAchievements(context.Background(), queries)
 	handler.SeedAvatars(context.Background(), queries)
 
@@ -435,6 +438,11 @@ func main() {
 			r.Post("/users/{id}/admin", h.AdminToggle)
 			r.Post("/users/{id}/block", h.AdminBlockToggle)
 			r.Get("/prices", h.AdminPrices)
+			r.Get("/stocks", h.AdminStocks)
+			r.Post("/stocks", h.AdminStockAdd)
+			r.Post("/stocks/{sid}/active", h.AdminStockActive)
+			r.Post("/stocks/{sid}/listing", h.AdminStockListing)
+			r.Post("/stocks/listings/dismiss", h.AdminListingDismiss)
 			r.Get("/messages", h.AdminContactMessages)
 			r.Get("/email", h.AdminEmail)
 			r.Post("/email/optouts", h.AdminInviteOptoutAdd)

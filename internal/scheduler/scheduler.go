@@ -128,6 +128,7 @@ func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, 
 	}
 	maybeFetchQuotes(ctx, q, rawDB, now)
 	maybeCheckSplits(ctx, q, rawDB, now) // and dividends
+	maybeCheckListings(ctx, q, rawDB, m, now)
 	if utcNow.Minute()%15 == 0 {
 		go fetchRates(ctx, q, rawDB)
 	}
@@ -303,7 +304,13 @@ func maybeFetchPrices(ctx context.Context, q *db.Queries, rawDB *sql.DB, now tim
 		return
 	}
 	slog.Info("fetching S&P 500 prices")
-	market.NewFetcher(q, rawDB).FetchMarketOnly(q, "sp500")
+	f := market.NewFetcher(q, rawDB)
+	f.FetchMarketOnly(q, "sp500")
+	// A stock an admin added before its first trade has no history yet.
+	// Once it has traded, this fetches it; otherwise it's a quick query.
+	if err := f.Backfill(ctx, q); err != nil {
+		slog.Error("backfill after daily fetch", "error", err)
+	}
 	SignalPricesChanged()
 }
 

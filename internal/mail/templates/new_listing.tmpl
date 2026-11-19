@@ -1,0 +1,14 @@
+{{/* To admins. D has Listings (Symbol, Exchange, Name, MarketCap) and URL. */}}
+{{define "subject"}}{{if eq (len .D.Listings) 1}}{{with index .D.Listings 0}}New listing at S&P 500 size: {{.Name}} ({{.Symbol}}){{end}}{{else}}{{len .D.Listings}} new listings at S&P 500 size{{end}}{{end}}
+
+{{define "text"}}{{if eq (len .D.Listings) 1}}A new listing has traded at S&P 500 size:{{else}}These new listings have traded at S&P 500 size:{{end}}
+
+{{range .D.Listings}}{{.Name}} ({{.Symbol}}), {{.Exchange}}, market cap {{.MarketCap}}
+{{end}}
+It isn't in the share game yet. To add it, or to dismiss it, open the admin Stocks page:
+{{.BaseURL}}{{.D.URL}}{{end}}
+
+{{define "html"}}<p style="margin:0 0 16px;">{{if eq (len .D.Listings) 1}}A new listing has traded at S&amp;P 500 size:{{else}}These new listings have traded at S&amp;P 500 size:{{end}}</p>
+{{range .D.Listings}}<p style="margin:0 0 8px;"><strong>{{.Name}} ({{.Symbol}})</strong><br><span style="color:#6b7385;">{{.Exchange}} &middot; market cap {{.MarketCap}}</span></p>
+{{end}}<p style="margin:16px 0;">It isn't in the share game yet. To add it, or to dismiss it, open the admin Stocks page.</p>
+<p style="margin:8px 0 0;"><a href="{{.BaseURL}}{{.D.URL}}" style="display:inline-block;background:#002664;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:6px;">Open Stocks</a></p>{{end}}

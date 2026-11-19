@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	game "github.com/exploded/game"
+	"github.com/exploded/game/internal/market"
 	_ "modernc.org/sqlite"
 )
 
@@ -116,6 +117,7 @@ var addedColumns = []struct{ table, column, ddl string }{
 	{"courses", "vimeo_folder", "TEXT NOT NULL DEFAULT ''"},
 	{"courses", "vimeo_thumbs", "INTEGER NOT NULL DEFAULT 0"},
 	{"courses", "cover_version", "INTEGER NOT NULL DEFAULT 0"},
+	{"stocks", "listing", "TEXT NOT NULL DEFAULT 'sp500'"},
 }
 
 // onceMigrations run exactly once per database, in order. Each is recorded in
@@ -475,6 +477,28 @@ var seedMigrations = []struct{ name, stmt string }{
 	{"courses-2026-vimeo-folders", courses2026VimeoFolders},
 	// Rob's investment presentation, as an eleventh course.
 	{"import-investment-course", importInvestmentCourse},
+	// Until 19 November 2026 which list a stock was on came from the Go
+	// lists in internal/market/symbols.go; since then it's stocks.listing,
+	// which admins change at /admin/stocks.
+	{"stocks-listing", stockListingSQL()},
+}
+
+// stockListingSQL sets stocks.listing from market's seed lists, for
+// databases that had the stocks before the column.
+func stockListingSQL() string {
+	var b strings.Builder
+	for _, l := range []struct {
+		listing string
+		stocks  []market.StockInfo
+	}{{"aus", market.AusUS}, {"intl", market.OtherUS}, {"us", market.MoreUS}} {
+		syms := make([]string, len(l.stocks))
+		for i, s := range l.stocks {
+			syms[i] = "'" + strings.ReplaceAll(s.Symbol, "'", "''") + "'"
+		}
+		fmt.Fprintf(&b, "UPDATE stocks SET listing = '%s' WHERE market = 'sp500' AND symbol IN (%s);\n",
+			l.listing, strings.Join(syms, ", "))
+	}
+	return b.String()
 }
 
 // RunSeedMigrations applies seedMigrations. Call it after market.SeedStocks.

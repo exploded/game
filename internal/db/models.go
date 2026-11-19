@@ -380,6 +380,7 @@ type Stock struct {
 	IsActive         int64
 	CreatedAt        string
 	HistoryFetchedAt sql.NullString
+	Listing          string
 }
 
 type StockDividend struct {
@@ -520,6 +521,19 @@ type Transaction struct {
 	ExchangeRateUsed int64
 	Fee              int64
 	CreatedAt        string
+}
+
+type UsListing struct {
+	Symbol    string
+	Exchange  string
+	Name      string
+	Type      string
+	FirstSeen string
+	Baseline  int64
+	MarketCap int64
+	Checks    int64
+	AlertedAt sql.NullString
+	Dismissed int64
 }
 
 type User struct {

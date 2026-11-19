@@ -164,10 +164,33 @@ CREATE TABLE IF NOT EXISTS stocks (
     is_active  INTEGER NOT NULL DEFAULT 1,
     created_at TEXT    NOT NULL DEFAULT (datetime('now')),
     history_fetched_at TEXT DEFAULT NULL,       -- when the backfill saved its full history
+    -- Which list a stock in the sp500 market is on: 'sp500' (in the index),
+    -- 'us' (other US companies), 'aus' (Australian companies listed in the
+    -- US) or 'intl' (other overseas companies listed in the US). Admins
+    -- change it at /admin/stocks.
+    listing    TEXT    NOT NULL DEFAULT 'sp500',
     UNIQUE(symbol, market)
 );
 CREATE INDEX IF NOT EXISTS idx_stocks_market ON stocks(market, is_active);
 CREATE INDEX IF NOT EXISTS idx_stocks_symbol ON stocks(symbol);
+
+-- Every NYSE and Nasdaq stock in Twelve Data's /stocks list, so a symbol
+-- that wasn't there the day before shows up as a new listing
+-- (market.CheckListings). Rows are never deleted, so a symbol that drops out
+-- of the list and comes back isn't new again.
+CREATE TABLE IF NOT EXISTS us_listings (
+    symbol     TEXT    NOT NULL,
+    exchange   TEXT    NOT NULL,                -- 'NYSE' or 'NASDAQ'
+    name       TEXT    NOT NULL DEFAULT '',
+    type       TEXT    NOT NULL DEFAULT '',     -- 'Common Stock', 'American Depositary Receipt', ...
+    first_seen TEXT    NOT NULL,                -- New York date it first appeared
+    baseline   INTEGER NOT NULL DEFAULT 0,      -- 1 if in the first list loaded, so not new
+    market_cap INTEGER NOT NULL DEFAULT 0,      -- whole US dollars from /statistics, 0 until known
+    checks     INTEGER NOT NULL DEFAULT 0,      -- /statistics calls made for it
+    alerted_at TEXT    DEFAULT NULL,            -- when admins were emailed about it
+    dismissed  INTEGER NOT NULL DEFAULT 0,      -- an admin chose not to add it
+    PRIMARY KEY (symbol, exchange)
+);
 
 --------------------------------------------------------------------------------
 -- Daily Stock Prices (cents in native currency)

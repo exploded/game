@@ -1,0 +1,140 @@
+{{template "base" .}}
+
+{{define "content"}}
+{{with .Item}}
+<div class="page-header">
+    <h1>Stocks</h1>
+    <a href="/admin" class="btn btn-sm">&larr; Admin</a>
+</div>
+
+<p class="text-muted" style="margin-bottom:16px">Add a new listing, retire a stock that's been bought out or delisted, or move a stock between lists when S&amp;P changes the index. No deploy needed. Players see a change on the Stocks page within a minute.</p>
+
+<section class="section" id="add">
+    <h2>Add a stock</h2>
+    <div class="settings-card">
+        <form method="GET" action="/admin/stocks#add" class="btn-group" style="flex-wrap:wrap">
+            <label for="lookup" class="sr-only">Ticker</label>
+            <input type="text" id="lookup" name="lookup" value="{{.Lookup}}" placeholder="Ticker, such as ANT" required maxlength="10" autocapitalize="characters" autocomplete="off" style="flex:1;min-width:160px">
+            <button type="submit" class="btn btn-primary">Look up</button>
+        </form>
+
+        {{if .FoundErr}}<p class="text-red" style="margin:12px 0 0">{{.FoundErr}}</p>{{end}}
+
+        {{with .Existing}}
+        <p style="margin:12px 0 0"><strong>{{.Symbol}}</strong> ({{.Name}}) is already in the game{{if eq .IsActive 0}}, retired{{end}}. <a href="/admin/stocks?q={{.Symbol}}">Find it below</a>.</p>
+        {{end}}
+
+        {{with .Found}}
+        <form method="POST" action="/admin/stocks" style="margin-top:16px">
+            <input type="hidden" name="symbol" value="{{.Symbol}}">
+            <p style="margin:0 0 12px"><strong>{{.Symbol}}</strong> on the {{.Exchange}}{{if ne .Type "Common Stock"}} &middot; {{.Type}}{{end}}</p>
+            <div class="form-group">
+                <label for="add-name">Name players see</label>
+                <input type="text" id="add-name" name="name" value="{{.Name}}" maxlength="120" required>
+                <p class="text-muted" style="font-size:12px;margin-top:4px">Twelve Data's name. Shorten it if it's long, as with &ldquo;SpaceX&rdquo;.</p>
+            </div>
+            <div class="form-group">
+                <label for="add-sector">Sector</label>
+                <select id="add-sector" name="sector" required>
+                    {{if not .Sector}}<option value="">Pick one (Twelve Data has no profile until it trades)</option>{{end}}
+                    {{$sector := .Sector}}
+                    {{range $.Item.Sectors}}<option value="{{.}}"{{if eq . $sector}} selected{{end}}>{{.}}</option>{{end}}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="add-listing">List</label>
+                <select id="add-listing" name="listing" required>
+                    {{range $.Item.Listings}}<option value="{{.Key}}"{{if eq .Key "us"}} selected{{end}}>{{.Label}}</option>{{end}}
+                </select>
+                <p class="text-muted" style="font-size:12px;margin-top:4px">A new listing isn't in the S&amp;P 500 until S&amp;P adds it, usually a year or more later. Use Other US until then.</p>
+            </div>
+            <button type="submit" class="btn btn-primary">Add {{.Symbol}}</button>
+        </form>
+        {{end}}
+    </div>
+</section>
+
+<section class="section" id="new">
+    <h2>New listings</h2>
+    <p class="text-muted" style="margin-bottom:12px">Each weekday morning the site checks Twelve Data's NYSE and Nasdaq lists for stocks that weren't there before, and looks up each one's market cap once it trades. Admins get an email about any at {{.SPSize}} or more (about the smallest S&amp;P 500 company). The last 60 days are below, biggest first.</p>
+    {{if .New}}
+    <table class="rtable">
+        <thead>
+            <tr><th>Stock</th><th>Exchange</th><th>First seen</th><th>Market cap</th><th></th></tr>
+        </thead>
+        <tbody>
+            {{range .New}}
+            <tr>
+                <td class="c-main"><strong>{{.Symbol}}</strong>{{if .SPSize}} <span class="badge badge-active">S&amp;P size</span>{{end}}<span class="c-sub">{{.Name}}</span></td>
+                <td data-label="Exchange">{{.Exchange}}</td>
+                <td data-label="First seen">{{longDate .FirstSeen}}</td>
+                <td data-label="Market cap">{{if .Cap}}{{.Cap}}{{else if ge .Checks 15}}<span class="text-muted">Never found</span>{{else}}<span class="text-muted">Not trading yet</span>{{end}}</td>
+                <td class="c-action" style="white-space:nowrap">
+                    {{if .Added}}
+                    <span class="badge badge-held">In the game</span>
+                    {{else}}
+                    <a href="/admin/stocks?lookup={{.Symbol}}#add" class="btn btn-sm btn-primary">Add</a>
+                    <form method="POST" action="/admin/stocks/listings/dismiss" style="display:inline">
+                        <input type="hidden" name="symbol" value="{{.Symbol}}">
+                        <input type="hidden" name="exchange" value="{{.Exchange}}">
+                        <button type="submit" class="btn btn-sm">Dismiss</button>
+                    </form>
+                    {{end}}
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+    {{else}}
+    <p class="text-muted">None yet. The first check only records what's already listed.</p>
+    {{end}}
+</section>
+
+<section class="section" id="stocks">
+    <h2>Stocks in the game</h2>
+    <form method="GET" action="/admin/stocks#stocks" class="btn-group" style="flex-wrap:wrap;margin-bottom:12px">
+        <label for="q" class="sr-only">Search</label>
+        <input type="search" id="q" name="q" value="{{.Search}}" placeholder="Symbol or name" style="flex:1;min-width:160px">
+        <button type="submit" class="btn">Search</button>
+    </form>
+    {{if not .Search}}<p class="text-muted" style="margin-bottom:12px">Retired stocks, and those on a list other than the S&amp;P 500 (where new listings go). Search to find any other.</p>{{end}}
+    {{if .Stocks}}
+    <table class="rtable">
+        <thead>
+            <tr><th>Stock</th><th>Sector</th><th>List</th><th></th></tr>
+        </thead>
+        <tbody>
+            {{range .Stocks}}
+            <tr>
+                <td class="c-main"><strong>{{.Symbol}}</strong>{{if eq .IsActive 0}} <span class="badge badge-cancelled">Retired</span>{{end}}<span class="c-sub">{{.Name}}</span></td>
+                <td data-label="Sector">{{.Sector}}</td>
+                <td data-label="List">
+                    <form method="POST" action="/admin/stocks/{{.ID}}/listing">
+                        <input type="hidden" name="q" value="{{$.Item.Search}}">
+                        <label for="listing-{{.ID}}" class="sr-only">List for {{.Symbol}}</label>
+                        {{$listing := .Listing}}
+                        <select id="listing-{{.ID}}" name="listing" data-autosubmit>
+                            {{range $.Item.Listings}}<option value="{{.Key}}"{{if eq .Key $listing}} selected{{end}}>{{.Label}}</option>{{end}}
+                        </select>
+                    </form>
+                </td>
+                <td class="c-action" style="white-space:nowrap">
+                    <form method="POST" action="/admin/stocks/{{.ID}}/active">
+                        <input type="hidden" name="q" value="{{$.Item.Search}}">
+                        {{if eq .IsActive 1}}
+                        <button type="submit" class="btn btn-sm btn-danger" data-confirm="Retire {{.Symbol}}? Players won't be able to find or trade it. It can't be retired while anyone holds it.">Retire</button>
+                        {{else}}
+                        <button type="submit" class="btn btn-sm">Bring back</button>
+                        {{end}}
+                    </form>
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+    {{else}}
+    <p class="text-muted">{{if .Search}}No stock matches &ldquo;{{.Search}}&rdquo;.{{else}}No stocks retired or outside the S&amp;P 500.{{end}}</p>
+    {{end}}
+</section>
+{{end}}
+{{end}}

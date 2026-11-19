@@ -325,8 +325,37 @@ UPDATE participants SET portfolio_value = ? WHERE id = ?;
 -- =============================================================================
 
 -- name: InsertStock :exec
-INSERT OR IGNORE INTO stocks (symbol, name, market, sector, currency)
-VALUES (?, ?, ?, ?, ?);
+INSERT OR IGNORE INTO stocks (symbol, name, market, sector, currency, listing)
+VALUES (?, ?, ?, ?, ?, ?);
+
+-- name: ListStockListings :many
+-- Which list each stock in a market is on, for market.LoadListings.
+SELECT symbol, listing FROM stocks WHERE market = ?;
+
+-- name: SearchStocksAdmin :many
+-- Stocks for /admin/stocks, retired ones too: those whose symbol or name
+-- matches, or with an empty search the retired and those outside the
+-- S&P 500 list (where a new listing goes).
+SELECT id, symbol, name, sector, listing, is_active, created_at FROM stocks
+WHERE market = 'sp500' AND (
+  (CAST(@search AS TEXT) != '' AND (symbol LIKE CAST(@search AS TEXT) || '%' OR name LIKE '%' || CAST(@search AS TEXT) || '%'))
+  OR (CAST(@search AS TEXT) = '' AND (is_active = 0 OR listing != 'sp500'))
+)
+ORDER BY is_active ASC, created_at DESC, symbol ASC
+LIMIT 50;
+
+-- name: SetStockActive :exec
+UPDATE stocks SET is_active = ? WHERE id = ?;
+
+-- name: SetStockListing :exec
+UPDATE stocks SET listing = ? WHERE id = ?;
+
+-- name: CountStockExposure :one
+-- Holdings and open orders in a stock, in any game: a stock is retired
+-- only when both are 0, or it would sit at its last price.
+SELECT
+  (SELECT COUNT(*) FROM holdings h WHERE h.stock_id = @stock_id AND h.quantity != 0) AS holders,
+  (SELECT COUNT(*) FROM limit_orders o WHERE o.stock_id = @stock_id AND o.status = 'open') AS orders;
 
 -- name: GetStock :one
 SELECT * FROM stocks WHERE id = ?;
@@ -1785,3 +1814,53 @@ SELECT event_id FROM live_reminders WHERE user_id = ?;
 
 -- name: ListLiveReminderUserIDs :many
 SELECT user_id FROM live_reminders WHERE event_id = ?;
+
+-- name: CountUSListings :one
+SELECT COUNT(*) FROM us_listings;
+
+-- name: InsertUSListing :exec
+-- New symbols only: a known one keeps its first_seen.
+INSERT OR IGNORE INTO us_listings (symbol, exchange, name, type, first_seen, baseline)
+VALUES (?, ?, ?, ?, ?, ?);
+
+-- name: ListListingsToCheck :many
+-- New listings still waiting for a market cap: seen in the last 30 days,
+-- not in the baseline, not dismissed, not already a stock, and checked
+-- fewer than max_checks times.
+SELECT l.symbol, l.exchange, l.name, l.checks FROM us_listings l
+WHERE l.baseline = 0 AND l.dismissed = 0 AND l.market_cap = 0
+  AND l.checks < @max_checks AND l.first_seen >= @since
+  AND NOT EXISTS (SELECT 1 FROM stocks s WHERE s.symbol = l.symbol AND s.market = 'sp500')
+ORDER BY l.first_seen, l.symbol;
+
+-- name: SetListingChecked :exec
+-- One /statistics call made; market_cap stays 0 if it wasn't known yet.
+UPDATE us_listings SET checks = checks + 1, market_cap = @market_cap
+WHERE symbol = @symbol AND exchange = @exchange;
+
+-- name: ListListingsToAlert :many
+-- New listings big enough to tell admins about, not yet told.
+SELECT l.symbol, l.exchange, l.name, l.market_cap FROM us_listings l
+WHERE l.baseline = 0 AND l.dismissed = 0 AND l.alerted_at IS NULL
+  AND l.market_cap >= @min_cap
+  AND NOT EXISTS (SELECT 1 FROM stocks s WHERE s.symbol = l.symbol AND s.market = 'sp500')
+ORDER BY l.market_cap DESC;
+
+-- name: MarkListingAlerted :exec
+UPDATE us_listings SET alerted_at = datetime('now') WHERE symbol = ? AND exchange = ?;
+
+-- name: DismissListing :exec
+UPDATE us_listings SET dismissed = 1 WHERE symbol = ? AND exchange = ?;
+
+-- name: ListNewListings :many
+-- New listings for /admin/stocks, biggest first, with whether each is
+-- already a stock.
+SELECT l.symbol, l.exchange, l.name, l.type, l.first_seen, l.market_cap, l.checks,
+       EXISTS (SELECT 1 FROM stocks s WHERE s.symbol = l.symbol AND s.market = 'sp500') AS added
+FROM us_listings l
+WHERE l.baseline = 0 AND l.dismissed = 0 AND l.first_seen >= @since
+ORDER BY l.market_cap DESC, l.first_seen DESC, l.symbol
+LIMIT 100;
+
+-- name: ListAdminIDs :many
+SELECT id FROM users WHERE is_admin = 1 AND deleted_at IS NULL AND blocked_at IS NULL;
