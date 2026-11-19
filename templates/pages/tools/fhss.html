@@ -1,0 +1,200 @@
+{{template "base" .}}
+
+{{define "content"}}
+{{/* Rob's First Home Super Saver Calculator spreadsheet (CPW_FHSS_Calculator_v2,
+     November 2026) as a page, in his three steps. As on the other
+     calculators, the inputs have no form and no names (the radio group's
+     name only groups it): fhss.js does the sums in the browser. It uses the
+     shared .mcalc styles plus .hcalc. */}}
+<div class="mcalc hcalc" data-hcalc>
+    <header class="mcalc-head">
+        <p class="tools-back"><a href="/tools">&larr; Calculators</a></p>
+        <h1>First Home Super Saver Calculator</h1>
+        <p class="mcalc-lead">See how saving through super could help build your first-home deposit.</p>
+    </header>
+
+    <div class="mcalc-grid hc-grid">
+        <div class="hc-steps">
+            <section class="mcalc-card" aria-labelledby="hc-step1">
+                <h2 class="mcalc-kicker" id="hc-step1"><span class="hc-step">1</span>About you</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="hc-salary">Your yearly salary (before tax)</label>
+                        <div class="mcalc-field"><span class="mcalc-unit">$</span><input id="hc-salary" type="text" inputmode="numeric" autocomplete="off" value="100,000" data-hc="salary" data-money></div>
+                        <p class="hc-hint">Before any salary sacrifice. Don&rsquo;t include super.</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="hc-sg">Your employer super rate</label>
+                        <div class="mcalc-field"><input id="hc-sg" type="text" inputmode="decimal" autocomplete="off" value="12.0" data-hc="sg"><span class="mcalc-unit mcalc-unit-end">%</span></div>
+                        <p class="hc-hint">Usually 12%. Change it if your employer pays more.</p>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="hc-payrise">Expected pay rise each year</label>
+                        <div class="mcalc-field"><input id="hc-payrise" type="text" inputmode="decimal" autocomplete="off" value="3.0" data-hc="payrise"><span class="mcalc-unit mcalc-unit-end">%</span></div>
+                        <p class="hc-hint">Only used for your tax rate in the year you withdraw.</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="hc-already">FHSS amounts already contributed</label>
+                        <div class="mcalc-field"><span class="mcalc-unit">$</span><input id="hc-already" type="text" inputmode="numeric" autocomplete="off" value="0" data-hc="already" data-money></div>
+                        <p class="hc-hint">From earlier years. They use up the limits, but the results count only the amounts you plan below.</p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <span class="mcalc-label" id="hc-years-label">Years until you plan to buy</span>
+                    <div class="mcalc-seg hc-seg-6" role="radiogroup" aria-labelledby="hc-years-label">
+                        <label><input type="radio" name="hc-years" value="1" data-hc="years"><span>1</span></label>
+                        <label><input type="radio" name="hc-years" value="2" data-hc="years"><span>2</span></label>
+                        <label><input type="radio" name="hc-years" value="3" data-hc="years"><span>3</span></label>
+                        <label><input type="radio" name="hc-years" value="4" data-hc="years"><span>4</span></label>
+                        <label><input type="radio" name="hc-years" value="5" data-hc="years"><span>5</span></label>
+                        <label><input type="radio" name="hc-years" value="6" data-hc="years" checked><span>6</span></label>
+                    </div>
+                    <p class="hc-hint">Year 1 is 2026&ndash;27. You&rsquo;d withdraw and buy in <strong data-out="buy-year">2031&ndash;32</strong>.</p>
+                </div>
+
+                <h2 class="mcalc-kicker mcalc-kicker-gap">Model assumptions</h2>
+                <p class="mcalc-note hc-assume-note">Change any of these. &ldquo;About this calculator&rdquo; below explains each default.</p>
+                <div class="form-row hc-row-3">
+                    <div class="form-group">
+                        <label for="hc-earn">FHSS earnings rate</label>
+                        <div class="mcalc-field"><input id="hc-earn" type="text" inputmode="decimal" autocomplete="off" value="7.51" data-hc="earn"><span class="mcalc-unit mcalc-unit-end">%</span></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="hc-bank">Bank interest rate</label>
+                        <div class="mcalc-field"><input id="hc-bank" type="text" inputmode="decimal" autocomplete="off" value="4.5" data-hc="bank"><span class="mcalc-unit mcalc-unit-end">%</span></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="hc-inflation">Inflation, for today&rsquo;s dollars</label>
+                        <div class="mcalc-field"><input id="hc-inflation" type="text" inputmode="decimal" autocomplete="off" value="2.5" data-hc="inflation"><span class="mcalc-unit mcalc-unit-end">%</span></div>
+                    </div>
+                </div>
+                <p class="mcalc-error" data-out="error" hidden></p>
+            </section>
+
+            <section class="mcalc-card" aria-labelledby="hc-step2">
+                <h2 class="mcalc-kicker" id="hc-step2"><span class="hc-step">2</span>Plan your extra super contributions</h2>
+                <p class="hc-intro">Enter what you&rsquo;d like to add to super each year through salary sacrifice or personal contributions you claim a tax deduction for. &ldquo;Most you can add&rdquo; is the highest amount allowed that year after your employer&rsquo;s super. You can&rsquo;t go over $15,000 a year or $50,000 in total.</p>
+                <div class="hc-years" role="table" aria-label="Your FHSS contributions by financial year">
+                    <div class="hc-yrow hc-yhead" role="row">
+                        <span role="columnheader">Financial year</span>
+                        <span role="columnheader">Employer super</span>
+                        <span role="columnheader">Most you can add</span>
+                        <span role="columnheader">Your FHSS contribution</span>
+                    </div>
+                    {{range $i, $c := index .Extra "Years"}}
+                    <div class="hc-yrow" role="row" data-hc-year>
+                        <span class="hc-fy" role="rowheader">{{$c.FY}}</span>
+                        <span role="cell"><span class="hc-cell-label">Employer super</span><span data-hc-employer>&ndash;</span></span>
+                        <span role="cell"><span class="hc-cell-label">Most you can add</span><span data-hc-most>&ndash;</span></span>
+                        <span role="cell" class="hc-input-cell"><span class="hc-cell-label" aria-hidden="true">Your FHSS contribution</span><span class="mcalc-field"><span class="mcalc-unit">$</span><input id="hc-year-{{$i}}" type="text" inputmode="numeric" autocomplete="off" value="{{$c.Amount}}" aria-label="Your FHSS contribution in {{$c.FY}}" data-hc-contrib data-money></span></span>
+                        <span class="hc-check" role="cell" data-hc-check hidden></span>
+                    </div>
+                    {{end}}
+                </div>
+                <p class="hc-yrow hc-yfoot">
+                    <span>Total entered <strong data-out="total-entered">&ndash;</strong></span>
+                    <span>Counted <strong data-out="total-counted">&ndash;</strong></span>
+                    <span>FHSS limit left <strong data-out="left">&ndash;</strong> of $50,000</span>
+                </p>
+                <button type="button" class="btn btn-secondary btn-sm hc-fill" data-hc-fill>Fill with the most allowed each year</button>
+            </section>
+        </div>
+
+        <section class="mcalc-results hc-results" aria-labelledby="hc-step3" aria-live="polite">
+            <h2 class="mcalc-kicker hc-results-title" id="hc-step3"><span class="hc-step">3</span>Your estimated results</h2>
+            <div class="mcalc-card mcalc-big">
+                <p class="mcalc-kicker">Your estimated FHSS deposit</p>
+                <div class="mcalc-big-value" data-out="deposit">&ndash;</div>
+                <p class="mcalc-note" data-out="deposit-real"></p>
+                <dl class="mcalc-sums hc-sums">
+                    <div><dt>Contributions counted for FHSS</dt><dd data-out="counted">&ndash;</dd></div>
+                    <div><dt>85% you can release (after 15% contributions tax)</dt><dd data-out="releasable">&ndash;</dd></div>
+                    <div><dt>Estimated associated earnings</dt><dd data-out="earnings">&ndash;</dd></div>
+                    <div><dt>Estimated tax when released (after the 30% offset)</dt><dd data-out="tax">&ndash;</dd></div>
+                    <div><dt>Your estimated FHSS deposit</dt><dd data-out="sum">&ndash;</dd></div>
+                </dl>
+            </div>
+            <div class="hc-tiles">
+                <div class="mcalc-card mcalc-tile">
+                    <p class="mcalc-kicker">Saving the same in a bank</p>
+                    <div class="mcalc-tile-value" data-out="bank">&ndash;</div>
+                    <p class="mcalc-note" data-out="bank-real"></p>
+                </div>
+                <div class="mcalc-card mcalc-tile">
+                    <p class="mcalc-kicker" data-out="extra-label">Extra deposit using FHSS</p>
+                    <div class="mcalc-tile-value" data-out="extra">&ndash;</div>
+                    <p class="mcalc-note" data-out="extra-real"></p>
+                </div>
+            </div>
+            <p class="mcalc-banner hc-banner" data-out="banner">&nbsp;</p>
+            <dl class="hc-buy">
+                <div><dt>Your estimated salary in the year you buy</dt><dd data-out="buy-salary">&ndash;</dd></div>
+                <div><dt>Your marginal tax rate then, with the Medicare levy</dt><dd data-out="buy-rate">&ndash;</dd></div>
+            </dl>
+        </section>
+    </div>
+
+    <section class="mcalc-card mcalc-chart-card" aria-labelledby="hc-glance-title">
+        <h2 class="mcalc-kicker" id="hc-glance-title">Your deposit at a glance</h2>
+        <div class="hc-bars" aria-hidden="true">
+            <div class="hc-bar-row">
+                <span class="hc-bar-name">Using FHSS</span>
+                <div class="hc-bar"><span class="hc-seg hc-seg-in" data-out="bar-fhss-in"></span><span class="hc-seg hc-seg-grow" data-out="bar-fhss-grow"></span><strong class="hc-bar-total" data-out="bar-fhss-total"></strong></div>
+            </div>
+            <div class="hc-bar-row">
+                <span class="hc-bar-name">Saving in a bank</span>
+                <div class="hc-bar"><span class="hc-seg hc-seg-in" data-out="bar-bank-in"></span><span class="hc-seg hc-seg-grow" data-out="bar-bank-grow"></span><strong class="hc-bar-total" data-out="bar-bank-total"></strong></div>
+            </div>
+        </div>
+        <table class="hc-glance">
+            <thead><tr><th scope="col"><span class="sr-only">Part</span></th><th scope="col">Using FHSS</th><th scope="col">Saving in a bank</th></tr></thead>
+            <tbody>
+                <tr><th scope="row"><span class="mcalc-swatch hc-sw-in"></span>Goes in</th><td data-out="glance-fhss-in">&ndash;</td><td data-out="glance-bank-in">&ndash;</td></tr>
+                <tr><th scope="row"><span class="mcalc-swatch hc-sw-grow"></span>Grows by</th><td data-out="glance-fhss-grow">&ndash;</td><td data-out="glance-bank-grow">&ndash;</td></tr>
+                <tr class="hc-glance-total"><th scope="row">Your deposit</th><td data-out="bar-fhss-total-2"></td><td data-out="bar-bank-total-2"></td></tr>
+            </tbody>
+        </table>
+        <p class="mcalc-note">Your contributions go into super taxed at 15%, so 85% of them can come out. Saved in a bank, the same pay is taxed at your marginal rate first. FHSS growth is the earnings less tax when they&rsquo;re released; bank growth is interest after tax.</p>
+    </section>
+</div>
+
+<section class="calc-about" aria-labelledby="about-title">
+    <h2 id="about-title">About this calculator</h2>
+    <h3>What it&rsquo;s for</h3>
+    <p>The First Home Super Saver (FHSS) scheme lets you save for your first home inside super, where contributions are usually taxed at 15% instead of your marginal rate. This calculator estimates the deposit you could withdraw from extra before-tax contributions over up to 6 years, and compares it with saving the same take-home pay in a bank account. It&rsquo;s an estimate to help you understand the scheme, not the amount the ATO will release.</p>
+    <h3>How it works</h3>
+    <ul>
+        <li>It looks at before-tax contributions only: salary sacrifice, and personal contributions you claim a tax deduction for. Your employer&rsquo;s compulsory super doesn&rsquo;t count towards FHSS.</li>
+        <li>Your employer&rsquo;s super is worked out on your salary before salary sacrifice, and counts towards the $32,500 before-tax cap.</li>
+        <li>Up to $15,000 a year and $50,000 in total can be counted. You can release 85% of these contributions, plus associated earnings. Amounts over a limit aren&rsquo;t counted.</li>
+        <li>Associated earnings are estimated at the earnings rate, assuming each year&rsquo;s contributions are made evenly through the year and released at the end of the year you buy.</li>
+        <li>When released, the 85% and the earnings are taxed at your marginal rate (with the Medicare levy), less a 30% offset. Your marginal rate is worked out on your salary in the year you buy, grown by your pay rise.</li>
+        <li>The bank comparison saves the same drop in take-home pay each year, with interest taxed at your marginal rate.</li>
+        <li>Contribution limits and employer super use your current salary every year.</li>
+    </ul>
+    <h3>What it leaves out, and what that means</h3>
+    <ul>
+        <li><strong>After-tax contributions.</strong> Personal contributions you don&rsquo;t claim a deduction for can also count, and 100% of them can be released. They aren&rsquo;t included.</li>
+        <li><strong>Amounts you&rsquo;ve already contributed.</strong> They reduce the limits left, but what they&rsquo;d add to your deposit isn&rsquo;t included.</li>
+        <li><strong>Carry-forward of unused cap.</strong> If your super balance is under $500,000, you may be able to contribute more before tax using unused cap from earlier years. The calculator uses the $32,500 cap each year.</li>
+        <li><strong>Other tax.</strong> Division 293 tax (for incomes over $250,000), HELP repayments, low-income offsets, the Medicare levy surcharge and your other income aren&rsquo;t included. The released amount could also push some of your income into a higher tax bracket.</li>
+        <li><strong>Changes to tax rates and caps.</strong> 2026&ndash;27 tax rates and caps are used for every year. The 15% tax rate is legislated to fall to 14% from 1 July 2027, and caps rise with wages from time to time.</li>
+        <li><strong>Fees, insurance and investment returns.</strong> FHSS earnings are worked out by the ATO at a set rate, whatever your super fund earns, so fund fees and returns don&rsquo;t change the amount released. They do change your super balance.</li>
+        <li><strong>Eligibility.</strong> You must meet the scheme&rsquo;s conditions, and you must ask the ATO for an FHSS determination before you sign a contract to buy or build, or within 14 days of signing.</li>
+    </ul>
+    <h3>Assumptions, and why we use them</h3>
+    <dl class="calc-assume">
+        <div><dt>FHSS earnings rate <span>7.51% a year &middot; you can change it</span></dt><dd>The ATO works out associated earnings at the shortfall interest charge rate, which it updates each quarter. 7.51% is the rate for October to December 2026. Future rates may be higher or lower.</dd></div>
+        <div><dt>Bank interest rate <span>4.5% a year &middot; you can change it</span></dt><dd>A rate a high-interest savings account might pay. Interest is taxed at your marginal rate each year.</dd></div>
+        <div><dt>Inflation, for today&rsquo;s dollars <span>2.5% a year &middot; you can change it</span></dt><dd>Results are in future dollars. Each is also shown in today&rsquo;s dollars, discounted by this rate for the years until you buy. 2.5% is the middle of the Reserve Bank of Australia&rsquo;s 2&ndash;3% target, and ASIC&rsquo;s default for calculators.</dd></div>
+        <div><dt>Employer super rate <span>12% &middot; you can change it</span></dt><dd>The super guarantee rate since 1 July 2025. Some employers pay more.</dd></div>
+        <div><dt>Pay rise <span>3% a year &middot; you can change it</span></dt><dd>A common rate of wage growth. It&rsquo;s only used to estimate your salary, and so your tax rate, in the year you withdraw.</dd></div>
+        <div><dt>Limits and tax rates <span>Set by law</span></dt><dd>The $32,500 before-tax cap, $15,000 yearly and $50,000 total FHSS limits, 85% release, 30% offset, 2026&ndash;27 resident tax rates and the 2% Medicare levy, applied in full.</dd></div>
+    </dl>
+    {{template "calc-important" .}}
+</section>
+{{template "calc-device" .}}
+<script src="{{asset "js/fhss.js"}}"></script>
+{{end}}

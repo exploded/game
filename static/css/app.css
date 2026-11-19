@@ -2189,6 +2189,84 @@ polyline.scalc-line20, polyline.scalc-line30, polyline.scalc-line40 { fill: none
     .scalc-real { grid-column: 1 / -1; }
 }
 
+/* First Home Super Saver (/tools/fhss, .hcalc, fhss.js): Rob's three steps.
+   Steps 1 and 2 on the left, results on the right, held in view while the
+   plan scrolls. The bars' blue and green pass the dataviz palette checks on
+   the dark surface. */
+.hcalc { --hc-in: #3F8FE0; --hc-grow: #2EAD6C; }
+.hcalc [hidden] { display: none !important; }
+.hc-grid { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+.hc-steps { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.hc-step { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: 8px; border-radius: 50%; background: #007994; color: #fff; font-size: 11px; letter-spacing: 0; vertical-align: 1px; }
+.hc-hint { margin-top: 4px; color: var(--color-text-muted); font-size: 12px; line-height: 1.45; }
+.hc-hint strong { color: var(--color-text); font-weight: 600; }
+.hc-assume-note { margin: -6px 0 12px; }
+.mcalc-seg.hc-seg-6 { grid-template-columns: repeat(6, 1fr); }
+.hc-intro { margin-bottom: 12px; color: #C9CCD6; font-size: 13.5px; line-height: 1.55; }
+.hc-yrow { display: grid; grid-template-columns: 1fr 1fr 1fr 1.4fr; gap: 4px 12px; align-items: center; padding: 8px 0; border-top: 1px solid var(--color-border); font-variant-numeric: tabular-nums; font-size: 14px; }
+.hc-yhead { padding-top: 0; border-top: 0; color: var(--color-text-muted); font-size: 11px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; align-items: end; }
+.hc-fy { font-weight: 600; }
+.hc-cell-label { display: none; }
+.hcalc .hc-input-cell .mcalc-field { height: 40px; }
+.hcalc .hc-input-cell input { color: var(--color-text); }
+.hcalc .hc-row-3 { align-items: flex-end; }
+.hc-check { grid-column: 1 / -1; padding: 6px 10px; border-radius: 8px; background: rgba(240, 82, 82, 0.1); color: #F59393; font-size: 12.5px; }
+.hc-check::before { content: "\2717  "; }
+.hc-row-bad .mcalc-field { border-color: rgba(240, 82, 82, 0.6); }
+.hc-yfoot { display: flex; flex-wrap: wrap; gap: 4px 20px; color: var(--color-text-muted); font-size: 13px; }
+.hc-yfoot strong { color: var(--color-text); }
+.hc-fill { margin-top: 12px; }
+.hc-results { position: sticky; top: 76px; }
+.hc-results-title { margin: 0; }
+.hc-sums { margin-top: 14px; font-size: 13.5px; }
+.hc-sums > div:last-child dd { color: var(--mc-green); }
+.hc-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.hcalc .hc-banner { font-size: 14px; font-weight: 500; }
+.hc-banner::before { content: "\2713  "; }
+.hcalc .hc-banner-warn { background: rgba(240, 160, 69, 0.12); border-color: rgba(240, 160, 69, 0.4); color: #F2B97A; }
+.hc-banner-warn::before { content: "\26A0  "; }
+.hc-buy { font-size: 13px; }
+.hc-buy > div { display: flex; justify-content: space-between; gap: 12px; padding: 6px 2px; color: var(--color-text-muted); }
+.hc-buy dd { color: var(--color-text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.hc-bars { display: grid; gap: 12px; margin-bottom: 16px; }
+.hc-bar-row { display: grid; grid-template-columns: 130px minmax(0, 1fr); align-items: center; gap: 12px; }
+.hc-bar-name { font-size: 13px; color: var(--color-text-muted); }
+/* The total sits after the bar, so the bars stop short of the edge to leave
+   room for it. */
+.hc-bar { display: flex; align-items: center; gap: 2px; height: 28px; padding-right: 84px; }
+.hc-seg { flex: none; height: 100%; min-width: 0; transition: width 0.2s; }
+.hc-seg:first-child { border-radius: 4px 0 0 4px; }
+.hc-seg-in { background: var(--hc-in); }
+.hc-seg-grow { background: var(--hc-grow); border-radius: 0 4px 4px 0; }
+.hc-bar-total { margin-left: 8px; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hc-sw-in { background: var(--hc-in); }
+.hc-sw-grow { background: var(--hc-grow); }
+.hcalc .hc-glance .mcalc-swatch { width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; margin-right: 8px; }
+.hc-glance { width: 100%; max-width: 560px; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.hc-glance th, .hc-glance td { padding: 7px 0; border-top: 1px solid var(--color-border); text-align: right; }
+.hc-glance thead th { border-top: 0; color: var(--color-text-muted); font-size: 11px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; }
+.hc-glance th:first-child { text-align: left; font-weight: 500; }
+.hc-glance-total th, .hc-glance-total td { font-weight: 700; }
+.hc-glance + .mcalc-note { max-width: 70ch; margin-top: 12px; }
+@media (max-width: 860px) {
+    .hc-grid { grid-template-columns: 1fr; }
+    .hc-results { position: static; }
+}
+@media (max-width: 767px) {
+    .hc-yhead { display: none; }
+    .hc-yrow { grid-template-columns: 1fr 1fr; padding: 12px 0; }
+    .hc-fy { grid-column: 1 / -1; }
+    .hc-cell-label { display: inline; color: var(--color-text-muted); font-size: 12px; }
+    .hc-cell-label::after { content: ": "; }
+    .hc-input-cell { grid-column: 1 / -1; }
+    .hc-input-cell .hc-cell-label { display: block; margin-bottom: 4px; }
+    .hc-input-cell .hc-cell-label::after { content: none; }
+    .hc-fill { width: 100%; }
+    .hc-bar-row { grid-template-columns: 1fr; gap: 4px; }
+    .hc-bar { padding-right: 76px; }
+    .hc-tiles .mcalc-tile-value { font-size: 18px; }
+}
+
 /* Compound interest (/tools/compound, .ccalc, compound.js) and managed fund
    fees (/tools/fees, .fcalc, fees.js), on the shared .mcalc styles. */
 .ccalc, .fcalc { --cc-dep: #8C9BB8; --cc-later: #F08A45; --fc-a: #F08A45; --fc-b: #19C3C3; }
@@ -2241,6 +2319,7 @@ polyline.fc-line-none, polyline.fc-line-a, polyline.fc-line-b { fill: none; }
 .tool-tile-stop-working { --tile: #F59E0B; }
 .tool-tile-super { --tile: #D9A064; }
 .tool-tile-mortgage { --tile: #38BDF8; }
+.tool-tile-fhss { --tile: #F472B6; }
 .tool-card-blurb { font-size: 13px; line-height: 1.5; color: var(--color-text-muted); }
 .tool-card-go { margin-top: auto; padding-top: 6px; font-size: 13px; font-weight: 600; color: color-mix(in srgb, var(--tile) 70%, #fff); }
 .tool-card .course-card-body { flex: 1; }

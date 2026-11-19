@@ -324,6 +324,7 @@ func main() {
 		r.Get("/tools/money-lasted", h.MoneyLastedCalculator)
 		r.Get("/tools/compound", h.CompoundCalculator)
 		r.Get("/tools/fees", h.FeesCalculator)
+		r.Get("/tools/fhss", h.FHSSCalculator)
 
 		// Games: one per month, created by the scheduler. Admins change
 		// their settings under /admin/games.

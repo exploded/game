@@ -291,8 +291,8 @@ Every Learn page ends with the licensee's general advice warning.
 
 ### Calculators
 
-The fifth Learn tab (`/tools`, since 18 November 2026) has six calculators,
-grouped under Investing, Retirement and super, and Home loans, plus links to
+The fifth Learn tab (`/tools`, since 18 November 2026) has seven calculators,
+grouped under Investing, Retirement and super, and Buying a home, plus links to
 Moneysmart's calculators for super, the Age Pension, tax and budgeting:
 
 - **Compound interest calculator**: how regular saving grows, and what
@@ -306,6 +306,10 @@ Moneysmart's calculators for super, the Age Pension, tax and budgeting:
   weekly super contribution started at 20, 30 or 40, compared at 60.
 - **Mortgage Freedom Calculator** (from Rob's spreadsheet): what extra
   repayments save in interest and time.
+- **First Home Super Saver Calculator** (from Rob's spreadsheet, added 19
+  November 2026): the first-home deposit from up to 6 years of extra
+  before-tax super contributions under the FHSS scheme, compared with saving
+  the same take-home pay in a bank.
 
 Everything is worked out in the member's browser: nothing they type is sent to
 the site or saved. Each calculator ends with "About this calculator": what
@@ -314,8 +318,9 @@ reasonable, and the statement ASIC's calculator relief requires (that it isn't
 meant to be relied on for decisions about a financial product, and to consider
 advice from a licensee). Every assumption can be changed, except a few built
 into how the calculator works. Results more than 2 years away are also shown
-in today's dollars: at 2.5% inflation for the general calculators, and at
-ASIC's 3.7% wage growth for the super one.
+in today's dollars: at 2.5% inflation for the general calculators and the
+FHSS one (the money goes on a home, not into retirement), and at ASIC's 3.7%
+wage growth for the super one.
 
 ## Emails
 

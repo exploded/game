@@ -16,10 +16,11 @@ type calculator struct {
 var calculators = []calculator{
 	{"compound", "Compound interest calculator", "See how regular saving grows when your interest earns interest, and what starting later costs.", "Investing"},
 	{"stop-working", "When can I stop working?", "Find out how many years of work your savings rate means, with super’s preservation age.", "Retirement and super"},
-	{"mortgage", "Mortgage Freedom Calculator", "See how small extra repayments save interest and pay off your loan sooner.", "Home loans"},
+	{"mortgage", "Mortgage Freedom Calculator", "See how small extra repayments save interest and pay off your loan sooner.", "Buying a home"},
 	{"fees", "Managed fund fee calculator", "Compare two funds’ fees and see how much they take from your balance over time.", "Investing"},
 	{"money-lasted", "Would your money have lasted?", "Run a retirement plan through every start month of the US share market since 1871.", "Investing"},
 	{"super", "Start Early: Extra Super Calculator", "See how a small extra weekly contribution could grow by 60 if you start at 20, 30 or 40.", "Retirement and super"},
+	{"fhss", "First Home Super Saver Calculator", "See how saving your first-home deposit through super compares with saving in a bank.", "Buying a home"},
 }
 
 // calculatorGroup is one heading on /tools and its calculators.
@@ -100,6 +101,29 @@ func (h *Handler) Tools(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) CompoundCalculator(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Robots-Tag", "noindex, nofollow")
 	h.render(w, r, "tools/compound", "", PageData{Title: "Compound interest calculator"})
+}
+
+// fhssYear is one row of the FHSS calculator's contribution table.
+type fhssYear struct {
+	FY     string // "2026–27"
+	Amount string // the sheet's example contribution, as typed
+}
+
+// FHSSCalculator is Rob's First Home Super Saver Calculator, rebuilt from his
+// spreadsheet (.local/calculators/CPW_FHSS_Calculator_v2.xlsx, November 2026)
+// with its 2026–27 caps and tax rates. Hidden from search engines and
+// browser-only (static/js/fhss.js), like MortgageCalculator. The years and
+// example amounts are the sheet's.
+func (h *Handler) FHSSCalculator(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("X-Robots-Tag", "noindex, nofollow")
+	years := []fhssYear{
+		{"2026–27", "10,000"}, {"2027–28", "10,000"}, {"2028–29", "10,000"},
+		{"2029–30", "15,000"}, {"2030–31", "5,000"}, {"2031–32", "0"},
+	}
+	h.render(w, r, "tools/fhss", "", PageData{
+		Title: "First Home Super Saver Calculator",
+		Extra: map[string]any{"Years": years},
+	})
 }
 
 // FeesCalculator is our managed fund fee calculator, built to the assumptions
