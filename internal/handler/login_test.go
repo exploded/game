@@ -213,6 +213,22 @@ func TestOneClickUnsubscribe(t *testing.T) {
 	}
 }
 
+// Every address that shows the sign-in page names /login as its canonical
+// URL, so Google doesn't list each /login?next= as a duplicate.
+func TestLoginCanonical(t *testing.T) {
+	t.Setenv("BASE_URL", "https://investorproject.au")
+	d := openTestDB(t)
+	h := New(db.New(d), d, loadTestTemplates(t), false, time.UTC)
+	want := `<link rel="canonical" href="https://investorproject.au/login">`
+	for _, path := range []string{"/", "/login", "/login?next=%2Flearn%2Fv%2F268"} {
+		w := httptest.NewRecorder()
+		h.Home(w, httptest.NewRequest("GET", path, nil))
+		if !strings.Contains(w.Body.String(), want) {
+			t.Errorf("GET %s has no %s", path, want)
+		}
+	}
+}
+
 // The site root shows the sign-in page to a visitor, without a redirect, and
 // sends a signed-in user to the dashboard.
 func TestHome(t *testing.T) {

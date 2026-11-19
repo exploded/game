@@ -10,6 +10,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
     <link rel="manifest" href="/static/site.webmanifest">
+    {{with .Canonical}}<link rel="canonical" href="{{.}}">{{end}}
     <meta name="theme-color" content="#000000">
     <!-- Link previews (Facebook, WhatsApp, X, LinkedIn, iMessage). The card is
          drawn by docs/brand/og.html; render-og.ps1 remakes it. -->
