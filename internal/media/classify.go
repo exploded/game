@@ -15,11 +15,18 @@ import (
 
 	"github.com/exploded/game/internal/db"
 	"github.com/exploded/game/internal/jobs"
+	"github.com/exploded/game/internal/market"
 )
 
 // Topic is one Learn topic as the classifier sees it.
 type Topic struct {
 	Slug, Name, Description string
+}
+
+// Stock is a stock the site lists, for the classifier to name instead of
+// a code the site doesn't use.
+type Stock struct {
+	Symbol, Name string
 }
 
 // Classification is what the classifier decides about a video or question.
@@ -30,7 +37,8 @@ type Classification struct {
 
 // Classifier sorts a video or question into topics.
 type Classifier interface {
-	Classify(ctx context.Context, topics []Topic, title, text string) (Classification, error)
+	// aus lists the Australian companies on the site under their US codes.
+	Classify(ctx context.Context, topics []Topic, aus []Stock, title, text string) (Classification, error)
 }
 
 // ErrRefused means the model declined to classify the text, so there's no
@@ -54,7 +62,7 @@ func NewClaude(model string) *Claude {
 
 // Classify asks Claude which topics fit. Structured output keeps the answer
 // to the topic slugs given, and low effort is plenty for sorting.
-func (c *Claude) Classify(ctx context.Context, topics []Topic, title, text string) (Classification, error) {
+func (c *Claude) Classify(ctx context.Context, topics []Topic, aus []Stock, title, text string) (Classification, error) {
 	slugs := make([]string, len(topics))
 	var list strings.Builder
 	for i, t := range topics {
@@ -69,6 +77,15 @@ func (c *Claude) Classify(ctx context.Context, topics []Topic, title, text strin
 		"contact details and links to other videos.\n" +
 		"Also list the stock or ETF codes the item discusses by name (ASX or US codes, like CBA, VAS " +
 		"or AAPL). Leave the list empty if none are discussed."
+	if len(aus) > 0 {
+		// The site lists these under their US codes, and some ASX codes are
+		// also US tickers for other companies (CSL is Carlisle on the NYSE).
+		var codes strings.Builder
+		for _, a := range aus {
+			fmt.Fprintf(&codes, "- %s: %s\n", a.Symbol, a.Name)
+		}
+		system += "\n\nFor these Australian companies, give the code listed here, not the ASX code:\n" + codes.String()
+	}
 	schema := map[string]any{
 		"type": "object",
 		"properties": map[string]any{
@@ -199,7 +216,11 @@ func (s *Service) ClassifyVideo(ctx context.Context, id int64) error {
 }
 
 func (s *Service) classifyVideo(ctx context.Context, topics []Topic, v db.Video) error {
-	c, err := s.classify.Classify(ctx, topics, v.Title, v.Description)
+	aus, err := s.ausStocks(ctx)
+	if err != nil {
+		return err
+	}
+	c, err := s.classify.Classify(ctx, topics, aus, v.Title, v.Description)
 	if errors.Is(err, ErrRefused) {
 		slog.Warn("classifier refused a video", "video", v.ID, "title", v.Title)
 		return s.q.SetVideoClassified(ctx, v.ID)
@@ -219,7 +240,7 @@ func (s *Service) classifyVideo(ctx context.Context, topics []Topic, v db.Video)
 			return err
 		}
 	}
-	if err := s.q.ClearVideoStocks(ctx, v.ID); err != nil {
+	if err := s.q.ClearClaudeVideoStocks(ctx, v.ID); err != nil {
 		return err
 	}
 	for _, sym := range c.Tickers {
@@ -248,7 +269,7 @@ func (s *Service) SuggestQuestionTopic(id int64, title, body string) {
 			slog.Error("question topic", "error", err)
 			return
 		}
-		c, err := s.classify.Classify(ctx, topics, title, body)
+		c, err := s.classify.Classify(ctx, topics, nil, title, body)
 		if err != nil || len(c.Topics) == 0 {
 			if err != nil && !errors.Is(err, ErrRefused) {
 				slog.Error("question topic", "question", id, "error", err)
@@ -263,6 +284,22 @@ func (s *Service) SuggestQuestionTopic(id int64, title, body string) {
 			slog.Error("set question topic", "question", id, "error", err)
 		}
 	})
+}
+
+// ausStocks is the active stocks on the aus list (Australian companies
+// traded in the US).
+func (s *Service) ausStocks(ctx context.Context) ([]Stock, error) {
+	rows, err := s.q.ListAllStocksByMarket(ctx, db.ListAllStocksByMarketParams{Market: "sp500", Column2: "sp500"})
+	if err != nil {
+		return nil, err
+	}
+	var out []Stock
+	for _, r := range rows {
+		if r.Listing == market.ListingAus {
+			out = append(out, Stock{Symbol: r.Symbol, Name: r.Name})
+		}
+	}
+	return out, nil
 }
 
 func (s *Service) topics(ctx context.Context) ([]Topic, error) {

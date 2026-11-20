@@ -115,6 +115,22 @@ func (q *Queries) AddVideoClassifyAttempt(ctx context.Context, id int64) (int64,
 	return classify_attempts, err
 }
 
+const addVideoStockAdmin = `-- name: AddVideoStockAdmin :exec
+INSERT INTO video_stocks (video_id, stock_id, source) VALUES (?, ?, 'admin')
+ON CONFLICT (video_id, stock_id) DO UPDATE SET source = 'admin'
+`
+
+type AddVideoStockAdminParams struct {
+	VideoID int64
+	StockID int64
+}
+
+// An admin's link, which reclassifying keeps.
+func (q *Queries) AddVideoStockAdmin(ctx context.Context, arg AddVideoStockAdminParams) error {
+	_, err := q.db.ExecContext(ctx, addVideoStockAdmin, arg.VideoID, arg.StockID)
+	return err
+}
+
 const addVideoStockBySymbol = `-- name: AddVideoStockBySymbol :exec
 INSERT OR IGNORE INTO video_stocks (video_id, stock_id)
 SELECT ?1, s.id FROM stocks s WHERE s.symbol = ?2
@@ -125,6 +141,7 @@ type AddVideoStockBySymbolParams struct {
 	Symbol  string
 }
 
+// Claude's pick, by symbol. A stock an admin already linked stays theirs.
 func (q *Queries) AddVideoStockBySymbol(ctx context.Context, arg AddVideoStockBySymbolParams) error {
 	_, err := q.db.ExecContext(ctx, addVideoStockBySymbol, arg.VideoID, arg.Symbol)
 	return err
@@ -334,6 +351,16 @@ func (q *Queries) ClaimOpenOrder(ctx context.Context, id int64) (int64, error) {
 	return result.RowsAffected()
 }
 
+const clearClaudeVideoStocks = `-- name: ClearClaudeVideoStocks :exec
+DELETE FROM video_stocks WHERE video_id = ? AND source = 'claude'
+`
+
+// Claude's picks, cleared before it picks again; an admin's stay.
+func (q *Queries) ClearClaudeVideoStocks(ctx context.Context, videoID int64) error {
+	_, err := q.db.ExecContext(ctx, clearClaudeVideoStocks, videoID)
+	return err
+}
+
 const clearClaudeVideoTopics = `-- name: ClearClaudeVideoTopics :exec
 DELETE FROM video_topics WHERE video_id = ? AND source = 'claude'
 `
@@ -341,15 +368,6 @@ DELETE FROM video_topics WHERE video_id = ? AND source = 'claude'
 // Clears Claude's picks before it picks again. An admin's stay.
 func (q *Queries) ClearClaudeVideoTopics(ctx context.Context, videoID int64) error {
 	_, err := q.db.ExecContext(ctx, clearClaudeVideoTopics, videoID)
-	return err
-}
-
-const clearVideoStocks = `-- name: ClearVideoStocks :exec
-DELETE FROM video_stocks WHERE video_id = ?
-`
-
-func (q *Queries) ClearVideoStocks(ctx context.Context, videoID int64) error {
-	_, err := q.db.ExecContext(ctx, clearVideoStocks, videoID)
 	return err
 }
 
@@ -7689,7 +7707,7 @@ func (q *Queries) ListUsersWithActivity(ctx context.Context) ([]ListUsersWithAct
 }
 
 const listVideoStocks = `-- name: ListVideoStocks :many
-SELECT s.id, s.symbol, s.name FROM stocks s
+SELECT s.id, s.symbol, s.name, vs.source FROM stocks s
 JOIN video_stocks vs ON vs.stock_id = s.id
 WHERE vs.video_id = ? AND s.is_active = 1
 ORDER BY s.symbol
@@ -7699,6 +7717,7 @@ type ListVideoStocksRow struct {
 	ID     int64
 	Symbol string
 	Name   string
+	Source string
 }
 
 // Retired stocks are left out: their chips would open a stock nobody can
@@ -7712,7 +7731,12 @@ func (q *Queries) ListVideoStocks(ctx context.Context, videoID int64) ([]ListVid
 	var items []ListVideoStocksRow
 	for rows.Next() {
 		var i ListVideoStocksRow
-		if err := rows.Scan(&i.ID, &i.Symbol, &i.Name); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Symbol,
+			&i.Name,
+			&i.Source,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -8327,6 +8351,20 @@ type RemoveQuestionVoteParams struct {
 
 func (q *Queries) RemoveQuestionVote(ctx context.Context, arg RemoveQuestionVoteParams) error {
 	_, err := q.db.ExecContext(ctx, removeQuestionVote, arg.QuestionID, arg.UserID)
+	return err
+}
+
+const removeVideoStock = `-- name: RemoveVideoStock :exec
+DELETE FROM video_stocks WHERE video_id = ? AND stock_id = ?
+`
+
+type RemoveVideoStockParams struct {
+	VideoID int64
+	StockID int64
+}
+
+func (q *Queries) RemoveVideoStock(ctx context.Context, arg RemoveVideoStockParams) error {
+	_, err := q.db.ExecContext(ctx, removeVideoStock, arg.VideoID, arg.StockID)
 	return err
 }
 

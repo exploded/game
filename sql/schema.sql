@@ -734,11 +734,12 @@ CREATE TABLE IF NOT EXISTS video_topics (
 );
 CREATE INDEX IF NOT EXISTS idx_video_topics_topic ON video_topics(topic_id);
 
--- Stocks a video talks about, from the classifier. Not shown while the
--- video's hide_stocks is set.
+-- Stocks a video talks about, from the classifier or an admin. Not shown
+-- while the video's hide_stocks is set.
 CREATE TABLE IF NOT EXISTS video_stocks (
     video_id INTEGER NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
     stock_id INTEGER NOT NULL REFERENCES stocks(id) ON DELETE CASCADE,
+    source   TEXT    NOT NULL DEFAULT 'claude',        -- 'claude' | 'admin'; reclassifying keeps admin rows
     PRIMARY KEY (video_id, stock_id)
 );
 CREATE INDEX IF NOT EXISTS idx_video_stocks_stock ON video_stocks(stock_id);

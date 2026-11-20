@@ -105,14 +105,47 @@ func (h *Handler) AdminLearnVideo(w http.ResponseWriter, r *http.Request) {
 		set[t.ID] = t.Source
 	}
 	stocks, _ := h.q.ListVideoStocks(r.Context(), v.ID)
+	all, _ := h.activeStocks(r.Context())
 	h.render(w, r, "admin/learn_video", "", PageData{
 		Title: v.Title, Item: v,
-		Extra: map[string]any{"Topics": topics, "Picked": set, "Stocks": stocks},
+		Extra: map[string]any{"Topics": topics, "Picked": set, "Stocks": stocks, "AllStocks": all},
 	})
 }
 
+func (h *Handler) activeStocks(ctx context.Context) ([]db.Stock, error) {
+	return h.q.ListAllStocksByMarket(ctx, db.ListAllStocksByMarketParams{Market: "sp500", Column2: "sp500"})
+}
+
+// findStock matches what an admin typed to one stock: its symbol (an
+// ASX-style ".AX" is dropped), or else the only stock whose name contains
+// it, so "CSL" finds CSL Limited (CSLLY).
+func findStock(all []db.Stock, typed string) (db.Stock, bool) {
+	typed = strings.TrimSpace(typed)
+	sym := strings.ToUpper(strings.TrimSuffix(strings.TrimSuffix(strings.ToUpper(typed), ".AX"), ":ASX"))
+	if sym == "" {
+		return db.Stock{}, false
+	}
+	for _, s := range all {
+		if s.Symbol == sym {
+			return s, true
+		}
+	}
+	var found []db.Stock
+	low := strings.ToLower(typed)
+	for _, s := range all {
+		if strings.Contains(strings.ToLower(s.Name), low) {
+			found = append(found, s)
+		}
+	}
+	if len(found) == 1 {
+		return found[0], true
+	}
+	return db.Stock{}, false
+}
+
 // AdminLearnVideoUpdate saves the topics ticked (as the admin's, so the
-// classifier leaves them alone), hidden, featured and hide_stocks.
+// classifier leaves them alone), the stocks (unticked ones removed, added
+// ones kept as the admin's), hidden, featured and hide_stocks.
 func (h *Handler) AdminLearnVideoUpdate(w http.ResponseWriter, r *http.Request) {
 	v, ok := h.adminVideo(w, r)
 	if !ok {
@@ -140,11 +173,56 @@ func (h *Handler) AdminLearnVideoUpdate(w http.ResponseWriter, r *http.Request) 
 			}
 		}
 	}
+	keep := map[int64]bool{}
+	for _, s := range r.Form["stock"] {
+		if id, err := strconv.ParseInt(s, 10, 64); err == nil {
+			keep[id] = true
+		}
+	}
+	linked, err := h.q.ListVideoStocks(ctx, v.ID)
+	if err != nil {
+		h.serverError(w, "list video stocks", err)
+		return
+	}
+	for _, s := range linked {
+		if !keep[s.ID] {
+			if err := h.q.RemoveVideoStock(ctx, db.RemoveVideoStockParams{VideoID: v.ID, StockID: s.ID}); err != nil {
+				h.serverError(w, "remove video stock", err)
+				return
+			}
+		}
+	}
+	var unknown []string
+	if add := strings.TrimSpace(r.FormValue("add_stock")); add != "" {
+		all, err := h.activeStocks(ctx)
+		if err != nil {
+			h.serverError(w, "list stocks", err)
+			return
+		}
+		for _, typed := range strings.Split(add, ",") {
+			if strings.TrimSpace(typed) == "" {
+				continue
+			}
+			s, ok := findStock(all, typed)
+			if !ok {
+				unknown = append(unknown, strings.TrimSpace(typed))
+				continue
+			}
+			if err := h.q.AddVideoStockAdmin(ctx, db.AddVideoStockAdminParams{VideoID: v.ID, StockID: s.ID}); err != nil {
+				h.serverError(w, "add video stock", err)
+				return
+			}
+		}
+	}
 	_ = h.q.SetVideoHidden(ctx, db.SetVideoHiddenParams{Hidden: boolFlag(r.FormValue("hidden")), ID: v.ID})
 	_ = h.q.SetVideoFeatured(ctx, db.SetVideoFeaturedParams{Featured: boolFlag(r.FormValue("featured")), ID: v.ID})
 	_ = h.q.SetVideoHideStocks(ctx, db.SetVideoHideStocksParams{HideStocks: boolFlag(r.FormValue("hide_stocks")), ID: v.ID})
 	_ = h.q.SetVideoClassified(ctx, v.ID)
-	setFlashCookie(w, "Video saved.", "success")
+	if len(unknown) > 0 {
+		setFlashCookie(w, "Saved, but no single stock matches "+strings.Join(unknown, ", ")+". Try its code: Australian companies are listed under their US codes.", "error")
+	} else {
+		setFlashCookie(w, "Video saved.", "success")
+	}
 	http.Redirect(w, r, "/admin/learn/videos/"+strconv.FormatInt(v.ID, 10), http.StatusSeeOther)
 }
 

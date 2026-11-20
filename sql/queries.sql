@@ -1733,17 +1733,27 @@ UPDATE videos SET classified_at = datetime('now'), classify_attempts = 0 WHERE i
 UPDATE videos SET classify_attempts = classify_attempts + 1 WHERE id = ?
 RETURNING classify_attempts;
 
--- name: ClearVideoStocks :exec
-DELETE FROM video_stocks WHERE video_id = ?;
+-- Claude's picks, cleared before it picks again; an admin's stay.
+-- name: ClearClaudeVideoStocks :exec
+DELETE FROM video_stocks WHERE video_id = ? AND source = 'claude';
 
+-- Claude's pick, by symbol. A stock an admin already linked stays theirs.
 -- name: AddVideoStockBySymbol :exec
 INSERT OR IGNORE INTO video_stocks (video_id, stock_id)
 SELECT sqlc.arg(video_id), s.id FROM stocks s WHERE s.symbol = sqlc.arg(symbol);
 
+-- An admin's link, which reclassifying keeps.
+-- name: AddVideoStockAdmin :exec
+INSERT INTO video_stocks (video_id, stock_id, source) VALUES (?, ?, 'admin')
+ON CONFLICT (video_id, stock_id) DO UPDATE SET source = 'admin';
+
+-- name: RemoveVideoStock :exec
+DELETE FROM video_stocks WHERE video_id = ? AND stock_id = ?;
+
 -- name: ListVideoStocks :many
 -- Retired stocks are left out: their chips would open a stock nobody can
 -- trade.
-SELECT s.id, s.symbol, s.name FROM stocks s
+SELECT s.id, s.symbol, s.name, vs.source FROM stocks s
 JOIN video_stocks vs ON vs.stock_id = s.id
 WHERE vs.video_id = ? AND s.is_active = 1
 ORDER BY s.symbol;

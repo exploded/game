@@ -585,6 +585,7 @@ type Video struct {
 type VideoStock struct {
 	VideoID int64
 	StockID int64
+	Source  string
 }
 
 type VideoTopic struct {

@@ -252,10 +252,14 @@ func liveEvents(t *testing.T, d *sql.DB) map[string]string {
 
 // keywordClassifier puts anything mentioning super into Superannuation and
 // says it discusses CBA.
-type keywordClassifier struct{ calls int }
+type keywordClassifier struct {
+	calls int
+	aus   []media.Stock
+}
 
-func (k *keywordClassifier) Classify(_ context.Context, topics []media.Topic, title, _ string) (media.Classification, error) {
+func (k *keywordClassifier) Classify(_ context.Context, topics []media.Topic, aus []media.Stock, title, _ string) (media.Classification, error) {
 	k.calls++
+	k.aus = aus
 	if len(topics) == 0 {
 		return media.Classification{}, fmt.Errorf("no topics")
 	}
@@ -272,7 +276,11 @@ func TestClassifyKeepsAdminTopics(t *testing.T) {
 			(1, 'youtube', 'a', 'u', 'e', 'Salary sacrifice into super', '2026-10-01 00:00:00'),
 			(2, 'youtube', 'b', 'u', 'e', 'Buying your first home', '2026-10-02 00:00:00');
 		INSERT INTO video_topics (video_id, topic_id, source) SELECT 1, id, 'admin' FROM topics WHERE slug = 'retirement';
-		INSERT INTO video_topics (video_id, topic_id, source) SELECT 2, id, 'claude' FROM topics WHERE slug = 'tax'`); err != nil {
+		INSERT INTO video_topics (video_id, topic_id, source) SELECT 2, id, 'claude' FROM topics WHERE slug = 'tax';
+		INSERT INTO stocks (id, symbol, name, market, currency, listing) VALUES
+			(10, 'CSLLY', 'CSL Limited (US OTC)', 'sp500', 'USD', 'aus'),
+			(11, 'AAPL', 'Apple Inc.', 'sp500', 'USD', 'sp500');
+		INSERT INTO video_stocks (video_id, stock_id, source) VALUES (2, 10, 'admin'), (2, 11, 'claude')`); err != nil {
 		t.Fatal(err)
 	}
 	k := &keywordClassifier{}
@@ -299,6 +307,14 @@ func TestClassifyKeepsAdminTopics(t *testing.T) {
 	if len(stocks) != 1 || stocks[0].ID != 1 {
 		t.Errorf("CBA videos = %v, want video 1", stocks)
 	}
+	// Claude's old pick for video 2 is gone; the admin's stays.
+	if linked, _ := q.ListVideoStocks(context.Background(), 2); len(linked) != 1 || linked[0].Symbol != "CSLLY" || linked[0].Source != "admin" {
+		t.Errorf("video 2 stocks = %v, want only the admin's CSLLY", linked)
+	}
+	// The classifier was told the Aussie stocks' US codes.
+	if !slices.Equal(k.aus, []media.Stock{{Symbol: "CSLLY", Name: "CSL Limited (US OTC)"}}) {
+		t.Errorf("classifier given aus stocks %v", k.aus)
+	}
 	// Both are marked done, so the next run asks nothing.
 	media.ClassifyPending(s, context.Background())
 	if k.calls != 2 {
@@ -310,7 +326,7 @@ func TestClassifyKeepsAdminTopics(t *testing.T) {
 // into no topics.
 type brokenClassifier struct{ calls map[string]int }
 
-func (b *brokenClassifier) Classify(_ context.Context, _ []media.Topic, title, _ string) (media.Classification, error) {
+func (b *brokenClassifier) Classify(_ context.Context, _ []media.Topic, _ []media.Stock, title, _ string) (media.Classification, error) {
 	b.calls[title]++
 	if strings.Contains(title, "bad") {
 		return media.Classification{}, fmt.Errorf("classifier answer %q: not JSON", "oops")

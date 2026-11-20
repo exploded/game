@@ -25,12 +25,21 @@
             {{end}}
         </div>
         <h2 style="margin-top:16px">Stocks</h2>
-        <p class="text-muted" style="margin-bottom:8px">Claude picks these. They're listed under the video on Learn, and the video shows on each one's stock page. Ask Claude again to update them.</p>
-        {{with index .Extra "Stocks"}}
-        <p>{{range $i, $s := .}}{{if $i}}, {{end}}<strong>{{$s.Symbol}}</strong> {{$s.Name}}{{end}}</p>
+        <p class="text-muted" style="margin-bottom:8px">They're listed under the video on Learn, and the video shows on each one's stock page. Untick one to remove it. Stocks you add are kept when Claude sorts the video again; Ask Claude again replaces only Claude's.</p>
+        {{range index .Extra "Stocks"}}
+        <label class="checkbox-label" style="padding-top:0">
+            <input type="checkbox" name="stock" value="{{.ID}}" checked>
+            <strong>{{.Symbol}}</strong>&nbsp;{{.Name}}{{if eq .Source "claude"}} <span class="text-muted">(Claude)</span>{{end}}
+        </label>
         {{else}}
         <p class="text-muted">None.</p>
         {{end}}
+        <div class="form-group" style="margin-top:8px">
+            <label for="add-stock">Add a stock</label>
+            <input type="text" id="add-stock" name="add_stock" list="stock-options" autocomplete="off" maxlength="200" placeholder="Code or company, like CSLLY or CSL Limited">
+            <datalist id="stock-options">{{range index .Extra "AllStocks"}}<option value="{{.Symbol}}">{{.Name}}</option>{{end}}</datalist>
+            <p class="text-muted" style="margin-top:4px">Separate several with commas. Australian companies are listed under their US codes (CSL is CSLLY).</p>
+        </div>
         <label class="checkbox-label" style="padding-top:8px"><input type="checkbox" name="hide_stocks" value="1"{{if $v.HideStocks}} checked{{end}}> Don&rsquo;t link this video to stocks</label>
         <h2 style="margin-top:16px">Show</h2>
         <label class="checkbox-label" style="padding-top:0"><input type="checkbox" name="featured" value="1"{{if $v.Featured}} checked{{end}}> Pin to &ldquo;Start here&rdquo; at the top of Learn</label>

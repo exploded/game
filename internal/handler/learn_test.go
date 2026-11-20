@@ -211,6 +211,59 @@ func TestStreamReminderAndAdminActions(t *testing.T) {
 	}
 }
 
+// An admin links a video to stocks Claude missed (it named CSL by its ASX
+// code, and the site lists it as CSLLY) and unticks ones it got wrong.
+func TestAdminVideoStocks(t *testing.T) {
+	srv, d := learnServerDB(t)
+	if _, err := d.Exec(`
+		INSERT INTO stocks (id, symbol, name, market, currency, listing) VALUES
+			(501, 'CSLLY', 'CSL Limited (US OTC)', 'sp500', 'USD', 'aus'),
+			(502, 'AAPL', 'Apple Inc.', 'sp500', 'USD', 'sp500'),
+			(503, 'AMZN', 'Amazon.com Inc.', 'sp500', 'USD', 'sp500');
+		INSERT INTO video_stocks (video_id, stock_id) VALUES (1, 503)`); err != nil {
+		t.Fatal(err)
+	}
+	links := func() string {
+		rows, err := d.Query(`SELECT s.symbol || ':' || vs.source FROM video_stocks vs JOIN stocks s ON s.id = vs.stock_id WHERE vs.video_id = 1 ORDER BY s.symbol`)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer rows.Close()
+		var out []string
+		for rows.Next() {
+			var s string
+			rows.Scan(&s)
+			out = append(out, s)
+		}
+		return strings.Join(out, " ")
+	}
+
+	page := as(srv, "1", "GET", "/admin/learn/videos/1", nil, false).Body.String()
+	for _, s := range []string{`name="stock" value="503" checked`, "(Claude)", `<option value="CSLLY">CSL Limited (US OTC)</option>`} {
+		if !strings.Contains(page, s) {
+			t.Errorf("admin video page: no %q", s)
+		}
+	}
+
+	// "CSL" isn't a symbol but names one stock; Amazon is unticked.
+	w := as(srv, "1", "POST", "/admin/learn/videos/1", url.Values{"add_stock": {"CSL, aapl"}}, false)
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("save: %d", w.Code)
+	}
+	if got := links(); got != "AAPL:admin CSLLY:admin" {
+		t.Errorf("after adding CSL and AAPL and unticking AMZN: %q", got)
+	}
+
+	// Something that matches no single stock is reported; the rest is saved.
+	w = as(srv, "1", "POST", "/admin/learn/videos/1", url.Values{"stock": {"501", "502"}, "add_stock": {"Inc."}}, false)
+	if !strings.Contains(w.Header().Get("Set-Cookie"), "no single stock matches Inc.") {
+		t.Errorf("an ambiguous name wasn't reported: %q", w.Header().Get("Set-Cookie"))
+	}
+	if got := links(); got != "AAPL:admin CSLLY:admin" {
+		t.Errorf("after an ambiguous add: %q", got)
+	}
+}
+
 // TikTok keeps no recording of a live stream for viewers, so the Live page
 // lists a past stream only if it has a recording or answered questions, and
 // an admin can attach the copy Rob saved.
