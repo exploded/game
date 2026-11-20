@@ -24,6 +24,7 @@ import (
 	"github.com/exploded/game/internal/media"
 	"github.com/exploded/game/internal/moderate"
 	"github.com/exploded/game/internal/scheduler"
+	"github.com/exploded/game/internal/stats"
 	"github.com/exploded/game/internal/vimeo"
 	"github.com/exploded/monitor/pkg/logship"
 )
@@ -91,6 +92,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("invalid TIMEZONE %q: %v", tz, err)
 	}
+	stats.SetLocation(loc) // usage counts go by days in TIMEZONE
 
 	// Open database.
 	rawDB, err := handler.OpenDB("game.db", game.Schema)
@@ -236,6 +238,10 @@ func main() {
 		}
 		if !jobs.Wait(max(shutdownTotal-time.Since(start), 2*time.Second)) {
 			slog.Warn("background jobs still running at shutdown")
+		}
+		// The last minute's usage counts, which the scheduler hasn't written.
+		if err := stats.Flush(context.Background(), rawDB); err != nil {
+			slog.Error("usage stats: flush at shutdown", "error", err)
 		}
 		slog.Info("server stopped")
 	}()

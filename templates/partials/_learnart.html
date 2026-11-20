@@ -102,9 +102,10 @@ ListTopics rows. */}}
 {{/* A player that loads only when tapped, so a page of videos doesn't load a
 dozen third-party players. . is a dict with Embed, Thumb, Title and
 Vertical, and optionally Course: a course row whose picture shows when
-there's no thumbnail. */}}
+there's no thumbnail. Stat ("video", "live" or "lesson") and StatID count
+each play for /admin/stats (countPlay in app.js), by video, never by who. */}}
 {{define "player"}}<div class="player{{if .Vertical}} player-tall{{end}}">
-    <button type="button" class="player-start" data-play="{{.Embed}}" data-title="{{.Title}}" aria-label="Play {{.Title}}">
+    <button type="button" class="player-start" data-play="{{.Embed}}" data-title="{{.Title}}" aria-label="Play {{.Title}}"{{with .Stat}} data-stat="{{.}}"{{end}}{{with .StatID}} data-stat-id="{{.}}"{{end}}>
         {{with .Thumb}}<img src="{{.}}" alt="">{{else}}{{with .Course}}<span class="player-art course-tile-{{or .Art "generic"}}">{{template "course-cover" .}}</span>{{end}}{{end}}
         <span class="player-icon" aria-hidden="true"></span>
     </button>

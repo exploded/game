@@ -2383,3 +2383,12 @@ polyline.fc-line-none, polyline.fc-line-a, polyline.fc-line-b { fill: none; }
     .calc-about { padding: 16px; }
     .calc-assume { grid-template-columns: 1fr; }
 }
+
+/* /admin/stats: usage counts by month and day, and each month's most used. */
+.stats-months th[scope="row"] { text-align: left; font-weight: 500; white-space: nowrap; }
+.stats-months td, .stats-days td { white-space: nowrap; }
+.stats-tops { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.stats-tops h3 { font-size: 16px; margin-bottom: 8px; }
+.stats-top { margin: 0; padding-left: 20px; }
+.stats-top li { padding: 3px 0; overflow-wrap: anywhere; }
+.stats-top .num { float: right; margin-left: 12px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }

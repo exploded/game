@@ -382,17 +382,46 @@ const appleTouch = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
 function startPlayer(btn, autoplay) {
     const src = new URL(btn.getAttribute("data-play"));
     if (autoplay !== false) src.searchParams.set("autoplay", "1");
+    const youtube = src.hostname === "www.youtube-nocookie.com" || src.hostname === "www.youtube.com";
+    const vimeo = src.hostname === "player.vimeo.com";
     // On a lesson, the page's own end card (#lesson-end) replaces the video
     // when it ends, so Vimeo's "More from ..." screen doesn't offer videos
-    // outside the course. YouTube only reports its state with enablejsapi.
+    // outside the course.
     const end = btn.closest(".lesson-main") ? document.getElementById("lesson-end") : null;
-    if (end && src.hostname === "www.youtube-nocookie.com") {
+    // data-stat: count the play for /admin/stats when the video starts.
+    const stat = btn.getAttribute("data-stat");
+    const onPlay = stat ? once(function() { countPlay(stat, btn.getAttribute("data-stat-id")); }) : null;
+    // YouTube only reports its state with enablejsapi.
+    if ((end || onPlay) && youtube) {
         src.searchParams.set("enablejsapi", "1");
         src.searchParams.set("origin", location.origin);
     }
     const frame = playerFrame(src.toString(), btn.getAttribute("data-title"));
     btn.replaceWith(frame);
-    if (end) showCardAtEnd(frame, end);
+    if (youtube || vimeo) {
+        if (end || onPlay) watchPlayer(frame, onPlay, end);
+    } else if (onPlay && autoplay !== false) {
+        onPlay(); // a player that sends no events: count the tap
+    }
+}
+
+// once wraps fn so it runs only the first time it's called.
+function once(fn) {
+    let done = false;
+    return function() {
+        if (done) return;
+        done = true;
+        fn();
+    };
+}
+
+// countPlay tells the server a video started (POST /stats/play), which adds
+// one to that video's count for the day. Nothing says who was watching.
+function countPlay(kind, id) {
+    const body = new URLSearchParams({ kind: kind });
+    if (id) body.set("id", id);
+    if (navigator.sendBeacon && navigator.sendBeacon("/stats/play", body)) return;
+    fetch("/stats/play", { method: "POST", body: body, keepalive: true }).catch(function() {});
 }
 
 function playerFrame(src, title) {
@@ -404,9 +433,11 @@ function playerFrame(src, title) {
     return frame;
 }
 
-// showCardAtEnd listens to the player's postMessage events (Vimeo's
-// "ended", YouTube's state 0) and swaps the frame for the end card.
-function showCardAtEnd(frame, end) {
+// watchPlayer listens to the player's postMessage events. When the video
+// starts (Vimeo's "play", YouTube's state 1) it calls onPlay, if given; when
+// it ends (Vimeo's "ended", YouTube's state 0) it swaps the frame for the
+// end card, if given.
+function watchPlayer(frame, onPlay, end) {
     const src = frame.src, title = frame.title;
     const origin = new URL(src).origin;
     const vimeo = origin === "https://player.vimeo.com";
@@ -415,7 +446,8 @@ function showCardAtEnd(frame, end) {
     }
     function subscribe() {
         if (vimeo) {
-            send({method: "addEventListener", value: "ended"});
+            if (onPlay) send({method: "addEventListener", value: "play"});
+            if (end) send({method: "addEventListener", value: "ended"});
         } else {
             send(JSON.stringify({event: "listening", id: 1, channel: "widget"}));
             send(JSON.stringify({event: "command", func: "addEventListener", args: ["onStateChange"], id: 1, channel: "widget"}));
@@ -429,16 +461,20 @@ function showCardAtEnd(frame, end) {
         }
         if (!d) return;
         if (d.event === "ready") subscribe();
+        const playing = d.event === "play" ||
+            (d.event === "onStateChange" && d.info === 1) ||
+            (d.event === "infoDelivery" && d.info && d.info.playerState === 1);
+        if (playing && onPlay) onPlay();
         const ended = d.event === "ended" ||
             (d.event === "onStateChange" && d.info === 0) ||
             (d.event === "infoDelivery" && d.info && d.info.playerState === 0);
-        if (!ended) return;
+        if (!ended || !end) return;
         window.removeEventListener("message", onMessage);
         const card = end.content.firstElementChild.cloneNode(true);
         card.querySelector("[data-lesson-replay]").addEventListener("click", function() {
             const again = playerFrame(src, title);
             card.replaceWith(again);
-            showCardAtEnd(again, end);
+            watchPlayer(again, onPlay, end);
         });
         frame.replaceWith(card);
     }
@@ -457,7 +493,13 @@ document.addEventListener("click", function(e) {
 });
 document.addEventListener("play", function(e) {
     const frame = e.target.closest && e.target.closest(".intro-frame");
-    if (frame) frame.classList.add("playing");
+    if (!frame) return;
+    frame.classList.add("playing");
+    // Count the tour once per page for /admin/stats, not each pause and play.
+    if (!frame.hasAttribute("data-counted")) {
+        frame.setAttribute("data-counted", "");
+        countPlay("intro");
+    }
 }, true);
 
 // data-share: the "Share my result" button on a game's home page. Where the

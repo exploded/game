@@ -354,6 +354,10 @@ public was spam.
 
 Admins (Rob and the site team) get an **Admin** menu with:
 
+- **Stats**: how much the site is used, by month and by day: active players,
+  sign-ups, trades, video and lesson plays, course and calculator opens, chat
+  and questions, and each month's most played videos and lessons. Counts only:
+  nothing records who did what.
 - **Games**: change a game's name, description, player limit, starting money,
   currency, fee per trade, currency fee (default 0.5%), referral bonus, interest rate, and whether limit
   orders, short selling and after-hours trading are allowed. A game can also be

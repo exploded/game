@@ -69,6 +69,13 @@ func (h *Handler) Routes(static *Static, csrfSecret []byte, throttle *Throttle) 
 	// CSRF token, so it gets the same cross-origin check as sign-in.
 	r.With(crossOrigin.Handler).Post("/logout", auth.HandleLogout(h.q))
 
+	// A video starting to play, counted for /admin/stats (app.js). It only adds
+	// to a count and never looks at who's watching, so it needs no session:
+	// the sign-in page's tour counts too. The cross-origin check and the limit
+	// stop other sites and scripts padding the counts.
+	playLimiter := NewRateLimiter(30, time.Minute)
+	r.With(crossOrigin.Handler, playLimiter.Middleware).Post("/stats/play", h.StatsPlay)
+
 	// Unsubscribe links work without signing in. The POST also takes the
 	// RFC 8058 one-click request from mail clients, which has no session.
 	r.Get("/email/unsubscribe", h.UnsubscribePage)
@@ -124,15 +131,18 @@ func (h *Handler) Routes(static *Static, csrfSecret []byte, throttle *Throttle) 
 		// /tools links to them until Rob signs them off. They work in the browser
 		// only, so nothing typed into them reaches the server.
 		r.Get("/tools", h.Tools)
-		r.Get("/tools/mortgage", h.MortgageCalculator)
-		r.Get("/tools/super", h.SuperCalculator)
-		r.Get("/tools/stop-working", h.StopWorkingCalculator)
-		r.Get("/tools/money-lasted", h.MoneyLastedCalculator)
-		r.Get("/tools/compound", h.CompoundCalculator)
-		r.Get("/tools/fees", h.FeesCalculator)
-		r.Get("/tools/fhss", h.FHSSCalculator)
-		r.Get("/tools/co-contribution", h.CoContributionCalculator)
-		r.Get("/tools/spouse-contribution", h.SpouseContributionCalculator)
+		r.Group(func(r chi.Router) {
+			r.Use(countCalculatorView) // how often each is opened, never by whom
+			r.Get("/tools/mortgage", h.MortgageCalculator)
+			r.Get("/tools/super", h.SuperCalculator)
+			r.Get("/tools/stop-working", h.StopWorkingCalculator)
+			r.Get("/tools/money-lasted", h.MoneyLastedCalculator)
+			r.Get("/tools/compound", h.CompoundCalculator)
+			r.Get("/tools/fees", h.FeesCalculator)
+			r.Get("/tools/fhss", h.FHSSCalculator)
+			r.Get("/tools/co-contribution", h.CoContributionCalculator)
+			r.Get("/tools/spouse-contribution", h.SpouseContributionCalculator)
+		})
 
 		// Games: one per month, created by the scheduler. Admins change
 		// their settings under /admin/games.
@@ -238,6 +248,7 @@ func (h *Handler) Routes(static *Static, csrfSecret []byte, throttle *Throttle) 
 				return auth.RequireAdmin(next)
 			})
 			r.Get("/", h.AdminDashboard)
+			r.Get("/stats", h.AdminStats)
 			r.Get("/games", h.AdminGames)
 			r.Get("/games/{gid}", h.AdminGame)
 			r.Post("/games/{gid}", h.AdminGameUpdate)

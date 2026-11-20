@@ -13,6 +13,13 @@ UPDATE users SET last_login = datetime('now') WHERE id = ?;
 -- name: TouchLastSeen :exec
 UPDATE users SET last_seen = datetime('now') WHERE id = ?;
 
+-- Marks the user seen if they haven't been since since_at (UTC, today's
+-- local midnight). One row changed means this is their first request of the
+-- day, which internal/stats counts; two requests at once can't both change it.
+-- name: TouchLastSeenSince :execrows
+UPDATE users SET last_seen = datetime('now')
+WHERE id = sqlc.arg(id) AND (last_seen IS NULL OR last_seen < CAST(sqlc.arg(since_at) AS TEXT));
+
 -- name: UpdateUserName :exec
 UPDATE users SET name = ? WHERE id = ?;
 
@@ -2023,3 +2030,63 @@ LIMIT 100;
 
 -- name: ListAdminIDs :many
 SELECT id FROM users WHERE is_admin = 1 AND deleted_at IS NULL AND blocked_at IS NULL;
+
+-- =============================================================================
+-- Usage stats (internal/stats, /admin/stats): counts only, never who
+-- =============================================================================
+
+-- name: AddStatCount :exec
+INSERT INTO stat_counts (period, metric, item, n) VALUES (?, ?, ?, ?)
+ON CONFLICT(period, metric, item) DO UPDATE SET n = n + excluded.n;
+
+-- name: SetStatCount :exec
+INSERT INTO stat_counts (period, metric, item, n) VALUES (?, ?, ?, ?)
+ON CONFLICT(period, metric, item) DO UPDATE SET n = excluded.n;
+
+-- name: DayCounts :one
+-- What happened between from_at and to_at (UTC; one day in TIMEZONE),
+-- counted from the tables that already record it. first_trades counts
+-- players' first trade in a game; traders, the players who traded at all.
+SELECT
+    (SELECT COUNT(*) FROM users su WHERE su.created_at >= @from_at AND su.created_at < @to_at) AS signups,
+    (SELECT COUNT(*) FROM transactions st WHERE st.created_at >= @from_at AND st.created_at < @to_at) AS trades,
+    (SELECT COUNT(DISTINCT sp.participant_id) FROM transactions sp WHERE sp.created_at >= @from_at AND sp.created_at < @to_at) AS traders,
+    (SELECT COUNT(*) FROM transactions sf
+     WHERE sf.created_at >= @from_at AND sf.created_at < @to_at
+       AND NOT EXISTS (SELECT 1 FROM transactions se WHERE se.participant_id = sf.participant_id
+                       AND (se.created_at < sf.created_at OR (se.created_at = sf.created_at AND se.id < sf.id)))) AS first_trades,
+    (SELECT COUNT(*) FROM lobby_messages sl WHERE sl.created_at >= @from_at AND sl.created_at < @to_at AND sl.blocked_reason = '') AS chat_posted,
+    (SELECT COUNT(*) FROM lobby_messages sb WHERE sb.created_at >= @from_at AND sb.created_at < @to_at AND sb.blocked_reason != '') AS chat_blocked,
+    (SELECT COUNT(*) FROM questions sq WHERE sq.created_at >= @from_at AND sq.created_at < @to_at) AS questions,
+    (SELECT COUNT(*) FROM question_votes sv WHERE sv.created_at >= @from_at AND sv.created_at < @to_at) AS question_votes,
+    (SELECT COUNT(*) FROM lesson_progress sd WHERE sd.completed_at >= @from_at AND sd.completed_at < @to_at) AS lessons_done,
+    (SELECT COUNT(*) FROM game_invites si WHERE si.created_at >= @from_at AND si.created_at < @to_at) AS invites,
+    (SELECT COUNT(*) FROM referral_bonuses sr WHERE sr.created_at >= @from_at AND sr.created_at < @to_at) AS referrals;
+
+-- name: FirstSignupAt :one
+-- When the first account was made, where the stats backfill starts.
+SELECT CAST(COALESCE(MIN(created_at), '') AS TEXT) FROM users;
+
+-- name: ListSiteStats :many
+-- Every count, days and months, for /admin/stats, with the counts for each
+-- video, lesson, course or calculator added up.
+SELECT period, metric, CAST(SUM(n) AS INTEGER) AS n FROM stat_counts
+GROUP BY period, metric
+ORDER BY period;
+
+-- name: ListItemStats :many
+-- The videos, lessons, courses and calculators counted in a month
+-- ('2026-11'), most first.
+SELECT metric, item, CAST(SUM(n) AS INTEGER) AS n FROM stat_counts
+WHERE item != '' AND period LIKE CAST(@month AS TEXT) || '-__'
+GROUP BY metric, item
+ORDER BY n DESC, metric, item;
+
+-- name: ListMonthlyPlayers :many
+-- Each monthly game's players, and how many of them traded.
+SELECT CAST(g.quarter AS TEXT) AS month, COUNT(p.id) AS players,
+       CAST(COALESCE(SUM(p.traded), 0) AS INTEGER) AS traded
+FROM games g JOIN participants p ON p.game_id = g.id
+WHERE g.quarter IS NOT NULL AND g.quarter LIKE '____-__'
+GROUP BY g.quarter
+ORDER BY g.quarter;

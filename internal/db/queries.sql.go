@@ -84,6 +84,32 @@ func (q *Queries) AddQuestionVote(ctx context.Context, arg AddQuestionVoteParams
 	return err
 }
 
+const addStatCount = `-- name: AddStatCount :exec
+
+INSERT INTO stat_counts (period, metric, item, n) VALUES (?, ?, ?, ?)
+ON CONFLICT(period, metric, item) DO UPDATE SET n = n + excluded.n
+`
+
+type AddStatCountParams struct {
+	Period string
+	Metric string
+	Item   string
+	N      int64
+}
+
+// =============================================================================
+// Usage stats (internal/stats, /admin/stats): counts only, never who
+// =============================================================================
+func (q *Queries) AddStatCount(ctx context.Context, arg AddStatCountParams) error {
+	_, err := q.db.ExecContext(ctx, addStatCount,
+		arg.Period,
+		arg.Metric,
+		arg.Item,
+		arg.N,
+	)
+	return err
+}
+
 const addToWatchlist = `-- name: AddToWatchlist :exec
 
 INSERT OR IGNORE INTO watchlist (user_id, stock_id) VALUES (?, ?)
@@ -1331,6 +1357,65 @@ func (q *Queries) CreditCash(ctx context.Context, arg CreditCashParams) error {
 	return err
 }
 
+const dayCounts = `-- name: DayCounts :one
+SELECT
+    (SELECT COUNT(*) FROM users su WHERE su.created_at >= ?1 AND su.created_at < ?2) AS signups,
+    (SELECT COUNT(*) FROM transactions st WHERE st.created_at >= ?1 AND st.created_at < ?2) AS trades,
+    (SELECT COUNT(DISTINCT sp.participant_id) FROM transactions sp WHERE sp.created_at >= ?1 AND sp.created_at < ?2) AS traders,
+    (SELECT COUNT(*) FROM transactions sf
+     WHERE sf.created_at >= ?1 AND sf.created_at < ?2
+       AND NOT EXISTS (SELECT 1 FROM transactions se WHERE se.participant_id = sf.participant_id
+                       AND (se.created_at < sf.created_at OR (se.created_at = sf.created_at AND se.id < sf.id)))) AS first_trades,
+    (SELECT COUNT(*) FROM lobby_messages sl WHERE sl.created_at >= ?1 AND sl.created_at < ?2 AND sl.blocked_reason = '') AS chat_posted,
+    (SELECT COUNT(*) FROM lobby_messages sb WHERE sb.created_at >= ?1 AND sb.created_at < ?2 AND sb.blocked_reason != '') AS chat_blocked,
+    (SELECT COUNT(*) FROM questions sq WHERE sq.created_at >= ?1 AND sq.created_at < ?2) AS questions,
+    (SELECT COUNT(*) FROM question_votes sv WHERE sv.created_at >= ?1 AND sv.created_at < ?2) AS question_votes,
+    (SELECT COUNT(*) FROM lesson_progress sd WHERE sd.completed_at >= ?1 AND sd.completed_at < ?2) AS lessons_done,
+    (SELECT COUNT(*) FROM game_invites si WHERE si.created_at >= ?1 AND si.created_at < ?2) AS invites,
+    (SELECT COUNT(*) FROM referral_bonuses sr WHERE sr.created_at >= ?1 AND sr.created_at < ?2) AS referrals
+`
+
+type DayCountsParams struct {
+	FromAt string
+	ToAt   string
+}
+
+type DayCountsRow struct {
+	Signups       int64
+	Trades        int64
+	Traders       int64
+	FirstTrades   int64
+	ChatPosted    int64
+	ChatBlocked   int64
+	Questions     int64
+	QuestionVotes int64
+	LessonsDone   int64
+	Invites       int64
+	Referrals     int64
+}
+
+// What happened between from_at and to_at (UTC; one day in TIMEZONE),
+// counted from the tables that already record it. first_trades counts
+// players' first trade in a game; traders, the players who traded at all.
+func (q *Queries) DayCounts(ctx context.Context, arg DayCountsParams) (DayCountsRow, error) {
+	row := q.db.QueryRowContext(ctx, dayCounts, arg.FromAt, arg.ToAt)
+	var i DayCountsRow
+	err := row.Scan(
+		&i.Signups,
+		&i.Trades,
+		&i.Traders,
+		&i.FirstTrades,
+		&i.ChatPosted,
+		&i.ChatBlocked,
+		&i.Questions,
+		&i.QuestionVotes,
+		&i.LessonsDone,
+		&i.Invites,
+		&i.Referrals,
+	)
+	return i, err
+}
+
 const deleteContactMessage = `-- name: DeleteContactMessage :exec
 DELETE FROM contact_messages WHERE id = ?
 `
@@ -2017,6 +2102,18 @@ func (q *Queries) FinishExpiredGames(ctx context.Context, endDate string) ([]Gam
 		return nil, err
 	}
 	return items, nil
+}
+
+const firstSignupAt = `-- name: FirstSignupAt :one
+SELECT CAST(COALESCE(MIN(created_at), '') AS TEXT) FROM users
+`
+
+// When the first account was made, where the stats backfill starts.
+func (q *Queries) FirstSignupAt(ctx context.Context) (string, error) {
+	row := q.db.QueryRowContext(ctx, firstSignupAt)
+	var column_1 string
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const getAchievementByKey = `-- name: GetAchievementByKey :one
@@ -4953,6 +5050,44 @@ func (q *Queries) ListInvitesSent(ctx context.Context, arg ListInvitesSentParams
 	return items, nil
 }
 
+const listItemStats = `-- name: ListItemStats :many
+SELECT metric, item, CAST(SUM(n) AS INTEGER) AS n FROM stat_counts
+WHERE item != '' AND period LIKE CAST(?1 AS TEXT) || '-__'
+GROUP BY metric, item
+ORDER BY n DESC, metric, item
+`
+
+type ListItemStatsRow struct {
+	Metric string
+	Item   string
+	N      int64
+}
+
+// The videos, lessons, courses and calculators counted in a month
+// ('2026-11'), most first.
+func (q *Queries) ListItemStats(ctx context.Context, month string) ([]ListItemStatsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listItemStats, month)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListItemStatsRow
+	for rows.Next() {
+		var i ListItemStatsRow
+		if err := rows.Scan(&i.Metric, &i.Item, &i.N); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listLatestPrices = `-- name: ListLatestPrices :many
 SELECT id, stock_id, date, open, high, low, close, volume, created_at FROM stock_prices
 WHERE stock_id = ?
@@ -5608,6 +5743,45 @@ func (q *Queries) ListLobbyMessages(ctx context.Context, arg ListLobbyMessagesPa
 			&i.UserName,
 			&i.AvatarPath,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMonthlyPlayers = `-- name: ListMonthlyPlayers :many
+SELECT CAST(g.quarter AS TEXT) AS month, COUNT(p.id) AS players,
+       CAST(COALESCE(SUM(p.traded), 0) AS INTEGER) AS traded
+FROM games g JOIN participants p ON p.game_id = g.id
+WHERE g.quarter IS NOT NULL AND g.quarter LIKE '____-__'
+GROUP BY g.quarter
+ORDER BY g.quarter
+`
+
+type ListMonthlyPlayersRow struct {
+	Month   string
+	Players int64
+	Traded  int64
+}
+
+// Each monthly game's players, and how many of them traded.
+func (q *Queries) ListMonthlyPlayers(ctx context.Context) ([]ListMonthlyPlayersRow, error) {
+	rows, err := q.db.QueryContext(ctx, listMonthlyPlayers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListMonthlyPlayersRow
+	for rows.Next() {
+		var i ListMonthlyPlayersRow
+		if err := rows.Scan(&i.Month, &i.Players, &i.Traded); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -6613,6 +6787,43 @@ func (q *Queries) ListScreenerStocks(ctx context.Context, arg ListScreenerStocks
 			&i.DebtToEquity,
 			&i.CurrentRatio,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listSiteStats = `-- name: ListSiteStats :many
+SELECT period, metric, CAST(SUM(n) AS INTEGER) AS n FROM stat_counts
+GROUP BY period, metric
+ORDER BY period
+`
+
+type ListSiteStatsRow struct {
+	Period string
+	Metric string
+	N      int64
+}
+
+// Every count, days and months, for /admin/stats, with the counts for each
+// video, lesson, course or calculator added up.
+func (q *Queries) ListSiteStats(ctx context.Context) ([]ListSiteStatsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listSiteStats)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListSiteStatsRow
+	for rows.Next() {
+		var i ListSiteStatsRow
+		if err := rows.Scan(&i.Period, &i.Metric, &i.N); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -8737,6 +8948,28 @@ func (q *Queries) SetQuestionVideo(ctx context.Context, arg SetQuestionVideoPara
 	return err
 }
 
+const setStatCount = `-- name: SetStatCount :exec
+INSERT INTO stat_counts (period, metric, item, n) VALUES (?, ?, ?, ?)
+ON CONFLICT(period, metric, item) DO UPDATE SET n = excluded.n
+`
+
+type SetStatCountParams struct {
+	Period string
+	Metric string
+	Item   string
+	N      int64
+}
+
+func (q *Queries) SetStatCount(ctx context.Context, arg SetStatCountParams) error {
+	_, err := q.db.ExecContext(ctx, setStatCount,
+		arg.Period,
+		arg.Metric,
+		arg.Item,
+		arg.N,
+	)
+	return err
+}
+
 const setStockActive = `-- name: SetStockActive :exec
 UPDATE stocks SET is_active = ? WHERE id = ?
 `
@@ -8923,6 +9156,27 @@ UPDATE users SET last_seen = datetime('now') WHERE id = ?
 func (q *Queries) TouchLastSeen(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, touchLastSeen, id)
 	return err
+}
+
+const touchLastSeenSince = `-- name: TouchLastSeenSince :execrows
+UPDATE users SET last_seen = datetime('now')
+WHERE id = ?1 AND (last_seen IS NULL OR last_seen < CAST(?2 AS TEXT))
+`
+
+type TouchLastSeenSinceParams struct {
+	ID      int64
+	SinceAt string
+}
+
+// Marks the user seen if they haven't been since since_at (UTC, today's
+// local midnight). One row changed means this is their first request of the
+// day, which internal/stats counts; two requests at once can't both change it.
+func (q *Queries) TouchLastSeenSince(ctx context.Context, arg TouchLastSeenSinceParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, touchLastSeenSince, arg.ID, arg.SinceAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const unblockLobbyMessage = `-- name: UnblockLobbyMessage :exec

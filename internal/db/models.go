@@ -370,6 +370,13 @@ type Session struct {
 	CreatedAt string
 }
 
+type StatCount struct {
+	Period string
+	Metric string
+	Item   string
+	N      int64
+}
+
 type Stock struct {
 	ID               int64
 	Symbol           string

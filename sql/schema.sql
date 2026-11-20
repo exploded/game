@@ -253,6 +253,7 @@ CREATE TABLE IF NOT EXISTS transactions (
 );
 CREATE INDEX IF NOT EXISTS idx_transactions_participant ON transactions(participant_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_transactions_stock       ON transactions(stock_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_created     ON transactions(created_at); -- the daily usage counts (internal/stats)
 
 --------------------------------------------------------------------------------
 -- Portfolio Snapshots (daily, in game's base currency)
@@ -792,6 +793,18 @@ CREATE TABLE IF NOT EXISTS media_state (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
+
+-- Usage counts by day and month (internal/stats, /admin/stats). Counts only:
+-- nothing here, or anywhere the counts come from, says who did what. period
+-- is a day ('2026-11-20') or a month ('2026-11') in TIMEZONE; item is the
+-- video, lesson, course or calculator counted, or '' for a site-wide count.
+CREATE TABLE IF NOT EXISTS stat_counts (
+    period TEXT    NOT NULL,
+    metric TEXT    NOT NULL,
+    item   TEXT    NOT NULL DEFAULT '',
+    n      INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (period, metric, item)
+) WITHOUT ROWID;
 
 -- Server secrets that must survive a restart (the CSRF token key).
 CREATE TABLE IF NOT EXISTS app_secrets (

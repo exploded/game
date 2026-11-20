@@ -16,6 +16,7 @@ import (
 	"github.com/exploded/game/internal/auth"
 	"github.com/exploded/game/internal/db"
 	"github.com/exploded/game/internal/mail"
+	"github.com/exploded/game/internal/stats"
 )
 
 // Courses are pre-recorded video lessons at /learn/courses, for signed-in
@@ -95,6 +96,9 @@ func (h *Handler) CoursePage(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(lessons) > 0 {
 		extra["Pct"] = done * 100 / len(lessons)
+	}
+	if r.Method == http.MethodGet {
+		stats.Add(stats.CourseView, strconv.FormatInt(c.ID, 10)) // usage count, not by whom
 	}
 	h.render(w, r, "courses/course", "", learnPage("courses", PageData{
 		Title: c.Title, Item: c, Items: lessons, Extra: extra,

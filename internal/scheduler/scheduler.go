@@ -16,6 +16,7 @@ import (
 	"github.com/exploded/game/internal/market"
 	"github.com/exploded/game/internal/media"
 	"github.com/exploded/game/internal/notify"
+	"github.com/exploded/game/internal/stats"
 )
 
 var pricesChanged atomic.Bool
@@ -121,6 +122,7 @@ func Heartbeat() time.Time {
 var (
 	newsSlot     jobs.Slot // every 4 hours from 00:00 UTC
 	profilesSlot jobs.Slot // 23:00 UTC on weekdays
+	statsSlot    jobs.Slot // each day in TIMEZONE, from the first tick
 )
 
 // newsSlotAt names the news window now (UTC) falls in, or "" outside one:
@@ -207,6 +209,21 @@ func run(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location, 
 	jobs.Run("clean sessions", func() {
 		q.DeleteExpiredSessions(ctx)
 		q.DeleteOldLoginRequests(ctx)
+	})
+
+	// 8. Usage counts (/admin/stats): write the minute's counts, and once a
+	// day (and once after each start) store the days that have finished.
+	jobs.Run("usage stats", func() {
+		if err := stats.Flush(ctx, rawDB); err != nil {
+			slog.Error("usage stats: flush", "error", err)
+		}
+		if statsSlot.Due(today) {
+			if err := stats.Rollup(ctx, rawDB, now); err != nil {
+				slog.Error("usage stats: rollup", "error", err)
+			} else {
+				statsSlot.Done(today)
+			}
+		}
 	})
 }
 

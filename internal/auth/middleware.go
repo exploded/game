@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/exploded/game/internal/db"
+	"github.com/exploded/game/internal/stats"
 )
 
 type contextKey string
@@ -37,7 +38,7 @@ func RequireAuth(queries *db.Queries, next http.Handler) http.Handler {
 			http.Redirect(w, r, loginURL(r), http.StatusTemporaryRedirect)
 			return
 		}
-		touchLastSeen(r.Context(), queries, &user)
+		touchLastSeen(r.Context(), queries, &user, stats.Now())
 
 		ctx := context.WithValue(r.Context(), userKey, &user)
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -85,7 +86,7 @@ func OptionalAuth(queries *db.Queries, next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		touchLastSeen(r.Context(), queries, &user)
+		touchLastSeen(r.Context(), queries, &user, stats.Now())
 		ctx := context.WithValue(r.Context(), userKey, &user)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -96,11 +97,30 @@ func OptionalAuth(queries *db.Queries, next http.Handler) http.Handler {
 const lastSeenEvery = time.Hour
 
 // touchLastSeen records that user made a signed-in request, if last_seen is
-// missing or older than lastSeenEvery.
-func touchLastSeen(ctx context.Context, queries *db.Queries, user *db.User) {
+// missing, from before today (in TIMEZONE) or older than lastSeenEvery.
+//
+// The first request of the day also counts the player as active today, and
+// the first of the month as active this month (internal/stats). That needs
+// no record of which days anyone came: last_seen is one time per user,
+// overwritten, and the counts don't say whose they are.
+func touchLastSeen(ctx context.Context, queries *db.Queries, user *db.User, now time.Time) {
+	dayStart := stats.DayStart(now).UTC().Format(time.DateTime)
+	if !user.LastSeen.Valid || user.LastSeen.String < dayStart {
+		// Only one request can move last_seen past midnight, so two at once
+		// count once.
+		n, err := queries.TouchLastSeenSince(ctx, db.TouchLastSeenSinceParams{ID: user.ID, SinceAt: dayStart})
+		if err == nil && n == 1 {
+			stats.Add(stats.ActiveDay, "")
+			monthStart := stats.MonthStart(now).UTC().Format(time.DateTime)
+			if !user.LastSeen.Valid || user.LastSeen.String < monthStart {
+				stats.AddMonth(stats.ActiveMonth)
+			}
+		}
+		return
+	}
 	if user.LastSeen.Valid {
 		seen, err := time.Parse(time.DateTime, user.LastSeen.String)
-		if err == nil && time.Since(seen) < lastSeenEvery {
+		if err == nil && now.Sub(seen) < lastSeenEvery {
 			return
 		}
 	}
