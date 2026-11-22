@@ -87,3 +87,24 @@ func TestSplitsCheckDue(t *testing.T) {
 		}
 	}
 }
+
+// TestLastWeekday: the startup check uses Friday's date at the weekend.
+func TestLastWeekday(t *testing.T) {
+	if market.NewYork == nil {
+		t.Skip("no America/New_York time zone")
+	}
+	for now, want := range map[string]string{
+		"2026-11-22 01:50:00": "2026-11-20", // Saturday evening in New York
+		"2026-11-23 03:00:00": "2026-11-20", // Sunday night in New York
+		"2026-11-23 15:00:00": "2026-11-23", // Monday
+		"2026-11-20 04:00:00": "2026-11-19", // Thursday night in New York
+	} {
+		tm, err := time.Parse(time.DateTime, now)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := lastWeekday(tm); got != want {
+			t.Errorf("lastWeekday(%s UTC) = %s, want %s", now, got, want)
+		}
+	}
+}

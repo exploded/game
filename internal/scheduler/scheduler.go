@@ -73,6 +73,7 @@ func Start(ctx context.Context, q *db.Queries, rawDB *sql.DB, loc *time.Location
 	// Kick off historical backfill in the background if no prices exist yet.
 	// Runs once at startup, independent of the hour gate used for daily updates.
 	jobs.Go("startup backfill", func() { startupBackfill(ctx, q, rawDB) })
+	jobs.Go("startup splits check", func() { startupSplitsCheck(ctx, q, rawDB, time.Now()) })
 
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
@@ -314,26 +315,58 @@ func maybeCheckSplits(ctx context.Context, q *db.Queries, rawDB *sql.DB, now tim
 	splitsTriedAt.Store(now.Unix())
 	jobs.Go("splits and dividends", func() {
 		defer splitsRunning.Store(false)
-		f := market.NewFetcher(q, rawDB)
-		n, err := f.CheckSplits(ctx, q, today)
-		if err != nil {
-			slog.Error("stock splits", "error", err)
-		}
-		paid, derr := f.CheckDividends(ctx, q, today)
-		if derr != nil {
-			slog.Error("dividends", "error", derr)
-		}
-		if err == nil && derr == nil {
+		if checkSplitsAndDividends(ctx, q, rawDB, today) {
 			if late {
 				splitsCheckedFor.Store(today)
 			} else {
 				splitsEarlyFor.Store(today)
 			}
 		}
-		if n > 0 || paid > 0 {
-			SignalPricesChanged()
-		}
 	})
+}
+
+// checkSplitsAndDividends runs market.CheckSplits, then market.CheckDividends,
+// for a New York date, and reports whether both went through.
+func checkSplitsAndDividends(ctx context.Context, q *db.Queries, rawDB *sql.DB, day string) bool {
+	f := market.NewFetcher(q, rawDB)
+	n, err := f.CheckSplits(ctx, q, day)
+	if err != nil {
+		slog.Error("stock splits", "error", err)
+	}
+	paid, derr := f.CheckDividends(ctx, q, day)
+	if derr != nil {
+		slog.Error("dividends", "error", derr)
+	}
+	if n > 0 || paid > 0 {
+		SignalPricesChanged()
+	}
+	return err == nil && derr == nil
+}
+
+// lastWeekday is the New York date of the latest weekday at or before now:
+// a Saturday or Sunday gives the Friday.
+func lastWeekday(now time.Time) string {
+	ny := now.In(market.NewYork)
+	switch ny.Weekday() {
+	case time.Saturday:
+		ny = ny.AddDate(0, 0, -1)
+	case time.Sunday:
+		ny = ny.AddDate(0, 0, -2)
+	}
+	return ny.Format(time.DateOnly)
+}
+
+// startupSplitsCheck runs the splits and dividends check once at startup,
+// for the latest New York weekday, whatever the time, so a deploy or restart
+// catches up on any the daily checks missed (SanDisk's split on Friday 20
+// November 2026 would otherwise have waited for Monday). Each split and
+// dividend is applied once, so the daily checks skip what it applies.
+func startupSplitsCheck(ctx context.Context, q *db.Queries, rawDB *sql.DB, now time.Time) {
+	if market.NewYork == nil || !splitsRunning.CompareAndSwap(false, true) {
+		return
+	}
+	defer splitsRunning.Store(false)
+	checkSplitsAndDividends(ctx, q, rawDB, lastWeekday(now))
 }
 
 // backupHour is the hour in TIMEZONE from which the daily backup runs.
