@@ -18,23 +18,35 @@ import (
 // whole list in one go each week rather than a few stocks every day.
 const profileMaxAge = 6*24*time.Hour + 12*time.Hour
 
-// ProfileCutoff is the updated_at before which a profile is due for a
-// refresh, in stock_profiles' format.
-func ProfileCutoff(now time.Time) string {
-	return now.UTC().Add(-profileMaxAge).Format(time.DateTime)
+// statsRetryAge is how soon a profile with no statistics (no market cap) is
+// tried again. A new listing often has /profile a day or two before
+// /statistics, and without this it would wait profileMaxAge for its
+// financials. Under a day, so the next daily run retries it; a stock Twelve
+// Data never has statistics for costs 61 credits a day.
+const statsRetryAge = 20 * time.Hour
+
+// ProfilesDue is the query for S&P 500 stocks whose profile is missing, older
+// than profileMaxAge, or without statistics and older than statsRetryAge.
+func ProfilesDue(now time.Time) db.ListStocksNeedingProfileParams {
+	cutoff := func(age time.Duration) string {
+		return now.UTC().Add(-age).Format(time.DateTime)
+	}
+	return db.ListStocksNeedingProfileParams{
+		Market:      "sp500",
+		StaleBefore: cutoff(profileMaxAge),
+		RetryBefore: cutoff(statsRetryAge),
+	}
 }
 
 // RefreshProfiles fetches company details (/profile), metrics (/statistics)
-// and the logo (/logo) for S&P 500 stocks whose profile is missing or older
-// than profileMaxAge. None of these endpoints accept batches, and together
+// and the logo (/logo) for S&P 500 stocks whose profile is due (ProfilesDue).
+// None of these endpoints accept batches, and together
 // they cost 61 credits per stock, so a full refresh of ~520 stocks takes about
 // 53 minutes of the plan's quota.
 //
 // A failed endpoint leaves that part of the stored profile as it was.
 func (f *Fetcher) RefreshProfiles(ctx context.Context, q *db.Queries) error {
-	stocks, err := q.ListStocksNeedingProfile(ctx, db.ListStocksNeedingProfileParams{
-		Market: "sp500", UpdatedAt: ProfileCutoff(time.Now()),
-	})
+	stocks, err := q.ListStocksNeedingProfile(ctx, ProfilesDue(time.Now()))
 	if err != nil {
 		return err
 	}

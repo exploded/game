@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/exploded/game/internal/db"
+	"github.com/exploded/game/internal/market"
 )
 
 func TestDailyFetchDue(t *testing.T) {
@@ -49,5 +50,40 @@ func TestEnableLoadTestRevalueRefusedInProduction(t *testing.T) {
 	}
 	if !EnableLoadTestRevalue(false) || !loadTestRevalue.Load() {
 		t.Fatal("load-test revaluation didn't turn on outside production")
+	}
+}
+
+// TestSplitsCheckDue: two checks each New York weekday, from 10:00 UTC and
+// from 8:30 am in New York, each once it has gone through.
+func TestSplitsCheckDue(t *testing.T) {
+	if market.NewYork == nil {
+		t.Skip("no America/New_York time zone")
+	}
+	utc := func(s string) time.Time {
+		tm, err := time.Parse(time.DateTime, s)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return tm
+	}
+	const mon = "2026-11-23" // EST: 8:30 am is 13:30 UTC
+	for _, c := range []struct {
+		name, now, done, early string
+		late, due              bool
+	}{
+		{"before 10:00 UTC", "2026-11-23 09:59:00", "", "", false, false},
+		{"early check", "2026-11-23 10:00:00", "", "", false, true},
+		{"early done, waiting", "2026-11-23 13:29:00", "", mon, false, false},
+		{"late check", "2026-11-23 13:30:00", "", mon, true, true},
+		{"late done", "2026-11-23 20:00:00", mon, mon, false, false},
+		{"started after 8:30 am: one late check", "2026-11-23 15:00:00", "", "", true, true},
+		{"early done for an older day", "2026-11-23 10:05:00", "", "2026-11-20", false, true},
+		{"Saturday", "2026-11-21 14:00:00", "", "", false, false},
+		{"summer time: 8:30 am is 12:30 UTC", "2026-06-15 12:30:00", "", "2026-06-15", true, true},
+	} {
+		_, late, due := splitsCheckDue(utc(c.now), c.done, c.early)
+		if late != c.late || due != c.due {
+			t.Errorf("%s: late %v, due %v; want %v, %v", c.name, late, due, c.late, c.due)
+		}
 	}
 }

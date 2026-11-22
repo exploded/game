@@ -559,11 +559,14 @@ SELECT COUNT(*) FROM stock_profiles
 WHERE logo LIKE 'https://api.twelvedata.com/%' OR logo LIKE 'https://logo.twelvedata.com/%';
 
 -- name: ListStocksNeedingProfile :many
--- Active stocks with no profile row, or one last refreshed before the cutoff.
+-- Active stocks with no profile row, one last refreshed before stale_before,
+-- or one with no statistics yet (market_cap 0) last tried before retry_before.
 SELECT s.* FROM stocks s
 LEFT JOIN stock_profiles p ON p.stock_id = s.id
-WHERE s.is_active = 1 AND s.market = ?
-  AND (p.stock_id IS NULL OR p.updated_at < ?)
+WHERE s.is_active = 1 AND s.market = sqlc.arg(market)
+  AND (p.stock_id IS NULL
+       OR p.updated_at < sqlc.arg(stale_before)
+       OR (p.market_cap = 0 AND p.updated_at < sqlc.arg(retry_before)))
 ORDER BY s.symbol ASC;
 
 -- name: UpsertStockProfileInfo :exec

@@ -7108,19 +7108,23 @@ func (q *Queries) ListStockVideos(ctx context.Context, stockID int64) ([]Video, 
 const listStocksNeedingProfile = `-- name: ListStocksNeedingProfile :many
 SELECT s.id, s.symbol, s.name, s.market, s.sector, s.currency, s.is_active, s.created_at, s.history_fetched_at, s.listing FROM stocks s
 LEFT JOIN stock_profiles p ON p.stock_id = s.id
-WHERE s.is_active = 1 AND s.market = ?
-  AND (p.stock_id IS NULL OR p.updated_at < ?)
+WHERE s.is_active = 1 AND s.market = ?1
+  AND (p.stock_id IS NULL
+       OR p.updated_at < ?2
+       OR (p.market_cap = 0 AND p.updated_at < ?3))
 ORDER BY s.symbol ASC
 `
 
 type ListStocksNeedingProfileParams struct {
-	Market    string
-	UpdatedAt string
+	Market      string
+	StaleBefore string
+	RetryBefore string
 }
 
-// Active stocks with no profile row, or one last refreshed before the cutoff.
+// Active stocks with no profile row, one last refreshed before stale_before,
+// or one with no statistics yet (market_cap 0) last tried before retry_before.
 func (q *Queries) ListStocksNeedingProfile(ctx context.Context, arg ListStocksNeedingProfileParams) ([]Stock, error) {
-	rows, err := q.db.QueryContext(ctx, listStocksNeedingProfile, arg.Market, arg.UpdatedAt)
+	rows, err := q.db.QueryContext(ctx, listStocksNeedingProfile, arg.Market, arg.StaleBefore, arg.RetryBefore)
 	if err != nil {
 		return nil, err
 	}

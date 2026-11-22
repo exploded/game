@@ -23,6 +23,15 @@ const splitsCalendarCost = 40
 // applied if the server missed the morning it happened.
 const splitsLookback = 7 * 24 * time.Hour
 
+// calendarEnd is the end_date to send for a calendar that should include
+// day. Twelve Data's end_date is exclusive: asked for end_date=today, the
+// splits calendar left out SanDisk's 8-for-1 split on 20 November 2026, so
+// the check that morning missed it and holdings sat at an eighth of their
+// value. Rows after today are skipped by the callers.
+func calendarEnd(day time.Time) string {
+	return day.AddDate(0, 0, 1).Format(time.DateOnly)
+}
+
 // calendarSplit is one row of Twelve Data's /splits_calendar.
 type calendarSplit struct {
 	Date        string  `json:"date"`
@@ -50,7 +59,7 @@ func (f *Fetcher) CheckSplits(ctx context.Context, q *db.Queries, today string) 
 		return 0, err
 	}
 	u := fmt.Sprintf("https://api.twelvedata.com/splits_calendar?country=%s&start_date=%s&end_date=%s",
-		url.QueryEscape("United States"), day.Add(-splitsLookback).Format(time.DateOnly), today)
+		url.QueryEscape("United States"), day.Add(-splitsLookback).Format(time.DateOnly), calendarEnd(day))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
 		return 0, err

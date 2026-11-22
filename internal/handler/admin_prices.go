@@ -78,9 +78,7 @@ func (h *Handler) AdminPrices(w http.ResponseWriter, r *http.Request) {
 		p.RateDate = rate.Date
 	}
 
-	stale, _ := h.q.ListStocksNeedingProfile(ctx, db.ListStocksNeedingProfileParams{
-		Market: "sp500", UpdatedAt: market.ProfileCutoff(time.Now()),
-	})
+	stale, _ := h.q.ListStocksNeedingProfile(ctx, market.ProfilesDue(time.Now()))
 	p.Profiles = len(stocks) - len(stale)
 	p.Logos, _ = h.q.CountStockProfilesWithLogo(ctx)
 	runs, _ := h.q.ListFetchLogs(ctx)

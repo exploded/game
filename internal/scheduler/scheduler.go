@@ -27,9 +27,12 @@ var newsRunning atomic.Bool
 var splitsRunning atomic.Bool
 var backupRunning atomic.Bool
 
-// splitsCheckedFor is the New York date of the last good splits and
-// dividends check, and splitsTriedAt when the last one started (Unix seconds).
+// splitsCheckedFor is the New York date whose last splits and dividends
+// check (the one before the open) went through, splitsEarlyFor the date
+// whose early check did, and splitsTriedAt when the last one started (Unix
+// seconds).
 var splitsCheckedFor atomic.Value
+var splitsEarlyFor atomic.Value
 var splitsTriedAt atomic.Int64
 
 // backupTriedAt is when the last database backup started (Unix seconds).
@@ -257,22 +260,49 @@ func startupBackfill(ctx context.Context, q *db.Queries, rawDB *sql.DB) {
 	SignalPricesChanged()
 }
 
-// maybeCheckSplits applies stock splits (market.CheckSplits), then pays
-// dividends (market.CheckDividends), once each New York weekday, from
-// 10:00 UTC: after the night's daily fetch and before the 13:30 or 14:30
-// UTC open, so holdings, orders and prices change together, and a dividend
-// goes to whoever held the stock at the close. If either fails, both are
-// tried again after dailyRetry; neither applies anything twice.
-func maybeCheckSplits(ctx context.Context, q *db.Queries, rawDB *sql.DB, now time.Time) {
-	if market.NewYork == nil || now.UTC().Hour() < 10 {
-		return
+// splitsLateCheck is when, in New York, the second splits and dividends
+// check of the day runs: an hour before the 9:30 am open.
+const splitsLateCheck = 8*time.Hour + 30*time.Minute
+
+// splitsCheckDue says whether a splits and dividends check is due at now,
+// given the New York dates whose late (done) and early checks went
+// through, and if so for which date and whether it's the late one.
+func splitsCheckDue(now time.Time, done, early string) (today string, late, due bool) {
+	if now.UTC().Hour() < 10 {
+		return "", false, false
 	}
 	ny := now.In(market.NewYork)
 	if ny.Weekday() == time.Saturday || ny.Weekday() == time.Sunday {
+		return "", false, false
+	}
+	today = ny.Format(time.DateOnly)
+	if done == today {
+		return today, false, false
+	}
+	midnight := time.Date(ny.Year(), ny.Month(), ny.Day(), 0, 0, 0, 0, market.NewYork)
+	late = ny.Sub(midnight) >= splitsLateCheck
+	if early == today && !late {
+		return today, false, false
+	}
+	return today, late, true
+}
+
+// maybeCheckSplits applies stock splits (market.CheckSplits), then pays
+// dividends (market.CheckDividends), twice each New York weekday, both
+// before the open, so holdings, orders and prices change together, and a
+// dividend goes to whoever held the stock at the close. The first check is
+// from 10:00 UTC, after the night's daily fetch; the second from 8:30 am in
+// New York (splitsLateCheck), for a split or dividend Twelve Data adds to
+// its calendar after the first. If either fails, both are tried again after
+// dailyRetry; neither applies anything twice.
+func maybeCheckSplits(ctx context.Context, q *db.Queries, rawDB *sql.DB, now time.Time) {
+	if market.NewYork == nil {
 		return
 	}
-	today := ny.Format(time.DateOnly)
-	if done, _ := splitsCheckedFor.Load().(string); done == today {
+	done, _ := splitsCheckedFor.Load().(string)
+	early, _ := splitsEarlyFor.Load().(string)
+	today, late, due := splitsCheckDue(now, done, early)
+	if !due {
 		return
 	}
 	if now.Sub(time.Unix(splitsTriedAt.Load(), 0)) < dailyRetry {
@@ -294,7 +324,11 @@ func maybeCheckSplits(ctx context.Context, q *db.Queries, rawDB *sql.DB, now tim
 			slog.Error("dividends", "error", derr)
 		}
 		if err == nil && derr == nil {
-			splitsCheckedFor.Store(today)
+			if late {
+				splitsCheckedFor.Store(today)
+			} else {
+				splitsEarlyFor.Store(today)
+			}
 		}
 		if n > 0 || paid > 0 {
 			SignalPricesChanged()

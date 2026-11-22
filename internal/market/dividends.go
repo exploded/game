@@ -56,7 +56,7 @@ func (f *Fetcher) CheckDividends(ctx context.Context, q *db.Queries, today strin
 		return 0, err
 	}
 	u := fmt.Sprintf("https://api.twelvedata.com/dividends_calendar?country=%s&start_date=%s&end_date=%s&outputsize=%d",
-		url.QueryEscape("United States"), day.Add(-splitsLookback).Format(time.DateOnly), today, dividendsCalendarRows)
+		url.QueryEscape("United States"), day.Add(-splitsLookback).Format(time.DateOnly), calendarEnd(day), dividendsCalendarRows)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
 		return 0, err

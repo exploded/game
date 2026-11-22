@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/exploded/game/internal/db"
@@ -132,6 +133,38 @@ func TestCheckSplitsAppliedLate(t *testing.T) {
 	d.QueryRow(`SELECT COUNT(*) FROM notifications WHERE type = 'stock_split'`).Scan(&notes)
 	if notes != 3 {
 		t.Errorf("%d split notifications, want 3 (two NVDA holders from before, one REV)", notes)
+	}
+}
+
+// recordURL notes each request's query and answers with an empty list.
+type recordURL struct{ got *[]url.Values }
+
+func (rec recordURL) RoundTrip(r *http.Request) (*http.Response, error) {
+	*rec.got = append(*rec.got, r.URL.Query())
+	return twelveDataStub("[]").RoundTrip(r)
+}
+
+// TestCalendarsIncludeToday: Twelve Data's end_date is exclusive, so the
+// splits and dividends calendars must ask for the day after, or a split or
+// ex-date on the day of the check is missed (SanDisk, 20 November 2026).
+func TestCalendarsIncludeToday(t *testing.T) {
+	var got []url.Values
+	f := &Fetcher{client: &http.Client{Transport: recordURL{&got}}}
+	ctx := context.Background()
+	if _, err := f.CheckSplits(ctx, nil, "2026-11-20"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.CheckDividends(ctx, nil, "2026-11-20"); err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("%d requests, want 2", len(got))
+	}
+	for i, q := range got {
+		if q.Get("start_date") != "2026-11-13" || q.Get("end_date") != "2026-11-21" {
+			t.Errorf("request %d: start_date %s, end_date %s; want 2026-11-13 to 2026-11-21",
+				i, q.Get("start_date"), q.Get("end_date"))
+		}
 	}
 }
 
