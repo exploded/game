@@ -84,20 +84,23 @@ joined yet.
 
 The video is a file on our own site, not YouTube, so it plays in a plain
 player with no YouTube branding. It's built into the program with the CSS and
-images, so it ships with every deploy. For now it's a placeholder: a short tour
-of the site with "Inspired" by Kevin MacLeod as music. That track is licensed
-CC BY 4.0, so its credit must stay while the track is used. It's under
-Credits on the About page, not under the video. The originals are in `.local/video` (not in git).
+images, so it ships with every deploy. Since 23 November 2026 it's an
+80-second tour of the site with Rob talking over it in a corner (original:
+`.local/video/the-investor-project-home-page-video.mp4`, 1080p HEVC, which
+many browsers can't play, so always ship the H.264 copy). It needs no music
+credit; the placeholder tour before it had one on the About page. The
+originals are in `.local/video` (not in git).
 
-To replace it with Rob's video:
+To replace it:
 
 1. Make a web copy at 720p, with the index at the front so it starts playing
    straight away (in PowerShell, in the folder with Rob's file):
    `ffmpeg -i rob.mp4 -vf scale=-2:720 -c:v libx264 -preset slow -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -movflags +faststart the-investor-project-tour.mp4`
 2. Make a cover from a frame, here 1 second in:
    `ffmpeg -ss 1 -i rob.mp4 -frames:v 1 -vf scale=1280:-2 -q:v 4 the-investor-project-tour.jpg`
-3. Replace both files in `static/video`, change or remove the music credit on
-   the About page (`templates/pages/legal/about.html`), then build and deploy.
+3. Replace both files in `static/video`. If the video uses licensed music, add
+   its credit under Credits on the About page (`templates/pages/legal/about.html`).
+   Then build and deploy.
 
 Keep it under about 20 MB; every deploy carries it.
 

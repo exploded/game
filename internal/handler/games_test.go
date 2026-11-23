@@ -157,18 +157,6 @@ func TestDashboardJoinsCurrentGame(t *testing.T) {
 	}
 }
 
-// The tour's music is CC BY 4.0, so it needs a credit. It's on the About
-// page, not under the video.
-func TestAboutCreditsTourMusic(t *testing.T) {
-	d := openTestDB(t)
-	h := New(db.New(d), d, loadTestTemplates(t), false, time.UTC)
-	w := httptest.NewRecorder()
-	h.AboutPage(w, httptest.NewRequest("GET", "/about", nil))
-	if !strings.Contains(w.Body.String(), "Kevin MacLeod") || !strings.Contains(w.Body.String(), "CC BY 4.0") {
-		t.Error("About page has no credit for the tour's music")
-	}
-}
-
 // TestDashboardCreatesMissingGame: just after midnight on the 1st the
 // scheduler may not have made the month's game yet. Game Home still opens
 // it, already joined: players never join by hand.
